@@ -1,6 +1,6 @@
 package org.dbsoft.dwindows
 
-import android.app.Activity
+import android.R.attr
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -8,6 +8,7 @@ import android.content.DialogInterface
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.drawable.GradientDrawable
 import android.media.AudioManager
 import android.media.ToneGenerator
@@ -21,6 +22,7 @@ import android.text.InputType
 import android.text.method.PasswordTransformationMethod
 import android.util.Base64
 import android.util.Log
+import android.util.SparseBooleanArray
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
@@ -41,6 +43,9 @@ import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayout.OnTabSelectedListener
 import com.google.android.material.tabs.TabLayoutMediator
+import java.io.File
+import java.io.FileInputStream
+import java.io.FileNotFoundException
 import java.util.*
 import java.util.concurrent.locks.ReentrantLock
 
@@ -102,9 +107,18 @@ class DWSpinButton(context: Context) : AppCompatEditText(context), OnTouchListen
             if (event.x >= v.width - (v as EditText)
                     .compoundDrawables[DRAWABLE_RIGHT].bounds.width()
             ) {
-                value += 1
+                val newvalue = this.text.toString().toLong()
+
+                if(newvalue != null) {
+                    value = newvalue + 1
+                } else {
+                    value += 1
+                }
                 if(value > maximum) {
                     value = maximum
+                }
+                if(value < minimum) {
+                    value = minimum
                 }
                 setText(value.toString())
                 eventHandlerInt(14, value.toInt(), 0, 0, 0)
@@ -112,7 +126,16 @@ class DWSpinButton(context: Context) : AppCompatEditText(context), OnTouchListen
             } else if (event.x <= (v as EditText)
                     .compoundDrawables[DRAWABLE_LEFT].bounds.width()
             ) {
-                value -= 1
+                val newvalue = this.text.toString().toLong()
+
+                if(newvalue != null) {
+                    value = newvalue - 1
+                } else {
+                    value -= 1
+                }
+                if(value > maximum) {
+                    value = maximum
+                }
                 if(value < minimum) {
                     value = minimum
                 }
@@ -555,6 +578,63 @@ class DWindows : AppCompatActivity() {
             button!!.setOnClickListener {
                 eventHandlerSimple(button!!, 8)
             }
+        }
+        return button
+    }
+
+    fun bitmapButtonNew(text: String, resid: Int): ImageButton? {
+        var button: ImageButton? = null
+        waitOnUiThread {
+            button = ImageButton(this)
+            var dataArrayMap = SimpleArrayMap<String, Long>()
+
+            button!!.tag = dataArrayMap
+            button!!.id = resid
+            button!!.setImageResource(resid)
+            button!!.setOnClickListener {
+                eventHandlerSimple(button!!, 8)
+            }
+        }
+        return button
+    }
+
+    fun bitmapButtonNewFromFile(text: String, cid: Int, filename: String): ImageButton? {
+        var button: ImageButton? = null
+        waitOnUiThread {
+            button = ImageButton(this)
+            var dataArrayMap = SimpleArrayMap<String, Long>()
+
+            button!!.tag = dataArrayMap
+            button!!.id = cid
+            button!!.setOnClickListener {
+                eventHandlerSimple(button!!, 8)
+            }
+            // Try to load the image, and protect against exceptions
+            try {
+                val f = File(filename)
+                val b = BitmapFactory.decodeStream(FileInputStream(f))
+                button!!.setImageBitmap(b)
+            }
+            catch (e: FileNotFoundException)
+            {
+            }
+        }
+        return button
+    }
+
+    fun bitmapButtonNewFromData(text: String, cid: Int, data: ByteArray, length: Int): ImageButton? {
+        var button: ImageButton? = null
+        waitOnUiThread {
+            button = ImageButton(this)
+            var dataArrayMap = SimpleArrayMap<String, Long>()
+            val b = BitmapFactory.decodeByteArray(data,0, length)
+
+            button!!.tag = dataArrayMap
+            button!!.id = cid
+            button!!.setOnClickListener {
+                eventHandlerSimple(button!!, 8)
+            }
+            button!!.setImageBitmap(b)
         }
         return button
     }
@@ -1269,12 +1349,12 @@ class DWindows : AppCompatActivity() {
             if(window is DWComboBox) {
                 val combobox = window
 
-                if(index < combobox.list.count())
+                if(index > -1 && index < combobox.list.count())
                     combobox.list[index] = text
             } else if(window is DWListBox) {
                 val listbox = window
 
-                if(index < listbox.list.count())
+                if(index > -1 && index < listbox.list.count())
                     listbox.list[index] = text
             }
         }
@@ -1288,12 +1368,12 @@ class DWindows : AppCompatActivity() {
             if(window is DWComboBox) {
                 val combobox = window
 
-                if(index < combobox.list.count())
+                if(index > -1 && index < combobox.list.count())
                     retval = combobox.list[index]
             } else if(window is DWListBox) {
                 val listbox = window
 
-                if(index < listbox.list.count())
+                if(index > -1 && index < listbox.list.count())
                     retval = listbox.list[index]
             }
         }
@@ -1362,7 +1442,7 @@ class DWindows : AppCompatActivity() {
         }
     }
 
-    fun listSetTop(window: View, top: Int)
+    fun listBoxSetTop(window: View, top: Int)
     {
         waitOnUiThread {
             if(window is DWListBox) {
@@ -1373,6 +1453,36 @@ class DWindows : AppCompatActivity() {
                 }
             }
         }
+    }
+
+    fun listBoxSelectedMulti(window: View, where: Int): Int
+    {
+        var retval: Int = -1
+
+        waitOnUiThread {
+            if(window is DWListBox) {
+                val listbox = window
+                val checked: SparseBooleanArray = listbox.getCheckedItemPositions()
+
+                // If we are starting over....
+                if(where == -1 && checked.size() > 0) {
+                    retval = checked.keyAt(0)
+                } else {
+                    // Otherwise loop until we find our current place
+                    for (i in 0 until checked.size()) {
+                        // Item position in adapter
+                        val position: Int = checked.keyAt(i)
+                        // If we are at our current point... check to see
+                        // if there is another one, and return it...
+                        // otherwise we will return -1 to indicated we are done.
+                        if (where == position && (i+1) < checked.size()) {
+                            retval = checked.keyAt(i+1)
+                        }
+                    }
+                }
+            }
+        }
+        return retval
     }
 
     fun timerConnect(interval: Long, sigfunc: Long, data: Long): Timer
