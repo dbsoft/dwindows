@@ -93,7 +93,7 @@ void _dw_main_launch(char *arg)
     }
     else
     {
-        char *argv[2] = {arg, NULL};
+        char *argv[2] = {arg, nullptr};
 
         /* Wait for a short while to see if we get called again...
          * if we get called again we will be posted, if not...
@@ -118,8 +118,8 @@ void _dw_main_launch(char *arg)
 JNIEXPORT void JNICALL
 Java_org_dbsoft_dwindows_DWindows_dwindowsInit(JNIEnv* env, jobject obj, jstring path, jstring appID)
 {
-    char *arg = strdup(env->GetStringUTFChars((jstring)path, NULL));
-    const char *appid = env->GetStringUTFChars((jstring)appID, NULL);
+    char *arg = strdup(env->GetStringUTFChars((jstring)path, nullptr));
+    const char *appid = env->GetStringUTFChars((jstring)appID, nullptr);
 
     if(!_dw_main_event)
     {
@@ -127,7 +127,7 @@ Java_org_dbsoft_dwindows_DWindows_dwindowsInit(JNIEnv* env, jobject obj, jstring
         _dw_obj = env->NewGlobalRef(obj);
 
         /* Save the JNIEnv for the main thread */
-        pthread_key_create(&_dw_env_key, NULL);
+        pthread_key_create(&_dw_env_key, nullptr);
         pthread_setspecific(_dw_env_key, env);
 
         /* Create the dwmain event */
@@ -161,7 +161,7 @@ typedef struct _sighandler
 
 } SignalHandler;
 
-static SignalHandler *DWRoot = NULL;
+static SignalHandler *DWRoot = nullptr;
 
 SignalHandler *_dw_get_handler(HWND window, int messageid)
 {
@@ -177,7 +177,7 @@ SignalHandler *_dw_get_handler(HWND window, int messageid)
             tmp = tmp->next;
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 typedef struct
@@ -386,11 +386,11 @@ JNIEXPORT jint JNICALL
 Java_org_dbsoft_dwindows_DWindows_eventHandler(JNIEnv* env, jobject obj, jobject obj1, jobject obj2,
                                                       jint message, jstring str1, jstring str2,
                                                       jint inta, jint intb, jint intc, jint intd) {
-    const char *utf81 = str1 ? env->GetStringUTFChars(str1, NULL) : NULL;
-    const char *utf82 = str2 ? env->GetStringUTFChars(str2, NULL) : NULL;
+    const char *utf81 = str1 ? env->GetStringUTFChars(str1, nullptr) : nullptr;
+    const char *utf82 = str2 ? env->GetStringUTFChars(str2, nullptr) : nullptr;
     void *params[8] = { (void *)obj2, (void *)utf81, (void *)utf82,
                         DW_INT_TO_POINTER(inta), DW_INT_TO_POINTER(intb),
-                        DW_INT_TO_POINTER(intc), DW_INT_TO_POINTER(intd), NULL };
+                        DW_INT_TO_POINTER(intc), DW_INT_TO_POINTER(intd), nullptr };
 
     return _dw_event_handler(obj1, params, message);
 }
@@ -398,7 +398,7 @@ Java_org_dbsoft_dwindows_DWindows_eventHandler(JNIEnv* env, jobject obj, jobject
 /* A more simple method for quicker calls */
 JNIEXPORT void JNICALL
 Java_org_dbsoft_dwindows_DWindows_eventHandlerSimple(JNIEnv* env, jobject obj, jobject obj1, jint message) {
-    void *params[8] = { NULL };
+    void *params[8] = { nullptr };
 
     _dw_event_handler(obj1, params, message);
 }
@@ -406,7 +406,7 @@ Java_org_dbsoft_dwindows_DWindows_eventHandlerSimple(JNIEnv* env, jobject obj, j
 /* Handler for notebook page changes */
 JNIEXPORT void JNICALL
 Java_org_dbsoft_dwindows_DWindows_eventHandlerNotebook(JNIEnv* env, jobject obj, jobject obj1, jint message, jlong pageID) {
-    void *params[8] = { NULL };
+    void *params[8] = { nullptr };
 
     params[3] = DW_INT_TO_POINTER(pageID);
     _dw_event_handler(obj1, params, message);
@@ -416,8 +416,8 @@ Java_org_dbsoft_dwindows_DWindows_eventHandlerNotebook(JNIEnv* env, jobject obj,
 JNIEXPORT void JNICALL
 Java_org_dbsoft_dwindows_DWindows_eventHandlerHTMLResult(JNIEnv* env, jobject obj, jobject obj1,
                                                jint message, jstring htmlResult, jlong data) {
-    const char *result = env->GetStringUTFChars(htmlResult, NULL);
-    void *params[8] = { NULL, DW_POINTER(result), NULL, 0, 0, 0, 0, DW_INT_TO_POINTER(data) };
+    const char *result = env->GetStringUTFChars(htmlResult, nullptr);
+    void *params[8] = { nullptr, DW_POINTER(result), nullptr, 0, 0, 0, 0, DW_INT_TO_POINTER(data) };
 
     _dw_event_handler(obj1, params, message);
 }
@@ -425,8 +425,8 @@ Java_org_dbsoft_dwindows_DWindows_eventHandlerHTMLResult(JNIEnv* env, jobject ob
 JNIEXPORT void JNICALL
 Java_org_dbsoft_dwindows_DWWebViewClient_eventHandlerHTMLChanged(JNIEnv* env, jobject obj, jobject obj1,
                                                          jint message, jstring URI, jint status) {
-    const char *uri = env->GetStringUTFChars(URI, NULL);
-    void *params[8] = { NULL, DW_POINTER(uri), NULL, DW_INT_TO_POINTER(status), 0, 0, 0, 0 };
+    const char *uri = env->GetStringUTFChars(URI, nullptr);
+    void *params[8] = { nullptr, DW_POINTER(uri), nullptr, DW_INT_TO_POINTER(status), 0, 0, 0, 0 };
 
     _dw_event_handler(obj1, params, message);
 }
@@ -434,9 +434,9 @@ Java_org_dbsoft_dwindows_DWWebViewClient_eventHandlerHTMLChanged(JNIEnv* env, jo
 JNIEXPORT void JNICALL
 Java_org_dbsoft_dwindows_DWindows_eventHandlerInt(JNIEnv* env, jobject obj, jobject obj1, jint message,
                                                jint inta, jint intb, jint intc, jint intd) {
-    void *params[8] = { NULL, NULL, NULL,
+    void *params[8] = { nullptr, nullptr, nullptr,
                         DW_INT_TO_POINTER(inta), DW_INT_TO_POINTER(intb),
-                        DW_INT_TO_POINTER(intc), DW_INT_TO_POINTER(intd), NULL };
+                        DW_INT_TO_POINTER(intc), DW_INT_TO_POINTER(intd), nullptr };
 
     _dw_event_handler(obj1, params, message);
 }
@@ -444,9 +444,9 @@ Java_org_dbsoft_dwindows_DWindows_eventHandlerInt(JNIEnv* env, jobject obj, jobj
 JNIEXPORT void JNICALL
 Java_org_dbsoft_dwindows_DWComboBox_eventHandlerInt(JNIEnv* env, jobject obj, jint message,
                                                   jint inta, jint intb, jint intc, jint intd) {
-    void *params[8] = { NULL, NULL, NULL,
+    void *params[8] = { nullptr, nullptr, nullptr,
                         DW_INT_TO_POINTER(inta), DW_INT_TO_POINTER(intb),
-                        DW_INT_TO_POINTER(intc), DW_INT_TO_POINTER(intd), NULL };
+                        DW_INT_TO_POINTER(intc), DW_INT_TO_POINTER(intd), nullptr };
 
     _dw_event_handler(obj, params, message);
 }
@@ -454,9 +454,9 @@ Java_org_dbsoft_dwindows_DWComboBox_eventHandlerInt(JNIEnv* env, jobject obj, ji
 JNIEXPORT void JNICALL
 Java_org_dbsoft_dwindows_DWSpinButton_eventHandlerInt(JNIEnv* env, jobject obj, jint message,
                                                     jint inta, jint intb, jint intc, jint intd) {
-    void *params[8] = { NULL, NULL, NULL,
+    void *params[8] = { nullptr, nullptr, nullptr,
                         DW_INT_TO_POINTER(inta), DW_INT_TO_POINTER(intb),
-                        DW_INT_TO_POINTER(intc), DW_INT_TO_POINTER(intd), NULL };
+                        DW_INT_TO_POINTER(intc), DW_INT_TO_POINTER(intd), nullptr };
 
     _dw_event_handler(obj, params, message);
 }
@@ -464,9 +464,9 @@ Java_org_dbsoft_dwindows_DWSpinButton_eventHandlerInt(JNIEnv* env, jobject obj, 
 JNIEXPORT void JNICALL
 Java_org_dbsoft_dwindows_DWListBox_eventHandlerInt(JNIEnv* env, jobject obj, jint message,
                                                     jint inta, jint intb, jint intc, jint intd) {
-    void *params[8] = { NULL, NULL, NULL,
+    void *params[8] = { nullptr, nullptr, nullptr,
                         DW_INT_TO_POINTER(inta), DW_INT_TO_POINTER(intb),
-                        DW_INT_TO_POINTER(intc), DW_INT_TO_POINTER(intd), NULL };
+                        DW_INT_TO_POINTER(intc), DW_INT_TO_POINTER(intd), nullptr };
 
     _dw_event_handler(obj, params, message);
 }
@@ -492,13 +492,13 @@ void _dw_new_signal(ULONG message, HWND window, int msgid, void *signalfunction,
     newsig->signalfunction = signalfunction;
     newsig->discfunction = discfunc;
     newsig->data = data;
-    newsig->next = NULL;
+    newsig->next = nullptr;
 
     if (!DWRoot)
         DWRoot = newsig;
     else
     {
-        SignalHandler *prev = NULL, *tmp = DWRoot;
+        SignalHandler *prev = nullptr, *tmp = DWRoot;
         while(tmp)
         {
             if(tmp->message == message &&
@@ -654,7 +654,7 @@ char * API dw_app_dir(void)
  * Sets the application ID used by this Dynamic Windows application instance.
  * Parameters:
  *         appid: A string typically in the form: com.company.division.application
- *         appname: The application name used on Windows or NULL.
+ *         appname: The application name used on Windows or nullptr.
  * Returns:
  *         DW_ERROR_NONE after successfully setting the application ID.
  *         DW_ERROR_UNKNOWN if unsupported on this system.
@@ -663,7 +663,7 @@ char * API dw_app_dir(void)
  *          This must be called before dw_init().  If dw_init() is called first
  *          it will create a unique ID in the form: org.dbsoft.dwindows.application
  *          or if the application name cannot be detected: org.dbsoft.dwindows.pid.#
- *          The appname is used on Windows and Android.  If NULL is passed the
+ *          The appname is used on Windows and Android.  If nullptr is passed the
  *          detected name will be used, but a prettier name may be desired.
  */
 int API dw_app_id_set(const char *appid, const char *appname)
@@ -756,7 +756,7 @@ int API dw_messagebox(const char *title, int flags, const char *format, ...)
  *       ext: Default file extention.
  *       flags: DW_FILE_OPEN or DW_FILE_SAVE.
  * Returns:
- *       NULL on error. A malloced buffer containing
+ *       nullptr on error. A malloced buffer containing
  *       the file path on success.
  *
  */
@@ -768,8 +768,8 @@ char * API dw_file_browse(const char *title, const char *defpath, const char *ex
     {
         // Use a long parameter
         jstring jstr = env->NewStringUTF(title);
-        jstring path = NULL;
-        jstring jext = NULL;
+        jstring path = nullptr;
+        jstring jext = nullptr;
         if(defpath)
             path = env->NewStringUTF(defpath);
         if(ext)
@@ -784,7 +784,7 @@ char * API dw_file_browse(const char *title, const char *defpath, const char *ex
         if(jresult)
             return strdup(env->GetStringUTFChars(jresult, 0));
     }
-    return NULL;
+    return nullptr;
 }
 
 /*
@@ -792,7 +792,7 @@ char * API dw_file_browse(const char *title, const char *defpath, const char *ex
  * Parameters:
  *       None.
  * Returns:
- *       Pointer to an allocated string of text or NULL if clipboard empty or contents could not
+ *       Pointer to an allocated string of text or nullptr if clipboard empty or contents could not
  *       be converted to text.
  */
 char * API dw_clipboard_get_text()
@@ -801,7 +801,7 @@ char * API dw_clipboard_get_text()
 
     if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
-        const char *utf8 = NULL;
+        const char *utf8 = nullptr;
 
         // First get the class that contains the method you need to call
         jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
@@ -813,9 +813,9 @@ char * API dw_clipboard_get_text()
         // Get the UTF8 string result
         if(result)
             utf8 = env->GetStringUTFChars(result, 0);
-        return utf8 ? strdup(utf8) : NULL;
+        return utf8 ? strdup(utf8) : nullptr;
     }
-    return NULL;
+    return nullptr;
 }
 
 /*
@@ -847,7 +847,7 @@ void API dw_clipboard_set_text(const char *str, int len)
  * Parameters:
  *           data: User defined data to be passed to functions.
  * Returns:
- *       A handle to a dialog or NULL on failure.
+ *       A handle to a dialog or nullptr on failure.
  */
 DWDialog * API dw_dialog_new(void *data)
 {
@@ -859,7 +859,7 @@ DWDialog * API dw_dialog_new(void *data)
         dw_event_reset(tmp->eve);
         tmp->data = data;
         tmp->done = FALSE;
-        tmp->result = NULL;
+        tmp->result = nullptr;
     }
     return tmp;
 }
@@ -891,7 +891,7 @@ int API dw_dialog_dismiss(DWDialog *dialog, void *result)
  */
 void * API dw_dialog_wait(DWDialog *dialog)
 {
-    void *tmp = NULL;
+    void *tmp = nullptr;
 
     while(!dialog->done)
     {
@@ -909,7 +909,7 @@ void * API dw_dialog_wait(DWDialog *dialog)
  *       type: Either DW_VERT (vertical) or DW_HORZ (horizontal).
  *       pad: Number of pixels to pad around the box.
  * Returns:
- *       A handle to a box or NULL on failure.
+ *       A handle to a box or nullptr on failure.
  */
 HWND API dw_box_new(int type, int pad)
 {
@@ -935,7 +935,7 @@ HWND API dw_box_new(int type, int pad)
  *       pad: Number of pixels to pad around the box.
  *       title: Text to be displayined in the group outline.
  * Returns:
- *       A handle to a groupbox window or NULL on failure.
+ *       A handle to a groupbox window or nullptr on failure.
  */
 HWND API dw_groupbox_new(int type, int pad, const char *title)
 {
@@ -949,7 +949,7 @@ HWND API dw_groupbox_new(int type, int pad, const char *title)
  *       type: Either DW_VERT (vertical) or DW_HORZ (horizontal).
  *       pad: Number of pixels to pad around the box.
  * Returns:
- *       A handle to a scrollbox or NULL on failure.
+ *       A handle to a scrollbox or nullptr on failure.
  */
 HWND API dw_scrollbox_new(int type, int pad)
 {
@@ -1118,7 +1118,7 @@ void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, 
  *       text: The text to be display by the static text widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  * Returns:
- *       A handle to a button window or NULL on failure.
+ *       A handle to a button window or nullptr on failure.
  */
 HWND API dw_button_new(const char *text, ULONG cid)
 {
@@ -1165,7 +1165,7 @@ HWND _dw_entryfield_new(const char *text, ULONG cid, int password)
  *       text: The default text to be in the entryfield widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  * Returns:
- *       A handle to an entryfield window or NULL on failure.
+ *       A handle to an entryfield window or nullptr on failure.
  */
 HWND API dw_entryfield_new(const char *text, ULONG cid)
 {
@@ -1178,7 +1178,7 @@ HWND API dw_entryfield_new(const char *text, ULONG cid)
  *       text: The default text to be in the entryfield widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  * Returns:
- *       A handle to an entryfield password window or NULL on failure.
+ *       A handle to an entryfield password window or nullptr on failure.
  */
 HWND API dw_entryfield_password_new(const char *text, ULONG cid)
 {
@@ -1213,7 +1213,7 @@ void API dw_entryfield_set_limit(HWND handle, ULONG limit)
  *       text: Bubble help text to be displayed.
  *       id: An ID of a bitmap in the resource file.
  * Returns:
- *       A handle to a bitmap button window or NULL on failure.
+ *       A handle to a bitmap button window or nullptr on failure.
  */
 HWND API dw_bitmapbutton_new(const char *text, ULONG resid)
 {
@@ -1244,7 +1244,7 @@ HWND API dw_bitmapbutton_new(const char *text, ULONG resid)
  *                 DW pick the appropriate file extension.
  *                 (BMP on OS/2 or Windows, XPM on Unix)
  * Returns:
- *       A handle to a bitmap button window or NULL on failure.
+ *       A handle to a bitmap button window or nullptr on failure.
  */
 HWND API dw_bitmapbutton_new_from_file(const char *text, unsigned long cid, const char *filename)
 {
@@ -1276,7 +1276,7 @@ HWND API dw_bitmapbutton_new_from_file(const char *text, unsigned long cid, cons
  *            (BMP or ICO on OS/2 or Windows, XPM on Unix)
  *       len: length of str
  * Returns:
- *       A handle to a bitmap button window or NULL on failure.
+ *       A handle to a bitmap button window or nullptr on failure.
  */
 HWND API dw_bitmapbutton_new_from_data(const char *text, unsigned long cid, const char *data, int len)
 {
@@ -1309,7 +1309,7 @@ HWND API dw_bitmapbutton_new_from_data(const char *text, unsigned long cid, cons
  *       text: The text to be display by the static text widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  * Returns:
- *       A handle to a spinbutton window or NULL on failure.
+ *       A handle to a spinbutton window or nullptr on failure.
  */
 HWND API dw_spinbutton_new(const char *text, ULONG cid)
 {
@@ -1407,7 +1407,7 @@ long API dw_spinbutton_get_pos(HWND handle)
  *       text: The text to be display by the static text widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  * Returns:
- *       A handle to a radio button window or NULL on failure.
+ *       A handle to a radio button window or nullptr on failure.
  */
 HWND API dw_radiobutton_new(const char *text, ULONG cid)
 {
@@ -1436,7 +1436,7 @@ HWND API dw_radiobutton_new(const char *text, ULONG cid)
  *       increments: Number of increments available.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  * Returns:
- *       A handle to a slider window or NULL on failure.
+ *       A handle to a slider window or nullptr on failure.
  */
 HWND API dw_slider_new(int vertical, int increments, ULONG cid)
 {
@@ -1496,7 +1496,7 @@ void API dw_slider_set_pos(HWND handle, unsigned int position)
  *       vertical: TRUE or FALSE if scrollbar is vertical.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  * Returns:
- *       A handle to a scrollbar window or NULL on failure.
+ *       A handle to a scrollbar window or nullptr on failure.
  */
 HWND API dw_scrollbar_new(int vertical, ULONG cid)
 {
@@ -1554,7 +1554,7 @@ void API dw_scrollbar_set_range(HWND handle, unsigned int range, unsigned int vi
  * Parameters:
  *       id: An ID to be used with dw_window_from_id() or 0L.
  * Returns:
- *       A handle to a percent bar window or NULL on failure.
+ *       A handle to a percent bar window or nullptr on failure.
  */
 HWND API dw_percent_new(ULONG cid)
 {
@@ -1602,7 +1602,7 @@ void API dw_percent_set_pos(HWND handle, unsigned int position)
  *       text: The text to be display by the static text widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  * Returns:
- *       A handle to a checkbox window or NULL on failure.
+ *       A handle to a checkbox window or nullptr on failure.
  */
 HWND API dw_checkbox_new(const char *text, ULONG cid)
 {
@@ -1676,7 +1676,7 @@ void API dw_checkbox_set(HWND handle, int value)
  *       id: An ID to be used with dw_window_from_id() or 0L.
  *       multi: Multiple select TRUE or FALSE.
  * Returns:
- *       A handle to a listbox window or NULL on failure.
+ *       A handle to a listbox window or nullptr on failure.
  */
 HWND API dw_listbox_new(ULONG cid, int multi)
 {
@@ -1835,7 +1835,7 @@ void API dw_listbox_set_top(HWND handle, int top)
  *          handle: Handle to the listbox to be queried.
  *          index: Index into the list to be queried.
  *          buffer: Buffer where text will be copied.
- *          length: Length of the buffer (including NULL).
+ *          length: Length of the buffer (including nullptr).
  */
 void API dw_listbox_get_text(HWND handle, unsigned int index, char *buffer, unsigned int length)
 {
@@ -1987,7 +1987,7 @@ void API dw_listbox_delete(HWND handle, int index)
  *       text: The default text to be in the combpbox widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  * Returns:
- *       A handle to a combobox window or NULL on failure.
+ *       A handle to a combobox window or nullptr on failure.
  */
 HWND API dw_combobox_new(const char *text, ULONG cid)
 {
@@ -2014,7 +2014,7 @@ HWND API dw_combobox_new(const char *text, ULONG cid)
  * Parameters:
  *       id: An ID to be used with dw_window_from_id() or 0L.
  * Returns:
- *       A handle to a MLE window or NULL on failure.
+ *       A handle to a MLE window or nullptr on failure.
  */
 HWND API dw_mle_new(ULONG cid)
 {
@@ -2313,7 +2313,7 @@ HWND _dw_text_new(const char *text, ULONG cid, int status)
  *       text: The text to be display by the static text widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  * Returns:
- *       A handle to a status text window or NULL on failure.
+ *       A handle to a status text window or nullptr on failure.
  */
 HWND API dw_status_text_new(const char *text, ULONG cid)
 {
@@ -2326,7 +2326,7 @@ HWND API dw_status_text_new(const char *text, ULONG cid)
  *       text: The text to be display by the static text widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  * Returns:
- *       A handle to a text window or NULL on failure.
+ *       A handle to a text window or nullptr on failure.
  */
 HWND API dw_text_new(const char *text, ULONG cid)
 {
@@ -2338,7 +2338,7 @@ HWND API dw_text_new(const char *text, ULONG cid)
  * Parameters:
  *       id: An id to be used with dw_window_from_id.
  * Returns:
- *       A handle to the widget or NULL on failure.
+ *       A handle to the widget or nullptr on failure.
  */
 HWND API dw_render_new(unsigned long cid)
 {
@@ -2483,7 +2483,7 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
  *       id: An ID to be used for getting the resource from the
  *           resource file.
  * Returns:
- *       A handle to a tree window or NULL on failure.
+ *       A handle to a tree window or nullptr on failure.
  */
 HWND API dw_tree_new(ULONG cid)
 {
@@ -2500,7 +2500,7 @@ HWND API dw_tree_new(ULONG cid)
  *          parent: Parent handle or 0 if root.
  *          itemdata: Item specific data.
  * Returns:
- *       A handle to a tree item or NULL on failure.
+ *       A handle to a tree item or nullptr on failure.
  */
 HTREEITEM API dw_tree_insert_after(HWND handle, HTREEITEM item, const char *title, HICN icon, HTREEITEM parent, void *itemdata)
 {
@@ -2516,7 +2516,7 @@ HTREEITEM API dw_tree_insert_after(HWND handle, HTREEITEM item, const char *titl
  *          parent: Parent handle or 0 if root.
  *          itemdata: Item specific data.
  * Returns:
- *       A handle to a tree item or NULL on failure.
+ *       A handle to a tree item or nullptr on failure.
  */
 HTREEITEM API dw_tree_insert(HWND handle, const char *title, HICN icon, HTREEITEM parent, void *itemdata)
 {
@@ -2529,11 +2529,11 @@ HTREEITEM API dw_tree_insert(HWND handle, const char *title, HICN icon, HTREEITE
  *          handle: Handle to the tree containing the item.
  *          item: Handle of the item to be modified.
  * Returns:
- *       A malloc()ed buffer of item text to be dw_free()ed or NULL on error.
+ *       A malloc()ed buffer of item text to be dw_free()ed or nullptr on error.
  */
 char * API dw_tree_get_title(HWND handle, HTREEITEM item)
 {
-    return NULL;
+    return nullptr;
 }
 
 /*
@@ -2542,7 +2542,7 @@ char * API dw_tree_get_title(HWND handle, HTREEITEM item)
  *          handle: Handle to the tree containing the item.
  *          item: Handle of the item to be modified.
  * Returns:
- *       A handle to a tree item or NULL on failure.
+ *       A handle to a tree item or nullptr on failure.
  */
 HTREEITEM API dw_tree_get_parent(HWND handle, HTREEITEM item)
 {
@@ -2578,11 +2578,11 @@ void API dw_tree_item_set_data(HWND handle, HTREEITEM item, void *itemdata)
  *          handle: Handle to the tree containing the item.
  *          item: Handle of the item to be modified.
  * Returns:
- *       A pointer to tree item data or NULL on failure.
+ *       A pointer to tree item data or nullptr on failure.
  */
 void * API dw_tree_item_get_data(HWND handle, HTREEITEM item)
 {
-    return NULL;
+    return nullptr;
 }
 
 /*
@@ -2640,7 +2640,7 @@ void API dw_tree_item_delete(HWND handle, HTREEITEM item)
  *       id: An ID to be used for getting the resource from the
  *           resource file.
  * Returns:
- *       A handle to a container window or NULL on failure.
+ *       A handle to a container window or nullptr on failure.
  */
 HWND API dw_container_new(ULONG cid, int multi)
 {
@@ -2695,11 +2695,11 @@ int API dw_filesystem_setup(HWND handle, unsigned long *flags, char **titles, in
  *          handle: Handle to the container window (widget).
  *          rowcount: The number of items to be populated.
  * Returns:
- *       Handle to container items allocated or NULL on error.
+ *       Handle to container items allocated or nullptr on error.
  */
 void * API dw_container_alloc(HWND handle, int rowcount)
 {
-    return NULL;
+    return nullptr;
 }
 
 /*
@@ -2924,11 +2924,11 @@ void API dw_container_scroll(HWND handle, int direction, long rows)
  *              return items that are currently selected.  Otherwise
  *              it will return all records in the container.
  * Returns:
- *       Pointer to data associated with first entry or NULL on error.
+ *       Pointer to data associated with first entry or nullptr on error.
  */
 char * API dw_container_query_start(HWND handle, unsigned long flags)
 {
-    return NULL;
+    return nullptr;
 }
 
 /*
@@ -2939,11 +2939,11 @@ char * API dw_container_query_start(HWND handle, unsigned long flags)
  *              return items that are currently selected.  Otherwise
  *              it will return all records in the container.
  * Returns:
- *       Pointer to data associated with next entry or NULL on error or completion.
+ *       Pointer to data associated with next entry or nullptr on error or completion.
  */
 char * API dw_container_query_next(HWND handle, unsigned long flags)
 {
-    return NULL;
+    return nullptr;
 }
 
 /*
@@ -3024,7 +3024,7 @@ void API dw_taskbar_delete(HWND handle, HICN icon)
  *              Windows, on GTK this is converted to a pointer
  *              to an embedded XPM.
  * Returns:
- *       Handle to the created icon or NULL on error.
+ *       Handle to the created icon or nullptr on error.
  */
 HICN API dw_icon_load(unsigned long module, unsigned long resid)
 {
@@ -3038,7 +3038,7 @@ HICN API dw_icon_load(unsigned long module, unsigned long resid)
  *                 DW pick the appropriate file extension.
  *                 (ICO on OS/2 or Windows, XPM on Unix)
  * Returns:
- *       Handle to the created icon or NULL on error.
+ *       Handle to the created icon or nullptr on error.
  */
 HICN API dw_icon_load_from_file(const char *filename)
 {
@@ -3051,7 +3051,7 @@ HICN API dw_icon_load_from_file(const char *filename)
  *       data: Data for the icon (ICO on OS/2 or Windows, XPM on Unix, PNG on Mac)
  *       len: Length of the passed in data.
  * Returns:
- *       Handle to the created icon or NULL on error.
+ *       Handle to the created icon or nullptr on error.
  */
 HICN API dw_icon_load_from_data(const char *data, int len)
 {
@@ -3072,11 +3072,11 @@ void API dw_icon_free(HICN handle)
  * Parameters:
  *       id: An ID to be used with dw_window_from_id or 0L.
  * Returns:
- *       Handle to the created MDI widget or NULL on error.
+ *       Handle to the created MDI widget or nullptr on error.
  */
 HWND API dw_mdi_new(unsigned long cid)
 {
-    return 0;
+    return nullptr;
 }
 
 /*
@@ -3086,11 +3086,11 @@ HWND API dw_mdi_new(unsigned long cid)
  *       topleft: Handle to the window to be top or left.
  *       bottomright:  Handle to the window to be bottom or right.
  * Returns:
- *       A handle to a splitbar window or NULL on failure.
+ *       A handle to a splitbar window or nullptr on failure.
  */
 HWND API dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long cid)
 {
-    return 0;
+    return nullptr;
 }
 
 /*
@@ -3120,7 +3120,7 @@ float API dw_splitbar_get(HWND handle)
  * Parameters:
  *       id: An ID to be used with dw_window_from_id() or 0L.
  * Returns:
- *       Handle to the created bitmap widget or NULL on error.
+ *       Handle to the created bitmap widget or nullptr on error.
  */
 HWND API dw_bitmap_new(ULONG cid)
 {
@@ -3137,7 +3137,61 @@ HWND API dw_bitmap_new(ULONG cid)
         jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, mleNew, (int)cid));
         return result;
     }
-    return 0;
+    return nullptr;
+}
+
+/* Unified internal function to create an Android internal Bitmap */
+jobject _dw_jbitmap_new(unsigned long width, unsigned long height, const char *filename, const char *data, int len, int resid)
+{
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // Construct a string
+        jstring file = nullptr;
+        if(filename)
+            file = env->NewStringUTF(filename);
+        // Construct a byte array
+        jbyteArray bytearray = nullptr;
+        if(data && len > 0)
+        {
+            bytearray = env->NewByteArray(len);
+            env->SetByteArrayRegion(bytearray, 0, len, reinterpret_cast<const jbyte *>(data));
+        }
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID pixmapNew = env->GetMethodID(clazz, "pixmapNew",
+                                               "(IILjava/lang/String;[BII)Landroid/graphics/Bitmap;");
+        // Call the method on the object
+        jobject result = env->NewGlobalRef(env->CallObjectMethod(_dw_obj, pixmapNew,
+                                                                  (jint)width, (jint)height,
+                                                                  file, bytearray, len, resid));
+        // Clean up after the array now that we are finished
+        //if(bytearray)
+            //env->ReleaseByteArrayElements(bytearray, (jbyte *) data, 0);
+        return result;    
+    }
+    return nullptr;
+}
+
+void _dw_pixmap_get_dimensions(HPIXMAP pixmap)
+{
+    JNIEnv *env;
+
+    if(pixmap && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID pixmapGetDimensions = env->GetMethodID(clazz, "pixmapGetDimensions",
+                                                         "(Landroid/graphics/Bitmap;)J");
+        // Call the method on the object
+        jlong dimensions = env->CallLongMethod(_dw_obj, pixmapGetDimensions, pixmap->bitmap);
+
+        pixmap->width = dimensions & 0xFFFF;
+        pixmap->height = dimensions >> 32;
+    }
 }
 
 /*
@@ -3148,11 +3202,27 @@ HWND API dw_bitmap_new(ULONG cid)
  *       height: Height of the pixmap in pixels.
  *       depth: Color depth of the pixmap.
  * Returns:
- *       A handle to a pixmap or NULL on failure.
+ *       A handle to a pixmap or nullptr on failure.
  */
 HPIXMAP API dw_pixmap_new(HWND handle, unsigned long width, unsigned long height, int depth)
 {
-    return 0;
+    jobject jbitmap = _dw_jbitmap_new(width, height, nullptr, nullptr, 0, 0);
+
+    if(jbitmap)
+    {
+        HPIXMAP pixmap = (HPIXMAP)calloc(1, sizeof(HPIXMAP));
+
+        if(pixmap)
+        {
+            pixmap->width = width;
+            pixmap->height = height;
+            pixmap->bitmap = jbitmap;
+            pixmap->handle = handle;
+
+            return pixmap;
+        }
+    }
+    return nullptr;
 }
 
 /*
@@ -3163,11 +3233,26 @@ HPIXMAP API dw_pixmap_new(HWND handle, unsigned long width, unsigned long height
  *                 DW pick the appropriate file extension.
  *                 (BMP on OS/2 or Windows, XPM on Unix)
  * Returns:
- *       A handle to a pixmap or NULL on failure.
+ *       A handle to a pixmap or nullptr on failure.
  */
 HPIXMAP API dw_pixmap_new_from_file(HWND handle, const char *filename)
 {
-    return 0;
+    jobject jbitmap = _dw_jbitmap_new(0, 0, filename, nullptr, 0, 0);
+
+    if(jbitmap)
+    {
+        HPIXMAP pixmap = (HPIXMAP)calloc(1, sizeof(HPIXMAP));
+
+        if(pixmap)
+        {
+            pixmap->bitmap = jbitmap;
+            pixmap->handle = handle;
+            _dw_pixmap_get_dimensions(pixmap);
+
+            return pixmap;
+        }
+    }
+    return nullptr;
 }
 
 /*
@@ -3178,11 +3263,26 @@ HPIXMAP API dw_pixmap_new_from_file(HWND handle, const char *filename)
  *                 (BMP on OS/2 or Windows, XPM on Unix)
  *       len: Length of data
  * Returns:
- *       A handle to a pixmap or NULL on failure.
+ *       A handle to a pixmap or nullptr on failure.
  */
 HPIXMAP API dw_pixmap_new_from_data(HWND handle, const char *data, int len)
 {
-    return 0;
+    jobject jbitmap = _dw_jbitmap_new(0, 0, nullptr, data, len, 0);
+
+    if(jbitmap)
+    {
+        HPIXMAP pixmap = (HPIXMAP)calloc(1, sizeof(HPIXMAP));
+
+        if(pixmap)
+        {
+            pixmap->bitmap = jbitmap;
+            pixmap->handle = handle;
+            _dw_pixmap_get_dimensions(pixmap);
+
+            return pixmap;
+        }
+    }
+    return nullptr;
 }
 
 /*
@@ -3204,11 +3304,26 @@ void API dw_pixmap_set_transparent_color( HPIXMAP pixmap, ULONG color )
  *       handle: Window handle the pixmap is associated with.
  *       id: Resource ID associated with requested pixmap.
  * Returns:
- *       A handle to a pixmap or NULL on failure.
+ *       A handle to a pixmap or nullptr on failure.
  */
 HPIXMAP API dw_pixmap_grab(HWND handle, ULONG resid)
 {
-    return 0;
+    jobject jbitmap = _dw_jbitmap_new(0, 0, nullptr, nullptr, 0, (int)resid);
+
+    if(jbitmap)
+    {
+        HPIXMAP pixmap = (HPIXMAP)calloc(1, sizeof(HPIXMAP));
+
+        if(pixmap)
+        {
+            pixmap->bitmap = jbitmap;
+            pixmap->handle = handle;
+            _dw_pixmap_get_dimensions(pixmap);
+
+            return pixmap;
+        }
+    }
+    return nullptr;
 }
 
 /*
@@ -3235,6 +3350,16 @@ int API dw_pixmap_set_font(HPIXMAP pixmap, const char *fontname)
  */
 void API dw_pixmap_destroy(HPIXMAP pixmap)
 {
+    if(pixmap)
+    {
+        JNIEnv *env;
+
+        if(pixmap && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+        {
+            env->DeleteGlobalRef(pixmap->bitmap);
+            free(pixmap);
+        }
+    }
 }
 
 /*
@@ -3283,7 +3408,7 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
  * Parameters:
  *       id: An ID to be used with dw_window_from_id() or 0L.
  * Returns:
- *       Handle to the created calendar or NULL on error.
+ *       Handle to the created calendar or nullptr on error.
  */
 HWND API dw_calendar_new(ULONG cid)
 {
@@ -3338,9 +3463,9 @@ void API dw_calendar_set_date(HWND handle, unsigned int year, unsigned int month
  * Gets the year, month and day set in the calendar widget.
  * Parameters:
  *       handle: The handle to the calendar returned by dw_calendar_new().
- *       year: Variable to store the year or NULL.
- *       month: Variable to store the month or NULL.
- *       day: Variable to store the day or NULL.
+ *       year: Variable to store the year or nullptr.
+ *       month: Variable to store the month or nullptr.
+ *       day: Variable to store the day or nullptr.
  */
 void API dw_calendar_get_date(HWND handle, unsigned int *year, unsigned int *month, unsigned int *day)
 {
@@ -3483,7 +3608,7 @@ int API dw_html_javascript_run(HWND handle, const char *script, void *scriptdata
  * Parameters:
  *       id: An ID to be used with dw_window_from_id() or 0L.
  * Returns:
- *       Handle to the created html widget or NULL on error.
+ *       Handle to the created html widget or nullptr on error.
  */
 HWND API dw_html_new(unsigned long cid)
 {
@@ -3506,8 +3631,8 @@ HWND API dw_html_new(unsigned long cid)
 /*
  * Returns the current X and Y coordinates of the mouse pointer.
  * Parameters:
- *       x: Pointer to variable to store X coordinate or NULL.
- *       y: Pointer to variable to store Y coordinate or NULL.
+ *       x: Pointer to variable to store X coordinate or nullptr.
+ *       y: Pointer to variable to store Y coordinate or nullptr.
  */
 void API dw_pointer_query_pos(long *x, long *y)
 {
@@ -3528,7 +3653,7 @@ void API dw_pointer_set_pos(long x, long y)
  * Parameters:
  *       id: An ID to be used associated with this menu.
  * Returns:
- *       Handle to the created menu or NULL on error.
+ *       Handle to the created menu or nullptr on error.
  */
 HMENUI API dw_menu_new(ULONG cid)
 {
@@ -3540,7 +3665,7 @@ HMENUI API dw_menu_new(ULONG cid)
  * Parameters:
  *       location: Handle of a window frame to be attached to.
  * Returns:
- *       Handle to the created menu bar or NULL on error.
+ *       Handle to the created menu bar or nullptr on error.
  */
 HMENUI API dw_menubar_new(HWND location)
 {
@@ -3590,9 +3715,9 @@ void API dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
  *       flags: Extended attributes to set on the menu.
  *       end: If TRUE memu is positioned at the end of the menu.
  *       check: If TRUE menu is "check"able.
- *       submenu: Handle to an existing menu to be a submenu or NULL.
+ *       submenu: Handle to an existing menu to be a submenu or nullptr.
  * Returns:
- *       Handle to the created menu item or NULL on error.
+ *       Handle to the created menu item or nullptr on error.
  */
 HWND API dw_menu_append_item(HMENUI menux, const char *title, ULONG itemid, ULONG flags, int end, int check, HMENUI submenux)
 {
@@ -3629,7 +3754,7 @@ void API dw_menu_item_set_state(HMENUI menux, unsigned long itemid, unsigned lon
  *       id: An ID to be used for getting the resource from the
  *           resource file.
  * Returns:
- *       Handle to the created notebook or NULL on error.
+ *       Handle to the created notebook or nullptr on error.
  */
 HWND API dw_notebook_new(ULONG cid, int top)
 {
@@ -3809,7 +3934,7 @@ void API dw_notebook_pack(HWND handle, ULONG pageid, HWND page)
  *       title: The Window title.
  *       flStyle: Style flags.
  * Returns:
- *       Handle to the created window or NULL on error.
+ *       Handle to the created window or nullptr on error.
  */
 HWND API dw_window_new(HWND hwndOwner, const char *title, ULONG flStyle)
 {
@@ -4010,22 +4135,22 @@ int API dw_window_set_font(HWND handle, const char *fontname)
  * Parameters:
  *           handle: The window handle from which to obtain the font.
  * Returns:
- *       A malloc()ed font name string to be dw_free()ed or NULL on error.
+ *       A malloc()ed font name string to be dw_free()ed or nullptr on error.
  */
 char * API dw_window_get_font(HWND handle)
 {
-    return NULL;
+    return nullptr;
 }
 
 /* Allows the user to choose a font using the system's font chooser dialog.
  * Parameters:
  *       currfont: current font
  * Returns:
- *       A malloced buffer with the selected font or NULL on error.
+ *       A malloced buffer with the selected font or nullptr on error.
  */
 char * API dw_font_choose(const char *currfont)
 {
-    return NULL;
+    return nullptr;
 }
 
 /*
@@ -4054,7 +4179,7 @@ int API dw_window_destroy(HWND handle)
  * Parameters:
  *       handle: Handle to the window.
  * Returns:
- *       The text associsated with a given window or NULL on error.
+ *       The text associsated with a given window or nullptr on error.
  */
 char * API dw_window_get_text(HWND handle)
 {
@@ -4062,7 +4187,7 @@ char * API dw_window_get_text(HWND handle)
 
     if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
-        const char *utf8 = NULL;
+        const char *utf8 = nullptr;
 
         // First get the class that contains the method you need to call
         jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
@@ -4074,9 +4199,9 @@ char * API dw_window_get_text(HWND handle)
         // Get the UTF8 string result
         if(result)
             utf8 = env->GetStringUTFChars(result, 0);
-        return utf8 ? strdup(utf8) : NULL;
+        return utf8 ? strdup(utf8) : nullptr;
     }
-    return NULL;
+    return nullptr;
 }
 
 /*
@@ -4157,7 +4282,7 @@ void API dw_window_enable(HWND handle)
  *           (pass 0 if you use the filename param)
  *       data: memory buffer containing image (Bitmap on OS/2 or
  *                 Windows and a pixmap on Unix, pass
- *                 NULL if you use the id param)
+ *                 nullptr if you use the id param)
  *       len: Length of data passed
  */
 void API dw_window_set_bitmap_from_data(HWND handle, unsigned long cid, const char *data, int len)
@@ -4167,8 +4292,9 @@ void API dw_window_set_bitmap_from_data(HWND handle, unsigned long cid, const ch
     if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
         // Construct a byte array
-        jbyteArray bytearray = NULL;
-        if(data && len > 0) {
+        jbyteArray bytearray = nullptr;
+        if(data && len > 0)
+        {
             bytearray = env->NewByteArray(len);
             env->SetByteArrayRegion(bytearray, 0, len, reinterpret_cast<const jbyte *>(data));
         }
@@ -4180,7 +4306,8 @@ void API dw_window_set_bitmap_from_data(HWND handle, unsigned long cid, const ch
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, windowSetBitmapFromData, handle, (int)cid, bytearray, len);
         // Clean up after the array now that we are finished
-        //env->ReleaseByteArrayElements(bytearray, (jbyte *) data, 0);
+        //if(bytearray)
+            //env->ReleaseByteArrayElements(bytearray, (jbyte *) data, 0);
     }
 }
 
@@ -4192,7 +4319,7 @@ void API dw_window_set_bitmap_from_data(HWND handle, unsigned long cid, const ch
  *           (pass 0 if you use the filename param)
  *       filename: a path to a file (Bitmap on OS/2 or
  *                 Windows and a pixmap on Unix, pass
- *                 NULL if you use the id param)
+ *                 nullptr if you use the id param)
  */
 void API dw_window_set_bitmap(HWND handle, unsigned long resid, const char *filename)
 {
@@ -4201,7 +4328,7 @@ void API dw_window_set_bitmap(HWND handle, unsigned long resid, const char *file
     if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
         // Construct a string
-        jstring jstr = NULL;
+        jstring jstr = nullptr;
         if(filename) {
             jstr = env->NewStringUTF(filename);
         }
@@ -4231,7 +4358,7 @@ void API dw_window_set_icon(HWND handle, HICN icon)
  *       handle: Handle to the parent window.
  *       id: Integer ID of the child.
  * Returns:
- *       HWND of window with ID or NULL on error.
+ *       HWND of window with ID or nullptr on error.
  */
 HWND API dw_window_from_id(HWND handle, int id)
 {
@@ -4310,8 +4437,8 @@ void API dw_window_set_size(HWND handle, ULONG width, ULONG height)
  * Gets the size the system thinks the widget should be.
  * Parameters:
  *       handle: Window (widget) handle of the item to query.
- *       width: Width in pixels of the item or NULL if not needed.
- *       height: Height in pixels of the item or NULL if not needed.
+ *       width: Width in pixels of the item or nullptr if not needed.
+ *       height: Height in pixels of the item or nullptr if not needed.
  */
 void API dw_window_get_preferred_size(HWND handle, int *width, int *height)
 {
@@ -4357,10 +4484,10 @@ void API dw_window_set_pos_size(HWND handle, LONG x, LONG y, ULONG width, ULONG 
  * Gets the position and size of a given window (widget).
  * Parameters:
  *          handle: Window (widget) handle.
- *          x: X location from the bottom left or NULL.
- *          y: Y location from the bottom left or NULL.
- *          width: Width of the widget or NULL.
- *          height: Height of the widget or NULL.
+ *          x: X location from the bottom left or nullptr.
+ *          y: Y location from the bottom left or nullptr.
+ *          width: Width of the widget or nullptr.
+ *          height: Height of the widget or nullptr.
  */
 void API dw_window_get_pos_size(HWND handle, LONG *x, LONG *y, ULONG *width, ULONG *height)
 {
@@ -4468,12 +4595,12 @@ void API dw_window_set_data(HWND window, const char *dataname, void *data)
  *       window: Window handle to get data from.
  *       dataname: A string pointer identifying which data to get.
  * Returns:
- *       Pointer to data or NULL if no data is available.
+ *       Pointer to data or nullptr if no data is available.
  */
 void * API dw_window_get_data(HWND window, const char *dataname)
 {
     JNIEnv *env;
-    void *retval = NULL;
+    void *retval = nullptr;
 
     if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
@@ -4553,7 +4680,7 @@ void API dw_timer_disconnect(int timerid)
  */
 void API dw_signal_connect(HWND window, const char *signame, void *sigfunc, void *data)
 {
-    dw_signal_connect_data(window, signame, sigfunc, NULL, data);
+    dw_signal_connect_data(window, signame, sigfunc, nullptr, data);
 }
 
 /*
@@ -4585,7 +4712,7 @@ void API dw_signal_connect_data(HWND window, const char *signame, void *sigfunc,
  */
 void API dw_signal_disconnect_by_name(HWND window, const char *signame)
 {
-    SignalHandler *prev = NULL, *tmp = DWRoot;
+    SignalHandler *prev = nullptr, *tmp = DWRoot;
     ULONG message;
 
     if(!window || !signame || (message = _dw_findsigmessage(signame)) == 0)
@@ -4630,7 +4757,7 @@ void API dw_signal_disconnect_by_name(HWND window, const char *signame)
  */
 void API dw_signal_disconnect_by_window(HWND window)
 {
-    SignalHandler *prev = NULL, *tmp = DWRoot;
+    SignalHandler *prev = nullptr, *tmp = DWRoot;
 
     while(tmp)
     {
@@ -4672,7 +4799,7 @@ void API dw_signal_disconnect_by_window(HWND window)
  */
 void API dw_signal_disconnect_by_data(HWND window, void *data)
 {
-    SignalHandler *prev = NULL, *tmp = DWRoot;
+    SignalHandler *prev = nullptr, *tmp = DWRoot;
 
     while(tmp)
     {
@@ -4736,7 +4863,7 @@ int API dw_module_load(const char *name, HMOD *handle)
     if((len = strlen(name)) == 0)
         return   -1;
 
-    /* Lenth + "lib" + ".so" + NULL */
+    /* Lenth + "lib" + ".so" + nullptr */
     newname = (char *)malloc(len + 7);
 
     if(!newname)
@@ -4746,7 +4873,7 @@ int API dw_module_load(const char *name, HMOD *handle)
     _dw_strlwr(newname);
 
     *handle = dlopen(newname, RTLD_NOW);
-    if(*handle == NULL)
+    if(*handle == nullptr)
     {
         strncpy(errorbuf, dlerror(), 1024);
         printf("%s\n", errorbuf);
@@ -4756,7 +4883,7 @@ int API dw_module_load(const char *name, HMOD *handle)
 
     free(newname);
 
-    return (NULL == *handle) ? -1 : 0;
+    return (nullptr == *handle) ? -1 : 0;
 }
 
 /* Queries the address of a symbol within open handle.
@@ -4775,7 +4902,7 @@ int API dw_module_symbol(HMOD handle, const char *name, void**func)
         return   -1;
 
     *func = (void*)dlsym(handle, name);
-    return   (NULL == *func);
+    return   (nullptr == *func);
 }
 
 /* Frees the shared library previously opened.
@@ -4796,7 +4923,7 @@ HMTX API dw_mutex_new(void)
 {
     HMTX mutex = (HMTX)malloc(sizeof(pthread_mutex_t));
 
-    pthread_mutex_init(mutex, NULL);
+    pthread_mutex_init(mutex, nullptr);
     return mutex;
 }
 
@@ -4832,13 +4959,13 @@ void API dw_mutex_lock(HMTX mutex)
         while(pthread_mutex_trylock(mutex) != 0)
         {
             /* Process any pending events */
-            if(g_main_context_pending(NULL))
+            if(g_main_context_pending(nullptr))
             {
                 do
                 {
-                    g_main_context_iteration(NULL, FALSE);
+                    g_main_context_iteration(nullptr, FALSE);
                 }
-                while(g_main_context_pending(NULL));
+                while(g_main_context_pending(nullptr));
             }
             else
                 sched_yield();
@@ -4883,15 +5010,15 @@ HEV API dw_event_new(void)
     HEV eve = (HEV)malloc(sizeof(struct _dw_unix_event));
 
     if(!eve)
-        return NULL;
+        return nullptr;
 
     /* We need to be careful here, mutexes on Linux are
      * FAST by default but are error checking on other
      * systems such as FreeBSD and OS/2, perhaps others.
      */
-    pthread_mutex_init (&(eve->mutex), NULL);
+    pthread_mutex_init (&(eve->mutex), nullptr);
     pthread_mutex_lock (&(eve->mutex));
-    pthread_cond_init (&(eve->event), NULL);
+    pthread_cond_init (&(eve->event), nullptr);
 
     pthread_mutex_unlock (&(eve->mutex));
     eve->alive = 1;
@@ -4912,7 +5039,7 @@ int API dw_event_reset (HEV eve)
 
     pthread_mutex_lock (&(eve->mutex));
     pthread_cond_broadcast (&(eve->event));
-    pthread_cond_init (&(eve->event), NULL);
+    pthread_cond_init (&(eve->event), nullptr);
     eve->posted = 0;
     pthread_mutex_unlock (&(eve->mutex));
     return DW_ERROR_NONE;
@@ -4993,7 +5120,7 @@ int API dw_event_close(HEV *eve)
     pthread_mutex_unlock (&((*eve)->mutex));
     pthread_mutex_destroy (&((*eve)->mutex));
     free(*eve);
-    *eve = NULL;
+    *eve = nullptr;
 
     return DW_ERROR_NONE;
 }
@@ -5013,7 +5140,7 @@ static void _dw_handle_sem(int *tmpsock)
     sigset_t mask;
 
     sigfillset(&mask); /* Mask all allowed signals */
-    pthread_sigmask(SIG_BLOCK, &mask, NULL);
+    pthread_sigmask(SIG_BLOCK, &mask, nullptr);
 
     /* problems */
     if(tmpsock[1] == -1)
@@ -5045,7 +5172,7 @@ static void _dw_handle_sem(int *tmpsock)
             FD_SET(array[z].fd, &rd);
         }
 
-        if(select(maxfd+1, &rd, NULL, NULL, NULL) == -1)
+        if(select(maxfd+1, &rd, nullptr, nullptr, nullptr) == -1)
         {
             free(array);
             return;
@@ -5167,7 +5294,7 @@ HEV API dw_named_event_new(const char *name)
     DWTID dwthread;
 
     if(!tmpsock)
-        return NULL;
+        return nullptr;
 
     tmpsock[0] = socket(AF_UNIX, SOCK_STREAM, 0);
     ev = socket(AF_UNIX, SOCK_STREAM, 0);
@@ -5196,11 +5323,11 @@ HEV API dw_named_event_new(const char *name)
         if(ev > -1)
             close(ev);
         free(tmpsock);
-        return NULL;
+        return nullptr;
     }
 
     /* Create a thread to handle this event semaphore */
-    pthread_create(&dwthread, NULL, (void *(*)(void *))_dw_handle_sem, (void *)tmpsock);
+    pthread_create(&dwthread, nullptr, (void *(*)(void *))_dw_handle_sem, (void *)tmpsock);
     return (HEV)DW_INT_TO_POINTER(ev);
 }
 
@@ -5215,7 +5342,7 @@ HEV API dw_named_event_get(const char *name)
     struct sockaddr_un un;
     int ev = socket(AF_UNIX, SOCK_STREAM, 0);
     if(ev < 0)
-        return NULL;
+        return nullptr;
 
     un.sun_family=AF_UNIX;
     mkdir("/tmp/.dw", S_IWGRP|S_IWOTH);
@@ -5275,7 +5402,7 @@ int API dw_named_event_post(HEV eve)
 int API dw_named_event_wait(HEV eve, unsigned long timeout)
 {
     fd_set rd;
-    struct timeval tv, *useme = NULL;
+    struct timeval tv, *useme = nullptr;
     int retval = 0;
     char tmp;
 
@@ -5299,7 +5426,7 @@ int API dw_named_event_wait(HEV eve, unsigned long timeout)
     retval = write(DW_POINTER_TO_INT(eve), &tmp, 1);
 
     if(retval == 1)
-        retval = select(DW_POINTER_TO_INT(eve)+1, &rd, NULL, NULL, useme);
+        retval = select(DW_POINTER_TO_INT(eve)+1, &rd, nullptr, nullptr, useme);
 
     /* Signal done waiting. */
     tmp = (char)3;
@@ -5344,7 +5471,7 @@ void API _dw_init_thread(void)
 {
     JNIEnv *env;
 
-    _dw_jvm->AttachCurrentThread(&env, NULL);
+    _dw_jvm->AttachCurrentThread(&env, nullptr);
     pthread_setspecific(_dw_env_key, env);
 }
 
@@ -5364,7 +5491,7 @@ void API _dw_deinit_thread(void)
  */
 void _dwthreadstart(void *data)
 {
-    void (*threadfunc)(void *) = NULL;
+    void (*threadfunc)(void *) = nullptr;
     void **tmp = (void **)data;
 
     threadfunc = (void (*)(void *))tmp[0];
@@ -5398,25 +5525,25 @@ HSHM API dw_named_memory_new(void **dest, int size, const char *name)
     if((handle->fd = open(namebuf, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR)) < 0)
     {
         free(handle);
-        return NULL;
+        return nullptr;
     }
 
     if(ftruncate(handle->fd, size))
     {
         close(handle->fd);
         free(handle);
-        return NULL;
+        return nullptr;
     }
 
     /* attach the shared memory segment to our process's address space. */
-    *dest = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, handle->fd, 0);
+    *dest = mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, handle->fd, 0);
 
     if(*dest == MAP_FAILED)
     {
         close(handle->fd);
-        *dest = NULL;
+        *dest = nullptr;
         free(handle);
-        return NULL;
+        return nullptr;
     }
 
     handle->size = size;
@@ -5444,23 +5571,23 @@ HSHM API dw_named_memory_get(void **dest, int size, const char *name)
     if((handle->fd = open(namebuf, O_RDWR)) < 0)
     {
         free(handle);
-        return NULL;
+        return nullptr;
     }
 
     /* attach the shared memory segment to our process's address space. */
-    *dest = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, handle->fd, 0);
+    *dest = mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, handle->fd, 0);
 
     if(*dest == MAP_FAILED)
     {
         close(handle->fd);
-        *dest = NULL;
+        *dest = nullptr;
         free(handle);
-        return NULL;
+        return nullptr;
     }
 
     handle->size = size;
     handle->sid = -1;
-    handle->path = NULL;
+    handle->path = nullptr;
 
     return handle;
 }
@@ -5504,7 +5631,7 @@ DWTID API dw_thread_new(void *func, void *data, int stack)
     tmp[0] = func;
     tmp[1] = data;
 
-    rc = pthread_create(&dwthread, NULL, (void *(*)(void *))_dwthreadstart, (void *)tmp);
+    rc = pthread_create(&dwthread, nullptr, (void *(*)(void *))_dwthreadstart, (void *)tmp);
     if(rc == 0)
         return dwthread;
     return (DWTID)DW_ERROR_UNKNOWN;
@@ -5515,7 +5642,7 @@ DWTID API dw_thread_new(void *func, void *data, int stack)
  */
 void API dw_thread_end(void)
 {
-    pthread_exit(NULL);
+    pthread_exit(nullptr);
 }
 
 /*
@@ -5618,11 +5745,11 @@ int API dw_browse(const char *url)
  *       drawfunc: The pointer to the function to be used as the callback.
  *       drawdata: User data to be passed to the handler function.
  * Returns:
- *       A handle to the print object or NULL on failure.
+ *       A handle to the print object or nullptr on failure.
  */
 HPRINT API dw_print_new(const char *jobname, unsigned long flags, unsigned int pages, void *drawfunc, void *drawdata)
 {
-    return NULL;
+    return nullptr;
 }
 
 /*
@@ -5651,12 +5778,12 @@ void API dw_print_cancel(HPRINT print)
  * Creates a new system notification if possible.
  * Parameters:
  *         title: The short title of the notification.
- *         imagepath: Path to an image to display or NULL if none.
+ *         imagepath: Path to an image to display or nullptr if none.
  *         description: A longer description of the notification,
- *                      or NULL if none is necessary.
+ *                      or nullptr if none is necessary.
  * Returns:
  *         A handle to the notification which can be used to attach a "clicked" event if desired,
- *         or NULL if it fails or notifications are not supported by the system.
+ *         or nullptr if it fails or notifications are not supported by the system.
  * Remarks:
  *          This will create a system notification that will show in the notifaction panel
  *          on supported systems, which may be clicked to perform another task.
@@ -5670,8 +5797,8 @@ HWND API dw_notification_new(const char *title, const char *imagepath, const cha
         // Construct a String
         jstring appid = env->NewStringUTF(_dw_app_id);
         jstring ntitle = env->NewStringUTF(title);
-        jstring ndesc = NULL;
-        jstring image = NULL;
+        jstring ndesc = nullptr;
+        jstring image = nullptr;
 
         if(description)
         {
@@ -5730,7 +5857,7 @@ int API dw_notification_send(HWND notification)
  *       utf8string: UTF-8 encoded source string.
  * Returns:
  *       Wide string that needs to be freed with dw_free()
- *       or NULL on failure.
+ *       or nullptr on failure.
  */
 wchar_t * API dw_utf8_to_wchar(const char *utf8string)
 {
@@ -5747,7 +5874,7 @@ wchar_t * API dw_utf8_to_wchar(const char *utf8string)
  *       wstring: Wide source string.
  * Returns:
  *       UTF-8 encoded string that needs to be freed with dw_free()
- *       or NULL on failure.
+ *       or nullptr on failure.
  */
 char * API dw_wchar_to_utf8(const wchar_t *wstring)
 {

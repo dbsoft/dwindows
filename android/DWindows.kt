@@ -1737,6 +1737,39 @@ class DWindows : AppCompatActivity() {
         }
     }
 
+    fun pixmapNew(width: Int, height: Int, filename: String?, data: ByteArray?, length: Int, resID: Int): Bitmap?
+    {
+        var pixmap: Bitmap? = null
+
+        waitOnUiThread {
+            if(width > 0 && height > 0) {
+                pixmap = Bitmap.createBitmap(null, width, height, Bitmap.Config.ARGB_8888)
+            } else if(resID != 0) {
+                pixmap = BitmapFactory.decodeResource(resources, resID);
+            } else if(filename != null) {
+                // Try to load the image, and protect against exceptions
+                try {
+                    val f = File(filename)
+                    pixmap = BitmapFactory.decodeStream(FileInputStream(f))
+                } catch (e: FileNotFoundException) {
+                }
+            } else if(data != null) {
+                pixmap = BitmapFactory.decodeByteArray(data, 0, length)
+            }
+        }
+        return pixmap
+    }
+
+    fun pixmapGetDimensions(pixmap: Bitmap): Long
+    {
+        var dimensions: Long = 0
+
+        waitOnUiThread {
+            dimensions = pixmap.width.toLong() or (pixmap.height.toLong() shl 32)
+        }
+        return dimensions
+    }
+
     fun timerConnect(interval: Long, sigfunc: Long, data: Long): Timer
     {
         // creating timer task, timer
