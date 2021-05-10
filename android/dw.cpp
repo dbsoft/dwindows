@@ -760,6 +760,29 @@ int API dw_messagebox(const char *title, int flags, const char *format, ...)
  */
 char * API dw_file_browse(const char *title, const char *defpath, const char *ext, int flags)
 {
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // Use a long parameter
+        jstring jstr = env->NewStringUTF(title);
+        jstring path = NULL;
+        jstring jext = NULL;
+        if(defpath)
+            path = env->NewStringUTF(defpath);
+        if(ext)
+            jext = env->NewStringUTF(defpath);
+        // First get the class that contains the method you need to call
+        //jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        jclass clazz = env->FindClass(DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID fileBrowse = env->GetMethodID(clazz, "fileBrowse",
+                                                "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;I)Ljava/lang/String;");
+        // Call the method on the object
+        jstring jresult = (jstring)env->CallObjectMethod(_dw_obj, fileBrowse, jstr, path, jext, flags);
+        if(jresult)
+            return strdup(env->GetStringUTFChars(jresult, 0));
+    }
     return NULL;
 }
 
@@ -3283,7 +3306,7 @@ void API dw_calendar_set_date(HWND handle, unsigned int year, unsigned int month
 
         // Convert to Unix time
         ts.tm_year = year - 1900;
-        ts.tm_mon = month;
+        ts.tm_mon = month - 1;
         ts.tm_mday = day;
         date = mktime(&ts);
 
@@ -3325,7 +3348,7 @@ void API dw_calendar_get_date(HWND handle, unsigned int *year, unsigned int *mon
         if(year)
             *year = ts.tm_year + 1900;
         if(month)
-            *month = ts.tm_mon;
+            *month = ts.tm_mon + 1;
         if(day)
             *day = ts.tm_mday;
     }

@@ -1,6 +1,8 @@
 package org.dbsoft.dwindows
 
-import android.R.attr
+import android.R
+import android.app.Activity
+import android.app.Dialog
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.ClipData
@@ -45,6 +47,7 @@ import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayout.OnTabSelectedListener
 import com.google.android.material.tabs.TabLayoutMediator
 import java.io.File
+import java.io.FileFilter
 import java.io.FileInputStream
 import java.io.FileNotFoundException
 import java.util.*
@@ -234,6 +237,137 @@ class DWListBox(context: Context) : ListView(context), OnItemClickListener {
         intc: Int,
         intd: Int
     )
+}
+
+class DWFileChooser(private val activity: Activity) {
+    private val list: ListView = ListView(activity)
+    private val dialog: Dialog = Dialog(activity)
+    private var currentPath: File? = null
+
+    // filter on file extension
+    private var extension: String? = null
+    fun setExtension(extension: String?) {
+        this.extension = extension?.toLowerCase(Locale.ROOT)
+    }
+
+    // file selection event handling
+    interface FileSelectedListener {
+        fun fileSelected(file: File?)
+    }
+
+    fun setFileListener(fileListener: FileSelectedListener?): DWFileChooser {
+        this.fileListener = fileListener
+        return this
+    }
+
+    private var fileListener: FileSelectedListener? = null
+    fun showDialog() {
+        dialog.show()
+    }
+
+    /**
+     * Sort, filter and display the files for the given path.
+     */
+    private fun refresh(path: File?) {
+        currentPath = path
+        if (path != null) {
+            if (path.exists()) {
+                val dirs = path.listFiles { file -> file.isDirectory && file.canRead() }
+                val files = path.listFiles { file ->
+                    if (!file.isDirectory) {
+                        if (!file.canRead()) {
+                            false
+                        } else if (extension == null) {
+                            true
+                        } else {
+                            file.name.toLowerCase(Locale.ROOT).endsWith(extension!!)
+                        }
+                    } else {
+                        false
+                    }
+                }
+
+                // convert to an array
+                var i = 0
+                val fileList: Array<String?>
+                var filecount = 0
+                var dircount = 0
+                if(files != null) {
+                    filecount = files.size
+                }
+                if(dirs != null) {
+                    dircount = dirs.size
+                }
+                if (path.parentFile == null) {
+                    fileList = arrayOfNulls(dircount + filecount)
+                } else {
+                    fileList = arrayOfNulls(dircount + filecount + 1)
+                    fileList[i++] = PARENT_DIR
+                }
+                if(dirs != null) {
+                    Arrays.sort(dirs)
+                    for (dir in dirs) {
+                        fileList[i++] = dir.name
+                    }
+                }
+                if(files != null) {
+                    Arrays.sort(files)
+                    for (file in files) {
+                        fileList[i++] = file.name
+                    }
+                }
+
+                // refresh the user interface
+                dialog.setTitle(currentPath!!.path)
+                list.adapter = object : ArrayAdapter<Any?>(
+                    activity,
+                    R.layout.simple_list_item_1, fileList
+                ) {
+                    override fun getView(pos: Int, view: View?, parent: ViewGroup): View {
+                        val thisview = super.getView(pos, view, parent)
+                        (thisview as TextView).isSingleLine = true
+                        return thisview
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Convert a relative filename into an actual File object.
+     */
+    private fun getChosenFile(fileChosen: String): File? {
+        return if (fileChosen == PARENT_DIR) {
+            currentPath!!.parentFile
+        } else {
+            File(currentPath, fileChosen)
+        }
+    }
+
+    companion object {
+        private const val PARENT_DIR = ".."
+    }
+
+    init {
+        list.onItemClickListener =
+            OnItemClickListener { parent, view, which, id ->
+                val fileChosen = list.getItemAtPosition(which) as String
+                val chosenFile: File? = getChosenFile(fileChosen)
+                if (chosenFile != null) {
+                    if (chosenFile.isDirectory) {
+                        refresh(chosenFile)
+                    } else {
+                        if (fileListener != null) {
+                            fileListener!!.fileSelected(chosenFile)
+                        }
+                        dialog.dismiss()
+                    }
+                }
+            }
+        dialog.setContentView(list)
+        dialog.window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+        refresh(Environment.getExternalStorageDirectory())
+    }
 }
 
 class DWindows : AppCompatActivity() {
@@ -1555,6 +1689,34 @@ class DWindows : AppCompatActivity() {
     fun debugMessage(text: String)
     {
         Log.d(null, text)
+    }
+
+    fun fileBrowse(title: String, defpath: String?, ext: String?, flags: Int): String?
+    {
+        var retval: String? = null
+
+        waitOnUiThread {
+            val fc = DWFileChooser(this)
+            fc.setFileListener(object: DWFileChooser.FileSelectedListener {
+                    override fun fileSelected(file: File?) {
+                        // do something with the file
+                        retval = file!!.absolutePath
+                        throw java.lang.RuntimeException()
+                    }
+                })
+            if(ext != null) {
+                fc.setExtension(ext)
+            }
+            fc.showDialog()
+        }
+
+        // loop till a runtime exception is triggered.
+        try {
+            Looper.loop()
+        } catch (e2: RuntimeException) {
+        }
+
+        return retval
     }
 
     fun messageBox(title: String, body: String, flags: Int): Int
