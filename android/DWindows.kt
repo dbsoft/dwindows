@@ -111,7 +111,7 @@ class DWSpinButton(context: Context) : AppCompatEditText(context), OnTouchListen
             if (event.x >= v.width - (v as EditText)
                     .compoundDrawables[DRAWABLE_RIGHT].bounds.width()
             ) {
-                val newvalue = this.text.toString().toLong()
+                val newvalue = this.text.toString().toLongOrNull()
 
                 if(newvalue != null) {
                     value = newvalue + 1
@@ -130,7 +130,7 @@ class DWSpinButton(context: Context) : AppCompatEditText(context), OnTouchListen
             } else if (event.x <= (v as EditText)
                     .compoundDrawables[DRAWABLE_LEFT].bounds.width()
             ) {
-                val newvalue = this.text.toString().toLong()
+                val newvalue = this.text.toString().toLongOrNull()
 
                 if(newvalue != null) {
                     value = newvalue - 1
@@ -265,7 +265,7 @@ class DWFileChooser(private val activity: Activity) {
         dialog.show()
     }
 
-    /**
+    /*
      * Sort, filter and display the files for the given path.
      */
     private fun refresh(path: File?) {
