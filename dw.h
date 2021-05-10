@@ -771,7 +771,7 @@ struct _dw_unix_shm {
 typedef void *HSHM;
 typedef void *HTREEITEM;
 typedef HWND HMENUI;
-typedef unsigned long HICN;
+typedef jobject HICN;
 
 typedef struct _window_data {
    UserData *root;

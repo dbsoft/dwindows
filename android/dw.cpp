@@ -471,6 +471,16 @@ Java_org_dbsoft_dwindows_DWListBox_eventHandlerInt(JNIEnv* env, jobject obj, jin
     _dw_event_handler(obj, params, message);
 }
 
+JNIEXPORT void JNICALL
+Java_org_dbsoft_dwindows_DWRender_eventHandlerInt(JNIEnv* env, jobject obj, jint message,
+                                                   jint inta, jint intb, jint intc, jint intd) {
+    void *params[8] = { nullptr, nullptr, nullptr,
+                        DW_INT_TO_POINTER(inta), DW_INT_TO_POINTER(intb),
+                        DW_INT_TO_POINTER(intc), DW_INT_TO_POINTER(intd), nullptr };
+
+    _dw_event_handler(obj, params, message);
+}
+
 /* Handler for Timer events */
 JNIEXPORT jint JNICALL
 Java_org_dbsoft_dwindows_DWindows_eventHandlerTimer(JNIEnv* env, jobject obj, jlong sigfunc, jlong data) {
@@ -925,7 +935,7 @@ HWND API dw_box_new(int type, int pad)
         jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, boxNew, type, pad));
         return result;
     }
-    return 0;
+    return nullptr;
 }
 
 /*
@@ -966,7 +976,7 @@ HWND API dw_scrollbox_new(int type, int pad)
         jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, scrollBoxNew, type, pad));
         return result;
     }
-    return 0;
+    return nullptr;
 }
 
 /*
@@ -1046,7 +1056,7 @@ int API dw_box_unpack(HWND handle)
 HWND API dw_box_unpack_at_index(HWND box, int index)
 {
     JNIEnv *env;
-    HWND retval = 0;
+    HWND retval = nullptr;
 
     if(box && (env = (JNIEnv *)pthread_getspecific(_dw_env_key))) {
         // First get the class that contains the method you need to call
@@ -1137,7 +1147,7 @@ HWND API dw_button_new(const char *text, ULONG cid)
         jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, buttonNew, jstr, (int)cid));
         return result;
     }
-    return 0;
+    return nullptr;
 }
 
 HWND _dw_entryfield_new(const char *text, ULONG cid, int password)
@@ -1157,7 +1167,7 @@ HWND _dw_entryfield_new(const char *text, ULONG cid, int password)
         jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, entryfieldNew, jstr, (int)cid, password));
         return result;
     }
-    return 0;
+    return nullptr;
 }
 /*
  * Create a new Entryfield window (widget) to be packed.
@@ -1232,7 +1242,7 @@ HWND API dw_bitmapbutton_new(const char *text, ULONG resid)
         jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, bitmapButtonNew, jstr, (int)resid));
         return result;
     }
-    return 0;
+    return nullptr;
 }
 
 /*
@@ -1264,7 +1274,7 @@ HWND API dw_bitmapbutton_new_from_file(const char *text, unsigned long cid, cons
         jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, bitmapButtonNewFromFile, jstr, (int)cid, path));
         return result;
     }
-    return 0;
+    return nullptr;
 }
 
 /*
@@ -1300,7 +1310,7 @@ HWND API dw_bitmapbutton_new_from_data(const char *text, unsigned long cid, cons
         //env->ReleaseByteArrayElements(bytearray, (jbyte *) data, 0);
         return result;
     }
-    return 0;
+    return nullptr;
 }
 
 /*
@@ -1328,7 +1338,7 @@ HWND API dw_spinbutton_new(const char *text, ULONG cid)
         jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, spinButtonNew, jstr, (int)cid));
         return result;
     }
-    return 0;
+    return nullptr;
 }
 
 /*
@@ -1426,7 +1436,7 @@ HWND API dw_radiobutton_new(const char *text, ULONG cid)
         jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, radioButtonNew, jstr, (int)cid));
         return result;
     }
-    return 0;
+    return nullptr;
 }
 
 /*
@@ -1452,7 +1462,7 @@ HWND API dw_slider_new(int vertical, int increments, ULONG cid)
         jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, sliderNew, vertical, increments, (jint)cid));
         return result;
     }
-    return 0;
+    return nullptr;
 }
 
 /*
@@ -1571,7 +1581,7 @@ HWND API dw_percent_new(ULONG cid)
         jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, percentNew, (jint)cid));
         return result;
     }
-    return 0;
+    return nullptr;
 }
 
 /*
@@ -1621,7 +1631,7 @@ HWND API dw_checkbox_new(const char *text, ULONG cid)
         jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, checkboxNew, jstr, (int)cid));
         return result;
     }
-    return 0;
+    return nullptr;
 }
 
 /*
@@ -1693,7 +1703,7 @@ HWND API dw_listbox_new(ULONG cid, int multi)
         jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, listBoxNew, (int)cid, multi));
         return result;
     }
-    return 0;
+    return nullptr;
 }
 
 /*
@@ -2006,7 +2016,7 @@ HWND API dw_combobox_new(const char *text, ULONG cid)
         jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, comboBoxNew, jstr, (int)cid));
         return result;
     }
-    return 0;
+    return nullptr;
 }
 
 /*
@@ -2031,7 +2041,7 @@ HWND API dw_mle_new(ULONG cid)
         jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, mleNew, (int)cid));
         return result;
     }
-    return 0;
+    return nullptr;
 }
 
 /*
@@ -2304,7 +2314,7 @@ HWND _dw_text_new(const char *text, ULONG cid, int status)
         jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, textNew, jstr, (int)cid, status));
         return result;
     }
-    return 0;
+    return nullptr;
 }
 
 /*
@@ -2342,7 +2352,20 @@ HWND API dw_text_new(const char *text, ULONG cid)
  */
 HWND API dw_render_new(unsigned long cid)
 {
-    return 0;
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID renderNew = env->GetMethodID(clazz, "renderNew",
+                                               "(I)Lorg/dbsoft/dwindows/DWRender;");
+        // Call the method on the object
+        jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, renderNew, (int)cid));
+        return result;
+    }
+    return nullptr;
 }
 
 /*
@@ -2352,6 +2375,18 @@ HWND API dw_render_new(unsigned long cid)
  */
 void API dw_render_redraw(HWND handle)
 {
+    JNIEnv *env;
+
+    if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID renderRedraw = env->GetMethodID(clazz, "renderRedraw",
+                                                  "(Lorg/dbsoft/dwindows/DWRender;)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, renderRedraw, handle);
+    }
 }
 
 /* Sets the current foreground drawing color.
@@ -2487,7 +2522,7 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
  */
 HWND API dw_tree_new(ULONG cid)
 {
-    return 0;
+    return nullptr;
 }
 
 /*
@@ -2520,7 +2555,7 @@ HTREEITEM API dw_tree_insert_after(HWND handle, HTREEITEM item, const char *titl
  */
 HTREEITEM API dw_tree_insert(HWND handle, const char *title, HICN icon, HTREEITEM parent, void *itemdata)
 {
-    return 0;
+    return nullptr;
 }
 
 /*
@@ -2546,7 +2581,7 @@ char * API dw_tree_get_title(HWND handle, HTREEITEM item)
  */
 HTREEITEM API dw_tree_get_parent(HWND handle, HTREEITEM item)
 {
-    return 0;
+    return nullptr;
 }
 
 /*
@@ -2644,7 +2679,7 @@ void API dw_tree_item_delete(HWND handle, HTREEITEM item)
  */
 HWND API dw_container_new(ULONG cid, int multi)
 {
-    return 0;
+    return nullptr;
 }
 
 /*
@@ -3016,6 +3051,39 @@ void API dw_taskbar_delete(HWND handle, HICN icon)
 {
 }
 
+HICN _dw_icon_load(const char *filename, const char *data, int len, int resid)
+{
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // Construct a string
+        jstring file = nullptr;
+        if(filename)
+            file = env->NewStringUTF(filename);
+        // Construct a byte array
+        jbyteArray bytearray = nullptr;
+        if(data && len > 0)
+        {
+            bytearray = env->NewByteArray(len);
+            env->SetByteArrayRegion(bytearray, 0, len, reinterpret_cast<const jbyte *>(data));
+        }
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID iconNew = env->GetMethodID(clazz, "iconNew",
+                                             "(Ljava/lang/String;[BII)Landroid/graphics/drawable/Drawable;");
+        // Call the method on the object
+        jobject result = env->NewGlobalRef(env->CallObjectMethod(_dw_obj, iconNew,
+                                                                 file, bytearray, len, resid));
+        // Clean up after the array now that we are finished
+        //if(bytearray)
+        //env->ReleaseByteArrayElements(bytearray, (jbyte *) data, 0);
+        return result;
+    }
+    return nullptr;
+}
+
 /*
  * Obtains an icon from a module (or header in GTK).
  * Parameters:
@@ -3028,7 +3096,7 @@ void API dw_taskbar_delete(HWND handle, HICN icon)
  */
 HICN API dw_icon_load(unsigned long module, unsigned long resid)
 {
-    return 0;
+    return _dw_icon_load(NULL, NULL, 0, resid);
 }
 
 /*
@@ -3042,7 +3110,7 @@ HICN API dw_icon_load(unsigned long module, unsigned long resid)
  */
 HICN API dw_icon_load_from_file(const char *filename)
 {
-    return 0;
+    return _dw_icon_load(filename, NULL, 0, 0);
 }
 
 /*
@@ -3055,7 +3123,7 @@ HICN API dw_icon_load_from_file(const char *filename)
  */
 HICN API dw_icon_load_from_data(const char *data, int len)
 {
-    return 0;
+    return _dw_icon_load(NULL, data, len, 0);
 }
 
 /*
@@ -3065,6 +3133,15 @@ HICN API dw_icon_load_from_data(const char *data, int len)
  */
 void API dw_icon_free(HICN handle)
 {
+    if(handle)
+    {
+        JNIEnv *env;
+
+        if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+        {
+            env->DeleteGlobalRef(handle);
+        }
+    }
 }
 
 /*
@@ -3425,7 +3502,7 @@ HWND API dw_calendar_new(ULONG cid)
         jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, calendarNew, (int)cid));
         return result;
     }
-    return 0;
+    return nullptr;
 }
 
 /*
@@ -3625,7 +3702,7 @@ HWND API dw_html_new(unsigned long cid)
         jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, htmlNew, (int)cid));
         return result;
     }
-    return 0;
+    return nullptr;
 }
 
 /*
@@ -3657,7 +3734,7 @@ void API dw_pointer_set_pos(long x, long y)
  */
 HMENUI API dw_menu_new(ULONG cid)
 {
-    return 0;
+    return nullptr;
 }
 
 /*
@@ -3669,7 +3746,7 @@ HMENUI API dw_menu_new(ULONG cid)
  */
 HMENUI API dw_menubar_new(HWND location)
 {
-    return 0;
+    return nullptr;
 }
 
 /*
@@ -3721,7 +3798,7 @@ void API dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
  */
 HWND API dw_menu_append_item(HMENUI menux, const char *title, ULONG itemid, ULONG flags, int end, int check, HMENUI submenux)
 {
-    return 0;
+    return nullptr;
 }
 
 /*
@@ -3771,7 +3848,7 @@ HWND API dw_notebook_new(ULONG cid, int top)
         jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, notebookNew, (int)cid, top));
         return result;
     }
-    return 0;
+    return nullptr;
 }
 
 /*
@@ -3953,7 +4030,7 @@ HWND API dw_window_new(HWND hwndOwner, const char *title, ULONG flStyle)
         jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, windowNew, jstr, (int)flStyle));
         return result;
     }
-    return 0;
+    return nullptr;
 }
 
 /*
@@ -4363,7 +4440,7 @@ void API dw_window_set_icon(HWND handle, HICN icon)
 HWND API dw_window_from_id(HWND handle, int id)
 {
     JNIEnv *env;
-    HWND retval = 0;
+    HWND retval = nullptr;
 
     if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
@@ -4941,6 +5018,24 @@ void API dw_mutex_close(HMTX mutex)
     }
 }
 
+/* Check if we are on the UI thread */
+int _dw_is_ui_thread(void)
+{
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID isUIThread = env->GetMethodID(clazz, "isUIThread",
+                                                "()Z");
+        // Call the method on the object
+        return env->CallBooleanMethod(_dw_obj, isUIThread);
+    }
+    return FALSE;
+}
+
 /*
  * Tries to gain access to the semaphore, if it can't it blocks.
  * Parameters:
@@ -4953,26 +5048,16 @@ void API dw_mutex_lock(HMTX mutex)
      * will deadlock... so try to acquire the lock and continue
      * processing messages in between tries.
      */
-#if 0 /* TODO: Not sure how to do this on Android yet */
-    if(_dw_thread == pthread_self())
+    if(_dw_is_ui_thread())
     {
         while(pthread_mutex_trylock(mutex) != 0)
         {
             /* Process any pending events */
-            if(g_main_context_pending(nullptr))
-            {
-                do
-                {
-                    g_main_context_iteration(nullptr, FALSE);
-                }
-                while(g_main_context_pending(nullptr));
-            }
-            else
-                sched_yield();
+            dw_main_iteration();
+            sched_yield();
         }
     }
     else
-#endif
     {
         pthread_mutex_lock(mutex);
     }

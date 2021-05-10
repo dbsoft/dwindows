@@ -13,6 +13,9 @@ import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.media.AudioManager
 import android.media.ToneGenerator
@@ -41,13 +44,13 @@ import androidx.appcompat.widget.AppCompatEditText
 import androidx.collection.SimpleArrayMap
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.res.ResourcesCompat
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayout.OnTabSelectedListener
 import com.google.android.material.tabs.TabLayoutMediator
 import java.io.File
-import java.io.FileFilter
 import java.io.FileInputStream
 import java.io.FileNotFoundException
 import java.util.*
@@ -228,6 +231,32 @@ class DWListBox(context: Context) : ListView(context), OnItemClickListener {
     override fun onItemClick(parent: AdapterView<*>?, view: View, position: Int, id: Long) {
         selected = position
         eventHandlerInt(11, position, 0, 0, 0)
+    }
+
+    external fun eventHandlerInt(
+        message: Int,
+        inta: Int,
+        intb: Int,
+        intc: Int,
+        intd: Int
+    )
+}
+
+class DWRender(context: Context) : View(context) {
+    var cachedCanvas: Canvas? = null
+
+    override fun onSizeChanged(width: Int, height: Int, oldWidth: Int, oldHeight: Int) {
+        super.onSizeChanged(width, height, oldWidth, oldHeight)
+        // Send DW_SIGNAL_CONFIGURE
+        eventHandlerInt(1, width, height, 0, 0)
+    }
+
+    override fun onDraw(canvas: Canvas) {
+        super.onDraw(canvas)
+        cachedCanvas = canvas
+        // Send DW_SIGNAL_EXPOSE
+        eventHandlerInt(7, 0, 0, this.width, this.height)
+        cachedCanvas = null
     }
 
     external fun eventHandlerInt(
@@ -1737,6 +1766,26 @@ class DWindows : AppCompatActivity() {
         }
     }
 
+    fun iconNew(filename: String?, data: ByteArray?, length: Int, resID: Int): Drawable?
+    {
+        var icon: Drawable? = null
+
+        waitOnUiThread {
+            if(resID != 0) {
+                icon = ResourcesCompat.getDrawable(resources, resID, null);
+            } else if(filename != null) {
+                // Try to load the image, and protect against exceptions
+                try {
+                    icon = Drawable.createFromPath(filename)
+                } catch (e: FileNotFoundException) {
+                }
+            } else if(data != null) {
+                icon = BitmapDrawable(resources, BitmapFactory.decodeByteArray(data, 0, length))
+            }
+        }
+        return icon
+    }
+
     fun pixmapNew(width: Int, height: Int, filename: String?, data: ByteArray?, length: Int, resID: Int): Bitmap?
     {
         var pixmap: Bitmap? = null
@@ -1768,6 +1817,25 @@ class DWindows : AppCompatActivity() {
             dimensions = pixmap.width.toLong() or (pixmap.height.toLong() shl 32)
         }
         return dimensions
+    }
+
+    fun renderNew(cid: Int): DWRender?
+    {
+        var render: DWRender? = null
+
+        waitOnUiThread {
+            var dataArrayMap = SimpleArrayMap<String, Long>()
+
+            render = DWRender(this)
+            render!!.tag = dataArrayMap
+            render!!.id = cid
+        }
+        return render
+    }
+
+    fun renderRedraw(render: DWRender)
+    {
+        render.invalidate()
     }
 
     fun timerConnect(interval: Long, sigfunc: Long, data: Long): Timer
@@ -1884,6 +1952,14 @@ class DWindows : AppCompatActivity() {
             }
         }
         return retval
+    }
+
+    fun isUIThread(): Boolean
+    {
+        if(Looper.getMainLooper() == Looper.myLooper()) {
+            return true
+        }
+        return false
     }
 
     fun mainSleep(milliseconds: Int)
