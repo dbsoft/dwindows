@@ -1626,7 +1626,11 @@ class DWindows : AppCompatActivity() {
         var calendar: CalendarView? = null
 
         waitOnUiThread {
+            var dataArrayMap = SimpleArrayMap<String, Long>()
+
             calendar = CalendarView(this)
+            calendar!!.tag = dataArrayMap
+            calendar!!.id = cid
             calendar!!.setOnDateChangeListener { calendar, year, month, day ->
                 val c: Calendar = Calendar.getInstance();
                 c.set(year, month, day);
@@ -1654,6 +1658,83 @@ class DWindows : AppCompatActivity() {
             date = calendar.date / 1000
         }
         return date
+    }
+
+    fun bitmapNew(cid: Int): ImageView?
+    {
+        var imageview: ImageView? = null
+
+        waitOnUiThread {
+            var dataArrayMap = SimpleArrayMap<String, Long>()
+
+            imageview = ImageView(this)
+            imageview!!.tag = dataArrayMap
+            imageview!!.id = cid
+        }
+
+        return imageview
+    }
+
+    fun windowSetBitmap(window: View, resID: Int, filename: String?)
+    {
+        waitOnUiThread {
+            if(resID != 0) {
+                if(window is ImageButton) {
+                    val button = window
+
+                    button.setImageResource(resID)
+                } else if(window is ImageView) {
+                    val imageview = window
+
+                    imageview.setImageResource(resID)
+                }
+            } else if(filename != null) {
+                // Try to load the image, and protect against exceptions
+                try {
+                    val f = File(filename)
+                    val b = BitmapFactory.decodeStream(FileInputStream(f))
+                    if(window is ImageButton) {
+                        val button = window
+
+                        button.setImageBitmap(b)
+                    } else if(window is ImageView) {
+                        val imageview = window
+
+                        imageview.setImageBitmap(b)
+                    }
+                } catch (e: FileNotFoundException) {
+                }
+            }
+        }
+    }
+
+    fun windowSetBitmapFromData(window: View, resID: Int, data: ByteArray?, length: Int)
+    {
+        waitOnUiThread {
+            if(resID != 0) {
+                if (window is ImageButton) {
+                    val button = window
+
+                    button.setImageResource(resID)
+                } else if (window is ImageView) {
+                    val imageview = window
+
+                    imageview.setImageResource(resID)
+                }
+            } else if(data != null) {
+                val b = BitmapFactory.decodeByteArray(data, 0, length)
+
+                if (window is ImageButton) {
+                    val button = window
+
+                    button.setImageBitmap(b)
+                } else if (window is ImageView) {
+                    val imageview = window
+
+                    imageview.setImageBitmap(b)
+                }
+            }
+        }
     }
 
     fun timerConnect(interval: Long, sigfunc: Long, data: Long): Timer

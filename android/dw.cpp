@@ -5,6 +5,8 @@
  * (C) 2011-2021 Brian Smith <brian@dbsoft.org>
  * (C) 2011-2021 Mark Hessling <mark@rexx.org>
  *
+ * Requires Android API 19 (KitKat) or higher.
+ *
  */
 
 #include "dw.h"
@@ -773,8 +775,7 @@ char * API dw_file_browse(const char *title, const char *defpath, const char *ex
         if(ext)
             jext = env->NewStringUTF(defpath);
         // First get the class that contains the method you need to call
-        //jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
-        jclass clazz = env->FindClass(DW_CLASS_NAME);
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
         // Get the method that you want to call
         jmethodID fileBrowse = env->GetMethodID(clazz, "fileBrowse",
                                                 "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;I)Ljava/lang/String;");
@@ -3123,6 +3124,19 @@ float API dw_splitbar_get(HWND handle)
  */
 HWND API dw_bitmap_new(ULONG cid)
 {
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID mleNew = env->GetMethodID(clazz, "bitmapNew",
+                                            "(I)Landroid/widget/ImageView;");
+        // Call the method on the object
+        jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, mleNew, (int)cid));
+        return result;
+    }
     return 0;
 }
 
@@ -4148,6 +4162,26 @@ void API dw_window_enable(HWND handle)
  */
 void API dw_window_set_bitmap_from_data(HWND handle, unsigned long cid, const char *data, int len)
 {
+    JNIEnv *env;
+
+    if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // Construct a byte array
+        jbyteArray bytearray = NULL;
+        if(data && len > 0) {
+            bytearray = env->NewByteArray(len);
+            env->SetByteArrayRegion(bytearray, 0, len, reinterpret_cast<const jbyte *>(data));
+        }
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID windowSetBitmapFromData = env->GetMethodID(clazz, "windowSetBitmapFromData",
+                                                             "(Landroid/view/View;I[BI)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, windowSetBitmapFromData, handle, (int)cid, bytearray, len);
+        // Clean up after the array now that we are finished
+        //env->ReleaseByteArrayElements(bytearray, (jbyte *) data, 0);
+    }
 }
 
 /*
@@ -4162,6 +4196,23 @@ void API dw_window_set_bitmap_from_data(HWND handle, unsigned long cid, const ch
  */
 void API dw_window_set_bitmap(HWND handle, unsigned long resid, const char *filename)
 {
+    JNIEnv *env;
+
+    if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // Construct a string
+        jstring jstr = NULL;
+        if(filename) {
+            jstr = env->NewStringUTF(filename);
+        }
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID windowSetBitmapFromData = env->GetMethodID(clazz, "windowSetBitmap",
+                                                             "(Landroid/view/View;ILjava/lang/String;)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, windowSetBitmapFromData, handle, (int)resid, jstr);
+    }
 }
 
 /*
@@ -5726,7 +5777,6 @@ int API dw_feature_get(DWFEATURE feature)
         case DW_FEATURE_DARK_MODE:               /* Supports Dark Mode user interface */
         case DW_FEATURE_NOTIFICATION:            /* Supports sending system notifications */
         case DW_FEATURE_UTF8_UNICODE:            /* Supports UTF8 encoded Unicode text */
-        case DW_FEATURE_MLE_AUTO_COMPLETE:       /* Supports auto completion in Multi-line Edit boxes */
         case DW_FEATURE_MLE_WORD_WRAP:           /* Supports word wrapping in Multi-line Edit boxes */
         case DW_FEATURE_CONTAINER_STRIPE:        /* Supports striped line display in container widgets */
             return DW_FEATURE_ENABLED;
@@ -5758,7 +5808,6 @@ int API dw_feature_set(DWFEATURE feature, int state)
         case DW_FEATURE_DARK_MODE:               /* Supports Dark Mode user interface */
         case DW_FEATURE_NOTIFICATION:            /* Supports sending system notifications */
         case DW_FEATURE_UTF8_UNICODE:            /* Supports UTF8 encoded Unicode text */
-        case DW_FEATURE_MLE_AUTO_COMPLETE:       /* Supports auto completion in Multi-line Edit boxes */
         case DW_FEATURE_MLE_WORD_WRAP:           /* Supports word wrapping in Multi-line Edit boxes */
         case DW_FEATURE_CONTAINER_STRIPE:        /* Supports striped line display in container widgets */
             return DW_ERROR_GENERAL;
