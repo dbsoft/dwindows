@@ -2480,7 +2480,7 @@ void API dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
 {
     JNIEnv *env;
 
-    if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    if((handle || pixmap) && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
         // First get the class that contains the method you need to call
         jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
@@ -2505,7 +2505,7 @@ void API dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y
 {
     JNIEnv *env;
 
-    if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    if((handle || pixmap) && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
         // First get the class that contains the method you need to call
         jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
@@ -2568,7 +2568,7 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int 
 {
     JNIEnv *env;
 
-    if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    if((handle || pixmap) && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
         // First get the class that contains the method you need to call
         jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
