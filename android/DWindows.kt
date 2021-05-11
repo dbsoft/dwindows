@@ -1937,15 +1937,16 @@ class DWindows : AppCompatActivity() {
                 paint.style = Paint.Style.FILL_AND_STROKE
                 paint.textAlign = Paint.Align.LEFT
                 paint.getTextBounds(text, 0, text.length, rect)
-                rect.top += y
-                rect.bottom += y
+                val textheight = rect.bottom - rect.top
+                rect.top += y + textheight
+                rect.bottom += y + textheight
                 rect.left += x
                 rect.right += x
                 canvas.drawRect(rect, paint)
                 // Restore the color and prepare to draw text
                 paint.color = oldcolor
                 paint.style = Paint.Style.STROKE
-                canvas.drawText(text, x.toFloat(), y.toFloat(), paint)
+                canvas.drawText(text, x.toFloat(), y.toFloat() + textheight.toFloat(), paint)
             }
         }
     }
