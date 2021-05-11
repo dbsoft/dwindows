@@ -11,9 +11,7 @@ import android.content.Context
 import android.content.DialogInterface
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.graphics.Canvas
+import android.graphics.*
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
@@ -405,6 +403,7 @@ class DWindows : AppCompatActivity() {
     var threadLock = ReentrantLock()
     var threadCond = threadLock.newCondition()
     var notificationID: Int = 0
+    private var paint = Paint()
 
     // Our version of runOnUiThread that waits for execution
     fun waitOnUiThread(runnable: Runnable)
@@ -1836,6 +1835,110 @@ class DWindows : AppCompatActivity() {
     fun renderRedraw(render: DWRender)
     {
         render.invalidate()
+    }
+
+    fun pixmapBitBlt(dstr: DWRender?, dstp: Bitmap?, dstx: Int, dsty: Int, dstw: Int, dsth: Int,
+                     srcr: DWRender?, srcp: Bitmap?, srcy: Int, srcx: Int, srcw: Int, srch: Int): Int
+    {
+        val dst = Rect(dstx, dsty, dstx + dstw, dsty + dsth)
+        var src = Rect(srcx, srcy, srcx + srcw, srcy + srch)
+        var retval: Int = 1
+
+        if(srcw == -1) {
+            src.right = srcx + dstw
+        }
+        if(srch == -1) {
+            src.bottom = srcy + dsth
+        }
+
+        waitOnUiThread {
+            var canvas: Canvas? = null
+            var bitmap: Bitmap? = null
+
+            if(dstr != null) {
+                canvas = dstr.cachedCanvas
+            } else if(dstp != null) {
+                canvas = Canvas(dstp)
+            }
+
+            if(srcp != null) {
+                bitmap = srcp
+            } else if(srcr != null) {
+                bitmap = Bitmap.createBitmap(srcr.layoutParams.width,
+                                             srcr.layoutParams.height, Bitmap.Config.ARGB_8888)
+                val c = Canvas(bitmap)
+                srcr.layout(srcr.left, srcr.top, srcr.right, srcr.bottom)
+                srcr.draw(c)
+            }
+
+            if(canvas != null && bitmap != null) {
+                canvas.drawBitmap(bitmap, src, dst, null)
+                retval = 0
+            }
+        }
+        return retval
+    }
+
+    fun drawPoint(render: DWRender?, bitmap: Bitmap?, x: Int, y: Int)
+    {
+        waitOnUiThread {
+            var canvas: Canvas? = null
+
+            if(render != null) {
+                canvas = render.cachedCanvas
+            } else if(bitmap != null) {
+                canvas = Canvas(bitmap)
+            }
+
+            if(canvas != null) {
+                canvas.drawPoint(x.toFloat(), y.toFloat(), Paint())
+            }
+        }
+    }
+
+    fun drawLine(render: DWRender?, bitmap: Bitmap?, x1: Int, y1: Int, x2: Int, y2: Int)
+    {
+        waitOnUiThread {
+            var canvas: Canvas? = null
+
+            if(render != null) {
+                canvas = render.cachedCanvas
+            } else if(bitmap != null) {
+                canvas = Canvas(bitmap)
+            }
+
+            if(canvas != null) {
+                canvas.drawLine(x1.toFloat(), y1.toFloat(), x2.toFloat(), y2.toFloat(), paint)
+            }
+        }
+    }
+
+    fun drawRect(render: DWRender?, bitmap: Bitmap?, x: Int, y: Int, width: Int, height: Int)
+    {
+        waitOnUiThread {
+            var canvas: Canvas? = null
+
+            if(render != null) {
+                canvas = render.cachedCanvas
+            } else if(bitmap != null) {
+                canvas = Canvas(bitmap)
+            }
+
+            if(canvas != null) {
+                canvas.drawRect(x.toFloat(), y.toFloat(), x.toFloat() + width.toFloat(), y.toFloat() + height.toFloat(), paint)
+            }
+        }
+    }
+
+    fun colorSet(alpha: Int, red: Int, green: Int, blue: Int)
+    {
+        waitOnUiThread {
+            if(alpha != 0) {
+                paint.color = Color.argb(alpha, red, green, blue)
+            } else {
+                paint.color = Color.rgb(red, green, blue)
+            }
+        }
     }
 
     fun timerConnect(interval: Long, sigfunc: Long, data: Long): Timer

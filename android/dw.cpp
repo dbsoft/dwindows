@@ -543,6 +543,41 @@ ULONG _dw_findsigmessage(const char *signame)
     return 0L;
 }
 
+unsigned long _dw_colors[] =
+{
+        0x00000000,   /* 0  black */
+        0x000000bb,   /* 1  red */
+        0x0000bb00,   /* 2  green */
+        0x0000aaaa,   /* 3  yellow */
+        0x00cc0000,   /* 4  blue */
+        0x00bb00bb,   /* 5  magenta */
+        0x00bbbb00,   /* 6  cyan */
+        0x00bbbbbb,   /* 7  white */
+        0x00777777,   /* 8  grey */
+        0x000000ff,   /* 9  bright red */
+        0x0000ff00,   /* 10 bright green */
+        0x0000eeee,   /* 11 bright yellow */
+        0x00ff0000,   /* 12 bright blue */
+        0x00ff00ff,   /* 13 bright magenta */
+        0x00eeee00,   /* 14 bright cyan */
+        0x00ffffff,   /* 15 bright white */
+        0xff000000    /* 16 default color */
+};
+
+/* Return the RGB color regardless if a predefined color was passed */
+unsigned long _dw_get_color(unsigned long thiscolor)
+{
+    if(thiscolor & DW_RGB_COLOR)
+    {
+        return thiscolor & ~DW_RGB_COLOR;
+    }
+    else if(thiscolor < 17)
+    {
+        return _dw_colors[thiscolor];
+    }
+    return 0;
+}
+
 /*
  * Runs a message loop for Dynamic Windows.
  */
@@ -2397,6 +2432,20 @@ void API dw_render_redraw(HWND handle)
  */
 void API dw_color_foreground_set(unsigned long value)
 {
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        unsigned long color = _dw_get_color(value);
+
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID colorSet = env->GetMethodID(clazz, "colorSet",
+                                              "(IIII)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, colorSet, 0, (jint)DW_RED_VALUE(color), (jint)DW_GREEN_VALUE(color), (jint)DW_BLUE_VALUE(color));
+    }
 }
 
 /* Sets the current background drawing color.
@@ -2429,6 +2478,18 @@ unsigned long API dw_color_choose(unsigned long value)
  */
 void API dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
 {
+    JNIEnv *env;
+
+    if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID drawPoint = env->GetMethodID(clazz, "drawPoint",
+                                               "(Lorg/dbsoft/dwindows/DWRender;Landroid/graphics/Bitmap;II)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, drawPoint, handle, pixmap->bitmap, x, y);
+    }
 }
 
 /* Draw a line on a window (preferably a render window).
@@ -2442,6 +2503,18 @@ void API dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
  */
 void API dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y2)
 {
+    JNIEnv *env;
+
+    if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID drawLine = env->GetMethodID(clazz, "drawLine",
+                                              "(Lorg/dbsoft/dwindows/DWRender;Landroid/graphics/Bitmap;IIII)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, drawLine, handle, pixmap->bitmap, x1, y1, x2, y2);
+    }
 }
 
 /* Draw text on a window (preferably a render window).
@@ -2493,6 +2566,18 @@ void API dw_draw_polygon( HWND handle, HPIXMAP pixmap, int flags, int npoints, i
  */
 void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int width, int height)
 {
+    JNIEnv *env;
+
+    if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID drawLine = env->GetMethodID(clazz, "drawRect",
+                                              "(Lorg/dbsoft/dwindows/DWRender;Landroid/graphics/Bitmap;IIII)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, drawLine, handle, pixmap->bitmap, x, y, width, height);
+    }
 }
 
 /* Draw an arc on a window (preferably a render window).
@@ -3455,6 +3540,7 @@ void API dw_pixmap_destroy(HPIXMAP pixmap)
  */
 void API dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int width, int height, HWND src, HPIXMAP srcp, int xsrc, int ysrc)
 {
+    dw_pixmap_stretch_bitblt(dest, destp, xdest, ydest, width, height, src, srcp, xsrc, ysrc, -1, -1);
 }
 
 /*
@@ -3477,7 +3563,20 @@ void API dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int wi
  */
 int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int width, int height, HWND src, HPIXMAP srcp, int xsrc, int ysrc, int srcwidth, int srcheight)
 {
-    return DW_ERROR_GENERAL;
+    JNIEnv *env;
+    int retval = DW_ERROR_GENERAL;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID pixmapBitBlt = env->GetMethodID(clazz, "pixmapBitBlt",
+                                                  "(Lorg/dbsoft/dwindows/DWRender;Landroid/graphics/Bitmap;IIIILorg/dbsoft/dwindows/DWRender;Landroid/graphics/Bitmap;IIII)I");
+        // Call the method on the object
+        retval = env->CallIntMethod(_dw_obj, pixmapBitBlt, dest, destp->bitmap, xdest, ydest, width, height, src, srcp->bitmap, xsrc, ysrc, srcwidth, srcheight);
+    }
+    return retval;
 }
 
 /*
@@ -4589,7 +4688,7 @@ int API dw_screen_height(void)
 /* This should return the current color depth. */
 unsigned long API dw_color_depth_get(void)
 {
-    return 0;
+    return 32;
 }
 
 /*
