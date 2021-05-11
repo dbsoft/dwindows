@@ -2582,7 +2582,7 @@ void API dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, in
 {
     JNIEnv *env;
 
-    if((handle || pixmap) && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    if((handle || pixmap) && npoints > 0 && x && y && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
         jintArray jx = env->NewIntArray(npoints);
         jintArray jy = env->NewIntArray(npoints);
