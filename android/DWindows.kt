@@ -2045,7 +2045,12 @@ class DWindows : AppCompatActivity() {
                 } else {
                     paint.style = Paint.Style.STROKE
                 }
-                canvas.drawArc(rect, a1.toFloat(), sweep.toFloat(), false, paint)
+                // Handle the DW_DRAW_FULL flag
+                if((flags and (1 shl 1)) != 0) {
+                    canvas.drawOval(rect, paint)
+                } else {
+                    canvas.drawArc(rect, a1.toFloat(), sweep.toFloat(), false, paint)
+                }
             }
         }
     }
