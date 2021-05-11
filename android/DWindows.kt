@@ -404,6 +404,7 @@ class DWindows : AppCompatActivity() {
     var threadCond = threadLock.newCondition()
     var notificationID: Int = 0
     private var paint = Paint()
+    private var bgcolor: Int = 0
 
     // Our version of runOnUiThread that waits for execution
     fun waitOnUiThread(runnable: Runnable)
@@ -1908,7 +1909,43 @@ class DWindows : AppCompatActivity() {
             }
 
             if(canvas != null) {
+                paint.flags = 0
+                paint.style = Paint.Style.STROKE
                 canvas.drawLine(x1.toFloat(), y1.toFloat(), x2.toFloat(), y2.toFloat(), paint)
+            }
+        }
+    }
+
+    fun drawText(render: DWRender?, bitmap: Bitmap?, x: Int, y: Int, text:String)
+    {
+        waitOnUiThread {
+            var canvas: Canvas? = null
+
+            if(render != null) {
+                canvas = render.cachedCanvas
+            } else if(bitmap != null) {
+                canvas = Canvas(bitmap)
+            }
+
+            if(canvas != null) {
+                // Save the old color for later...
+                var rect = Rect()
+                val oldcolor = paint.color
+                // Prepare to draw the background rect
+                paint.color = bgcolor
+                paint.flags = 0
+                paint.style = Paint.Style.FILL_AND_STROKE
+                paint.textAlign = Paint.Align.LEFT
+                paint.getTextBounds(text, 0, text.length, rect)
+                rect.top += y
+                rect.bottom += y
+                rect.left += x
+                rect.right += x
+                canvas.drawRect(rect, paint)
+                // Restore the color and prepare to draw text
+                paint.color = oldcolor
+                paint.style = Paint.Style.STROKE
+                canvas.drawText(text, x.toFloat(), y.toFloat(), paint)
             }
         }
     }
@@ -1925,7 +1962,90 @@ class DWindows : AppCompatActivity() {
             }
 
             if(canvas != null) {
+                paint.flags = 0
+                paint.style = Paint.Style.FILL_AND_STROKE
                 canvas.drawRect(x.toFloat(), y.toFloat(), x.toFloat() + width.toFloat(), y.toFloat() + height.toFloat(), paint)
+            }
+        }
+    }
+
+    fun drawPolygon(render: DWRender?, bitmap: Bitmap?, flags: Int, npoints: Int, x: IntArray, y: IntArray)
+    {
+        var points = FloatArray(npoints*2)
+
+        // Convert to a single IntArray
+        for (i in 0 until npoints) {
+            points[(i*2)] = x[i].toFloat()
+            points[(i*2)+1] = y[i].toFloat()
+        }
+
+        waitOnUiThread {
+            var canvas: Canvas? = null
+
+            if(render != null) {
+                canvas = render.cachedCanvas
+            } else if(bitmap != null) {
+                canvas = Canvas(bitmap)
+            }
+
+            if(canvas != null) {
+                // Handle the DW_DRAW_NOAA flag
+                if((flags and (1 shl 2)) == 0) {
+                    paint.flags = Paint.ANTI_ALIAS_FLAG
+                } else {
+                    paint.flags = 0
+                }
+                // Handle the DW_DRAW_FILL flag
+                if((flags and 1)  == 1) {
+                    paint.style = Paint.Style.FILL_AND_STROKE
+                } else {
+                    paint.style = Paint.Style.STROKE
+                }
+                canvas.drawPoints(points, paint)
+            }
+        }
+    }
+
+    fun drawArc(render: DWRender?, bitmap: Bitmap?, flags: Int, xorigin: Int, yorigin: Int,
+                x1: Int, y1: Int, x2: Int, y2: Int)
+    {
+        waitOnUiThread {
+            var canvas: Canvas? = null
+
+            if(render != null) {
+                canvas = render.cachedCanvas
+            } else if(bitmap != null) {
+                canvas = Canvas(bitmap)
+            }
+
+            if(canvas != null) {
+                var a1: Double = Math.atan2((y1 - yorigin).toDouble(), (x1 - xorigin).toDouble())
+                var a2: Double = Math.atan2((y2 - yorigin).toDouble(), (x2 - xorigin).toDouble())
+                val dx = (xorigin - x1).toDouble()
+                val dy = (yorigin - y1).toDouble()
+                val r: Double = Math.sqrt(dx * dx + dy * dy)
+                val left = (xorigin-r).toFloat()
+                val top = (yorigin-r).toFloat()
+                val rect = RectF(left, top, (left + (r*2)).toFloat(), (top + (r*2)).toFloat())
+
+                /* Convert to degrees */
+                a1 *= 180.0 / Math.PI
+                a2 *= 180.0 / Math.PI
+                val sweep = Math.abs(a1 - a2)
+
+                // Handle the DW_DRAW_NOAA flag
+                if((flags and (1 shl 2)) == 0) {
+                    paint.flags = Paint.ANTI_ALIAS_FLAG
+                } else {
+                    paint.flags = 0
+                }
+                // Handle the DW_DRAW_FILL flag
+                if((flags and 1)  == 1) {
+                    paint.style = Paint.Style.FILL_AND_STROKE
+                } else {
+                    paint.style = Paint.Style.STROKE
+                }
+                canvas.drawArc(rect, a1.toFloat(), sweep.toFloat(), false, paint)
             }
         }
     }
@@ -1938,6 +2058,15 @@ class DWindows : AppCompatActivity() {
             } else {
                 paint.color = Color.rgb(red, green, blue)
             }
+        }
+    }
+
+    fun bgColorSet(alpha: Int, red: Int, green: Int, blue: Int)
+    {
+        if(alpha != 0) {
+            this.bgcolor = Color.argb(alpha, red, green, blue)
+        } else {
+            this.bgcolor = Color.rgb(red, green, blue)
         }
     }
 
