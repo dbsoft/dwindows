@@ -238,7 +238,7 @@ int _dw_event_handler(jobject object, void **params, int message)
 
                 if(width > 0 && height > 0)
                 {
-                    return sizefunc(object, width, height, handler->data);
+                    return sizefunc(handler->window, width, height, handler->data);
                 }
                 return 0;
             }
@@ -257,20 +257,20 @@ int _dw_event_handler(jobject object, void **params, int message)
                 int (* API buttonfunc)(HWND, int, int, int, void *) = (int (* API)(HWND, int, int, int, void *))handler->signalfunction;
                 int button = 1;
 
-                return buttonfunc(object, DW_POINTER_TO_INT(params[3]), DW_POINTER_TO_INT(params[4]), button, handler->data);
+                return buttonfunc(handler->window, DW_POINTER_TO_INT(params[3]), DW_POINTER_TO_INT(params[4]), button, handler->data);
             }
             /* Motion notify event */
             case 5:
             {
                 int (* API motionfunc)(HWND, int, int, int, void *) = (int (* API)(HWND, int, int, int, void *))handler->signalfunction;
 
-                return motionfunc(object, DW_POINTER_TO_INT(params[3]), DW_POINTER_TO_INT(params[4]), DW_POINTER_TO_INT(params[5]), handler->data);
+                return motionfunc(handler->window, DW_POINTER_TO_INT(params[3]), DW_POINTER_TO_INT(params[4]), DW_POINTER_TO_INT(params[5]), handler->data);
             }
             /* Window close event */
             case 6:
             {
                 int (* API closefunc)(HWND, void *) = (int (* API)(HWND, void *))handler->signalfunction;
-                return closefunc(object, handler->data);
+                return closefunc(handler->window, handler->data);
             }
             /* Window expose/draw event */
             case 7:
@@ -282,7 +282,7 @@ int _dw_event_handler(jobject object, void **params, int message)
                 exp.y = DW_POINTER_TO_INT(params[4]);
                 exp.width = DW_POINTER_TO_INT(params[5]);
                 exp.height = DW_POINTER_TO_INT(params[6]);
-                int result = exposefunc(object, &exp, handler->data);
+                int result = exposefunc(handler->window, &exp, handler->data);
                 return result;
             }
                 /* Clicked event for buttons and menu items */
@@ -290,7 +290,7 @@ int _dw_event_handler(jobject object, void **params, int message)
             {
                 int (* API clickfunc)(HWND, void *) = (int (* API)(HWND, void *))handler->signalfunction;
 
-                return clickfunc(object, handler->data);
+                return clickfunc(handler->window, handler->data);
             }
                 /* Container class selection event */
             case 9:
