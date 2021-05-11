@@ -1971,12 +1971,12 @@ class DWindows : AppCompatActivity() {
 
     fun drawPolygon(render: DWRender?, bitmap: Bitmap?, flags: Int, npoints: Int, x: IntArray, y: IntArray)
     {
-        var points = FloatArray(npoints*2)
+        // Create a path with all our points
+        val path = Path()
 
-        // Convert to a single IntArray
-        for (i in 0 until npoints) {
-            points[(i*2)] = x[i].toFloat()
-            points[(i*2)+1] = y[i].toFloat()
+        path.moveTo(x[0].toFloat(), y[0].toFloat())
+        for (i in 1 until npoints) {
+            path.lineTo(x[i].toFloat(), y[i].toFloat())
         }
 
         waitOnUiThread {
@@ -2001,7 +2001,7 @@ class DWindows : AppCompatActivity() {
                 } else {
                     paint.style = Paint.Style.STROKE
                 }
-                canvas.drawPoints(points, paint)
+                canvas.drawPath(path, paint)
             }
         }
     }
