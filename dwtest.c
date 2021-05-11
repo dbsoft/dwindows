@@ -274,9 +274,9 @@ int DWSIGNAL text_expose(HWND hwnd, DWExpose *exp, void *data)
         HPIXMAP hpm;
         unsigned long width,height;
 
-        if (hwnd == textbox1)
+        if(dw_window_compare(hwnd, textbox1))
             hpm = text1pm;
-        else if(hwnd == textbox2)
+        else if(dw_window_compare(hwnd, textbox2))
             hpm = text2pm;
         else
             return TRUE;

@@ -11488,6 +11488,24 @@ void *dw_window_get_data(HWND window, const char *dataname)
     return NULL;
 }
 
+/*
+ * Compare two window handles.
+ * Parameters:
+ *       window1: First window handle to compare.
+ *       window2: Second window handle to compare.
+ * Returns:
+ *       TRUE if the windows are the same object, FALSE if not.
+ */
+int API dw_window_compare(HWND window1, HWND window2)
+{
+    /* If anything special is require to compare... do it
+     * here otherwise just compare the handles.
+     */
+    if(window1 && window2 && window1 == window2)
+        return TRUE;
+    return FALSE;
+}
+
 #define DW_TIMER_MAX 64
 static NSTimer *DWTimers[DW_TIMER_MAX];
 
