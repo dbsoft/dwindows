@@ -2456,6 +2456,20 @@ void API dw_color_foreground_set(unsigned long value)
  */
 void API dw_color_background_set(unsigned long value)
 {
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        unsigned long color = _dw_get_color(value);
+
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID bgColorSet = env->GetMethodID(clazz, "bgColorSet",
+                                              "(IIII)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, bgColorSet, 0, (jint)DW_RED_VALUE(color), (jint)DW_GREEN_VALUE(color), (jint)DW_BLUE_VALUE(color));
+    }
 }
 
 /* Allows the user to choose a color using the system's color chooser dialog.
@@ -2488,7 +2502,7 @@ void API dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
         jmethodID drawPoint = env->GetMethodID(clazz, "drawPoint",
                                                "(Lorg/dbsoft/dwindows/DWRender;Landroid/graphics/Bitmap;II)V");
         // Call the method on the object
-        env->CallVoidMethod(_dw_obj, drawPoint, handle, pixmap->bitmap, x, y);
+        env->CallVoidMethod(_dw_obj, drawPoint, handle, pixmap ? pixmap->bitmap : NULL, x, y);
     }
 }
 
@@ -2513,7 +2527,7 @@ void API dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y
         jmethodID drawLine = env->GetMethodID(clazz, "drawLine",
                                               "(Lorg/dbsoft/dwindows/DWRender;Landroid/graphics/Bitmap;IIII)V");
         // Call the method on the object
-        env->CallVoidMethod(_dw_obj, drawLine, handle, pixmap->bitmap, x1, y1, x2, y2);
+        env->CallVoidMethod(_dw_obj, drawLine, handle, pixmap ? pixmap->bitmap : NULL, x1, y1, x2, y2);
     }
 }
 
@@ -2527,6 +2541,20 @@ void API dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y
  */
 void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, const char *text)
 {
+    JNIEnv *env;
+
+    if((handle || pixmap) && text && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // Construct the string
+        jstring jstr = env->NewStringUTF(text);
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID drawLine = env->GetMethodID(clazz, "drawText",
+                                              "(Lorg/dbsoft/dwindows/DWRender;Landroid/graphics/Bitmap;IILjava/lang/String;)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, drawLine, handle, pixmap ? pixmap->bitmap : NULL, x, y, jstr);
+    }
 }
 
 /* Query the width and height of a text string.
@@ -2550,8 +2578,29 @@ void API dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, const char *text,
  *       x: Pointer to array of X coordinates.
  *       y: Pointer to array of Y coordinates.
  */
-void API dw_draw_polygon( HWND handle, HPIXMAP pixmap, int flags, int npoints, int *x, int *y )
+void API dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, int *x, int *y)
 {
+    JNIEnv *env;
+
+    if((handle || pixmap) && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        jintArray jx = env->NewIntArray(npoints);
+        jintArray jy = env->NewIntArray(npoints);
+
+        if(jx && jy)
+        {
+            // Construct the integer arrays
+            env->SetIntArrayRegion(jx, 0, npoints, x);
+            env->SetIntArrayRegion(jy, 0, npoints, y);
+            // First get the class that contains the method you need to call
+            jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+            // Get the method that you want to call
+            jmethodID drawPolygon = env->GetMethodID(clazz, "drawPolygon",
+                                                     "(Lorg/dbsoft/dwindows/DWRender;Landroid/graphics/Bitmap;II[I[I)V");
+            // Call the method on the object
+            env->CallVoidMethod(_dw_obj, drawPolygon, handle, pixmap ? pixmap->bitmap : NULL, flags, npoints, jx, jy);
+        }
+    }
 }
 
 /* Draw a rectangle on a window (preferably a render window).
@@ -2576,7 +2625,7 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int 
         jmethodID drawLine = env->GetMethodID(clazz, "drawRect",
                                               "(Lorg/dbsoft/dwindows/DWRender;Landroid/graphics/Bitmap;IIII)V");
         // Call the method on the object
-        env->CallVoidMethod(_dw_obj, drawLine, handle, pixmap->bitmap, x, y, width, height);
+        env->CallVoidMethod(_dw_obj, drawLine, handle, pixmap ? pixmap->bitmap : NULL, x, y, width, height);
     }
 }
 
@@ -2595,6 +2644,18 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int 
  */
 void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yorigin, int x1, int y1, int x2, int y2)
 {
+    JNIEnv *env;
+
+    if((handle || pixmap) && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID drawLine = env->GetMethodID(clazz, "drawArc",
+                                              "(Lorg/dbsoft/dwindows/DWRender;Landroid/graphics/Bitmap;IIIIIII)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, drawLine, handle, pixmap ? pixmap->bitmap : NULL, flags, xorigin, yorigin, x1, y1, x2, y2);
+    }
 }
 
 /*
