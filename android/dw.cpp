@@ -3574,7 +3574,7 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
         jmethodID pixmapBitBlt = env->GetMethodID(clazz, "pixmapBitBlt",
                                                   "(Lorg/dbsoft/dwindows/DWRender;Landroid/graphics/Bitmap;IIIILorg/dbsoft/dwindows/DWRender;Landroid/graphics/Bitmap;IIII)I");
         // Call the method on the object
-        retval = env->CallIntMethod(_dw_obj, pixmapBitBlt, dest, destp->bitmap, xdest, ydest, width, height, src, srcp->bitmap, xsrc, ysrc, srcwidth, srcheight);
+        retval = env->CallIntMethod(_dw_obj, pixmapBitBlt, dest, destp ? destp->bitmap : NULL, xdest, ydest, width, height, src, srcp ? srcp->bitmap : NULL, xsrc, ysrc, srcwidth, srcheight);
     }
     return retval;
 }
@@ -4791,6 +4791,27 @@ void * API dw_window_get_data(HWND window, const char *dataname)
         retval = (void *)env->CallLongMethod(_dw_obj, windowGetData, window, jstr);
     }
     return retval;
+}
+
+/*
+ * Compare two window handles.
+ * Parameters:
+ *       window1: First window handle to compare.
+ *       window2: Second window handle to compare.
+ * Returns:
+ *       TRUE if the windows are the same object, FALSE if not.
+ */
+int API dw_window_compare(HWND window1, HWND window2)
+{
+    JNIEnv *env;
+    void *retval = nullptr;
+
+    if(window1 && window2 && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        if(env->IsSameObject(window1, window2))
+            return TRUE;
+    }
+    return FALSE;
 }
 
 /*

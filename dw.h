@@ -2122,6 +2122,7 @@ int API dw_dialog_dismiss(DWDialog *dialog, void *result);
 void * API dw_dialog_wait(DWDialog *dialog);
 void API dw_window_set_data(HWND window, const char *dataname, void *data);
 void * API dw_window_get_data(HWND window, const char *dataname);
+int API dw_window_compare(HWND window1, HWND window2);
 int API dw_module_load(const char *name, HMOD *handle);
 int API dw_module_symbol(HMOD handle, const char *name, void**func);
 int API dw_module_close(HMOD handle);

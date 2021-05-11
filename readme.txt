@@ -83,6 +83,10 @@ Added dw_render_redraw() function to trigger a DW_SIGNAL_EXPOSE
     callback. GTK4 and GTK3 with Wayland require drawing to be 
     done in the callback, necessitating a dw_render_redraw() or
     dw_flush() call.  dw_flush() may cause multiple draw passes.
+Added new function dw_window_compare() to check if two window handles
+    reference the same object.  Necessary in the Android port since
+    handles passed to callbacks are local references, so they don't
+    match the handles saved during window creation.
 Added support for dw_window_set_font() with a NULL font parameter.
     This resets the font used on the widget to the default font.
 Fixed GTK warnings on GTK3 caused by using Pango style font syntax.
