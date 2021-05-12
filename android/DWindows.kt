@@ -1835,7 +1835,9 @@ class DWindows : AppCompatActivity() {
 
     fun renderRedraw(render: DWRender)
     {
-        render.invalidate()
+        runOnUiThread {
+            render.invalidate()
+        }
     }
 
     fun pixmapBitBlt(dstr: DWRender?, dstp: Bitmap?, dstx: Int, dsty: Int, dstw: Int, dsth: Int,
