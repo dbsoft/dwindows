@@ -3433,7 +3433,7 @@ HPIXMAP API dw_pixmap_new(HWND handle, unsigned long width, unsigned long height
 
     if(jbitmap)
     {
-        HPIXMAP pixmap = (HPIXMAP)calloc(1, sizeof(HPIXMAP));
+        HPIXMAP pixmap = (HPIXMAP)calloc(1, sizeof(struct _hpixmap));
 
         if(pixmap)
         {
@@ -3464,7 +3464,7 @@ HPIXMAP API dw_pixmap_new_from_file(HWND handle, const char *filename)
 
     if(jbitmap)
     {
-        HPIXMAP pixmap = (HPIXMAP)calloc(1, sizeof(HPIXMAP));
+        HPIXMAP pixmap = (HPIXMAP)calloc(1, sizeof(struct _hpixmap));
 
         if(pixmap)
         {
@@ -3494,7 +3494,7 @@ HPIXMAP API dw_pixmap_new_from_data(HWND handle, const char *data, int len)
 
     if(jbitmap)
     {
-        HPIXMAP pixmap = (HPIXMAP)calloc(1, sizeof(HPIXMAP));
+        HPIXMAP pixmap = (HPIXMAP)calloc(1, sizeof(struct _hpixmap));
 
         if(pixmap)
         {
@@ -3535,7 +3535,7 @@ HPIXMAP API dw_pixmap_grab(HWND handle, ULONG resid)
 
     if(jbitmap)
     {
-        HPIXMAP pixmap = (HPIXMAP)calloc(1, sizeof(HPIXMAP));
+        HPIXMAP pixmap = (HPIXMAP)calloc(1, sizeof(struct _hpixmap));
 
         if(pixmap)
         {
