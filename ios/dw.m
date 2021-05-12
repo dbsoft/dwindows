@@ -3688,8 +3688,16 @@ void _dw_control_size(id handle, int *width, int *height)
     else if([object isMemberOfClass:[DWPercent class]] ||
             [object isMemberOfClass:[DWSlider class]])
     {
-        thiswidth = 100;
-        thisheight = 25;
+        if([object isMemberOfClass:[DWSlider class]] && [object vertical])
+        {
+            thiswidth = 25;
+            thisheight = 100;
+        }
+        else
+        {
+            thiswidth = 100;
+            thisheight = 25;
+        }
     }
     /* Handle bitmap size */
     else if([object isMemberOfClass:[UIImageView class]])
