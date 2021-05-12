@@ -1965,13 +1965,26 @@ BOOL _dw_is_dark(void)
 @interface DWSlider : UISlider
 {
     void *userdata;
+    BOOL vertical;
 }
+-(void)setVertical:(BOOL)vert;
+-(BOOL)vertical;
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
 -(void)sliderChanged:(id)sender;
 @end
 
 @implementation DWSlider
+-(void)setVertical:(BOOL)vert
+{
+    if(vert)
+    {
+        CGAffineTransform trans = CGAffineTransformMakeRotation(M_PI * 0.5);
+        self.transform = trans;
+    }
+    vertical = vert;
+}
+-(BOOL)vertical { return vertical; }
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
 -(void)sliderChanged:(id)sender { int intVal = (int)[self value]; _dw_event_handler(self, DW_INT_TO_POINTER(intVal), 14); }
@@ -4346,10 +4359,10 @@ DW_FUNCTION_RESTORE_PARAM2(text, const char *, cid, ULONG)
  *       increments: Number of increments available.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-DW_FUNCTION_DEFINITION(dw_slider_new, HWND, int DW_UNUSED(vertical), int increments, ULONG cid)
+DW_FUNCTION_DEFINITION(dw_slider_new, HWND, int vertical, int increments, ULONG cid)
 DW_FUNCTION_ADD_PARAM3(vertical, increments, cid)
 DW_FUNCTION_RETURN(dw_slider_new, HWND)
-DW_FUNCTION_RESTORE_PARAM3(DW_UNUSED(vertical), int, increments, int, cid, ULONG)
+DW_FUNCTION_RESTORE_PARAM3(vertical, int, increments, int, cid, ULONG)
 {
     DWSlider *slider = [[[DWSlider alloc] init] retain];
     [slider setMaximumValue:(double)increments];
@@ -4359,6 +4372,7 @@ DW_FUNCTION_RESTORE_PARAM3(DW_UNUSED(vertical), int, increments, int, cid, ULONG
                action:@selector(sliderChanged:)
      forControlEvents:UIControlEventValueChanged];
     [slider setTag:cid];
+    [slider setVertical:(vertical ? YES : NO)];
     DW_FUNCTION_RETURN_THIS(slider);
 }
 
@@ -4395,8 +4409,7 @@ void API dw_slider_set_pos(HWND handle, unsigned int position)
  */
 HWND API dw_scrollbar_new(int vertical, ULONG cid)
 {
-    /*TODO: Implement scrollbars if possible */
-    return 0;
+    return dw_slider_new(vertical, 1, cid);
 }
 
 /*
@@ -4406,8 +4419,7 @@ HWND API dw_scrollbar_new(int vertical, ULONG cid)
  */
 unsigned int API dw_scrollbar_get_pos(HWND handle)
 {
-    /*TODO: Implement scrollbars if possible */
-    return 0;
+    return dw_slider_get_pos(handle);
 }
 
 /*
@@ -4418,7 +4430,7 @@ unsigned int API dw_scrollbar_get_pos(HWND handle)
  */
 void API dw_scrollbar_set_pos(HWND handle, unsigned int position)
 {
-    /*TODO: Implement scrollbars if possible */
+    dw_slider_set_pos(handle, position);
 }
 
 /*
@@ -4430,7 +4442,8 @@ void API dw_scrollbar_set_pos(HWND handle, unsigned int position)
  */
 void API dw_scrollbar_set_range(HWND handle, unsigned int range, unsigned int visible)
 {
-    /*TODO: Implement scrollbars if possible */
+    DWSlider *slider = handle;
+    [slider setMaximumValue:(double)range];
 }
 
 /*
@@ -5278,9 +5291,21 @@ void API dw_mle_thaw(HWND handle)
  *       text: The text to be display by the static text widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND API dw_status_text_new(const char *text, ULONG cid)
+DW_FUNCTION_DEFINITION(dw_status_text_new, HWND, const char *text, ULONG cid)
+DW_FUNCTION_ADD_PARAM2(text, cid)
+DW_FUNCTION_RETURN(dw_status_text_new, HWND)
+DW_FUNCTION_RESTORE_PARAM2(text, const char *, cid, ULONG)
 {
-    return dw_text_new(text, cid);
+    DWText *textfield = [[[DWText alloc] init] retain];
+    [textfield setText:[NSString stringWithUTF8String:text]];
+    [textfield setTag:cid];
+    if(DWDefaultFont)
+    {
+        [textfield setFont:DWDefaultFont];
+    }
+    [textfield layer].borderWidth = 2.0;
+    [textfield layer].borderColor = [[UIColor darkGrayColor] CGColor];
+    DW_FUNCTION_RETURN_THIS(textfield);
 }
 
 /*
