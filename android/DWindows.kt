@@ -1819,6 +1819,12 @@ class DWindows : AppCompatActivity() {
         return dimensions
     }
 
+    fun screenGetDimensions(): Long
+    {
+        val dm = resources.displayMetrics
+        return dm.widthPixels.toLong() or (dm.heightPixels.toLong() shl 32)
+    }
+
     fun renderNew(cid: Int): DWRender?
     {
         var render: DWRender? = null
@@ -2254,7 +2260,7 @@ class DWindows : AppCompatActivity() {
         }
     }
 
-    fun dwInit(appid: String, appname: String)
+    fun dwInit(appid: String, appname: String): Int
     {
         waitOnUiThread {
             // Create the notification channel in dw_init()
@@ -2269,6 +2275,12 @@ class DWindows : AppCompatActivity() {
                 notificationManager.createNotificationChannel(mChannel)
             }
         }
+        return Build.VERSION.SDK_INT
+    }
+
+    fun androidGetRelease(): String
+    {
+        return Build.VERSION.RELEASE
     }
 
     fun notificationNew(title: String, imagepath: String, text: String, appid: String): NotificationCompat.Builder?

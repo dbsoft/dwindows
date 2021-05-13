@@ -583,11 +583,12 @@ int DWSIGNAL helpabout_callback(HWND window, void *data)
     DWEnv env;
 
     dw_environment_query(&env);
-    dw_messagebox("About dwindows", DW_MB_OK | DW_MB_INFORMATION, "dwindows test\n\nOS: %s %s %s Version: %d.%d.%d.%d HTML: %s\n\ndwindows Version: %d.%d.%d",
+    dw_messagebox("About dwindows", DW_MB_OK | DW_MB_INFORMATION, "dwindows test\n\nOS: %s %s %s Version: %d.%d.%d.%d\n\nHTML: %s\n\ndwindows Version: %d.%d.%d\n\nScreen: %dx%d %dbpp",
                    env.osName, env.buildDate, env.buildTime,
                    env.MajorVersion, env.MinorVersion, env.MajorBuild, env.MinorBuild,
                    env.htmlEngine,
-                   env.DWMajorVersion, env.DWMinorVersion, env.DWSubVersion);
+                   env.DWMajorVersion, env.DWMinorVersion, env.DWSubVersion,
+                   dw_screen_width(), dw_screen_height(), dw_color_depth_get());
     return 0;
 }
 
@@ -1154,7 +1155,7 @@ void text_add(void)
         hscrollbarheight = 8;
 
     /* create render box for number pixmap */
-    textbox1 = dw_render_new( 100 );
+    textbox1 = dw_render_new(100);
     dw_window_set_font(textbox1, FIXEDFONT);
     dw_font_text_extents_get(textbox1, NULL, "(g", &font_width, &font_height);
     font_width = font_width / 2;
@@ -1171,7 +1172,7 @@ void text_add(void)
     dw_box_pack_start(pagebox, textboxA, 0, 0, TRUE, TRUE, 0);
 
     /* create render box for filecontents pixmap */
-    textbox2 = dw_render_new( 101 );
+    textbox2 = dw_render_new(101);
     dw_box_pack_start(textboxA, textbox2, 10, 10, TRUE, TRUE, 0);
     dw_window_set_font(textbox2, FIXEDFONT);
     /* create horizonal scrollbar */
