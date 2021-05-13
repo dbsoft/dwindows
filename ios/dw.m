@@ -8942,7 +8942,7 @@ void API dw_window_get_pos_size(HWND handle, LONG *x, LONG *y, ULONG *width, ULO
 {
     NSObject *object = handle;
 
-    if([ object isKindOfClass:[ UIWindow class ] ])
+    if([object isKindOfClass:[UIWindow class]])
     {
         UIWindow *window = handle;
         CGRect rect = [window frame];
@@ -8956,7 +8956,7 @@ void API dw_window_get_pos_size(HWND handle, LONG *x, LONG *y, ULONG *width, ULO
             *height = rect.size.height;
         return;
     }
-    else if([ object isKindOfClass:[ UIControl class ] ])
+    else if([object isKindOfClass:[UIControl class]])
     {
         UIControl *control = handle;
         CGRect rect = [control frame];
@@ -9098,7 +9098,7 @@ void dw_environment_query(DWEnv *env)
 
     strncpy(env->buildDate, __DATE__, sizeof(env->buildDate)-1);
     strncpy(env->buildTime, __TIME__, sizeof(env->buildTime)-1);
-   strncpy(env->htmlEngine, "WEBKIT", sizeof(env->htmlEngine)-1);
+    strncpy(env->htmlEngine, "WEBKIT", sizeof(env->htmlEngine)-1);
     env->DWMajorVersion = DW_MAJOR_VERSION;
     env->DWMinorVersion = DW_MINOR_VERSION;
 #ifdef VER_REV

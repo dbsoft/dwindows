@@ -38,9 +38,11 @@ extern "C" {
 
 #define DW_CLASS_NAME "org/dbsoft/dwindows/DWindows"
 
+/* Dynamic Windows internal variables */
 static char _dw_app_id[_DW_APP_ID_SIZE+1]= {0};
 static char _dw_app_name[_DW_APP_ID_SIZE+1]= {0};
 static char _dw_exec_dir[MAX_PATH+1] = {0};
+static int _dw_android_api = 0;
 
 static pthread_key_t _dw_env_key;
 static HEV _dw_main_event;
@@ -3413,7 +3415,7 @@ void _dw_pixmap_get_dimensions(HPIXMAP pixmap)
         jlong dimensions = env->CallLongMethod(_dw_obj, pixmapGetDimensions, pixmap->bitmap);
 
         pixmap->width = dimensions & 0xFFFF;
-        pixmap->height = dimensions >> 32;
+        pixmap->height = (dimensions >> 32) & 0xFFFF;
     }
 }
 
@@ -4730,12 +4732,29 @@ void API dw_window_get_pos_size(HWND handle, LONG *x, LONG *y, ULONG *width, ULO
 {
 }
 
+static jlong _dw_screen_dimensions = 0;
+
 /*
  * Returns the width of the screen.
  */
 int API dw_screen_width(void)
 {
-    return 0;
+    if(!_dw_screen_dimensions)
+    {
+        JNIEnv *env;
+
+        if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+        {
+            // First get the class that contains the method you need to call
+            jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+            // Get the method that you want to call
+            jmethodID screenGetDimensions = env->GetMethodID(clazz, "screenGetDimensions",
+                                                             "()J");
+            // Call the method on the object
+            _dw_screen_dimensions = env->CallLongMethod(_dw_obj, screenGetDimensions);
+        }
+    }
+    return _dw_screen_dimensions & 0xFFFF;
 }
 
 /*
@@ -4743,7 +4762,22 @@ int API dw_screen_width(void)
  */
 int API dw_screen_height(void)
 {
-    return 0;
+    if(!_dw_screen_dimensions)
+    {
+        JNIEnv *env;
+
+        if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+        {
+            // First get the class that contains the method you need to call
+            jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+            // Get the method that you want to call
+            jmethodID screenGetDimensions = env->GetMethodID(clazz, "screenGetDimensions",
+                                                             "()J");
+            // Call the method on the object
+            _dw_screen_dimensions = env->CallLongMethod(_dw_obj, screenGetDimensions);
+        }
+    }
+    return (_dw_screen_dimensions >> 32) & 0xFFFF;
 }
 
 /* This should return the current color depth. */
@@ -4759,18 +4793,44 @@ unsigned long API dw_color_depth_get(void)
  */
 void API dw_environment_query(DWEnv *env)
 {
-    strcpy(env->osName, "Android");
+    static char osName[_DW_ENV_STRING_SIZE+1] = { 0 };
 
-    strcpy(env->buildDate, __DATE__);
-    strcpy(env->buildTime, __TIME__);
+    if(!osName[0])
+    {
+        JNIEnv *env;
+        const char *release = nullptr;
+
+        if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+        {
+            // First get the class that contains the method you need to call
+            //jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+            jclass clazz = env->FindClass(DW_CLASS_NAME);
+            // Get the method that you want to call
+            jmethodID androidGetRelease = env->GetMethodID(clazz, "androidGetRelease",
+                                                           "()Ljava/lang/String;");
+            // Call the method on the object
+            jstring jstr = (jstring)env->CallObjectMethod(_dw_obj, androidGetRelease);
+
+            if(jstr)
+                release = env->GetStringUTFChars(jstr, 0);
+        }
+        snprintf(osName, _DW_ENV_STRING_SIZE-1, "Android%s%s",
+                 release ? " " : "", release ? release : "");
+    }
+    memset(env, '\0', sizeof(DWEnv));
+
+    strncpy(env->osName, osName, sizeof(env->osName)-1);
+    strncpy(env->buildDate, __DATE__, sizeof(env->buildDate)-1);
+    strncpy(env->buildTime, __TIME__, sizeof(env->buildTime)-1);
+    strncpy(env->htmlEngine, "CHROME", sizeof(env->htmlEngine)-1);
     env->DWMajorVersion = DW_MAJOR_VERSION;
     env->DWMinorVersion = DW_MINOR_VERSION;
     env->DWSubVersion = DW_SUB_VERSION;
 
-    env->MajorVersion = 0; /* Operating system major */
-    env->MinorVersion = 0; /* Operating system minor */
-    env->MajorBuild = 0; /* Build versions... if available */
-    env->MinorBuild = 0;
+    /* Operating system major */
+    env->MajorVersion = _dw_android_api;
+    /* Operating system minor */
+    env->MinorVersion = 0;
 }
 
 /*
@@ -5948,9 +6008,9 @@ int API dw_init(int newthread, int argc, char *argv[])
         jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
         // Get the method that you want to call
         jmethodID dwInit = env->GetMethodID(clazz, "dwInit",
-                                            "(Ljava/lang/String;Ljava/lang/String;)V");
+                                            "(Ljava/lang/String;Ljava/lang/String;)I");
         // Call the method on the object
-        env->CallVoidMethod(_dw_obj, dwInit, appid, appname);
+        _dw_android_api = env->CallIntMethod(_dw_obj, dwInit, appid, appname);
     }
     return DW_ERROR_NONE;
 }
