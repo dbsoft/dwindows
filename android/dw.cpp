@@ -585,6 +585,19 @@ unsigned long _dw_get_color(unsigned long thiscolor)
  */
 void API dw_main(void)
 {
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID dwMain = env->GetMethodID(clazz, "dwMain",
+                                            "()V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, dwMain);
+    }
+
     /* We don't actually run a loop here,
      * we launched a new thread to run the loop there.
      * Just wait for dw_main_quit() on the DWMainEvent.
@@ -3896,6 +3909,19 @@ void API dw_pointer_set_pos(long x, long y)
  */
 HMENUI API dw_menu_new(ULONG cid)
 {
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID menuNew = env->GetMethodID(clazz, "menuNew",
+                                             "(I)Lorg/dbsoft/dwindows/DWMenu;");
+        // Call the method on the object
+        jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, menuNew, (int)cid));
+        return result;
+    }
     return nullptr;
 }
 
@@ -3908,6 +3934,19 @@ HMENUI API dw_menu_new(ULONG cid)
  */
 HMENUI API dw_menubar_new(HWND location)
 {
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID menuBarNew = env->GetMethodID(clazz, "menuBarNew",
+                                                "(Landroid/view/View;)Lorg/dbsoft/dwindows/DWMenu;");
+        // Call the method on the object
+        jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, menuBarNew, location));
+        return result;
+    }
     return nullptr;
 }
 
@@ -3960,6 +3999,21 @@ void API dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
  */
 HWND API dw_menu_append_item(HMENUI menux, const char *title, ULONG itemid, ULONG flags, int end, int check, HMENUI submenux)
 {
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // Create a string
+        jstring jstr = env->NewStringUTF(title);
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID menuAppendItem = env->GetMethodID(clazz, "menuAppendItem",
+                                                    "(Lorg/dbsoft/dwindows/DWMenu;Ljava/lang/String;IIIILorg/dbsoft/dwindows/DWMenu;)Lorg/dbsoft/dwindows/DWMenuItem;");
+        // Call the method on the object
+        jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, menuAppendItem, menux, jstr, (int)itemid, (int)flags, end, check, submenux));
+        return result;
+    }
     return nullptr;
 }
 
@@ -4803,8 +4857,7 @@ void API dw_environment_query(DWEnv *env)
         if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
         {
             // First get the class that contains the method you need to call
-            //jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
-            jclass clazz = env->FindClass(DW_CLASS_NAME);
+            jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
             // Get the method that you want to call
             jmethodID androidGetRelease = env->GetMethodID(clazz, "androidGetRelease",
                                                            "()Ljava/lang/String;");
