@@ -437,6 +437,8 @@ class DWMenu {
                         group += 1
                     } else if(menuitem.menuitem == null) {
                         menuitem.menuitem = menu?.add(group, menuitem.id, 0, menuitem.title)
+                        menuitem.menuitem!!.isCheckable = menuitem.check
+                        menuitem.menuitem!!.isChecked = menuitem.checked
                         menuitem.menuitem!!.setOnMenuItemClickListener(MenuItem.OnMenuItemClickListener { item: MenuItem? ->
                             eventHandlerSimple(menuitem, 8)
                             true
@@ -562,6 +564,50 @@ class DWindows : AppCompatActivity() {
             menu.children.add(menuitem)
         }
         return menuitem
+    }
+
+    fun menuDestroy(menu: DWMenu)
+    {
+        menu.children.clear()
+        runOnUiThread {
+            menu.menu!!.clear()
+            invalidateOptionsMenu()
+        }
+    }
+
+    fun menuDeleteItem(menu: DWMenu, cid: Int)
+    {
+        for(menuitem in menu.children) {
+            if(menuitem.id == cid) {
+                menu.children.remove(menuitem)
+                runOnUiThread {
+                    menu.menu!!.removeItem(menuitem.id)
+                    invalidateOptionsMenu()
+                }
+            }
+        }
+    }
+
+    fun menuSetState(menu: DWMenu, cid: Int, state: Int)
+    {
+        for(menuitem in menu.children) {
+            if(menuitem.id == cid) {
+                // Handle DW_MIS_CHECKED/UNCHECKED
+                if((state and ((1 shl 2) or (1 shl 3))) != 0) {
+                    var checked: Boolean = false
+
+                    // Handle DW_MIS_CHECKED
+                    if ((state and (1 shl 2)) != 0) {
+                        checked = true
+                    }
+                    menuitem.checked = checked
+                    runOnUiThread {
+                        menuitem.menuitem!!.isChecked = checked
+                        invalidateOptionsMenu()
+                    }
+                }
+            }
+        }
     }
 
     /*

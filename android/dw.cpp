@@ -3966,6 +3966,19 @@ HMENUI API dw_menubar_new(HWND location)
  */
 void API dw_menu_destroy(HMENUI *menu)
 {
+    JNIEnv *env;
+
+    if(menu && *menu && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID menuDestroy = env->GetMethodID(clazz, "menuDestroy",
+                                                 "(Lorg/dbsoft/dwindows/DWMenu;)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, menuDestroy, *menu);
+        *menu = nullptr;
+    }
 }
 
 /*
@@ -3978,6 +3991,19 @@ void API dw_menu_destroy(HMENUI *menu)
  */
 int API dw_menu_delete_item(HMENUI menux, unsigned long id)
 {
+    JNIEnv *env;
+
+    if(menux && id > 0 && id < 30000 && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID menuDeleteItem = env->GetMethodID(clazz, "menuDeleteItem",
+                                                    "(Lorg/dbsoft/dwindows/DWMenu;I)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, menuDeleteItem, menux, (int)id);
+        return DW_ERROR_NONE;
+    }
     return DW_ERROR_UNKNOWN;
 }
 
@@ -4059,6 +4085,7 @@ HWND API dw_menu_append_item(HMENUI menux, const char *title, ULONG itemid, ULON
  */
 void API dw_menu_item_set_check(HMENUI menux, unsigned long itemid, int check)
 {
+    dw_menu_item_set_state(menux, itemid, check ? DW_MIS_CHECKED : DW_MIS_UNCHECKED);
 }
 
 /*
@@ -4071,6 +4098,18 @@ void API dw_menu_item_set_check(HMENUI menux, unsigned long itemid, int check)
  */
 void API dw_menu_item_set_state(HMENUI menux, unsigned long itemid, unsigned long state)
 {
+    JNIEnv *env;
+
+    if(menux && itemid > 0 && itemid < 30000 && state && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID menuSetState = env->GetMethodID(clazz, "menuSetState",
+                                                  "(Lorg/dbsoft/dwindows/DWMenu;II)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, menuSetState, menux, (int)itemid, (int)state);
+    }
 }
 
 /*
