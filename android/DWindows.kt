@@ -25,11 +25,8 @@ import android.text.method.PasswordTransformationMethod
 import android.util.Base64
 import android.util.Log
 import android.util.SparseBooleanArray
-import android.view.Gravity
-import android.view.MotionEvent
-import android.view.View
+import android.view.*
 import android.view.View.OnTouchListener
-import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -397,6 +394,48 @@ class DWFileChooser(private val activity: Activity) {
     }
 }
 
+// On Android we can't pre-create submenus...
+// So create our own placeholder classes, and create the actual menus
+// on demand when required by Android
+class DWMenuItem
+{
+    var title: String? = null
+    var menu: DWMenu? = null
+    var submenu: DWMenu? = null
+    var checked: Boolean = false
+    var check: Boolean = false
+    var menuitem: MenuItem? = null
+    var submenuitem: SubMenu? = null
+    var id: Int = 0
+}
+
+class DWMenu {
+    var menu: Menu? = null
+    var children = mutableListOf<DWMenuItem>()
+    var id: Int = 0
+
+    fun createMenu(newmenu: Menu?) {
+        if(menu == null) {
+            menu = newmenu
+        }
+        if(menu != null) {
+            for (menuitem in children) {
+                // Submenus on Android can't have submenus, so stop at depth 1
+                if (menuitem.submenu != null && menu !is SubMenu) {
+                    if(menuitem.submenuitem == null) {
+                        menuitem.submenuitem = menu?.addSubMenu(0, menuitem.id, 0, menuitem.title)
+                    }
+                    menuitem.submenu!!.createMenu(menuitem.submenuitem)
+                } else if(menuitem.submenu == null) {
+                    if(menuitem.menuitem == null) {
+                        menuitem.menuitem = menu?.add(0, menuitem.id, 0, menuitem.title)
+                    }
+                }
+            }
+        }
+    }
+}
+
 class DWindows : AppCompatActivity() {
     var firstWindow: Boolean = true
     var windowLayout: LinearLayout? = null
@@ -405,6 +444,7 @@ class DWindows : AppCompatActivity() {
     var notificationID: Int = 0
     private var paint = Paint()
     private var bgcolor: Int = 0
+    private var menuBar: DWMenu? = null
 
     // Our version of runOnUiThread that waits for execution
     fun waitOnUiThread(runnable: Runnable)
@@ -457,6 +497,57 @@ class DWindows : AppCompatActivity() {
 
             eventHandlerInt(windowLayout as View, 1, width, height, 0, 0)
         }
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        if(menuBar == null) {
+            menuBar = DWMenu()
+            menuBar!!.menu = menu
+        }
+        return super.onCreateOptionsMenu(menu)
+    }
+
+    override fun onPrepareOptionsMenu(menu: Menu?): Boolean {
+        if(menuBar != null) {
+            menuBar!!.createMenu(menu)
+        } else {
+            menuBar = DWMenu()
+            menuBar!!.createMenu(menu)
+        }
+        return super.onPrepareOptionsMenu(menu)
+    }
+
+    fun menuBarNew(location: View): DWMenu?
+    {
+        // TODO: Make sure location is this activity
+        return menuBar
+    }
+
+    fun menuNew(cid: Int): DWMenu
+    {
+        val menu = DWMenu()
+        menu.id = cid
+        return menu
+    }
+
+    fun menuAppendItem(menu: DWMenu, title: String, cid: Int, flags: Int, end: Int, check: Int, submenu: DWMenu?): DWMenuItem
+    {
+        val menuitem = DWMenuItem()
+        menuitem.id = cid
+        menuitem.title = title
+        menuitem.check = check != 0
+        if(submenu != null) {
+            menuitem.submenu = submenu
+        }
+        if((flags and (1 shl 2)) != 0) {
+            menuitem.checked = true
+        }
+        if(end == 0) {
+            menu.children.add(0, menuitem)
+        } else {
+            menu.children.add(menuitem)
+        }
+        return menuitem
     }
 
     /*
@@ -2276,6 +2367,14 @@ class DWindows : AppCompatActivity() {
             }
         }
         return Build.VERSION.SDK_INT
+    }
+
+    fun dwMain()
+    {
+        runOnUiThread {
+            // Trigger the options menu to update when dw_main() is called
+            invalidateOptionsMenu()
+        }
     }
 
     fun androidGetRelease(): String
