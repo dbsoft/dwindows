@@ -492,6 +492,15 @@ Java_org_dbsoft_dwindows_DWindows_eventHandlerTimer(JNIEnv* env, jobject obj, jl
     return timerfunc((void *)data);
 }
 
+/* A more simple method for quicker calls */
+JNIEXPORT void JNICALL
+Java_org_dbsoft_dwindows_DWMenu_eventHandlerSimple(JNIEnv* env, jobject obj, jobject obj1, jint message) {
+    void *params[8] = { nullptr };
+
+    _dw_event_handler(obj1, params, message);
+}
+
+
 /* This function adds a signal handler callback into the linked list.
  */
 void _dw_new_signal(ULONG message, HWND window, int msgid, void *signalfunction, void *discfunc, void *data)
@@ -3984,6 +3993,27 @@ void API dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
 {
 }
 
+char _dw_removetilde(char *dest, const char *src)
+{
+    int z, cur=0;
+    char accel = '\0';
+
+    for(z=0;z<strlen(src);z++)
+    {
+        if(src[z] != '~')
+        {
+            dest[cur] = src[z];
+            cur++;
+        }
+        else
+        {
+            accel = src[z+1];
+        }
+    }
+    dest[cur] = 0;
+    return accel;
+}
+
 /*
  * Adds a menuitem or submenu to an existing menu.
  * Parameters:
@@ -4003,8 +4033,10 @@ HWND API dw_menu_append_item(HMENUI menux, const char *title, ULONG itemid, ULON
 
     if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
+        char *newtitle = (char *)alloca(strlen(title)+1);
+        char accel = _dw_removetilde(newtitle, title);
         // Create a string
-        jstring jstr = env->NewStringUTF(title);
+        jstring jstr = env->NewStringUTF(newtitle);
         // First get the class that contains the method you need to call
         jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
         // Get the method that you want to call
