@@ -40,6 +40,7 @@ import androidx.collection.SimpleArrayMap
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.res.ResourcesCompat
+import androidx.core.view.MenuCompat
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.tabs.TabLayout
@@ -419,21 +420,34 @@ class DWMenu {
             menu = newmenu
         }
         if(menu != null) {
+            var group: Int = 0
+
+            // Enable group dividers for separators
+            MenuCompat.setGroupDividerEnabled(menu, true);
+
             for (menuitem in children) {
                 // Submenus on Android can't have submenus, so stop at depth 1
                 if (menuitem.submenu != null && menu !is SubMenu) {
                     if(menuitem.submenuitem == null) {
-                        menuitem.submenuitem = menu?.addSubMenu(0, menuitem.id, 0, menuitem.title)
+                        menuitem.submenuitem = menu?.addSubMenu(group, menuitem.id, 0, menuitem.title)
                     }
                     menuitem.submenu!!.createMenu(menuitem.submenuitem)
                 } else if(menuitem.submenu == null) {
-                    if(menuitem.menuitem == null) {
-                        menuitem.menuitem = menu?.add(0, menuitem.id, 0, menuitem.title)
+                    if(menuitem.title!!.isEmpty()) {
+                        group += 1
+                    } else if(menuitem.menuitem == null) {
+                        menuitem.menuitem = menu?.add(group, menuitem.id, 0, menuitem.title)
+                        menuitem.menuitem!!.setOnMenuItemClickListener(MenuItem.OnMenuItemClickListener { item: MenuItem? ->
+                            eventHandlerSimple(menuitem, 8)
+                            true
+                        })
                     }
                 }
             }
         }
     }
+
+    external fun eventHandlerSimple(item: DWMenuItem, message: Int)
 }
 
 class DWindows : AppCompatActivity() {
