@@ -405,6 +405,7 @@ class DWMenuItem
     var submenu: DWMenu? = null
     var checked: Boolean = false
     var check: Boolean = false
+    var enabled: Boolean = true
     var menuitem: MenuItem? = null
     var submenuitem: SubMenu? = null
     var id: Int = 0
@@ -439,6 +440,7 @@ class DWMenu {
                         menuitem.menuitem = menu?.add(group, menuitem.id, 0, menuitem.title)
                         menuitem.menuitem!!.isCheckable = menuitem.check
                         menuitem.menuitem!!.isChecked = menuitem.checked
+                        menuitem.menuitem!!.isEnabled = menuitem.enabled
                         menuitem.menuitem!!.setOnMenuItemClickListener(MenuItem.OnMenuItemClickListener { item: MenuItem? ->
                             eventHandlerSimple(menuitem, 8)
                             true
@@ -555,6 +557,9 @@ class DWindows : AppCompatActivity() {
         if(submenu != null) {
             menuitem.submenu = submenu
         }
+        if((flags and (1 shl 1)) != 0) {
+            menuitem.enabled = false
+        }
         if((flags and (1 shl 2)) != 0) {
             menuitem.checked = true
         }
@@ -592,6 +597,21 @@ class DWindows : AppCompatActivity() {
     {
         for(menuitem in menu.children) {
             if(menuitem.id == cid) {
+                // Handle DW_MIS_ENABLED/DISABLED
+                if((state and (1 or (1 shl 1))) != 0) {
+                    var enabled: Boolean = false
+
+                    // Handle DW_MIS_ENABLED
+                    if ((state and 1) != 0) {
+                        enabled = true
+                    }
+                    menuitem.enabled = enabled
+                    runOnUiThread {
+                        menuitem.menuitem!!.isEnabled = enabled
+                        invalidateOptionsMenu()
+                    }
+                }
+
                 // Handle DW_MIS_CHECKED/UNCHECKED
                 if((state and ((1 shl 2) or (1 shl 3))) != 0) {
                     var checked: Boolean = false
