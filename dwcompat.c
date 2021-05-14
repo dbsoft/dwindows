@@ -12,7 +12,7 @@
 #include "dwcompat.h"
 #include "dw.h"
 
-#if defined(__UNIX__) || defined(__MAC__) || defined(__IOS__)
+#if defined(__UNIX__) || defined(__MAC__) || defined(__IOS__) || defined(__ANDROID__)
 #if defined(__FreeBSD__) || defined(__MAC__) || defined(__IOS__)
 #include <sys/param.h>
 #include <sys/ucred.h>
@@ -30,7 +30,7 @@
 #include <time.h>
 #include <errno.h>
 
-#if defined(__UNIX__) || defined(__MAC__) || defined(__IOS__)
+#if defined(__UNIX__) || defined(__MAC__) || defined(__IOS__) || defined(__ANDROID__)
 void msleep(long period)
 {
 #ifdef __sun__
@@ -169,7 +169,7 @@ long double API drivefree(int drive)
 		fclose(fp);
 	}
 	return 0;
-#else
+#elif !defined(__ANDROID__)
 	FILE *fp = setmntent(MOUNTED, "r");
 	struct mntent mnt;
 	struct statfs sfs;
@@ -198,6 +198,8 @@ long double API drivefree(int drive)
 		}
 		endmntent(fp);
 	}
+	return 0;
+#else
 	return 0;
 #endif
 }
@@ -275,7 +277,7 @@ long double API drivesize(int drive)
 		fclose(fp);
 	}
 	return 0;
-#else
+#elif !defined(__ANDROID__)
 	FILE *fp = setmntent(MOUNTED, "r");
 	struct mntent mnt;
 	char buffer[1024];
@@ -304,6 +306,8 @@ long double API drivesize(int drive)
 		}
 		endmntent(fp);
 	}
+	return 0;
+#else
 	return 0;
 #endif
 }
@@ -369,7 +373,7 @@ int API isdrive(int drive)
 		}
 		fclose(fp);
 	}
-#else
+#elif !defined(__ANDROID__)
 	FILE *fp = setmntent(MOUNTED, "r");
 	struct mntent mnt;
 	char buffer[1024];

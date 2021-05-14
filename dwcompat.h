@@ -4,8 +4,9 @@
 #define _DWCOMPAT_H
 
 /* This header includes and defines everything needed for a given OS/compiler */
-#if defined(__UNIX__) || defined(__MAC__) || defined(__IOS__)
-#ifndef __IOS__
+#if defined(__UNIX__) || defined(__MAC__) || defined(__IOS__) || defined(__ANDROID__)
+/* iOS and Android currently don't use autoconf */
+#if !defined(__IOS__) && !defined(__ANDROID__)
 #include "dwconfig.h"
 #endif
 
