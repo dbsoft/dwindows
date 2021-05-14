@@ -29,6 +29,10 @@
 #define FIXEDFONT "9.Monaco"
 #define FOLDER_ICON_NAME "folder"
 #define FILE_ICON_NAME "file"
+#elif defined(__ANDROID__)
+#define FIXEDFONT "10.Monospace"
+#define FOLDER_ICON_NAME "folder"
+#define FILE_ICON_NAME "file"
 #elif GTK_MAJOR_VERSION > 1
 #define FIXEDFONT "10.monospace"
 #define FOLDER_ICON_NAME "gtk/folder"

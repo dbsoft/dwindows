@@ -240,6 +240,8 @@ class DWListBox(context: Context) : ListView(context), OnItemClickListener {
 
 class DWRender(context: Context) : View(context) {
     var cachedCanvas: Canvas? = null
+    var typeface: Typeface? = null
+    var fontsize: Float? = null
 
     override fun onSizeChanged(width: Int, height: Int, oldWidth: Int, oldHeight: Int) {
         super.onSizeChanged(width, height, oldWidth, oldHeight)
@@ -683,6 +685,89 @@ class DWindows : AppCompatActivity() {
     fun windowSetEnabled(window: View, state: Boolean) {
         waitOnUiThread {
             window.setEnabled(state)
+        }
+    }
+
+    fun typefaceFromFontName(fontname: String?): Typeface?
+    {
+        if(fontname != null) {
+            val bold: Boolean = fontname.contains(" Bold")
+            val italic: Boolean = fontname.contains(" Italic")
+            val font = fontname.substringAfter('.')
+            var fontFamily = font
+            var typeface: Typeface? = null
+
+            if (bold && font != null) {
+                fontFamily = font.substringBefore(" Bold")
+            } else if (italic && font != null) {
+                fontFamily = font.substringBefore(" Italic")
+            }
+
+            if (fontFamily != null) {
+                var style: Int = Typeface.NORMAL
+                if (bold && italic) {
+                    style = Typeface.BOLD_ITALIC
+                } else if (bold) {
+                    style = Typeface.BOLD
+                } else if (italic) {
+                    style = Typeface.ITALIC
+                }
+                typeface = Typeface.create(fontFamily, style)
+            }
+            return typeface
+        }
+        return Typeface.DEFAULT
+    }
+
+    fun windowSetFont(window: View, fontname: String?) {
+        var typeface: Typeface? = typefaceFromFontName(fontname)
+        var size: Float? = null
+
+        if(fontname != null) {
+            size = fontname.substringBefore('.').toFloatOrNull()
+        }
+
+        if(typeface != null) {
+            waitOnUiThread {
+                if (window is TextView) {
+                    var textview: TextView = window
+                    textview.typeface = typeface
+                    if(size != null) {
+                        textview.textSize = size
+                    }
+                } else if (window is Button) {
+                    var button: Button = window
+                    button.typeface = typeface
+                    if(size != null) {
+                        button.textSize = size
+                    }
+                } else if(window is DWRender) {
+                    var render: DWRender = window
+                    render.typeface = typeface
+                    if(size != null) {
+                        render.fontsize = size
+                    }
+                }
+            }
+        }
+    }
+
+    fun windowSetColor(window: View, falpha: Int, fred: Int, fgreen: Int, fblue: Int,
+                       balpha: Int, bred: Int, bgreen: Int, bblue: Int) {
+
+        waitOnUiThread {
+            if (window is TextView) {
+                var textview: TextView = window
+                textview.setTextColor(Color.rgb(fred, fgreen, fblue))
+                textview.setBackgroundColor(Color.rgb(bred, bgreen, bblue))
+            } else if (window is Button) {
+                var button: Button = window
+                button.setTextColor(Color.rgb(fred, fgreen, fblue))
+                button.setBackgroundColor(Color.rgb(bred, bgreen, bblue))
+            } else if(window is LinearLayout) {
+                var box: LinearLayout = window
+                box.setBackgroundColor(Color.rgb(bred, bgreen, bblue))
+            }
         }
     }
 
@@ -2095,15 +2180,75 @@ class DWindows : AppCompatActivity() {
         }
     }
 
-    fun drawText(render: DWRender?, bitmap: Bitmap?, x: Int, y: Int, text:String)
+    fun fontTextExtentsGet(render: DWRender?, bitmap: Bitmap?, text:String, typeface: Typeface?, fontsize: Int, window: View?): Long
+    {
+        var dimensions: Long = 0
+
+        waitOnUiThread {
+            var rect = Rect()
+
+            if (render != null) {
+                if (render.typeface != null) {
+                    paint.typeface = render.typeface
+                    if (render.fontsize != null && render.fontsize!! > 0F) {
+                        paint.textSize = render.fontsize!!
+                    }
+                }
+            } else if (bitmap != null) {
+                if (typeface != null) {
+                    paint.typeface = typeface
+                    if (fontsize > 0) {
+                        paint.textSize = fontsize.toFloat()
+                    }
+                } else if (window != null && window is DWRender) {
+                    val secondary: DWRender = window as DWRender
+
+                    if (secondary.typeface != null) {
+                        paint.typeface = secondary.typeface
+                        if (secondary.fontsize != null && secondary.fontsize!! > 0F) {
+                            paint.textSize = secondary.fontsize!!
+                        }
+                    }
+                }
+            }
+            paint.getTextBounds(text, 0, text.length, rect)
+            val textheight = rect.bottom - rect.top
+            val textwidth = rect.right - rect.left
+            dimensions = textwidth.toLong() or (textheight.toLong() shl 32)
+        }
+        return dimensions
+    }
+
+    fun drawText(render: DWRender?, bitmap: Bitmap?, x: Int, y: Int, text:String, typeface: Typeface?, fontsize: Int, window: View?)
     {
         waitOnUiThread {
             var canvas: Canvas? = null
 
-            if(render != null) {
+            if(render != null && render.cachedCanvas != null) {
                 canvas = render.cachedCanvas
+                if(render.typeface != null) {
+                    paint.typeface = render.typeface
+                    if(render.fontsize != null && render.fontsize!! > 0F) {
+                        paint.textSize = render.fontsize!!
+                    }
+                }
             } else if(bitmap != null) {
                 canvas = Canvas(bitmap)
+                if(typeface != null) {
+                    paint.typeface = typeface
+                    if(fontsize > 0) {
+                        paint.textSize = fontsize.toFloat()
+                    }
+                } else if(window != null && window is DWRender) {
+                    val secondary: DWRender = window as DWRender
+
+                    if(secondary.typeface != null) {
+                        paint.typeface = secondary.typeface
+                        if(secondary.fontsize != null && secondary.fontsize!! > 0F) {
+                            paint.textSize = secondary.fontsize!!
+                        }
+                    }
+                }
             }
 
             if(canvas != null) {

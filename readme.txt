@@ -86,7 +86,7 @@ Added dw_render_redraw() function to trigger a DW_SIGNAL_EXPOSE
 Added new function dw_window_compare() to check if two window handles
     reference the same object.  Necessary in the Android port since
     handles passed to callbacks are local references, so they don't
-    match the handles saved during window creation.
+    always match the handles saved during window creation.
 Added support for dw_window_set_font() with a NULL font parameter.
     This resets the font used on the widget to the default font.
 Fixed GTK warnings on GTK3 caused by using Pango style font syntax.
