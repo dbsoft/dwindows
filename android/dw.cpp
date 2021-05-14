@@ -2599,8 +2599,7 @@ void API dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, const char *text,
         // Construct the string
         jstring jstr = env->NewStringUTF(text);
         // First get the class that contains the method you need to call
-        //jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
-        jclass clazz = env->FindClass(DW_CLASS_NAME);
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
         // Get the method that you want to call
         jmethodID fontTextExtentsGet = env->GetMethodID(clazz, "fontTextExtentsGet",
                                                         "(Lorg/dbsoft/dwindows/DWRender;Landroid/graphics/Bitmap;Ljava/lang/String;Landroid/graphics/Typeface;ILandroid/view/View;)J");
