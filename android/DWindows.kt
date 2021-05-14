@@ -1302,6 +1302,9 @@ class DWindows : AppCompatActivity() {
                 params.addRule(RelativeLayout.ABOVE, tabs.id)
             }
             notebook!!.addView(pager, params)
+            // TODO: Not sure if we want this all the time...
+            // Might want to make a flag for this
+            pager.isUserInputEnabled = false
             tabs.addOnTabSelectedListener(object : OnTabSelectedListener {
                 override fun onTabSelected(tab: TabLayout.Tab) {
                     val adapter = pager.adapter as DWTabViewPagerAdapter
