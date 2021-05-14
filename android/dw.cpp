@@ -2575,9 +2575,10 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, const char *tex
         jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
         // Get the method that you want to call
         jmethodID drawLine = env->GetMethodID(clazz, "drawText",
-                                              "(Lorg/dbsoft/dwindows/DWRender;Landroid/graphics/Bitmap;IILjava/lang/String;)V");
+                                              "(Lorg/dbsoft/dwindows/DWRender;Landroid/graphics/Bitmap;IILjava/lang/String;Landroid/graphics/Typeface;ILandroid/view/View;)V");
         // Call the method on the object
-        env->CallVoidMethod(_dw_obj, drawLine, handle, pixmap ? pixmap->bitmap : NULL, x, y, jstr);
+        env->CallVoidMethod(_dw_obj, drawLine, handle, pixmap ? pixmap->bitmap : nullptr, x, y, jstr,
+                            pixmap ? pixmap->typeface : nullptr, pixmap ? pixmap->fontsize : 0, pixmap ? pixmap->handle : nullptr);
     }
 }
 
@@ -2591,6 +2592,27 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, const char *tex
  */
 void API dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, const char *text, int *width, int *height)
 {
+    JNIEnv *env;
+
+    if((handle || pixmap) && text && (width || height) && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // Construct the string
+        jstring jstr = env->NewStringUTF(text);
+        // First get the class that contains the method you need to call
+        //jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        jclass clazz = env->FindClass(DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID fontTextExtentsGet = env->GetMethodID(clazz, "fontTextExtentsGet",
+                                                        "(Lorg/dbsoft/dwindows/DWRender;Landroid/graphics/Bitmap;Ljava/lang/String;Landroid/graphics/Typeface;ILandroid/view/View;)J");
+        // Call the method on the object
+        jlong dimensions = env->CallLongMethod(_dw_obj, fontTextExtentsGet, handle, pixmap ? pixmap->bitmap : nullptr, jstr,
+                            pixmap ? pixmap->typeface : nullptr, pixmap ? pixmap->fontsize : 0, pixmap ? pixmap->handle : nullptr);
+
+        if(width)
+            *width = dimensions & 0xFFFF;
+        if(height)
+            *height = (dimensions >> 32) & 0xFFFF;
+    }
 }
 
 /* Draw a polygon on a window (preferably a render window).
@@ -3586,6 +3608,29 @@ HPIXMAP API dw_pixmap_grab(HWND handle, ULONG resid)
 */
 int API dw_pixmap_set_font(HPIXMAP pixmap, const char *fontname)
 {
+    JNIEnv *env;
+
+    if(pixmap && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // Construct a string
+        jstring jstr = env->NewStringUTF(fontname);
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID typefaceFromFontName = env->GetMethodID(clazz, "typefaceFromFontName",
+                                                          "(Ljava/lang/String;)Landroid/graphics/Typeface;");
+        // Call the method on the object
+        jobject typeface = env->NewGlobalRef(env->CallObjectMethod(_dw_obj, typefaceFromFontName, jstr));
+        if(typeface)
+        {
+            jobject oldtypeface = pixmap->typeface;
+            pixmap->typeface = typeface;
+            if(oldtypeface)
+                env->DeleteGlobalRef(oldtypeface);
+            pixmap->fontsize = atoi(fontname);
+        }
+        return DW_ERROR_NONE;
+    }
     return DW_ERROR_GENERAL;
 }
 
@@ -4395,6 +4440,24 @@ int API dw_window_hide(HWND handle)
  */
 int API dw_window_set_color(HWND handle, ULONG fore, ULONG back)
 {
+    JNIEnv *env;
+
+    if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        unsigned long _fore = _dw_get_color(fore);
+        unsigned long _back = _dw_get_color(back);
+
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID windowSetColor = env->GetMethodID(clazz, "windowSetColor",
+                                                    "(Landroid/view/View;IIIIIIII)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, windowSetColor, handle,
+                            0, (jint)DW_RED_VALUE(_fore), (jint)DW_GREEN_VALUE(_fore), (jint)DW_BLUE_VALUE(_fore),
+                            0, (jint)DW_RED_VALUE(_back), (jint)DW_GREEN_VALUE(_back), (jint)DW_BLUE_VALUE(_back));
+        return DW_ERROR_NONE;
+    }
     return DW_ERROR_GENERAL;
 }
 
@@ -4491,6 +4554,21 @@ void API dw_window_reparent(HWND handle, HWND newparent)
  */
 int API dw_window_set_font(HWND handle, const char *fontname)
 {
+    JNIEnv *env;
+
+    if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // Construct a string
+        jstring jstr = env->NewStringUTF(fontname);
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID windowHideShow = env->GetMethodID(clazz, "windowSetFont",
+                                                    "(Landroid/view/View;Ljava/lang/String;)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, windowHideShow, handle, jstr);
+        return DW_ERROR_NONE;
+    }
     return DW_ERROR_GENERAL;
 }
 
