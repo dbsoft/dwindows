@@ -783,6 +783,8 @@ typedef struct _window_data {
 typedef struct _hpixmap {
    unsigned long width, height;
    jobject bitmap;
+   jobject typeface;
+   int fontsize;
    HWND handle;
 } *HPIXMAP;
 
