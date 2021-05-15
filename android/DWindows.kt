@@ -25,6 +25,7 @@ import android.text.method.PasswordTransformationMethod
 import android.util.Base64
 import android.util.Log
 import android.util.SparseBooleanArray
+import android.util.TypedValue
 import android.view.*
 import android.view.View.OnTouchListener
 import android.view.inputmethod.EditorInfo
@@ -33,6 +34,7 @@ import android.webkit.WebViewClient
 import android.widget.*
 import android.widget.AdapterView.OnItemClickListener
 import android.widget.SeekBar.OnSeekBarChangeListener
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.AppCompatEditText
@@ -462,6 +464,7 @@ class DWindows : AppCompatActivity() {
     var threadLock = ReentrantLock()
     var threadCond = threadLock.newCondition()
     var notificationID: Int = 0
+    var darkMode: Int = -1
     private var paint = Paint()
     private var bgcolor: Int = 0
     private var menuBar: DWMenu? = null
@@ -510,6 +513,12 @@ class DWindows : AppCompatActivity() {
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
 
+        val currentNightMode = newConfig.uiMode and Configuration.UI_MODE_NIGHT_MASK
+        when (currentNightMode) {
+            Configuration.UI_MODE_NIGHT_NO -> { darkMode = 0 } // Night mode is not active, we're using the light theme
+            Configuration.UI_MODE_NIGHT_YES -> { darkMode = 1 } // Night mode is active, we're using dark theme
+        }
+
         // Send a DW_SIGNAL_CONFIGURE on orientation change
         if(windowLayout != null) {
             var width: Int = windowLayout!!.width
@@ -535,6 +544,11 @@ class DWindows : AppCompatActivity() {
             menuBar!!.createMenu(menu)
         }
         return super.onPrepareOptionsMenu(menu)
+    }
+
+    fun darkModeDetected(): Int
+    {
+        return darkMode
     }
 
     fun menuBarNew(location: View): DWMenu?
@@ -752,21 +766,50 @@ class DWindows : AppCompatActivity() {
         }
     }
 
-    fun windowSetColor(window: View, falpha: Int, fred: Int, fgreen: Int, fblue: Int,
-                       balpha: Int, bred: Int, bgreen: Int, bblue: Int) {
+    fun windowSetColor(window: View, fore: Int, falpha: Int, fred: Int, fgreen: Int, fblue: Int,
+                       back: Int, balpha: Int, bred: Int, bgreen: Int, bblue: Int) {
+        var colorfore: Int = Color.rgb(fred, fgreen, fblue)
+        var colorback: Int = Color.rgb(bred, bgreen, bblue)
+
+        // DW_CLR_DEFAULT on background sets it transparent...
+        // so the background drawable shows through
+        if(back == 16) {
+            colorback = Color.TRANSPARENT
+        }
 
         waitOnUiThread {
             if (window is TextView) {
                 var textview: TextView = window
-                textview.setTextColor(Color.rgb(fred, fgreen, fblue))
-                textview.setBackgroundColor(Color.rgb(bred, bgreen, bblue))
+
+                // Handle DW_CLR_DEFAULT
+                if(fore == 16) {
+                    val value = TypedValue()
+                    this.theme.resolveAttribute(R.attr.editTextColor, value, true)
+                    colorfore = value.data
+                }
+                textview.setTextColor(colorfore)
+                textview.setBackgroundColor(colorback)
             } else if (window is Button) {
                 var button: Button = window
-                button.setTextColor(Color.rgb(fred, fgreen, fblue))
-                button.setBackgroundColor(Color.rgb(bred, bgreen, bblue))
+
+                // Handle DW_CLR_DEFAULT
+                if(fore == 16) {
+                    val value = TypedValue()
+                    // colorButtonNormal requires API 21... use the editTextColor...
+                    // on older versions as a placeholder... this is probably wrong
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                        this.theme.resolveAttribute(R.attr.colorButtonNormal, value, true)
+                    } else {
+                        this.theme.resolveAttribute(R.attr.editTextColor, value, true)
+                    }
+                    colorfore = value.data
+                }
+                button.setTextColor(colorfore)
+                button.setBackgroundColor(colorback)
             } else if(window is LinearLayout) {
                 var box: LinearLayout = window
-                box.setBackgroundColor(Color.rgb(bred, bgreen, bblue))
+
+                box.setBackgroundColor(colorback)
             }
         }
     }
