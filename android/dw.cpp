@@ -589,6 +589,23 @@ unsigned long _dw_get_color(unsigned long thiscolor)
     return 0;
 }
 
+int _dw_dark_mode_detected()
+{
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID darkModeDetected = env->GetMethodID(clazz, "darkModeDetected",
+                                                      "()I");
+        // Call the method on the object
+        return env->CallIntMethod(_dw_obj, darkModeDetected);
+    }
+    return DW_ERROR_UNKNOWN;
+}
+
 /*
  * Runs a message loop for Dynamic Windows.
  */
@@ -4450,11 +4467,11 @@ int API dw_window_set_color(HWND handle, ULONG fore, ULONG back)
         jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
         // Get the method that you want to call
         jmethodID windowSetColor = env->GetMethodID(clazz, "windowSetColor",
-                                                    "(Landroid/view/View;IIIIIIII)V");
+                                                    "(Landroid/view/View;IIIIIIIIII)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, windowSetColor, handle,
-                            0, (jint)DW_RED_VALUE(_fore), (jint)DW_GREEN_VALUE(_fore), (jint)DW_BLUE_VALUE(_fore),
-                            0, (jint)DW_RED_VALUE(_back), (jint)DW_GREEN_VALUE(_back), (jint)DW_BLUE_VALUE(_back));
+                            (jint)fore, 0, (jint)DW_RED_VALUE(_fore), (jint)DW_GREEN_VALUE(_fore), (jint)DW_BLUE_VALUE(_fore),
+                            (jint)back, 0, (jint)DW_RED_VALUE(_back), (jint)DW_GREEN_VALUE(_back), (jint)DW_BLUE_VALUE(_back));
         return DW_ERROR_NONE;
     }
     return DW_ERROR_GENERAL;
@@ -6428,12 +6445,19 @@ int API dw_feature_get(DWFEATURE feature)
     {
         case DW_FEATURE_HTML:                    /* Supports the HTML Widget */
         case DW_FEATURE_HTML_RESULT:             /* Supports the DW_SIGNAL_HTML_RESULT callback */
-        case DW_FEATURE_DARK_MODE:               /* Supports Dark Mode user interface */
         case DW_FEATURE_NOTIFICATION:            /* Supports sending system notifications */
         case DW_FEATURE_UTF8_UNICODE:            /* Supports UTF8 encoded Unicode text */
         case DW_FEATURE_MLE_WORD_WRAP:           /* Supports word wrapping in Multi-line Edit boxes */
         case DW_FEATURE_CONTAINER_STRIPE:        /* Supports striped line display in container widgets */
             return DW_FEATURE_ENABLED;
+        case DW_FEATURE_DARK_MODE:               /* Supports Dark Mode user interface */
+        {
+            /* Dark Mode on Android requires Android 10 (API 29) */
+            if(_dw_android_api >= 29) {
+                return _dw_dark_mode_detected();
+            }
+            return DW_FEATURE_UNSUPPORTED;
+        }
         default:
             return DW_FEATURE_UNSUPPORTED;
     }
@@ -6459,13 +6483,23 @@ int API dw_feature_set(DWFEATURE feature, int state)
         /* These features are supported but not configurable */
         case DW_FEATURE_HTML:                    /* Supports the HTML Widget */
         case DW_FEATURE_HTML_RESULT:             /* Supports the DW_SIGNAL_HTML_RESULT callback */
-        case DW_FEATURE_DARK_MODE:               /* Supports Dark Mode user interface */
         case DW_FEATURE_NOTIFICATION:            /* Supports sending system notifications */
         case DW_FEATURE_UTF8_UNICODE:            /* Supports UTF8 encoded Unicode text */
         case DW_FEATURE_MLE_WORD_WRAP:           /* Supports word wrapping in Multi-line Edit boxes */
         case DW_FEATURE_CONTAINER_STRIPE:        /* Supports striped line display in container widgets */
             return DW_ERROR_GENERAL;
         /* These features are supported and configurable */
+        case DW_FEATURE_DARK_MODE:               /* Supports Dark Mode user interface */
+        {
+            /* Dark Mode on Android requires 10 (API 29) */
+            if(_dw_android_api >= 29) {
+                /* While technically configurable....
+                 * for now just return DW_ERROR_GENERAL
+                 */
+                return DW_ERROR_GENERAL;
+            }
+            return DW_FEATURE_UNSUPPORTED;
+        }
         default:
             return DW_FEATURE_UNSUPPORTED;
     }
