@@ -546,6 +546,9 @@ class DWindows : AppCompatActivity() {
         return super.onPrepareOptionsMenu(menu)
     }
 
+    // These are the Android calls to actually create the UI...
+    // forwarded from the C Dynamic Windows API
+    
     fun darkModeDetected(): Int
     {
         return darkMode
@@ -646,10 +649,6 @@ class DWindows : AppCompatActivity() {
         }
     }
 
-    /*
-     * These are the Android calls to actually create the UI...
-     * forwarded from the C Dynamic Windows API
-     */
     fun windowNew(title: String, style: Int): LinearLayout? {
         if (firstWindow) {
             waitOnUiThread {
@@ -954,32 +953,45 @@ class DWindows : AppCompatActivity() {
             if (box != null) {
                 if ((item is LinearLayout) or (item is ScrollView)) {
                     if (box.orientation == LinearLayout.VERTICAL) {
-                        if (hsize > 0) {
+                        if (hsize != 0) {
                             w = LinearLayout.LayoutParams.MATCH_PARENT
                         }
                     } else {
-                        if (vsize > 0) {
+                        if (vsize != 0) {
                             h = LinearLayout.LayoutParams.MATCH_PARENT
                         }
                     }
                 }
                 var params: LinearLayout.LayoutParams = LinearLayout.LayoutParams(w, h)
 
-                if (item !is LinearLayout && (width != -1 || height != -1)) {
-                    item.measure(0, 0)
-                    if (width > 0) {
+                // If it isn't a box... set or calculate the size as needed
+                if (item !is LinearLayout) {
+                    if(width != -1 || height != -1) {
+                        item.measure(0, 0)
+                    }
+                    if(width > 0) {
                         w = width
                     } else if (width == -1) {
                         w = item.getMeasuredWidth()
                     }
-                    if (height > 0) {
+                    if(height > 0) {
                         h = height
-                    } else if (height == -1) {
+                    } else if(height == -1) {
                         h = item.getMeasuredHeight()
                     }
+                    // Handle non-expandable items
+                    if(hsize == 0 && w > 0) {
+                        params.width = w
+                    }
+                    if(vsize == 0 && h > 0) {
+                        params.height = h
+                    }
                 }
+
+                // Handle expandable items by giving them a weight...
+                // in the direction of the box.
                 if (box.orientation == LinearLayout.VERTICAL) {
-                    if (vsize > 0) {
+                    if (vsize != 0) {
                         if (w > 0) {
                             params.weight = w.toFloat()
                         } else {
@@ -987,7 +999,7 @@ class DWindows : AppCompatActivity() {
                         }
                     }
                 } else {
-                    if (hsize > 0) {
+                    if (hsize != 0) {
                         if (h > 0) {
                             params.weight = h.toFloat()
                         } else {
@@ -995,16 +1007,18 @@ class DWindows : AppCompatActivity() {
                         }
                     }
                 }
+                // Gravity needs to match the expandable settings
+                var grav: Int = Gravity.CLIP_HORIZONTAL or Gravity.CLIP_VERTICAL
+                if (hsize != 0 && vsize != 0) {
+                    params.gravity = Gravity.FILL or grav
+                } else if (hsize != 0) {
+                    params.gravity = Gravity.FILL_HORIZONTAL or grav
+                } else if (vsize != 0) {
+                    params.gravity = Gravity.FILL_VERTICAL or grav
+                }
+                // Finally add the padding
                 if (pad > 0) {
                     params.setMargins(pad, pad, pad, pad)
-                }
-                var grav: Int = Gravity.CLIP_HORIZONTAL or Gravity.CLIP_VERTICAL
-                if (hsize > 0 && vsize > 0) {
-                    params.gravity = Gravity.FILL or grav
-                } else if (hsize > 0) {
-                    params.gravity = Gravity.FILL_HORIZONTAL or grav
-                } else if (vsize > 0) {
-                    params.gravity = Gravity.FILL_VERTICAL or grav
                 }
                 item.layoutParams = params
                 box.addView(item, index)
