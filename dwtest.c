@@ -1880,7 +1880,7 @@ void thread_add(void)
     dw_box_pack_start(notebookbox9, tmpbox, 0, 0, TRUE, TRUE, 1);
 
     startbutton = dw_button_new( "Start Threads", 0 );
-    dw_box_pack_start(tmpbox, startbutton, -1, 30, FALSE, FALSE, 0);
+    dw_box_pack_start(tmpbox, startbutton, -1, -1, FALSE, FALSE, 0);
     dw_signal_connect(startbutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(start_threads_button_callback), NULL);
 
     /* Create the base threading components */

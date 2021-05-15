@@ -1133,6 +1133,7 @@ class DWindows : AppCompatActivity() {
 
             entryfield!!.tag = dataArrayMap
             entryfield!!.id = cid
+            entryfield!!.isSingleLine = true
             if (password > 0) {
                 entryfield!!.transformationMethod = PasswordTransformationMethod.getInstance()
             }
