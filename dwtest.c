@@ -1140,9 +1140,9 @@ void text_add(void)
     dw_box_pack_start(hbox, imagestretchcheck, -1, 25, FALSE, TRUE, 0);
 
     button1 = dw_button_new("Refresh", 1223L );
-    dw_box_pack_start(hbox, button1, 100, 25, FALSE, TRUE, 0);
+    dw_box_pack_start(hbox, button1, -1, 25, FALSE, TRUE, 0);
     button2 = dw_button_new("Print", 1224L );
-    dw_box_pack_start(hbox, button2, 100, 25, FALSE, TRUE, 0);
+    dw_box_pack_start(hbox, button2, -1, 25, FALSE, TRUE, 0);
 
     /* Pre-create the scrollbars so we can query their sizes */
     vscrollbar = dw_scrollbar_new(DW_VERT, 50);
@@ -1810,19 +1810,19 @@ void scrollbox_add(void)
     dw_box_pack_start(notebookbox8, scrollbox, 0, 0, TRUE, TRUE, 1);
 
     abutton1 = dw_button_new("Show Adjustments", 0);
-    dw_box_pack_start(scrollbox, abutton1, -1, 30, FALSE, FALSE, 0);
+    dw_box_pack_start(scrollbox, abutton1, -1, -1, FALSE, FALSE, 0);
     dw_signal_connect(abutton1, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(scrollbox_button_callback), NULL);
 
     for(i = 0; i < MAX_WIDGETS; i++)
     {
         tmpbox = dw_box_new(DW_HORZ, 0);
-        dw_box_pack_start(scrollbox, tmpbox, 0, 24, TRUE, FALSE, 2);
+        dw_box_pack_start(scrollbox, tmpbox, 0, 0, TRUE, FALSE, 2);
         sprintf(buf, "Label %d", i);
         labelarray[i] = dw_text_new(buf , 0);
-        dw_box_pack_start( tmpbox, labelarray[i], 0, 20, TRUE, FALSE, 0);
+        dw_box_pack_start( tmpbox, labelarray[i], 0, -1, TRUE, FALSE, 0);
         sprintf(buf, "Entry %d", i);
         entryarray[i] = dw_entryfield_new(buf , i);
-        dw_box_pack_start(tmpbox, entryarray[i], 0, 20, TRUE, FALSE, 0);
+        dw_box_pack_start(tmpbox, entryarray[i], 0, -1, TRUE, FALSE, 0);
     }
 }
 
