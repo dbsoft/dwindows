@@ -11,7 +11,6 @@ import android.content.Context
 import android.content.DialogInterface
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
-import android.content.res.Resources
 import android.graphics.*
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
@@ -226,7 +225,7 @@ class DWListBox(context: Context) : ListView(context), OnItemClickListener {
                 android.R.layout.simple_list_item_1, list
             )
         )
-        setOnItemClickListener(this)
+        onItemClickListener = this
     }
 
     override fun onItemClick(parent: AdapterView<*>?, view: View, position: Int, id: Long) {
@@ -474,7 +473,10 @@ class DWContainerModel {
 
     fun numberOfRows(): Int
     {
-        return data.size / columns.size
+        if(columns.size > 0) {
+            return data.size / columns.size
+        }
+        return 0
     }
 
     fun getColumnType(column: Int): Int
@@ -517,13 +519,16 @@ class DWContainerModel {
         data.clear()
     }
 
-    fun addRows(count: Int)
+    fun addRows(count: Int): Long
     {
+        var startRow: Long = numberOfRows().toLong()
+
         for(i in 0 until (count * columns.size))
         {
             // Fill in with nulls to be set later
             data.add(null)
         }
+        return startRow
     }
 
     fun clear()
@@ -582,6 +587,7 @@ class DWContainerAdapter(c: Context) : BaseAdapter()
         set.connect(imageview.id, ConstraintSet.LEFT, textview.id, ConstraintSet.RIGHT)
         set.applyTo(rowView)
 
+        // TODO: Add code to optionally add other columns
         return rowView
     }
 }
@@ -746,7 +752,7 @@ class DWindows : AppCompatActivity() {
             if(menuitem.id == cid) {
                 // Handle DW_MIS_ENABLED/DISABLED
                 if((state and (1 or (1 shl 1))) != 0) {
-                    var enabled: Boolean = false
+                    var enabled = false
 
                     // Handle DW_MIS_ENABLED
                     if ((state and 1) != 0) {
@@ -761,7 +767,7 @@ class DWindows : AppCompatActivity() {
 
                 // Handle DW_MIS_CHECKED/UNCHECKED
                 if((state and ((1 shl 2) or (1 shl 3))) != 0) {
-                    var checked: Boolean = false
+                    var checked = false
 
                     // Handle DW_MIS_CHECKED
                     if ((state and (1 shl 2)) != 0) {
@@ -1878,6 +1884,92 @@ class DWindows : AppCompatActivity() {
             combobox!!.setText(text)
         }
         return combobox
+    }
+
+    fun containerNew(cid: Int, multi: Int): ListView?
+    {
+        var cont: ListView? = null
+
+        waitOnUiThread {
+            var dataArrayMap = SimpleArrayMap<String, Long>()
+
+            cont = ListView(this)
+            cont!!.tag = dataArrayMap
+            cont!!.id = cid
+            cont!!.adapter = DWContainerAdapter(this)
+            if(multi != 0) {
+                cont!!.choiceMode = ListView.CHOICE_MODE_MULTIPLE;
+            }
+        }
+        return cont
+    }
+
+    fun containerAddColumn(cont: ListView, title: String, flags: Int)
+    {
+        waitOnUiThread {
+            val adapter: DWContainerAdapter = cont.adapter as DWContainerAdapter
+
+            adapter.model.addColumn(title, flags)
+        }
+    }
+
+    fun containerAlloc(cont: ListView, rowcount: Int): ListView
+    {
+        waitOnUiThread {
+            val adapter: DWContainerAdapter = cont.adapter as DWContainerAdapter
+            val rowStart = adapter.model.addRows(rowcount)
+
+            windowSetData(cont, "_dw_rowstart", rowStart)
+        }
+        return cont
+    }
+
+    fun containerChangeItemString(cont: ListView, column: Int, row: Int, text: String)
+    {
+        waitOnUiThread {
+            val adapter: DWContainerAdapter = cont.adapter as DWContainerAdapter
+
+            adapter.model.setRowAndColumn(row, column, text)
+        }
+    }
+
+    fun containerChangeItemIcon(cont: ListView, column: Int, row: Int, icon: Drawable)
+    {
+        waitOnUiThread {
+            val adapter: DWContainerAdapter = cont.adapter as DWContainerAdapter
+
+            adapter.model.setRowAndColumn(row, column, icon)
+        }
+    }
+
+    fun containerChangeItemInt(cont: ListView, column: Int, row: Int, num: Int)
+    {
+        waitOnUiThread {
+            val adapter: DWContainerAdapter = cont.adapter as DWContainerAdapter
+
+            adapter.model.setRowAndColumn(row, column, num)
+        }
+    }
+
+    fun containerGetColumnType(cont: ListView, column: Int): Int
+    {
+        var type: Int = 0
+
+        waitOnUiThread {
+            val adapter: DWContainerAdapter = cont.adapter as DWContainerAdapter
+
+            type = adapter.model.getColumnType(column)
+        }
+        return type
+    }
+
+    fun containerClear(cont: ListView)
+    {
+        waitOnUiThread {
+            val adapter: DWContainerAdapter = cont.adapter as DWContainerAdapter
+
+            adapter.model.clear()
+        }
     }
 
     fun listBoxNew(cid: Int, multi: Int): DWListBox?

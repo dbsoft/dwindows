@@ -82,7 +82,7 @@ jclass _dw_find_class(JNIEnv *env, const char* name)
 /* Call the dwmain entry point, Android has no args, so just pass the app path */
 void _dw_main_launch(char *arg)
 {
-    static HEV startup = 0;
+    static HEV startup = nullptr;
 
     /* Safety check to prevent multiple initializations... */
     if(startup)
@@ -319,7 +319,7 @@ int _dw_event_handler(jobject object, void **params, int message)
                 int (* API valuechangedfunc)(HWND, int, void *) = (int (* API)(HWND, int, void *))handler->signalfunction;
                 int selected = DW_POINTER_TO_INT(params[3]);
 
-                return valuechangedfunc(handler->window, selected, handler->data);;
+                return valuechangedfunc(handler->window, selected, handler->data);
             }
                 /* Tree class selection event */
             case 12:
@@ -419,7 +419,7 @@ JNIEXPORT void JNICALL
 Java_org_dbsoft_dwindows_DWindows_eventHandlerHTMLResult(JNIEnv* env, jobject obj, jobject obj1,
                                                jint message, jstring htmlResult, jlong data) {
     const char *result = env->GetStringUTFChars(htmlResult, nullptr);
-    void *params[8] = { nullptr, DW_POINTER(result), nullptr, 0, 0, 0, 0, DW_INT_TO_POINTER(data) };
+    void *params[8] = { nullptr, DW_POINTER(result), nullptr, nullptr, nullptr, nullptr, nullptr, DW_INT_TO_POINTER(data) };
 
     _dw_event_handler(obj1, params, message);
 }
@@ -428,7 +428,7 @@ JNIEXPORT void JNICALL
 Java_org_dbsoft_dwindows_DWWebViewClient_eventHandlerHTMLChanged(JNIEnv* env, jobject obj, jobject obj1,
                                                          jint message, jstring URI, jint status) {
     const char *uri = env->GetStringUTFChars(URI, nullptr);
-    void *params[8] = { nullptr, DW_POINTER(uri), nullptr, DW_INT_TO_POINTER(status), 0, 0, 0, 0 };
+    void *params[8] = { nullptr, DW_POINTER(uri), nullptr, DW_INT_TO_POINTER(status), nullptr, nullptr, nullptr, nullptr };
 
     _dw_event_handler(obj1, params, message);
 }
@@ -868,7 +868,7 @@ char * API dw_file_browse(const char *title, const char *defpath, const char *ex
         // Call the method on the object
         jstring jresult = (jstring)env->CallObjectMethod(_dw_obj, fileBrowse, jstr, path, jext, flags);
         if(jresult)
-            return strdup(env->GetStringUTFChars(jresult, 0));
+            return strdup(env->GetStringUTFChars(jresult, nullptr));
     }
     return nullptr;
 }
@@ -898,7 +898,7 @@ char * API dw_clipboard_get_text()
         jstring result = (jstring)env->CallObjectMethod(_dw_obj, clipboardGetText);
         // Get the UTF8 string result
         if(result)
-            utf8 = env->GetStringUTFChars(result, 0);
+            utf8 = env->GetStringUTFChars(result, nullptr);
         return utf8 ? strdup(utf8) : nullptr;
     }
     return nullptr;
@@ -1939,7 +1939,7 @@ void API dw_listbox_get_text(HWND handle, unsigned int index, char *buffer, unsi
         // Get the UTF8 string result
         if(result)
         {
-            const char *utf8 = env->GetStringUTFChars(result, 0);
+            const char *utf8 = env->GetStringUTFChars(result, nullptr);
 
             strncpy(buffer, utf8, length);
         }
@@ -2543,7 +2543,7 @@ void API dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
         jmethodID drawPoint = env->GetMethodID(clazz, "drawPoint",
                                                "(Lorg/dbsoft/dwindows/DWRender;Landroid/graphics/Bitmap;II)V");
         // Call the method on the object
-        env->CallVoidMethod(_dw_obj, drawPoint, handle, pixmap ? pixmap->bitmap : NULL, x, y);
+        env->CallVoidMethod(_dw_obj, drawPoint, handle, pixmap ? pixmap->bitmap : nullptr, x, y);
     }
 }
 
@@ -2568,7 +2568,7 @@ void API dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y
         jmethodID drawLine = env->GetMethodID(clazz, "drawLine",
                                               "(Lorg/dbsoft/dwindows/DWRender;Landroid/graphics/Bitmap;IIII)V");
         // Call the method on the object
-        env->CallVoidMethod(_dw_obj, drawLine, handle, pixmap ? pixmap->bitmap : NULL, x1, y1, x2, y2);
+        env->CallVoidMethod(_dw_obj, drawLine, handle, pixmap ? pixmap->bitmap : nullptr, x1, y1, x2, y2);
     }
 }
 
@@ -2660,7 +2660,7 @@ void API dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, in
             jmethodID drawPolygon = env->GetMethodID(clazz, "drawPolygon",
                                                      "(Lorg/dbsoft/dwindows/DWRender;Landroid/graphics/Bitmap;II[I[I)V");
             // Call the method on the object
-            env->CallVoidMethod(_dw_obj, drawPolygon, handle, pixmap ? pixmap->bitmap : NULL, flags, npoints, jx, jy);
+            env->CallVoidMethod(_dw_obj, drawPolygon, handle, pixmap ? pixmap->bitmap : nullptr, flags, npoints, jx, jy);
         }
     }
 }
@@ -2687,7 +2687,7 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int 
         jmethodID drawLine = env->GetMethodID(clazz, "drawRect",
                                               "(Lorg/dbsoft/dwindows/DWRender;Landroid/graphics/Bitmap;IIII)V");
         // Call the method on the object
-        env->CallVoidMethod(_dw_obj, drawLine, handle, pixmap ? pixmap->bitmap : NULL, x, y, width, height);
+        env->CallVoidMethod(_dw_obj, drawLine, handle, pixmap ? pixmap->bitmap : nullptr, x, y, width, height);
     }
 }
 
@@ -2716,7 +2716,7 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
         jmethodID drawLine = env->GetMethodID(clazz, "drawArc",
                                               "(Lorg/dbsoft/dwindows/DWRender;Landroid/graphics/Bitmap;IIIIIII)V");
         // Call the method on the object
-        env->CallVoidMethod(_dw_obj, drawLine, handle, pixmap ? pixmap->bitmap : NULL, flags, xorigin, yorigin, x1, y1, x2, y2);
+        env->CallVoidMethod(_dw_obj, drawLine, handle, pixmap ? pixmap->bitmap : nullptr, flags, xorigin, yorigin, x1, y1, x2, y2);
     }
 }
 
@@ -2747,7 +2747,7 @@ HWND API dw_tree_new(ULONG cid)
  */
 HTREEITEM API dw_tree_insert_after(HWND handle, HTREEITEM item, const char *title, HICN icon, HTREEITEM parent, void *itemdata)
 {
-    return 0;
+    return nullptr;
 }
 
 /*
@@ -2887,6 +2887,19 @@ void API dw_tree_item_delete(HWND handle, HTREEITEM item)
  */
 HWND API dw_container_new(ULONG cid, int multi)
 {
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID containerNew = env->GetMethodID(clazz, "containerNew",
+                                                  "(II)Landroid/widget/ListView;");
+        // Call the method on the object
+        jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, containerNew, (int)cid, multi));
+        return result;
+    }
     return nullptr;
 }
 
@@ -2904,6 +2917,28 @@ HWND API dw_container_new(ULONG cid, int multi)
  */
 int API dw_container_setup(HWND handle, unsigned long *flags, char **titles, int count, int separator)
 {
+    if(handle && flags && titles && count > 0)
+    {
+        int z;
+
+        for(z=0;z<count;z++)
+        {
+            JNIEnv *env;
+
+            if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+            {
+                // Generate a string
+                jstring jstr = env->NewStringUTF(titles[z]);
+                // First get the class that contains the method you need to call
+                jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+                // Get the method that you want to call
+                jmethodID containerNew = env->GetMethodID(clazz, "containerAddColumn",
+                                                          "(Landroid/widget/ListView;Ljava/lang/String;I)V");
+                // Call the method on the object
+                env->CallVoidMethod(_dw_obj, containerNew, handle, jstr, (int)flags[z]);
+            }
+        }
+    }
     return DW_ERROR_GENERAL;
 }
 
@@ -2929,6 +2964,10 @@ void API dw_filesystem_set_column_title(HWND handle, const char *title)
  */
 int API dw_filesystem_setup(HWND handle, unsigned long *flags, char **titles, int count)
 {
+    unsigned long fsflags[2] = { DW_CFA_BITMAPORICON, DW_CFA_STRING };
+    char *fstitles[2] = { "Icon", "Filename" };
+    dw_container_setup(handle, fsflags, fstitles, 2, 0);
+    dw_container_setup(handle, flags, titles, count, 0);
     return DW_ERROR_GENERAL;
 }
 
@@ -2942,6 +2981,18 @@ int API dw_filesystem_setup(HWND handle, unsigned long *flags, char **titles, in
  */
 void * API dw_container_alloc(HWND handle, int rowcount)
 {
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID containerAlloc = env->GetMethodID(clazz, "containerAlloc",
+                                                    "(Landroid/widget/ListView;I)Landroid/widget/ListView;");
+        // Call the method on the object
+        return (void *)env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, containerAlloc, handle, rowcount));
+    }
     return nullptr;
 }
 
@@ -2956,6 +3007,9 @@ void * API dw_container_alloc(HWND handle, int rowcount)
  */
 void API dw_container_set_item(HWND handle, void *pointer, int column, int row, void *data)
 {
+    int rowstart = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_rowstart"));
+
+    dw_container_change_item(handle, column, row + rowstart, data);
 }
 
 /*
@@ -2968,6 +3022,56 @@ void API dw_container_set_item(HWND handle, void *pointer, int column, int row, 
  */
 void API dw_container_change_item(HWND handle, int column, int row, void *data)
 {
+    JNIEnv *env;
+
+    if(handle && data && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        int columntype = dw_container_get_column_type(handle, column);
+
+        if((columntype & DW_CFA_BITMAPORICON))
+        {
+            jobject icon = *((jobject *)data);
+
+            if(icon)
+            {
+                // First get the class that contains the method you need to call
+                jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+                // Get the method that you want to call
+                jmethodID containerChangeItem = env->GetMethodID(clazz, "containerChangeItemIcon",
+                                                                 "(Landroid/widget/ListView;IILandroid/graphics/drawable/Drawable;)V");
+                // Call the method on the object
+                env->CallVoidMethod(_dw_obj, containerChangeItem, handle, column, row, icon);
+            }
+        }
+        else if((columntype & DW_CFA_STRING))
+        {
+            const char *tmp = *((const char **)data);
+
+            if(tmp)
+            {
+                jstring jstr = env->NewStringUTF(tmp);
+                // First get the class that contains the method you need to call
+                jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+                // Get the method that you want to call
+                jmethodID containerChangeItem = env->GetMethodID(clazz, "containerChangeItemString",
+                                                                 "(Landroid/widget/ListView;IILjava/lang/String;)V");
+                // Call the method on the object
+                env->CallVoidMethod(_dw_obj, containerChangeItem, handle, column, row, jstr);
+            }
+        }
+        else if((columntype & DW_CFA_ULONG))
+        {
+            ULONG num = *((ULONG *)data);
+            // First get the class that contains the method you need to call
+            jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+            // Get the method that you want to call
+            jmethodID containerChangeItem = env->GetMethodID(clazz, "containerChangeItemInt",
+                                                             "(Landroid/widget/ListView;III)V");
+            // Call the method on the object
+            env->CallVoidMethod(_dw_obj, containerChangeItem, handle, column, row, (int)num);
+        }
+        // TODO: Handle DATE and TIME
+    }
 }
 
 /*
@@ -2980,6 +3084,7 @@ void API dw_container_change_item(HWND handle, int column, int row, void *data)
  */
 void API dw_filesystem_change_item(HWND handle, int column, int row, void *data)
 {
+    dw_container_change_item(handle, column + 2, row, data);
 }
 
 /*
@@ -2993,6 +3098,8 @@ void API dw_filesystem_change_item(HWND handle, int column, int row, void *data)
  */
 void API dw_filesystem_change_file(HWND handle, int row, const char *filename, HICN icon)
 {
+    dw_container_change_item(handle, 0, row, (void *)&icon);
+    dw_container_change_item(handle, 1, row, (void *)&filename);
 }
 
 /*
@@ -3006,6 +3113,8 @@ void API dw_filesystem_change_file(HWND handle, int row, const char *filename, H
  */
 void API dw_filesystem_set_file(HWND handle, void *pointer, int row, const char *filename, HICN icon)
 {
+    dw_container_set_item(handle, pointer, 0, row, (void *)&icon);
+    dw_container_set_item(handle, pointer, 1, row, (void *)&filename);
 }
 
 /*
@@ -3019,6 +3128,7 @@ void API dw_filesystem_set_file(HWND handle, void *pointer, int row, const char 
  */
 void API dw_filesystem_set_item(HWND handle, void *pointer, int column, int row, void *data)
 {
+    dw_container_set_item(handle, pointer, column + 2, row, data);
 }
 
 /*
@@ -3053,6 +3163,18 @@ void API dw_container_change_row_data(HWND handle, int row, void *data)
  */
 int API dw_container_get_column_type(HWND handle, int column)
 {
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID containerGetColumnType = env->GetMethodID(clazz, "containerGetColumnType",
+                                                            "(Landroid/widget/ListView;I)I");
+        // Call the method on the object
+        return env->CallIntMethod(_dw_obj, containerGetColumnType, handle, column);
+    }
     return 0;
 }
 
@@ -3066,7 +3188,7 @@ int API dw_container_get_column_type(HWND handle, int column)
  */
 int API dw_filesystem_get_column_type(HWND handle, int column)
 {
-    return 0;
+    return dw_container_get_column_type(handle, column + 2);
 }
 
 /*
@@ -3125,6 +3247,11 @@ void API dw_container_change_row_title(HWND handle, int row, const char *title)
  */
 void API dw_container_insert(HWND handle, void *pointer, int rowcount)
 {
+    JNIEnv *env;
+
+    if(pointer && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+        env->DeleteWeakGlobalRef((jobject)pointer);
+    dw_window_set_data(handle, "_dw_rowstart", NULL);
 }
 
 /*
@@ -3135,6 +3262,18 @@ void API dw_container_insert(HWND handle, void *pointer, int rowcount)
  */
 void API dw_container_clear(HWND handle, int redraw)
 {
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID containerClear = env->GetMethodID(clazz, "containerClear",
+                                                    "(Landroid/widget/ListView;)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, containerClear, handle);
+    }
 }
 
 /*
@@ -3304,7 +3443,7 @@ HICN _dw_icon_load(const char *filename, const char *data, int len, int resid)
  */
 HICN API dw_icon_load(unsigned long module, unsigned long resid)
 {
-    return _dw_icon_load(NULL, NULL, 0, resid);
+    return _dw_icon_load(nullptr, nullptr, 0, resid);
 }
 
 /*
@@ -3318,7 +3457,7 @@ HICN API dw_icon_load(unsigned long module, unsigned long resid)
  */
 HICN API dw_icon_load_from_file(const char *filename)
 {
-    return _dw_icon_load(filename, NULL, 0, 0);
+    return _dw_icon_load(filename, nullptr, 0, 0);
 }
 
 /*
@@ -3331,7 +3470,7 @@ HICN API dw_icon_load_from_file(const char *filename)
  */
 HICN API dw_icon_load_from_data(const char *data, int len)
 {
-    return _dw_icon_load(NULL, data, len, 0);
+    return _dw_icon_load(nullptr, data, len, 0);
 }
 
 /*
@@ -3720,7 +3859,7 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
         jmethodID pixmapBitBlt = env->GetMethodID(clazz, "pixmapBitBlt",
                                                   "(Lorg/dbsoft/dwindows/DWRender;Landroid/graphics/Bitmap;IIIILorg/dbsoft/dwindows/DWRender;Landroid/graphics/Bitmap;IIII)I");
         // Call the method on the object
-        retval = env->CallIntMethod(_dw_obj, pixmapBitBlt, dest, destp ? destp->bitmap : NULL, xdest, ydest, width, height, src, srcp ? srcp->bitmap : NULL, xsrc, ysrc, srcwidth, srcheight);
+        retval = env->CallIntMethod(_dw_obj, pixmapBitBlt, dest, destp ? destp->bitmap : nullptr, xdest, ydest, width, height, src, srcp ? srcp->bitmap : nullptr, xsrc, ysrc, srcwidth, srcheight);
     }
     return retval;
 }
@@ -4656,7 +4795,7 @@ char * API dw_window_get_text(HWND handle)
         jstring result = (jstring)env->CallObjectMethod(_dw_obj, windowGetText, handle);
         // Get the UTF8 string result
         if(result)
-            utf8 = env->GetStringUTFChars(result, 0);
+            utf8 = env->GetStringUTFChars(result, nullptr);
         return utf8 ? strdup(utf8) : nullptr;
     }
     return nullptr;
@@ -5016,21 +5155,21 @@ void API dw_environment_query(DWEnv *env)
 
     if(!osName[0])
     {
-        JNIEnv *env;
+        JNIEnv *jenv;
         const char *release = nullptr;
 
-        if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+        if((jenv = (JNIEnv *)pthread_getspecific(_dw_env_key)))
         {
             // First get the class that contains the method you need to call
-            jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+            jclass clazz = _dw_find_class(jenv, DW_CLASS_NAME);
             // Get the method that you want to call
-            jmethodID androidGetRelease = env->GetMethodID(clazz, "androidGetRelease",
+            jmethodID androidGetRelease = jenv->GetMethodID(clazz, "androidGetRelease",
                                                            "()Ljava/lang/String;");
             // Call the method on the object
-            jstring jstr = (jstring)env->CallObjectMethod(_dw_obj, androidGetRelease);
+            jstring jstr = (jstring)jenv->CallObjectMethod(_dw_obj, androidGetRelease);
 
             if(jstr)
-                release = env->GetStringUTFChars(jstr, 0);
+                release = jenv->GetStringUTFChars(jstr, nullptr);
         }
         snprintf(osName, _DW_ENV_STRING_SIZE-1, "Android%s%s",
                  release ? " " : "", release ? release : "");
@@ -5633,7 +5772,7 @@ int API dw_event_wait(HEV eve, unsigned long timeout)
         struct timeval now;
         struct timespec timeo;
 
-        gettimeofday(&now, 0);
+        gettimeofday(&now, nullptr);
         timeo.tv_sec = now.tv_sec + (timeout / 1000);
         timeo.tv_nsec = now.tv_usec * 1000;
         rc = pthread_cond_timedwait(&(eve->event), &(eve->mutex), &timeo);
@@ -5725,7 +5864,7 @@ static void _dw_handle_sem(int *tmpsock)
         if(FD_ISSET(listenfd, &rd))
         {
             struct _dw_seminfo *newarray;
-            int newfd = accept(listenfd, 0, 0);
+            int newfd = accept(listenfd, nullptr, nullptr);
 
             if(newfd > -1)
             {
@@ -5833,7 +5972,7 @@ static void _dw_handle_sem(int *tmpsock)
  */
 HEV API dw_named_event_new(const char *name)
 {
-    struct sockaddr_un un;
+    struct sockaddr_un un = {0};
     int ev, *tmpsock = (int *)malloc(sizeof(int)*2);
     DWTID dwthread;
 
@@ -5842,7 +5981,6 @@ HEV API dw_named_event_new(const char *name)
 
     tmpsock[0] = socket(AF_UNIX, SOCK_STREAM, 0);
     ev = socket(AF_UNIX, SOCK_STREAM, 0);
-    memset(&un, 0, sizeof(un));
     un.sun_family=AF_UNIX;
     mkdir("/tmp/.dw", S_IWGRP|S_IWOTH);
     strcpy(un.sun_path, "/tmp/.dw/");
@@ -5856,7 +5994,7 @@ HEV API dw_named_event_new(const char *name)
     bind(tmpsock[0], (struct sockaddr *)&un, sizeof(un));
     listen(tmpsock[0], 0);
     connect(ev, (struct sockaddr *)&un, sizeof(un));
-    tmpsock[1] = accept(tmpsock[0], 0, 0);
+    tmpsock[1] = accept(tmpsock[0], nullptr, nullptr);
 
     if(tmpsock[0] < 0 || tmpsock[1] < 0 || ev < 0)
     {
@@ -6367,7 +6505,7 @@ HWND API dw_notification_new(const char *title, const char *imagepath, const cha
         jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, notificationNew, ntitle, image, ndesc, appid));
         return result;
     }
-    return 0;
+    return nullptr;
 }
 
 /*
