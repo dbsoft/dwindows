@@ -11,6 +11,7 @@ import android.content.Context
 import android.content.DialogInterface
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
+import android.content.res.Resources
 import android.graphics.*
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
@@ -28,17 +29,19 @@ import android.util.SparseBooleanArray
 import android.util.TypedValue
 import android.view.*
 import android.view.View.OnTouchListener
+import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.*
 import android.widget.AdapterView.OnItemClickListener
 import android.widget.SeekBar.OnSeekBarChangeListener
-import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.AppCompatEditText
 import androidx.collection.SimpleArrayMap
+import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.constraintlayout.widget.ConstraintSet
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.res.ResourcesCompat
@@ -456,6 +459,131 @@ class DWMenu {
     }
 
     external fun eventHandlerSimple(item: DWMenuItem, message: Int)
+}
+
+// Class for storing container data
+class DWContainerModel {
+    var columns = mutableListOf<String?>()
+    var types = mutableListOf<Int>()
+    var data = mutableListOf<Any?>()
+
+    fun numberOfColumns(): Int
+    {
+        return columns.size
+    }
+
+    fun numberOfRows(): Int
+    {
+        return data.size / columns.size
+    }
+
+    fun getColumnType(column: Int): Int
+    {
+        if(column < types.size) {
+            return types[column]
+        }
+        return -1
+    }
+
+    fun getRowAndColumn(row: Int, column: Int): Any?
+    {
+        var index: Int = (row * columns.size) + column
+
+        if(index > -1 && index < data.size) {
+            return data[index]
+        }
+        return null
+    }
+
+    fun setRowAndColumn(row: Int, column: Int, obj: Any?)
+    {
+        var index: Int = (row * columns.size) + column
+
+        if(index > -1 && index < data.size && column < types.size) {
+            // Verify the data matches the column type
+            if((((types[column] and 1) != 0) && (obj is Drawable)) ||
+                (((types[column] and (1 shl 1)) != 0) && (obj is String)) ||
+                (((types[column] and (1 shl 2)) != 0) && (obj is Int))) {
+                data[index] = obj
+            }
+        }
+    }
+
+    fun addColumn(title: String?, type: Int)
+    {
+        columns.add(title)
+        types.add(type)
+        // If we change the columns we have to invalidate the data
+        data.clear()
+    }
+
+    fun addRows(count: Int)
+    {
+        for(i in 0 until (count * columns.size))
+        {
+            // Fill in with nulls to be set later
+            data.add(null)
+        }
+    }
+
+    fun clear()
+    {
+        data.clear()
+    }
+}
+
+class DWContainerAdapter(c: Context) : BaseAdapter()
+{
+    private var context = c
+    var model = DWContainerModel()
+
+    override fun getCount(): Int {
+        val count = model.numberOfRows()
+        if(count > 0) {
+            return count
+        }
+        return 1
+    }
+
+    override fun getItem(position: Int): Any? {
+        return model.getRowAndColumn(position, 1)
+    }
+
+    override fun getItemId(position: Int): Long {
+        return position.toLong()
+    }
+
+    override fun getView(position: Int, view: View?, parent: ViewGroup): View {
+        val rowView = ConstraintLayout(context)
+        val set = ConstraintSet()
+
+        // Every container at least has an icon and text
+        val imageview = ImageView(context)
+        val textview = TextView(context)
+
+        if(model.numberOfColumns() > 1 && model.numberOfRows() > position) {
+            val first = model.getRowAndColumn(position, 0)
+            val second = model.getRowAndColumn(position, 1)
+
+            if(first is Drawable) {
+                imageview.setImageDrawable(first)
+            }
+            if(second is String) {
+                textview.text = second
+            }
+        }
+
+        // Add the two main components to the layout
+        imageview.id = View.generateViewId()
+        textview.id = View.generateViewId()
+        rowView.addView(imageview)
+        rowView.addView(textview)
+        set.clone(rowView)
+        set.connect(imageview.id, ConstraintSet.LEFT, textview.id, ConstraintSet.RIGHT)
+        set.applyTo(rowView)
+
+        return rowView
+    }
 }
 
 class DWindows : AppCompatActivity() {
