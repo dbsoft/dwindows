@@ -78,6 +78,42 @@ jclass _dw_find_class(JNIEnv *env, const char* name)
     return static_cast<jclass>(env->CallObjectMethod(_dw_class_loader, _dw_class_method, env->NewStringUTF(name)));
 }
 
+// Do a quick check if an exception occurred...
+// Display then clear it so we can continue...
+// Return TRUE if an exception had occurred
+int _dw_jni_check_exception(JNIEnv *env)
+{
+    if(env->ExceptionCheck())
+    {
+        env->ExceptionDescribe();
+        env->ExceptionClear();
+        return TRUE;
+    }
+    return FALSE;
+}
+
+#define _DW_REFERENCE_NONE   0
+#define _DW_REFERENCE_WEAK   1
+#define _DW_REFERENCE_STRONG 2
+
+// Handle returns from JNI functions and make sure the
+// return value is sane...
+// Reference: 0 no reference 1 weak 2 strong
+jobject _dw_jni_check_result(JNIEnv *env, jobject obj, int reference)
+{
+    jobject result = nullptr;
+
+    if(!_dw_jni_check_exception(env) && obj)
+    {
+        if(reference == 1)
+            result = env->NewWeakGlobalRef(obj);
+        else if(reference == 2)
+            result = env->NewGlobalRef(obj);
+        else
+            result = obj;
+    }
+    return result;
+}
 
 /* Call the dwmain entry point, Android has no args, so just pass the app path */
 void _dw_main_launch(char *arg)
@@ -592,6 +628,7 @@ unsigned long _dw_get_color(unsigned long thiscolor)
 int _dw_dark_mode_detected()
 {
     JNIEnv *env;
+    int retval = DW_ERROR_UNKNOWN;
 
     if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
@@ -601,9 +638,10 @@ int _dw_dark_mode_detected()
         jmethodID darkModeDetected = env->GetMethodID(clazz, "darkModeDetected",
                                                       "()I");
         // Call the method on the object
-        return env->CallIntMethod(_dw_obj, darkModeDetected);
+        retval = env->CallIntMethod(_dw_obj, darkModeDetected);
+        _dw_jni_check_exception(env);
     }
-    return DW_ERROR_UNKNOWN;
+    return retval;
 }
 
 /*
@@ -622,6 +660,7 @@ void API dw_main(void)
                                             "()V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, dwMain);
+        _dw_jni_check_exception(env);
     }
 
     /* We don't actually run a loop here,
@@ -657,6 +696,7 @@ void API dw_main_sleep(int milliseconds)
                                                   "(I)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, mainSleep, milliseconds);
+        _dw_jni_check_exception(env);
     }
 }
 
@@ -689,6 +729,7 @@ void API dw_exit(int exitcode)
                                                   "(I)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, dwindowsExit, exitcode);
+        _dw_jni_check_exception(env);
     }
     // We shouldn't get here, but in case JNI can't call dwindowsExit...
     exit(exitcode);
@@ -788,6 +829,7 @@ void API dw_debug(const char *format, ...)
                                                "(Ljava/lang/String;)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, debugMessage, jstr);
+        _dw_jni_check_exception(env);
     }
     else {
         /* Output to stderr, if there is another way to send it
@@ -813,6 +855,7 @@ int API dw_messagebox(const char *title, int flags, const char *format, ...)
     va_list args;
     char outbuf[1025] = {0};
     JNIEnv *env;
+    int retval = 0;
 
     va_start(args, format);
     vsnprintf(outbuf, 1024, format, args);
@@ -829,9 +872,10 @@ int API dw_messagebox(const char *title, int flags, const char *format, ...)
         jmethodID messageBox = env->GetMethodID(clazz, "messageBox",
                                                   "(Ljava/lang/String;Ljava/lang/String;I)I");
         // Call the method on the object
-        return env->CallIntMethod(_dw_obj, messageBox, jstrtitle, jstr, flags);
+        retval = env->CallIntMethod(_dw_obj, messageBox, jstrtitle, jstr, flags);
+        _dw_jni_check_exception(env);
     }
-    return 0;
+    return retval;
 }
 
 /*
@@ -849,6 +893,7 @@ int API dw_messagebox(const char *title, int flags, const char *format, ...)
 char * API dw_file_browse(const char *title, const char *defpath, const char *ext, int flags)
 {
     JNIEnv *env;
+    char *retval = nullptr;
 
     if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
@@ -866,11 +911,11 @@ char * API dw_file_browse(const char *title, const char *defpath, const char *ex
         jmethodID fileBrowse = env->GetMethodID(clazz, "fileBrowse",
                                                 "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;I)Ljava/lang/String;");
         // Call the method on the object
-        jstring jresult = (jstring)env->CallObjectMethod(_dw_obj, fileBrowse, jstr, path, jext, flags);
+        jstring jresult = (jstring)_dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, fileBrowse, jstr, path, jext, flags), _DW_REFERENCE_NONE);
         if(jresult)
-            return strdup(env->GetStringUTFChars(jresult, nullptr));
+            retval = strdup(env->GetStringUTFChars(jresult, nullptr));
     }
-    return nullptr;
+    return retval;
 }
 
 /*
@@ -895,7 +940,7 @@ char * API dw_clipboard_get_text()
         jmethodID clipboardGetText = env->GetMethodID(clazz, "clipboardGetText",
                                                       "()Ljava/lang/String;");
         // Call the method on the object
-        jstring result = (jstring)env->CallObjectMethod(_dw_obj, clipboardGetText);
+        jstring result = (jstring)_dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, clipboardGetText), _DW_REFERENCE_NONE);
         // Get the UTF8 string result
         if(result)
             utf8 = env->GetStringUTFChars(result, nullptr);
@@ -925,6 +970,7 @@ void API dw_clipboard_set_text(const char *str, int len)
                                                       "(Ljava/lang/String;)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, clipboardSetText, jstr);
+        _dw_jni_check_exception(env);
     }
 }
 
@@ -1008,7 +1054,7 @@ HWND API dw_box_new(int type, int pad)
         // Get the method that you want to call
         jmethodID boxNew = env->GetMethodID(clazz, "boxNew", "(II)Landroid/widget/LinearLayout;");
         // Call the method on the object
-        jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, boxNew, type, pad));
+        jobject result = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, boxNew, type, pad), _DW_REFERENCE_WEAK);
         return result;
     }
     return nullptr;
@@ -1049,7 +1095,7 @@ HWND API dw_scrollbox_new(int type, int pad)
         jmethodID scrollBoxNew = env->GetMethodID(clazz, "scrollBoxNew",
                                             "(II)Landroid/widget/ScrollView;");
         // Call the method on the object
-        jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, scrollBoxNew, type, pad));
+        jobject result = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, scrollBoxNew, type, pad), _DW_REFERENCE_WEAK);
         return result;
     }
     return nullptr;
@@ -1094,6 +1140,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
         jmethodID boxPack = env->GetMethodID(clazz, "boxPack", "(Landroid/view/View;Landroid/view/View;IIIIII)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, boxPack, box, item, index, width, height, hsize, vsize, pad);
+        _dw_jni_check_exception(env);
     }
 }
 
@@ -1116,6 +1163,7 @@ int API dw_box_unpack(HWND handle)
         jmethodID boxUnpack = env->GetMethodID(clazz, "boxUnpack", "(Landroid/view/View;)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, boxUnpack, handle);
+        _dw_jni_check_exception(env);
         return DW_ERROR_NONE;
     }
     return DW_ERROR_GENERAL;
@@ -1141,7 +1189,7 @@ HWND API dw_box_unpack_at_index(HWND box, int index)
         jmethodID boxUnpackAtIndex = env->GetMethodID(clazz, "boxUnpackAtIndex",
                                                       "(Landroid/widget/LinearLayout;I)Landroid/view/View;");
         // Call the method on the object
-        retval = env->CallObjectMethod(_dw_obj, boxUnpackAtIndex, box, index);
+        retval = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, boxUnpackAtIndex, box, index), _DW_REFERENCE_WEAK);
     }
     return retval;
 }
@@ -1220,7 +1268,7 @@ HWND API dw_button_new(const char *text, ULONG cid)
         jmethodID buttonNew = env->GetMethodID(clazz, "buttonNew",
                                                "(Ljava/lang/String;I)Landroid/widget/Button;");
         // Call the method on the object
-        jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, buttonNew, jstr, (int)cid));
+        jobject result = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, buttonNew, jstr, (int)cid), _DW_REFERENCE_WEAK);
         return result;
     }
     return nullptr;
@@ -1240,7 +1288,7 @@ HWND _dw_entryfield_new(const char *text, ULONG cid, int password)
         jmethodID entryfieldNew = env->GetMethodID(clazz, "entryfieldNew",
                                                    "(Ljava/lang/String;II)Landroid/widget/EditText;");
         // Call the method on the object
-        jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, entryfieldNew, jstr, (int)cid, password));
+        jobject result = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, entryfieldNew, jstr, (int)cid, password), _DW_REFERENCE_WEAK);
         return result;
     }
     return nullptr;
@@ -1290,6 +1338,7 @@ void API dw_entryfield_set_limit(HWND handle, ULONG limit)
                                                         "(Landroid/widget/EditText;J)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, entryfieldSetLimit, handle, (jlong)limit);
+        _dw_jni_check_exception(env);
     }
 }
 
@@ -1315,7 +1364,7 @@ HWND API dw_bitmapbutton_new(const char *text, ULONG resid)
         jmethodID bitmapButtonNew = env->GetMethodID(clazz, "bitmapButtonNew",
                                                      "(Ljava/lang/String;I)Landroid/widget/ImageButton;");
         // Call the method on the object
-        jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, bitmapButtonNew, jstr, (int)resid));
+        jobject result = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, bitmapButtonNew, jstr, (int)resid), _DW_REFERENCE_WEAK);
         return result;
     }
     return nullptr;
@@ -1347,7 +1396,7 @@ HWND API dw_bitmapbutton_new_from_file(const char *text, unsigned long cid, cons
         jmethodID bitmapButtonNewFromFile = env->GetMethodID(clazz, "bitmapButtonNewFromFile",
                                                              "(Ljava/lang/String;ILjava/lang/String;)Landroid/widget/ImageButton;");
         // Call the method on the object
-        jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, bitmapButtonNewFromFile, jstr, (int)cid, path));
+        jobject result = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, bitmapButtonNewFromFile, jstr, (int)cid, path), _DW_REFERENCE_WEAK);
         return result;
     }
     return nullptr;
@@ -1381,7 +1430,7 @@ HWND API dw_bitmapbutton_new_from_data(const char *text, unsigned long cid, cons
         jmethodID bitmapButtonNewFromData = env->GetMethodID(clazz, "bitmapButtonNewFromData",
                                                              "(Ljava/lang/String;I[BI)Landroid/widget/ImageButton;");
         // Call the method on the object
-        jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, bitmapButtonNewFromData, jstr, (int)cid, bytearray, len));
+        jobject result = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, bitmapButtonNewFromData, jstr, (int)cid, bytearray, len), _DW_REFERENCE_WEAK);
         // Clean up after the array now that we are finished
         //env->ReleaseByteArrayElements(bytearray, (jbyte *) data, 0);
         return result;
@@ -1411,7 +1460,7 @@ HWND API dw_spinbutton_new(const char *text, ULONG cid)
         jmethodID spinButtonNew = env->GetMethodID(clazz, "spinButtonNew",
                                                    "(Ljava/lang/String;I)Lorg/dbsoft/dwindows/DWSpinButton;");
         // Call the method on the object
-        jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, spinButtonNew, jstr, (int)cid));
+        jobject result = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, spinButtonNew, jstr, (int)cid), _DW_REFERENCE_WEAK);
         return result;
     }
     return nullptr;
@@ -1436,6 +1485,7 @@ void API dw_spinbutton_set_pos(HWND handle, long position)
                                                       "(Lorg/dbsoft/dwindows/DWSpinButton;J)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, spinButtonSetPos, handle, (jlong)position);
+        _dw_jni_check_exception(env);
     }
 }
 
@@ -1459,6 +1509,7 @@ void API dw_spinbutton_set_limits(HWND handle, long upper, long lower)
                                                          "(Lorg/dbsoft/dwindows/DWSpinButton;JJ)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, spinButtonSetLimits, handle, (jlong)upper, (jlong)lower);
+        _dw_jni_check_exception(env);
     }
 }
 
@@ -1483,6 +1534,8 @@ long API dw_spinbutton_get_pos(HWND handle)
                                                       "(Lorg/dbsoft/dwindows/DWSpinButton;)J");
         // Call the method on the object
         retval = env->CallLongMethod(_dw_obj, spinButtonGetPos, handle);
+        if(_dw_jni_check_exception(env))
+            retval = 0;
     }
     return retval;
 }
@@ -1509,7 +1562,7 @@ HWND API dw_radiobutton_new(const char *text, ULONG cid)
         jmethodID radioButtonNew = env->GetMethodID(clazz, "radioButtonNew",
                                                     "(Ljava/lang/String;I)Landroid/widget/RadioButton;");
         // Call the method on the object
-        jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, radioButtonNew, jstr, (int)cid));
+        jobject result = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, radioButtonNew, jstr, (int)cid), _DW_REFERENCE_WEAK);
         return result;
     }
     return nullptr;
@@ -1535,7 +1588,7 @@ HWND API dw_slider_new(int vertical, int increments, ULONG cid)
         // Get the method that you want to call
         jmethodID sliderNew = env->GetMethodID(clazz, "sliderNew", "(III)Landroid/widget/SeekBar;");
         // Call the method on the object
-        jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, sliderNew, vertical, increments, (jint)cid));
+        jobject result = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, sliderNew, vertical, increments, (jint)cid), _DW_REFERENCE_WEAK);
         return result;
     }
     return nullptr;
@@ -1551,6 +1604,7 @@ HWND API dw_slider_new(int vertical, int increments, ULONG cid)
 unsigned int API dw_slider_get_pos(HWND handle)
 {
     JNIEnv *env;
+    unsigned int retval = 0;
 
     if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
@@ -1560,9 +1614,11 @@ unsigned int API dw_slider_get_pos(HWND handle)
         jmethodID percentGetPos = env->GetMethodID(clazz, "percentGetPos",
                                                    "(Landroid/widget/ProgressBar;)I");
         // Call the method on the object
-        return env->CallIntMethod(_dw_obj, percentGetPos, handle);
+        retval = env->CallIntMethod(_dw_obj, percentGetPos, handle);
+        if(_dw_jni_check_exception(env))
+            retval = 0;
     }
-    return 0;
+    return retval;
 }
 
 /*
@@ -1632,6 +1688,7 @@ void API dw_scrollbar_set_range(HWND handle, unsigned int range, unsigned int vi
                                                      "(Landroid/widget/ProgressBar;I)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, percentSetRange, handle, (jint)range);
+        _dw_jni_check_exception(env);
     }
 }
 
@@ -1654,7 +1711,7 @@ HWND API dw_percent_new(ULONG cid)
         jmethodID percentNew = env->GetMethodID(clazz, "percentNew",
                                                "(I)Landroid/widget/ProgressBar;");
         // Call the method on the object
-        jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, percentNew, (jint)cid));
+        jobject result = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, percentNew, (jint)cid), _DW_REFERENCE_WEAK);
         return result;
     }
     return nullptr;
@@ -1679,6 +1736,7 @@ void API dw_percent_set_pos(HWND handle, unsigned int position)
                                                    "(Landroid/widget/ProgressBar;I)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, percentSetPos, handle, (jint)position);
+        _dw_jni_check_exception(env);
     }
 }
 
@@ -1704,7 +1762,7 @@ HWND API dw_checkbox_new(const char *text, ULONG cid)
         jmethodID checkboxNew = env->GetMethodID(clazz, "checkboxNew",
                                                  "(Ljava/lang/String;I)Landroid/widget/CheckBox;");
         // Call the method on the object
-        jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, checkboxNew, jstr, (int)cid));
+        jobject result = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, checkboxNew, jstr, (int)cid), _DW_REFERENCE_WEAK);
         return result;
     }
     return nullptr;
@@ -1720,6 +1778,7 @@ HWND API dw_checkbox_new(const char *text, ULONG cid)
 int API dw_checkbox_get(HWND handle)
 {
     JNIEnv *env;
+    int retval = FALSE;
 
     if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
@@ -1729,9 +1788,11 @@ int API dw_checkbox_get(HWND handle)
         jmethodID checkOrRadioGetChecked = env->GetMethodID(clazz, "checkOrRadioGetChecked",
                                                             "(Landroid/view/View;)Z");
         // Call the method on the object
-        return env->CallBooleanMethod(_dw_obj, checkOrRadioGetChecked, handle);
+        retval = env->CallBooleanMethod(_dw_obj, checkOrRadioGetChecked, handle);
+        if(_dw_jni_check_exception(env))
+            retval = FALSE;
     }
-    return FALSE;
+    return retval;
 }
 
 /*
@@ -1753,6 +1814,7 @@ void API dw_checkbox_set(HWND handle, int value)
                                                             "(Landroid/view/View;I)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, checkOrRadioSetChecked, handle, value);
+        _dw_jni_check_exception(env);
     }
 }
 
@@ -1776,7 +1838,7 @@ HWND API dw_listbox_new(ULONG cid, int multi)
         jmethodID listBoxNew = env->GetMethodID(clazz, "listBoxNew",
                                                  "(II)Lorg/dbsoft/dwindows/DWListBox;");
         // Call the method on the object
-        jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, listBoxNew, (int)cid, multi));
+        jobject result = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, listBoxNew, (int)cid, multi), _DW_REFERENCE_WEAK);
         return result;
     }
     return nullptr;
@@ -1803,6 +1865,7 @@ void API dw_listbox_append(HWND handle, const char *text)
                                                           "(Landroid/view/View;Ljava/lang/String;)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, listOrComboBoxAppend, handle, jstr);
+        _dw_jni_check_exception(env);
     }
 }
 
@@ -1828,6 +1891,7 @@ void API dw_listbox_insert(HWND handle, const char *text, int pos)
                                                           "(Landroid/view/View;Ljava/lang/String;I)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, listOrComboBoxInsert, handle, jstr, pos);
+        _dw_jni_check_exception(env);
     }
 }
 
@@ -1865,6 +1929,7 @@ void API dw_listbox_clear(HWND handle)
                                                           "(Landroid/view/View;)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, listOrComboBoxClear, handle);
+        _dw_jni_check_exception(env);
     }
 }
 
@@ -1889,6 +1954,8 @@ int API dw_listbox_count(HWND handle)
                                                          "(Landroid/view/View;)I");
         // Call the method on the object
         retval = env->CallIntMethod(_dw_obj, listOrComboBoxCount, handle);
+        if(_dw_jni_check_exception(env))
+            retval = 0;
     }
     return retval;
 }
@@ -1912,6 +1979,7 @@ void API dw_listbox_set_top(HWND handle, int top)
                                                          "(Landroid/view/View;I)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, listBoxSetTop, handle, top);
+        _dw_jni_check_exception(env);
     }
 }
 
@@ -1935,7 +2003,7 @@ void API dw_listbox_get_text(HWND handle, unsigned int index, char *buffer, unsi
         jmethodID listOrComboBoxGetText = env->GetMethodID(clazz, "listOrComboBoxGetText",
                                                            "(Landroid/view/View;I)Ljava/lang/String;");
         // Call the method on the object
-        jstring result = (jstring)env->CallObjectMethod(_dw_obj, listOrComboBoxGetText, handle, index);
+        jstring result = (jstring)_dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, listOrComboBoxGetText, handle, index), _DW_REFERENCE_NONE);
         // Get the UTF8 string result
         if(result)
         {
@@ -1968,6 +2036,7 @@ void API dw_listbox_set_text(HWND handle, unsigned int index, const char *buffer
                                                           "(Landroid/view/View;ILjava/lang/String;)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, listOrComboBoxSetText, handle, index, jstr);
+        _dw_jni_check_exception(env);
     }
 }
 
@@ -1992,6 +2061,8 @@ int API dw_listbox_selected(HWND handle)
                                                            "(Landroid/view/View;)I");
         // Call the method on the object
         retval = env->CallIntMethod(_dw_obj, listOrComboBoxGetSelected, handle);
+        if(_dw_jni_check_exception(env))
+            retval = DW_ERROR_UNKNOWN;
     }
     return retval;
 }
@@ -2018,6 +2089,8 @@ int API dw_listbox_selected_multi(HWND handle, int where)
                                                           "(Landroid/view/View;I)I");
         // Call the method on the object
         retval = env->CallIntMethod(_dw_obj, listBoxSelectedMulti, handle, where);
+        if(_dw_jni_check_exception(env))
+            retval = DW_ERROR_UNKNOWN;
     }
     return retval;
 }
@@ -2042,6 +2115,7 @@ void API dw_listbox_select(HWND handle, int index, int state)
                                                            "(Landroid/view/View;II)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, listOrComboBoxSelect, handle, index, state);
+        _dw_jni_check_exception(env);
     }
 }
 
@@ -2064,6 +2138,7 @@ void API dw_listbox_delete(HWND handle, int index)
                                                           "(Landroid/view/View;I)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, listOrComboBoxDelete, handle, index);
+        _dw_jni_check_exception(env);
     }
 }
 
@@ -2089,7 +2164,7 @@ HWND API dw_combobox_new(const char *text, ULONG cid)
         jmethodID comboBoxNew = env->GetMethodID(clazz, "comboBoxNew",
                                                  "(Ljava/lang/String;I)Lorg/dbsoft/dwindows/DWComboBox;");
         // Call the method on the object
-        jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, comboBoxNew, jstr, (int)cid));
+        jobject result = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, comboBoxNew, jstr, (int)cid), _DW_REFERENCE_WEAK);
         return result;
     }
     return nullptr;
@@ -2114,7 +2189,7 @@ HWND API dw_mle_new(ULONG cid)
         jmethodID mleNew = env->GetMethodID(clazz, "mleNew",
                                             "(I)Landroid/widget/EditText;");
         // Call the method on the object
-        jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, mleNew, (int)cid));
+        jobject result = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, mleNew, (int)cid), _DW_REFERENCE_WEAK);
         return result;
     }
     return nullptr;
@@ -2145,6 +2220,8 @@ unsigned int API dw_mle_import(HWND handle, const char *buffer, int startpoint)
                                                "(Landroid/widget/EditText;Ljava/lang/String;I)I");
         // Call the method on the object
         retval = env->CallIntMethod(_dw_obj, mleImport, handle, jstr, startpoint);
+        if(_dw_jni_check_exception(env))
+            retval = 0;
     }
     return retval;
 }
@@ -2230,6 +2307,7 @@ void API dw_mle_delete(HWND handle, int startpoint, int length)
                                                "(Landroid/widget/EditText;II)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, mleDelete, handle, startpoint, length);
+        _dw_jni_check_exception(env);
     }
 }
 
@@ -2251,6 +2329,7 @@ void API dw_mle_clear(HWND handle)
                                               "(Landroid/widget/EditText;)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, mleClear, handle);
+        _dw_jni_check_exception(env);
     }
 }
 
@@ -2283,6 +2362,7 @@ void API dw_mle_set_editable(HWND handle, int state)
                                                     "(Landroid/widget/EditText;I)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, mleSetEditable, handle, state);
+        _dw_jni_check_exception(env);
     }
 }
 
@@ -2305,6 +2385,7 @@ void API dw_mle_set_word_wrap(HWND handle, int state)
                                                     "(Landroid/widget/EditText;I)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, mleSetWordWrap, handle, state);
+        _dw_jni_check_exception(env);
     }
 }
 
@@ -2327,6 +2408,7 @@ void API dw_mle_set_cursor(HWND handle, int point)
                                                     "(Landroid/widget/EditText;I)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, mleSetWordWrap, handle, point);
+        _dw_jni_check_exception(env);
     }
 }
 
@@ -2387,7 +2469,7 @@ HWND _dw_text_new(const char *text, ULONG cid, int status)
         jmethodID textNew = env->GetMethodID(clazz, "textNew",
                                              "(Ljava/lang/String;II)Landroid/widget/TextView;");
         // Call the method on the object
-        jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, textNew, jstr, (int)cid, status));
+        jobject result = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, textNew, jstr, (int)cid, status), _DW_REFERENCE_WEAK);
         return result;
     }
     return nullptr;
@@ -2438,7 +2520,7 @@ HWND API dw_render_new(unsigned long cid)
         jmethodID renderNew = env->GetMethodID(clazz, "renderNew",
                                                "(I)Lorg/dbsoft/dwindows/DWRender;");
         // Call the method on the object
-        jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, renderNew, (int)cid));
+        jobject result = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, renderNew, (int)cid), _DW_REFERENCE_WEAK);
         return result;
     }
     return nullptr;
@@ -2462,6 +2544,7 @@ void API dw_render_redraw(HWND handle)
                                                   "(Lorg/dbsoft/dwindows/DWRender;)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, renderRedraw, handle);
+        _dw_jni_check_exception(env);
     }
 }
 
@@ -2486,6 +2569,7 @@ void API dw_color_foreground_set(unsigned long value)
                                               "(IIII)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, colorSet, 0, (jint)DW_RED_VALUE(color), (jint)DW_GREEN_VALUE(color), (jint)DW_BLUE_VALUE(color));
+        _dw_jni_check_exception(env);
     }
 }
 
@@ -2510,6 +2594,7 @@ void API dw_color_background_set(unsigned long value)
                                               "(IIII)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, bgColorSet, 0, (jint)DW_RED_VALUE(color), (jint)DW_GREEN_VALUE(color), (jint)DW_BLUE_VALUE(color));
+        _dw_jni_check_exception(env);
     }
 }
 
@@ -2544,6 +2629,7 @@ void API dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
                                                "(Lorg/dbsoft/dwindows/DWRender;Landroid/graphics/Bitmap;II)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, drawPoint, handle, pixmap ? pixmap->bitmap : nullptr, x, y);
+        _dw_jni_check_exception(env);
     }
 }
 
@@ -2569,6 +2655,7 @@ void API dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y
                                               "(Lorg/dbsoft/dwindows/DWRender;Landroid/graphics/Bitmap;IIII)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, drawLine, handle, pixmap ? pixmap->bitmap : nullptr, x1, y1, x2, y2);
+        _dw_jni_check_exception(env);
     }
 }
 
@@ -2596,6 +2683,7 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, const char *tex
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, drawLine, handle, pixmap ? pixmap->bitmap : nullptr, x, y, jstr,
                             pixmap ? pixmap->typeface : nullptr, pixmap ? pixmap->fontsize : 0, pixmap ? pixmap->handle : nullptr);
+        _dw_jni_check_exception(env);
     }
 }
 
@@ -2623,6 +2711,8 @@ void API dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, const char *text,
         // Call the method on the object
         jlong dimensions = env->CallLongMethod(_dw_obj, fontTextExtentsGet, handle, pixmap ? pixmap->bitmap : nullptr, jstr,
                             pixmap ? pixmap->typeface : nullptr, pixmap ? pixmap->fontsize : 0, pixmap ? pixmap->handle : nullptr);
+        if(_dw_jni_check_exception(env))
+            dimensions = 0;
 
         if(width)
             *width = dimensions & 0xFFFF;
@@ -2661,6 +2751,7 @@ void API dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, in
                                                      "(Lorg/dbsoft/dwindows/DWRender;Landroid/graphics/Bitmap;II[I[I)V");
             // Call the method on the object
             env->CallVoidMethod(_dw_obj, drawPolygon, handle, pixmap ? pixmap->bitmap : nullptr, flags, npoints, jx, jy);
+            _dw_jni_check_exception(env);
         }
     }
 }
@@ -2688,6 +2779,7 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int 
                                               "(Lorg/dbsoft/dwindows/DWRender;Landroid/graphics/Bitmap;IIII)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, drawLine, handle, pixmap ? pixmap->bitmap : nullptr, x, y, width, height);
+        _dw_jni_check_exception(env);
     }
 }
 
@@ -2717,6 +2809,7 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
                                               "(Lorg/dbsoft/dwindows/DWRender;Landroid/graphics/Bitmap;IIIIIII)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, drawLine, handle, pixmap ? pixmap->bitmap : nullptr, flags, xorigin, yorigin, x1, y1, x2, y2);
+        _dw_jni_check_exception(env);
     }
 }
 
@@ -2897,7 +2990,7 @@ HWND API dw_container_new(ULONG cid, int multi)
         jmethodID containerNew = env->GetMethodID(clazz, "containerNew",
                                                   "(II)Landroid/widget/ListView;");
         // Call the method on the object
-        jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, containerNew, (int)cid, multi));
+        jobject result = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, containerNew, (int)cid, multi), _DW_REFERENCE_WEAK);
         return result;
     }
     return nullptr;
@@ -2936,6 +3029,7 @@ int API dw_container_setup(HWND handle, unsigned long *flags, char **titles, int
                                                           "(Landroid/widget/ListView;Ljava/lang/String;I)V");
                 // Call the method on the object
                 env->CallVoidMethod(_dw_obj, containerNew, handle, jstr, (int)flags[z]);
+                _dw_jni_check_exception(env);
             }
         }
     }
@@ -2965,7 +3059,7 @@ void API dw_filesystem_set_column_title(HWND handle, const char *title)
 int API dw_filesystem_setup(HWND handle, unsigned long *flags, char **titles, int count)
 {
     unsigned long fsflags[2] = { DW_CFA_BITMAPORICON, DW_CFA_STRING };
-    char *fstitles[2] = { "Icon", "Filename" };
+    char *fstitles[2] = { (char *)"Icon", (char *)"Filename" };
     dw_container_setup(handle, fsflags, fstitles, 2, 0);
     dw_container_setup(handle, flags, titles, count, 0);
     return DW_ERROR_GENERAL;
@@ -2991,7 +3085,7 @@ void * API dw_container_alloc(HWND handle, int rowcount)
         jmethodID containerAlloc = env->GetMethodID(clazz, "containerAlloc",
                                                     "(Landroid/widget/ListView;I)Landroid/widget/ListView;");
         // Call the method on the object
-        return (void *)env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, containerAlloc, handle, rowcount));
+        return (void *)_dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, containerAlloc, handle, rowcount), _DW_REFERENCE_WEAK);
     }
     return nullptr;
 }
@@ -3041,6 +3135,7 @@ void API dw_container_change_item(HWND handle, int column, int row, void *data)
                                                                  "(Landroid/widget/ListView;IILandroid/graphics/drawable/Drawable;)V");
                 // Call the method on the object
                 env->CallVoidMethod(_dw_obj, containerChangeItem, handle, column, row, icon);
+                _dw_jni_check_exception(env);
             }
         }
         else if((columntype & DW_CFA_STRING))
@@ -3057,6 +3152,7 @@ void API dw_container_change_item(HWND handle, int column, int row, void *data)
                                                                  "(Landroid/widget/ListView;IILjava/lang/String;)V");
                 // Call the method on the object
                 env->CallVoidMethod(_dw_obj, containerChangeItem, handle, column, row, jstr);
+                _dw_jni_check_exception(env);
             }
         }
         else if((columntype & DW_CFA_ULONG))
@@ -3069,6 +3165,7 @@ void API dw_container_change_item(HWND handle, int column, int row, void *data)
                                                              "(Landroid/widget/ListView;III)V");
             // Call the method on the object
             env->CallVoidMethod(_dw_obj, containerChangeItem, handle, column, row, (int)num);
+            _dw_jni_check_exception(env);
         }
         // TODO: Handle DATE and TIME
     }
@@ -3164,6 +3261,7 @@ void API dw_container_change_row_data(HWND handle, int row, void *data)
 int API dw_container_get_column_type(HWND handle, int column)
 {
     JNIEnv *env;
+    int retval = 0;
 
     if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
@@ -3173,9 +3271,11 @@ int API dw_container_get_column_type(HWND handle, int column)
         jmethodID containerGetColumnType = env->GetMethodID(clazz, "containerGetColumnType",
                                                             "(Landroid/widget/ListView;I)I");
         // Call the method on the object
-        return env->CallIntMethod(_dw_obj, containerGetColumnType, handle, column);
+        retval = env->CallIntMethod(_dw_obj, containerGetColumnType, handle, column);
+        if(_dw_jni_check_exception(env))
+            retval = 0;
     }
-    return 0;
+    return retval;
 }
 
 /*
@@ -3273,6 +3373,7 @@ void API dw_container_clear(HWND handle, int redraw)
                                                     "(Landroid/widget/ListView;)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, containerClear, handle);
+        _dw_jni_check_exception(env);
     }
 }
 
@@ -3421,8 +3522,8 @@ HICN _dw_icon_load(const char *filename, const char *data, int len, int resid)
         jmethodID iconNew = env->GetMethodID(clazz, "iconNew",
                                              "(Ljava/lang/String;[BII)Landroid/graphics/drawable/Drawable;");
         // Call the method on the object
-        jobject result = env->NewGlobalRef(env->CallObjectMethod(_dw_obj, iconNew,
-                                                                 file, bytearray, len, resid));
+        jobject result = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, iconNew,
+                                              file, bytearray, len, resid), _DW_REFERENCE_WEAK);
         // Clean up after the array now that we are finished
         //if(bytearray)
         //env->ReleaseByteArrayElements(bytearray, (jbyte *) data, 0);
@@ -3558,7 +3659,7 @@ HWND API dw_bitmap_new(ULONG cid)
         jmethodID mleNew = env->GetMethodID(clazz, "bitmapNew",
                                             "(I)Landroid/widget/ImageView;");
         // Call the method on the object
-        jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, mleNew, (int)cid));
+        jobject result = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, mleNew, (int)cid), _DW_REFERENCE_WEAK);
         return result;
     }
     return nullptr;
@@ -3582,19 +3683,25 @@ jobject _dw_jbitmap_new(unsigned long width, unsigned long height, const char *f
             bytearray = env->NewByteArray(len);
             env->SetByteArrayRegion(bytearray, 0, len, reinterpret_cast<const jbyte *>(data));
         }
-        // First get the class that contains the method you need to call
-        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
-        // Get the method that you want to call
-        jmethodID pixmapNew = env->GetMethodID(clazz, "pixmapNew",
-                                               "(IILjava/lang/String;[BII)Landroid/graphics/Bitmap;");
-        // Call the method on the object
-        jobject result = env->NewGlobalRef(env->CallObjectMethod(_dw_obj, pixmapNew,
-                                                                  (jint)width, (jint)height,
-                                                                  file, bytearray, len, resid));
-        // Clean up after the array now that we are finished
-        //if(bytearray)
+        if(!_dw_jni_check_exception(env))
+        {
+            // First get the class that contains the method you need to call
+            jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+            // Get the method that you want to call
+            jmethodID pixmapNew = env->GetMethodID(clazz, "pixmapNew",
+                                                   "(IILjava/lang/String;[BII)Landroid/graphics/Bitmap;");
+            // Call the method on the object
+            jobject result = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, pixmapNew,
+                                                                             (jint) width,
+                                                                             (jint) height,
+                                                                             file, bytearray, len,
+                                                                             resid),
+                                                  _DW_REFERENCE_STRONG);
+            // Clean up after the array now that we are finished
+            //if(bytearray)
             //env->ReleaseByteArrayElements(bytearray, (jbyte *) data, 0);
-        return result;    
+            return result;
+        }
     }
     return nullptr;
 }
@@ -3612,6 +3719,8 @@ void _dw_pixmap_get_dimensions(HPIXMAP pixmap)
                                                          "(Landroid/graphics/Bitmap;)J");
         // Call the method on the object
         jlong dimensions = env->CallLongMethod(_dw_obj, pixmapGetDimensions, pixmap->bitmap);
+        if(_dw_jni_check_exception(env))
+            dimensions = 0;
 
         pixmap->width = dimensions & 0xFFFF;
         pixmap->height = (dimensions >> 32) & 0xFFFF;
@@ -3775,7 +3884,7 @@ int API dw_pixmap_set_font(HPIXMAP pixmap, const char *fontname)
         jmethodID typefaceFromFontName = env->GetMethodID(clazz, "typefaceFromFontName",
                                                           "(Ljava/lang/String;)Landroid/graphics/Typeface;");
         // Call the method on the object
-        jobject typeface = env->NewGlobalRef(env->CallObjectMethod(_dw_obj, typefaceFromFontName, jstr));
+        jobject typeface = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, typefaceFromFontName, jstr), _DW_REFERENCE_STRONG);
         if(typeface)
         {
             jobject oldtypeface = pixmap->typeface;
@@ -3804,6 +3913,8 @@ void API dw_pixmap_destroy(HPIXMAP pixmap)
         if(pixmap && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
         {
             env->DeleteGlobalRef(pixmap->bitmap);
+            if(pixmap->typeface)
+                env->DeleteGlobalRef(pixmap->typeface);
             free(pixmap);
         }
     }
@@ -3860,6 +3971,8 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
                                                   "(Lorg/dbsoft/dwindows/DWRender;Landroid/graphics/Bitmap;IIIILorg/dbsoft/dwindows/DWRender;Landroid/graphics/Bitmap;IIII)I");
         // Call the method on the object
         retval = env->CallIntMethod(_dw_obj, pixmapBitBlt, dest, destp ? destp->bitmap : nullptr, xdest, ydest, width, height, src, srcp ? srcp->bitmap : nullptr, xsrc, ysrc, srcwidth, srcheight);
+        if(_dw_jni_check_exception(env))
+            retval = DW_ERROR_GENERAL;
     }
     return retval;
 }
@@ -3883,7 +3996,7 @@ HWND API dw_calendar_new(ULONG cid)
         jmethodID calendarNew = env->GetMethodID(clazz, "calendarNew",
                                                  "(I)Landroid/widget/CalendarView;");
         // Call the method on the object
-        jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, calendarNew, (int)cid));
+        jobject result = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, calendarNew, (int)cid), _DW_REFERENCE_WEAK);
         return result;
     }
     return nullptr;
@@ -3917,6 +4030,7 @@ void API dw_calendar_set_date(HWND handle, unsigned int year, unsigned int month
                                                      "(Landroid/widget/CalendarView;J)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, calendarSetDate, handle, (jlong)date);
+        _dw_jni_check_exception(env);
     }
 }
 
@@ -3944,6 +4058,8 @@ void API dw_calendar_get_date(HWND handle, unsigned int *year, unsigned int *mon
                                                      "(Landroid/widget/CalendarView;)J");
         // Call the method on the object
         date = (time_t)env->CallLongMethod(_dw_obj, calendarGetDate, handle);
+        if(_dw_jni_check_exception(env))
+            date = 0;
         ts = *localtime(&date);
         if(year)
             *year = ts.tm_year + 1900;
@@ -3973,6 +4089,7 @@ void API dw_html_action(HWND handle, int action)
                                                 "(Landroid/webkit/WebView;I)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, htmlAction, handle, action);
+        _dw_jni_check_exception(env);
     }
 }
 
@@ -4000,7 +4117,8 @@ int API dw_html_raw(HWND handle, const char *string)
                                                  "(Landroid/webkit/WebView;Ljava/lang/String;)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, htmlRaw, handle, jstr);
-        return DW_ERROR_NONE;
+        if(!_dw_jni_check_exception(env))
+            return DW_ERROR_NONE;
     }
     return DW_ERROR_GENERAL;
 }
@@ -4029,7 +4147,8 @@ int API dw_html_url(HWND handle, const char *url)
                                                  "(Landroid/webkit/WebView;Ljava/lang/String;)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, htmlLoadURL, handle, jstr);
-        return DW_ERROR_NONE;
+        if(!_dw_jni_check_exception(env))
+            return DW_ERROR_NONE;
     }
     return DW_ERROR_GENERAL;
 }
@@ -4059,7 +4178,8 @@ int API dw_html_javascript_run(HWND handle, const char *script, void *scriptdata
                                                        "(Landroid/webkit/WebView;Ljava/lang/String;J)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, htmlJavascriptRun, handle, jstr, (jlong)scriptdata);
-        return DW_ERROR_NONE;
+        if(!_dw_jni_check_exception(env))
+            return DW_ERROR_NONE;
     }
     return DW_ERROR_UNKNOWN;
 }
@@ -4083,7 +4203,7 @@ HWND API dw_html_new(unsigned long cid)
         jmethodID htmlNew = env->GetMethodID(clazz, "htmlNew",
                                              "(I)Landroid/webkit/WebView;");
         // Call the method on the object
-        jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, htmlNew, (int)cid));
+        jobject result = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, htmlNew, (int)cid), _DW_REFERENCE_WEAK);
         return result;
     }
     return nullptr;
@@ -4128,7 +4248,7 @@ HMENUI API dw_menu_new(ULONG cid)
         jmethodID menuNew = env->GetMethodID(clazz, "menuNew",
                                              "(I)Lorg/dbsoft/dwindows/DWMenu;");
         // Call the method on the object
-        jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, menuNew, (int)cid));
+        jobject result = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, menuNew, (int)cid), _DW_REFERENCE_WEAK);
         return result;
     }
     return nullptr;
@@ -4153,7 +4273,7 @@ HMENUI API dw_menubar_new(HWND location)
         jmethodID menuBarNew = env->GetMethodID(clazz, "menuBarNew",
                                                 "(Landroid/view/View;)Lorg/dbsoft/dwindows/DWMenu;");
         // Call the method on the object
-        jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, menuBarNew, location));
+        jobject result = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, menuBarNew, location), _DW_REFERENCE_WEAK);
         return result;
     }
     return nullptr;
@@ -4177,6 +4297,7 @@ void API dw_menu_destroy(HMENUI *menu)
                                                  "(Lorg/dbsoft/dwindows/DWMenu;)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, menuDestroy, *menu);
+        _dw_jni_check_exception(env);
         *menu = nullptr;
     }
 }
@@ -4202,7 +4323,8 @@ int API dw_menu_delete_item(HMENUI menux, unsigned long id)
                                                     "(Lorg/dbsoft/dwindows/DWMenu;I)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, menuDeleteItem, menux, (int)id);
-        return DW_ERROR_NONE;
+        if(!_dw_jni_check_exception(env))
+            return DW_ERROR_NONE;
     }
     return DW_ERROR_UNKNOWN;
 }
@@ -4269,7 +4391,7 @@ HWND API dw_menu_append_item(HMENUI menux, const char *title, ULONG itemid, ULON
         jmethodID menuAppendItem = env->GetMethodID(clazz, "menuAppendItem",
                                                     "(Lorg/dbsoft/dwindows/DWMenu;Ljava/lang/String;IIIILorg/dbsoft/dwindows/DWMenu;)Lorg/dbsoft/dwindows/DWMenuItem;");
         // Call the method on the object
-        jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, menuAppendItem, menux, jstr, (int)itemid, (int)flags, end, check, submenux));
+        jobject result = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, menuAppendItem, menux, jstr, (int)itemid, (int)flags, end, check, submenux), _DW_REFERENCE_WEAK);
         return result;
     }
     return nullptr;
@@ -4309,6 +4431,7 @@ void API dw_menu_item_set_state(HMENUI menux, unsigned long itemid, unsigned lon
                                                   "(Lorg/dbsoft/dwindows/DWMenu;II)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, menuSetState, menux, (int)itemid, (int)state);
+        _dw_jni_check_exception(env);
     }
 }
 
@@ -4332,7 +4455,7 @@ HWND API dw_notebook_new(ULONG cid, int top)
         jmethodID notebookNew = env->GetMethodID(clazz, "notebookNew",
                                                  "(II)Landroid/widget/RelativeLayout;");
         // Call the method on the object
-        jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, notebookNew, (int)cid, top));
+        jobject result = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, notebookNew, (int)cid, top), _DW_REFERENCE_WEAK);
         return result;
     }
     return nullptr;
@@ -4361,6 +4484,8 @@ unsigned long API dw_notebook_page_new(HWND handle, ULONG flags, int front)
                                                      "(Landroid/widget/RelativeLayout;JI)J");
         // Call the method on the object
         result = (unsigned long)env->CallLongMethod(_dw_obj, notebookPageNew, handle, (jlong)flags, front);
+        if(_dw_jni_check_exception(env))
+            result = 0;
     }
     return result;
 }
@@ -4384,6 +4509,7 @@ void API dw_notebook_page_destroy(HWND handle, unsigned int pageid)
                                                          "(Landroid/widget/RelativeLayout;J)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, notebookPageDestroy, handle, (jlong)pageid);
+        _dw_jni_check_exception(env);
     }
 }
 
@@ -4407,6 +4533,8 @@ unsigned long API dw_notebook_page_get(HWND handle)
                                                      "(Landroid/widget/RelativeLayout;)J");
         // Call the method on the object
         result = (unsigned long)env->CallLongMethod(_dw_obj, notebookPageGet, handle);
+        if(_dw_jni_check_exception(env))
+            result = 0;
     }
     return result;
 }
@@ -4429,6 +4557,7 @@ void API dw_notebook_page_set(HWND handle, unsigned int pageid)
                                                      "(Landroid/widget/RelativeLayout;J)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, notebookPageSet, handle, (jlong)pageid);
+        _dw_jni_check_exception(env);
     }
 }
 
@@ -4454,6 +4583,7 @@ void API dw_notebook_page_set_text(HWND handle, ULONG pageid, const char *text)
                                                          "(Landroid/widget/RelativeLayout;JLjava/lang/String;)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, notebookPageSetText, handle, (jlong)pageid, jstr);
+        _dw_jni_check_exception(env);
     }
 }
 
@@ -4488,6 +4618,7 @@ void API dw_notebook_pack(HWND handle, ULONG pageid, HWND page)
                                                       "(Landroid/widget/RelativeLayout;JLandroid/widget/LinearLayout;)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, notebookPagePack, handle, (jlong)pageid, page);
+        _dw_jni_check_exception(env);
     }
 }
 
@@ -4514,7 +4645,7 @@ HWND API dw_window_new(HWND hwndOwner, const char *title, ULONG flStyle)
         jmethodID windowNew = env->GetMethodID(clazz, "windowNew",
                                                "(Ljava/lang/String;I)Landroid/widget/LinearLayout;");
         // Call the method on the object
-        jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, windowNew, jstr, (int)flStyle));
+        jobject result = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, windowNew, jstr, (int)flStyle), _DW_REFERENCE_WEAK);
         return result;
     }
     return nullptr;
@@ -4555,7 +4686,8 @@ int _dw_window_hide_show(HWND handle, int state)
                                                     "(Landroid/view/View;I)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, windowHideShow, handle, state);
-        return DW_ERROR_NONE;
+        if(!_dw_jni_check_exception(env))
+            return DW_ERROR_NONE;
     }
     return DW_ERROR_GENERAL;
 }
@@ -4611,7 +4743,8 @@ int API dw_window_set_color(HWND handle, ULONG fore, ULONG back)
         env->CallVoidMethod(_dw_obj, windowSetColor, handle,
                             (jint)fore, 0, (jint)DW_RED_VALUE(_fore), (jint)DW_GREEN_VALUE(_fore), (jint)DW_BLUE_VALUE(_fore),
                             (jint)back, 0, (jint)DW_RED_VALUE(_back), (jint)DW_GREEN_VALUE(_back), (jint)DW_BLUE_VALUE(_back));
-        return DW_ERROR_NONE;
+        if(!_dw_jni_check_exception(env))
+            return DW_ERROR_NONE;
     }
     return DW_ERROR_GENERAL;
 }
@@ -4722,7 +4855,8 @@ int API dw_window_set_font(HWND handle, const char *fontname)
                                                     "(Landroid/view/View;Ljava/lang/String;)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, windowHideShow, handle, jstr);
-        return DW_ERROR_NONE;
+        if(!_dw_jni_check_exception(env))
+            return DW_ERROR_NONE;
     }
     return DW_ERROR_GENERAL;
 }
@@ -4792,7 +4926,7 @@ char * API dw_window_get_text(HWND handle)
         jmethodID windowGetText = env->GetMethodID(clazz, "windowGetText",
                                                    "(Landroid/view/View;)Ljava/lang/String;");
         // Call the method on the object
-        jstring result = (jstring)env->CallObjectMethod(_dw_obj, windowGetText, handle);
+        jstring result = (jstring)_dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, windowGetText, handle), _DW_REFERENCE_NONE);
         // Get the UTF8 string result
         if(result)
             utf8 = env->GetStringUTFChars(result, nullptr);
@@ -4822,6 +4956,7 @@ void API dw_window_set_text(HWND handle, const char *text)
                                                    "(Landroid/view/View;Ljava/lang/String;)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, windowSetText, handle, jstr);
+        _dw_jni_check_exception(env);
     }
 }
 
@@ -4848,6 +4983,7 @@ void _dw_window_set_enabled(HWND handle, jboolean state)
                                                       "(Landroid/view/View;Z)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, windowSetEnabled, handle, state);
+        _dw_jni_check_exception(env);
     }
 }
 
@@ -4902,6 +5038,7 @@ void API dw_window_set_bitmap_from_data(HWND handle, unsigned long cid, const ch
                                                              "(Landroid/view/View;I[BI)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, windowSetBitmapFromData, handle, (int)cid, bytearray, len);
+        _dw_jni_check_exception(env);
         // Clean up after the array now that we are finished
         //if(bytearray)
             //env->ReleaseByteArrayElements(bytearray, (jbyte *) data, 0);
@@ -4936,6 +5073,7 @@ void API dw_window_set_bitmap(HWND handle, unsigned long resid, const char *file
                                                              "(Landroid/view/View;ILjava/lang/String;)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, windowSetBitmapFromData, handle, (int)resid, jstr);
+        _dw_jni_check_exception(env);
     }
 }
 
@@ -4970,7 +5108,7 @@ HWND API dw_window_from_id(HWND handle, int id)
         jmethodID windowFromId = env->GetMethodID(clazz, "windowFromId",
                                                   "(Landroid/view/View;I)Landroid/view/View;");
         // Call the method on the object
-        retval = env->CallObjectMethod(_dw_obj, windowFromId, handle, id);
+        retval = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, windowFromId, handle, id), _DW_REFERENCE_NONE);
     }
     return retval;
 }
@@ -5110,6 +5248,8 @@ int API dw_screen_width(void)
                                                              "()J");
             // Call the method on the object
             _dw_screen_dimensions = env->CallLongMethod(_dw_obj, screenGetDimensions);
+            if(_dw_jni_check_exception(env))
+                _dw_screen_dimensions = 0;
         }
     }
     return _dw_screen_dimensions & 0xFFFF;
@@ -5133,6 +5273,8 @@ int API dw_screen_height(void)
                                                              "()J");
             // Call the method on the object
             _dw_screen_dimensions = env->CallLongMethod(_dw_obj, screenGetDimensions);
+            if(_dw_jni_check_exception(env))
+                _dw_screen_dimensions = 0;
         }
     }
     return (_dw_screen_dimensions >> 32) & 0xFFFF;
@@ -5166,7 +5308,7 @@ void API dw_environment_query(DWEnv *env)
             jmethodID androidGetRelease = jenv->GetMethodID(clazz, "androidGetRelease",
                                                            "()Ljava/lang/String;");
             // Call the method on the object
-            jstring jstr = (jstring)jenv->CallObjectMethod(_dw_obj, androidGetRelease);
+            jstring jstr = (jstring)_dw_jni_check_result(jenv, jenv->CallObjectMethod(_dw_obj, androidGetRelease), _DW_REFERENCE_NONE);
 
             if(jstr)
                 release = jenv->GetStringUTFChars(jstr, nullptr);
@@ -5208,6 +5350,7 @@ void API dw_beep(int freq, int dur)
         jmethodID doBeep = env->GetMethodID(clazz, "doBeep", "(I)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, doBeep, dur);
+        _dw_jni_check_exception(env);
     }
 }
 
@@ -5240,6 +5383,7 @@ void API dw_window_set_data(HWND window, const char *dataname, void *data)
                                                    "(Landroid/view/View;Ljava/lang/String;J)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, windowSetData, window, jstr, (jlong)data);
+        _dw_jni_check_exception(env);
     }
 }
 
@@ -5267,6 +5411,8 @@ void * API dw_window_get_data(HWND window, const char *dataname)
                                                    "(Landroid/view/View;Ljava/lang/String;)J");
         // Call the method on the object
         retval = (void *)env->CallLongMethod(_dw_obj, windowGetData, window, jstr);
+        if(_dw_jni_check_exception(env))
+            retval = nullptr;
     }
     return retval;
 }
@@ -5316,8 +5462,8 @@ int API dw_timer_connect(int interval, void *sigfunc, void *data)
         jmethodID timerConnect = env->GetMethodID(clazz, "timerConnect",
                                                   "(JJJ)Ljava/util/Timer;");
         // Call the method on the object
-        retval = DW_POINTER_TO_INT(env->NewGlobalRef(env->CallObjectMethod(_dw_obj,
-                                    timerConnect, longinterval, (jlong)sigfunc, (jlong)data)));
+        retval = DW_POINTER_TO_INT(_dw_jni_check_result(env, env->CallObjectMethod(_dw_obj,
+                                    timerConnect, longinterval, (jlong)sigfunc, (jlong)data), _DW_REFERENCE_STRONG));
     }
     return retval;
 }
@@ -5342,6 +5488,7 @@ void API dw_timer_disconnect(int timerid)
                                                      "(Ljava/util/Timer;)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, timerDisconnect, timer);
+        _dw_jni_check_exception(env);
     }
 }
 
@@ -5620,7 +5767,7 @@ void API dw_mutex_close(HMTX mutex)
 int _dw_is_ui_thread(void)
 {
     JNIEnv *env;
-
+    int retval = FALSE;
     if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
         // First get the class that contains the method you need to call
@@ -5629,9 +5776,11 @@ int _dw_is_ui_thread(void)
         jmethodID isUIThread = env->GetMethodID(clazz, "isUIThread",
                                                 "()Z");
         // Call the method on the object
-        return env->CallBooleanMethod(_dw_obj, isUIThread);
+        retval = env->CallBooleanMethod(_dw_obj, isUIThread);
+        if(_dw_jni_check_exception(env))
+            retval = FALSE;
     }
-    return FALSE;
+    return retval;
 }
 
 /*
@@ -6367,6 +6516,8 @@ int API dw_init(int newthread, int argc, char *argv[])
                                             "(Ljava/lang/String;Ljava/lang/String;)I");
         // Call the method on the object
         _dw_android_api = env->CallIntMethod(_dw_obj, dwInit, appid, appname);
+        if(_dw_jni_check_exception(env))
+            _dw_android_api = 0;
     }
     return DW_ERROR_NONE;
 }
@@ -6387,6 +6538,7 @@ void API dw_shutdown(void)
                                                       "()V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, dwindowsShutdown);
+        _dw_jni_check_exception(env);
     }
 }
 
@@ -6502,7 +6654,7 @@ HWND API dw_notification_new(const char *title, const char *imagepath, const cha
         jmethodID notificationNew = env->GetMethodID(clazz, "notificationNew",
                                                      "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Landroidx/core/app/NotificationCompat$Builder;");
         // Call the method on the object
-        jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, notificationNew, ntitle, image, ndesc, appid));
+        jobject result = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, notificationNew, ntitle, image, ndesc, appid), _DW_REFERENCE_WEAK);
         return result;
     }
     return nullptr;
@@ -6528,7 +6680,8 @@ int API dw_notification_send(HWND notification)
                                                      "(Landroidx/core/app/NotificationCompat$Builder;)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, notificationNew, notification);
-        return DW_ERROR_NONE;
+        if(!_dw_jni_check_exception(env))
+            return DW_ERROR_NONE;
     }
     return DW_ERROR_UNKNOWN;
 }

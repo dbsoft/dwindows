@@ -824,7 +824,9 @@ class DWindows : AppCompatActivity() {
         if (window.tag != null) {
             var dataArrayMap: SimpleArrayMap<String, Long> = window.tag as SimpleArrayMap<String, Long>
 
-            retval = dataArrayMap.get(name)!!
+            if(dataArrayMap.containsKey(name)) {
+                retval = dataArrayMap.get(name)!!
+            }
         }
         return retval
     }
