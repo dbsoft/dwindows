@@ -3124,15 +3124,8 @@ void API dw_container_set_item(HWND handle, void *pointer, int column, int row, 
     dw_container_change_item(handle, column, row + rowstart, data);
 }
 
-/*
- * Changes an existing item in specified row and column to the given data.
- * Parameters:
- *          handle: Handle to the container window (widget).
- *          column: Zero based column of data being set.
- *          row: Zero based row of data being set.
- *          data: Pointer to the data to be added.
- */
-void API dw_container_change_item(HWND handle, int column, int row, void *data)
+/* Internal version that doesn't update the list immediately */
+void API _dw_container_change_item(HWND handle, int column, int row, void *data)
 {
     JNIEnv *env;
 
@@ -3189,6 +3182,38 @@ void API dw_container_change_item(HWND handle, int column, int row, void *data)
     }
 }
 
+/* Notify that the data changed, causing the container to refresh */
+void _dw_container_refresh(HWND handle)
+{
+    JNIEnv *env;
+
+    if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID containerRefresh = env->GetMethodID(clazz, "containerRefresh",
+                                                      "(Landroid/widget/ListView;)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, containerRefresh, handle);
+        _dw_jni_check_exception(env);
+    }
+}
+
+/*
+ * Changes an existing item in specified row and column to the given data.
+ * Parameters:
+ *          handle: Handle to the container window (widget).
+ *          column: Zero based column of data being set.
+ *          row: Zero based row of data being set.
+ *          data: Pointer to the data to be added.
+ */
+void API dw_container_change_item(HWND handle, int column, int row, void *data)
+{
+    _dw_container_change_item(handle, column, row, data);
+    _dw_container_refresh(handle);
+}
+
 /*
  * Changes an existing item in specified row and column to the given data.
  * Parameters:
@@ -3199,7 +3224,8 @@ void API dw_container_change_item(HWND handle, int column, int row, void *data)
  */
 void API dw_filesystem_change_item(HWND handle, int column, int row, void *data)
 {
-    dw_container_change_item(handle, column + 2, row, data);
+    _dw_container_change_item(handle, column + 2, row, data);
+    _dw_container_refresh(handle);
 }
 
 /*
@@ -3213,8 +3239,9 @@ void API dw_filesystem_change_item(HWND handle, int column, int row, void *data)
  */
 void API dw_filesystem_change_file(HWND handle, int row, const char *filename, HICN icon)
 {
-    dw_container_change_item(handle, 0, row, (void *)&icon);
-    dw_container_change_item(handle, 1, row, (void *)&filename);
+    _dw_container_change_item(handle, 0, row, (void *)&icon);
+    _dw_container_change_item(handle, 1, row, (void *)&filename);
+    _dw_container_refresh(handle);
 }
 
 /*
@@ -3414,6 +3441,7 @@ void API dw_container_insert(HWND handle, void *pointer, int rowcount)
     if(pointer && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
         env->DeleteWeakGlobalRef((jobject)pointer);
     dw_window_set_data(handle, "_dw_rowstart", NULL);
+    _dw_container_refresh(handle);
 }
 
 /*
@@ -3436,6 +3464,7 @@ void API dw_container_clear(HWND handle, int redraw)
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, containerClear, handle);
         _dw_jni_check_exception(env);
+        _dw_container_refresh(handle);
     }
 }
 
@@ -3459,6 +3488,7 @@ void API dw_container_delete(HWND handle, int rowcount)
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, containerDelete, handle, rowcount);
         _dw_jni_check_exception(env);
+        _dw_container_refresh(handle);
     }
 }
 
