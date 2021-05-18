@@ -3010,6 +3010,8 @@ HWND API dw_container_new(ULONG cid, int multi)
  */
 int API dw_container_setup(HWND handle, unsigned long *flags, char **titles, int count, int separator)
 {
+    int retval = DW_ERROR_GENERAL;
+
     if(handle && flags && titles && count > 0)
     {
         int z;
@@ -3020,6 +3022,8 @@ int API dw_container_setup(HWND handle, unsigned long *flags, char **titles, int
 
             if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
             {
+                retval = DW_ERROR_NONE;
+
                 // Generate a string
                 jstring jstr = env->NewStringUTF(titles[z]);
                 // First get the class that contains the method you need to call
@@ -3029,12 +3033,12 @@ int API dw_container_setup(HWND handle, unsigned long *flags, char **titles, int
                                                           "(Landroid/widget/ListView;Ljava/lang/String;I)V");
                 // Call the method on the object
                 env->CallVoidMethod(_dw_obj, containerNew, handle, jstr, (int)flags[z]);
-                if(!_dw_jni_check_exception(env))
-                    return DW_ERROR_NONE;
+                if(_dw_jni_check_exception(env))
+                    retval = DW_ERROR_GENERAL;
             }
         }
     }
-    return DW_ERROR_GENERAL;
+    return retval;
 }
 
 /*
@@ -3603,7 +3607,7 @@ HICN _dw_icon_load(const char *filename, const char *data, int len, int resid)
                                              "(Ljava/lang/String;[BII)Landroid/graphics/drawable/Drawable;");
         // Call the method on the object
         jobject result = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, iconNew,
-                                              file, bytearray, len, resid), _DW_REFERENCE_WEAK);
+                                              file, bytearray, len, resid), _DW_REFERENCE_STRONG);
         // Clean up after the array now that we are finished
         //if(bytearray)
         //env->ReleaseByteArrayElements(bytearray, (jbyte *) data, 0);
