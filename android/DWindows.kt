@@ -465,6 +465,8 @@ class DWContainerModel {
     var columns = mutableListOf<String?>()
     var types = mutableListOf<Int>()
     var data = mutableListOf<Any?>()
+    var rowdata = mutableListOf<Long>()
+    var rowtitle = mutableListOf<String?>()
 
     fun numberOfColumns(): Int
     {
@@ -511,6 +513,36 @@ class DWContainerModel {
         }
     }
 
+    fun changeRowData(row: Int, rdata: Long)
+    {
+        if(row > -1 && row < rowdata.size) {
+            rowdata[row] = rdata
+        }
+    }
+
+    fun getRowData(row: Int): Long
+    {
+        if(row > -1 && row < rowdata.size) {
+            return rowdata[row]
+        }
+        return 0
+    }
+
+    fun changeRowTitle(row: Int, title: String?)
+    {
+        if(row > -1 && row < rowtitle.size) {
+            rowtitle[row] = title
+        }
+    }
+
+    fun getRowTitle(row: Int): String?
+    {
+        if(row > -1 && row < rowtitle.size) {
+            return rowtitle[row]
+        }
+        return null
+    }
+
     fun addColumn(title: String?, type: Int)
     {
         columns.add(title)
@@ -519,14 +551,62 @@ class DWContainerModel {
         data.clear()
     }
 
+    fun deleteRows(count: Int)
+    {
+        if(count < rowdata.size) {
+            for(i in 0 until count) {
+                for(j in 0 until columns.size) {
+                    data.removeAt(0)
+                }
+                rowdata.removeAt(0)
+                rowtitle.removeAt(0)
+            }
+        } else {
+            data.clear()
+            rowdata.clear()
+            rowtitle.clear()
+        }
+    }
+
+    fun deleteRowByTitle(title: String?)
+    {
+        for(i in 0 until rowtitle.size) {
+            if(rowtitle[i] != null && rowtitle[i] == title) {
+                for(j in 0 until columns.size) {
+                    data.removeAt(i * columns.size)
+                }
+                rowdata.removeAt(i)
+                rowtitle.removeAt(i)
+            }
+        }
+    }
+
+    fun deleteRowByData(rdata: Long)
+    {
+        for(i in 0 until rowdata.size) {
+            if(rowdata[i] == rdata) {
+                for(j in 0 until columns.size) {
+                    data.removeAt(i * columns.size)
+                }
+                rowdata.removeAt(i)
+                rowtitle.removeAt(i)
+            }
+        }
+    }
+
     fun addRows(count: Int): Long
     {
         var startRow: Long = numberOfRows().toLong()
 
-        for(i in 0 until (count * columns.size))
+        for(i in 0 until count)
         {
-            // Fill in with nulls to be set later
-            data.add(null)
+            for(j in 0 until columns.size)
+            {
+                // Fill in with nulls to be set later
+                data.add(null)
+            }
+            rowdata.add(0)
+            rowtitle.add(null)
         }
         return startRow
     }
@@ -534,6 +614,8 @@ class DWContainerModel {
     fun clear()
     {
         data.clear()
+        rowdata.clear()
+        rowtitle.clear()
     }
 }
 
@@ -1953,6 +2035,24 @@ class DWindows : AppCompatActivity() {
         }
     }
 
+    fun containerChangeRowData(cont: ListView, row: Int, data: Long)
+    {
+        waitOnUiThread {
+            val adapter: DWContainerAdapter = cont.adapter as DWContainerAdapter
+
+            adapter.model.changeRowData(row, data)
+        }
+    }
+
+    fun containerChangeRowTitle(cont: ListView, row: Int, title: String?)
+    {
+        waitOnUiThread {
+            val adapter: DWContainerAdapter = cont.adapter as DWContainerAdapter
+
+            adapter.model.changeRowTitle(row, title)
+        }
+    }
+
     fun containerGetColumnType(cont: ListView, column: Int): Int
     {
         var type: Int = 0
@@ -1963,6 +2063,33 @@ class DWindows : AppCompatActivity() {
             type = adapter.model.getColumnType(column)
         }
         return type
+    }
+
+    fun containerDelete(cont: ListView, rowcount: Int)
+    {
+        waitOnUiThread {
+            val adapter: DWContainerAdapter = cont.adapter as DWContainerAdapter
+
+            adapter.model.deleteRows(rowcount)
+        }
+    }
+
+    fun containerRowDeleteByTitle(cont: ListView, title: String?)
+    {
+        waitOnUiThread {
+            val adapter: DWContainerAdapter = cont.adapter as DWContainerAdapter
+
+            adapter.model.deleteRowByTitle(title)
+        }
+    }
+
+    fun containerRowDeleteByData(cont: ListView, data: Long)
+    {
+        waitOnUiThread {
+            val adapter: DWContainerAdapter = cont.adapter as DWContainerAdapter
+
+            adapter.model.deleteRowByData(data)
+        }
     }
 
     fun containerClear(cont: ListView)
