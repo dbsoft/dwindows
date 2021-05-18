@@ -907,15 +907,15 @@ int DWSIGNAL column_click_cb(HWND window, int column_num, void *data)
     else
     {
         column_type = dw_filesystem_get_column_type(window, column_num-1);
-        if( column_type == DW_CFA_STRING)
+        if(column_type == DW_CFA_STRING)
             strcpy(buf1,"String");
-        else if( column_type == DW_CFA_ULONG)
+        else if(column_type == DW_CFA_ULONG)
             strcpy(buf1,"ULong");
-        else if( column_type == DW_CFA_DATE)
+        else if(column_type == DW_CFA_DATE)
             strcpy(buf1,"Date");
-        else if( column_type == DW_CFA_TIME)
+        else if(column_type == DW_CFA_TIME)
             strcpy(buf1,"Time");
-        else if( column_type == DW_CFA_BITMAPORICON)
+        else if(column_type == DW_CFA_BITMAPORICON)
             strcpy(buf1,"BitmapOrIcon");
         else
             strcpy(buf1,"Unknown");
@@ -1106,7 +1106,7 @@ void text_add(void)
 
     /* create a box to pack into the notebook page */
     pagebox = dw_box_new(DW_HORZ, 2);
-    dw_box_pack_start( notebookbox2, pagebox, 0, 0, TRUE, TRUE, 0);
+    dw_box_pack_start(notebookbox2, pagebox, 0, 0, TRUE, TRUE, 0);
     /* now a status area under this box */
     hbox = dw_box_new(DW_HORZ, 1 );
     dw_box_pack_start(notebookbox2, hbox, 100, 20, TRUE, FALSE, 1);

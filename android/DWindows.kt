@@ -467,6 +467,7 @@ class DWContainerModel {
     var data = mutableListOf<Any?>()
     var rowdata = mutableListOf<Long>()
     var rowtitle = mutableListOf<String?>()
+    var querypos: Int = -1
 
     fun numberOfColumns(): Int
     {
@@ -1976,16 +1977,186 @@ class DWindows : AppCompatActivity() {
 
         waitOnUiThread {
             var dataArrayMap = SimpleArrayMap<String, Long>()
+            var adapter = DWContainerAdapter(this)
 
             cont = ListView(this)
             cont!!.tag = dataArrayMap
             cont!!.id = cid
-            cont!!.adapter = DWContainerAdapter(this)
+            cont!!.adapter = adapter
             if(multi != 0) {
                 cont!!.choiceMode = ListView.CHOICE_MODE_MULTIPLE;
             }
+            cont!!.setOnItemClickListener { parent, view, position, id ->
+                val title = adapter.model.getRowTitle(position)
+                val data = adapter.model.getRowData(position)
+
+                eventHandlerContainer(cont!!, 9, title, 0, 0, data)
+            }
+            cont!!.setOnItemLongClickListener { parent, view, position, id ->
+                val title = adapter.model.getRowTitle(position)
+                val data = adapter.model.getRowData(position)
+
+                eventHandlerContainer(cont!!, 10, title, 0, 0, data)
+                true
+            }
         }
         return cont
+    }
+
+    fun containerGetTitleStart(cont: ListView, flags: Int): String?
+    {
+        var retval: String? = null
+
+        waitOnUiThread {
+            val adapter: DWContainerAdapter = cont.adapter as DWContainerAdapter
+
+            // Handle DW_CRA_SELECTED
+            if((flags and 1) != 0) {
+                val checked: SparseBooleanArray = cont.getCheckedItemPositions()
+                val position = checked.keyAt(0)
+
+                if(position != null) {
+                    adapter.model.querypos = position
+                    retval = adapter.model.getRowTitle(position)
+                } else {
+                    adapter.model.querypos = -1
+                }
+            } else {
+                if(adapter.model.rowdata.size == 0) {
+                    adapter.model.querypos = -1
+                } else {
+                    retval = adapter.model.getRowTitle(0)
+                    adapter.model.querypos = 0
+                }
+            }
+        }
+        return retval
+    }
+
+    fun containerGetTitleNext(cont: ListView, flags: Int): String?
+    {
+        var retval: String? = null
+
+        waitOnUiThread {
+            val adapter: DWContainerAdapter = cont.adapter as DWContainerAdapter
+
+            if(adapter.model.querypos != -1) {
+                // Handle DW_CRA_SELECTED
+                if ((flags and 1) != 0) {
+                    val checked: SparseBooleanArray = cont.getCheckedItemPositions()
+
+                    // Otherwise loop until we find our current place
+                    for (i in 0 until checked.size()) {
+                        // Item position in adapter
+                        val position: Int = checked.keyAt(i)
+
+                        if (position != null) {
+                            // If we are at our current point... check to see
+                            // if there is another one, and return it...
+                            // otherwise we will return -1 to indicated we are done.
+                            if (adapter.model.querypos == position && (i + 1) < checked.size()) {
+                                val newpos = checked.keyAt(i + 1)
+
+                                if (newpos != null) {
+                                    adapter.model.querypos = newpos
+                                    retval = adapter.model.getRowTitle(newpos)
+                                } else {
+                                    adapter.model.querypos = -1
+                                }
+                            }
+                        } else {
+                            adapter.model.querypos = -1
+                        }
+                    }
+                } else {
+                    if (adapter.model.rowtitle.size > adapter.model.querypos) {
+                        adapter.model.querypos += 1
+                        retval = adapter.model.getRowTitle(adapter.model.querypos)
+                    } else {
+                        adapter.model.querypos = -1
+                    }
+                }
+            }
+        }
+        return retval
+    }
+
+    fun containerGetDataStart(cont: ListView, flags: Int): Long
+    {
+        var retval: Long = 0
+
+        waitOnUiThread {
+            val adapter: DWContainerAdapter = cont.adapter as DWContainerAdapter
+
+            // Handle DW_CRA_SELECTED
+            if((flags and 1) != 0) {
+                val checked: SparseBooleanArray = cont.getCheckedItemPositions()
+                val position = checked.keyAt(0)
+
+                if(position != null) {
+                    adapter.model.querypos = position
+                    retval = adapter.model.getRowData(position)
+                } else {
+                    adapter.model.querypos = -1
+                }
+            } else {
+                if(adapter.model.rowdata.size == 0) {
+                    adapter.model.querypos = -1
+                } else {
+                    retval = adapter.model.getRowData(0)
+                    adapter.model.querypos = 0
+                }
+            }
+        }
+        return retval
+    }
+
+    fun containerGetDataNext(cont: ListView, flags: Int): Long
+    {
+        var retval: Long = 0
+
+        waitOnUiThread {
+            val adapter: DWContainerAdapter = cont.adapter as DWContainerAdapter
+
+            if(adapter.model.querypos != -1) {
+                // Handle DW_CRA_SELECTED
+                if ((flags and 1) != 0) {
+                    val checked: SparseBooleanArray = cont.getCheckedItemPositions()
+
+                    // Otherwise loop until we find our current place
+                    for (i in 0 until checked.size()) {
+                        // Item position in adapter
+                        val position: Int = checked.keyAt(i)
+
+                        if (position != null) {
+                            // If we are at our current point... check to see
+                            // if there is another one, and return it...
+                            // otherwise we will return -1 to indicated we are done.
+                            if (adapter.model.querypos == position && (i + 1) < checked.size()) {
+                                val newpos = checked.keyAt(i + 1)
+
+                                if (newpos != null) {
+                                    adapter.model.querypos = newpos
+                                    retval = adapter.model.getRowData(newpos)
+                                } else {
+                                    adapter.model.querypos = -1
+                                }
+                            }
+                        } else {
+                            adapter.model.querypos = -1
+                        }
+                    }
+                } else {
+                    if (adapter.model.rowdata.size > adapter.model.querypos) {
+                        adapter.model.querypos += 1
+                        retval = adapter.model.getRowData(adapter.model.querypos)
+                    } else {
+                        adapter.model.querypos = -1
+                    }
+                }
+            }
+        }
+        return retval
     }
 
     fun containerAddColumn(cont: ListView, title: String, flags: Int)
@@ -3076,6 +3247,7 @@ class DWindows : AppCompatActivity() {
     external fun eventHandlerNotebook(obj1: View, message: Int, pageID: Long)
     external fun eventHandlerTimer(sigfunc: Long, data: Long): Int
     external fun eventHandlerHTMLResult(obj1: View, message: Int, result: String, data: Long)
+    external fun eventHandlerContainer(obj1: View, message: Int, title: String?, x: Int, y: Int, data: Long)
 
     companion object
     {
