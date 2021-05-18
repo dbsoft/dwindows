@@ -642,7 +642,7 @@ class DWContainerAdapter(c: Context) : BaseAdapter()
     }
 
     override fun getView(position: Int, view: View?, parent: ViewGroup): View {
-        var rowView: ConstraintLayout? = view as ConstraintLayout
+        var rowView: ConstraintLayout? = view as ConstraintLayout?
 
         // If the view passed in is null we need to create the layout
         if(rowView == null) {
