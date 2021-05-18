@@ -105,9 +105,9 @@ jobject _dw_jni_check_result(JNIEnv *env, jobject obj, int reference)
 
     if(!_dw_jni_check_exception(env) && obj)
     {
-        if(reference == 1)
+        if(reference == _DW_REFERENCE_WEAK)
             result = env->NewWeakGlobalRef(obj);
-        else if(reference == 2)
+        else if(reference == _DW_REFERENCE_STRONG)
             result = env->NewGlobalRef(obj);
         else
             result = obj;
@@ -3029,7 +3029,8 @@ int API dw_container_setup(HWND handle, unsigned long *flags, char **titles, int
                                                           "(Landroid/widget/ListView;Ljava/lang/String;I)V");
                 // Call the method on the object
                 env->CallVoidMethod(_dw_obj, containerNew, handle, jstr, (int)flags[z]);
-                _dw_jni_check_exception(env);
+                if(!_dw_jni_check_exception(env))
+                    return DW_ERROR_NONE;
             }
         }
     }
@@ -3060,9 +3061,11 @@ int API dw_filesystem_setup(HWND handle, unsigned long *flags, char **titles, in
 {
     unsigned long fsflags[2] = { DW_CFA_BITMAPORICON, DW_CFA_STRING };
     char *fstitles[2] = { (char *)"Icon", (char *)"Filename" };
-    dw_container_setup(handle, fsflags, fstitles, 2, 0);
-    dw_container_setup(handle, flags, titles, count, 0);
-    return DW_ERROR_GENERAL;
+    int retval = dw_container_setup(handle, fsflags, fstitles, 2, 0);
+
+    if(retval == DW_ERROR_NONE)
+        retval = dw_container_setup(handle, flags, titles, count, 0);
+    return retval;
 }
 
 /*
@@ -3237,6 +3240,14 @@ void API dw_filesystem_set_item(HWND handle, void *pointer, int column, int row,
  */
 void API dw_container_set_row_data(void *pointer, int row, void *data)
 {
+    HWND handle = (HWND)pointer;
+
+    if(handle)
+    {
+        int rowstart = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_rowstart"));
+
+        dw_container_change_row_data(handle, row + rowstart, data);
+    }
 }
 
 /*
@@ -3248,6 +3259,19 @@ void API dw_container_set_row_data(void *pointer, int row, void *data)
  */
 void API dw_container_change_row_data(HWND handle, int row, void *data)
 {
+    JNIEnv *env;
+
+    if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID containerChangeRowData = env->GetMethodID(clazz, "containerChangeRowData",
+                                                            "(Landroid/widget/ListView;IJ)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, containerChangeRowData, handle, row, (jlong)data);
+        _dw_jni_check_exception(env);
+    }
 }
 
 /*
@@ -3336,6 +3360,21 @@ void API dw_container_set_row_title(void *pointer, int row, const char *title)
  */
 void API dw_container_change_row_title(HWND handle, int row, const char *title)
 {
+    JNIEnv *env;
+
+    if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // Generate a string
+        jstring jstr = title ? env->NewStringUTF(title) : nullptr;
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID containerChangeRowTitle = env->GetMethodID(clazz, "containerChangeRowTitle",
+                                                             "(Landroid/widget/ListView;ILjava/lang/String;)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, containerChangeRowTitle, handle, row, jstr);
+        _dw_jni_check_exception(env);
+    }
 }
 
 /*
@@ -3385,6 +3424,19 @@ void API dw_container_clear(HWND handle, int redraw)
  */
 void API dw_container_delete(HWND handle, int rowcount)
 {
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID containerDelete = env->GetMethodID(clazz, "containerDelete",
+                                                     "(Landroid/widget/ListView;I)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, containerDelete, handle, rowcount);
+        _dw_jni_check_exception(env);
+    }
 }
 
 /*
@@ -3457,6 +3509,21 @@ void API dw_container_cursor_by_data(HWND handle, void *data)
  */
 void API dw_container_delete_row(HWND handle, const char *text)
 {
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // Generate a string
+        jstring jstr = text ? env->NewStringUTF(text) : nullptr;
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID containerRowDeleteByTitle = env->GetMethodID(clazz, "containerRowDeleteByTitle",
+                                                               "(Landroid/widget/ListView;Ljava/lang/String;)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, containerRowDeleteByTitle, handle, jstr);
+        _dw_jni_check_exception(env);
+    }
 }
 
 /*
@@ -3467,6 +3534,19 @@ void API dw_container_delete_row(HWND handle, const char *text)
  */
 void API dw_container_delete_row_by_data(HWND handle, void *data)
 {
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID containerRowDeleteByData = env->GetMethodID(clazz, "containerRowDeleteByData",
+                                                              "(Landroid/widget/ListView;J)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, containerRowDeleteByData, handle, (jlong)data);
+        _dw_jni_check_exception(env);
+    }
 }
 
 /*
