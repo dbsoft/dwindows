@@ -641,7 +641,7 @@ class DWContainerAdapter(c: Context) : BaseAdapter()
     }
 
     override fun getView(position: Int, view: View?, parent: ViewGroup): View {
-        var rowView: ConstraintLayout? = view as ConstraintLayout?
+        var rowView: LinearLayout? = view as LinearLayout?
         var displayColumns = model.numberOfColumns()
 
         // In simple mode, limit the columns to 1 or 2
@@ -657,13 +657,10 @@ class DWContainerAdapter(c: Context) : BaseAdapter()
 
         // If the view passed in is null we need to create the layout
         if(rowView == null) {
-            rowView = ConstraintLayout(context)
-            val set = ConstraintSet()
-            var lastID: Int = -1
+            rowView = LinearLayout(context)
+            var lastView: View? = null
 
-            // Initialize the constraint layout and set
-            rowView.id = View.generateViewId()
-            set.clone(rowView)
+            rowView.orientation = LinearLayout.HORIZONTAL
 
             for(i in 0 until displayColumns) {
                 val content = model.getRowAndColumn(position, i)
@@ -672,42 +669,28 @@ class DWContainerAdapter(c: Context) : BaseAdapter()
                 if((model.getColumnType(i) and 1) != 0) {
                     val imageview = ImageView(context)
                     imageview.id = View.generateViewId()
-                    imageview.layoutParams = ConstraintLayout.LayoutParams(ConstraintLayout.LayoutParams.WRAP_CONTENT, ConstraintLayout.LayoutParams.WRAP_CONTENT)
+                    imageview.layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT,
+                                                                       LinearLayout.LayoutParams.WRAP_CONTENT)
                     if (content is Drawable) {
                         imageview.setImageDrawable(content)
                     }
                     rowView.addView(imageview)
-                    // Add to the set...
-                    if(lastID == -1) {
-                        set.connect(imageview.id, ConstraintSet.TOP, rowView.id, ConstraintSet.BOTTOM)
-                    } else {
-                        set.connect(lastID, ConstraintSet.START, imageview.id, ConstraintSet.END)
-                    }
-                    lastID = imageview.id
+                    lastView = imageview
                 } else  {
                     // Everything else id displayed as text
                     val textview = TextView(context)
                     textview.id = View.generateViewId()
-                    textview.layoutParams = ConstraintLayout.LayoutParams(ConstraintLayout.LayoutParams.WRAP_CONTENT, ConstraintLayout.LayoutParams.WRAP_CONTENT)
+                    textview.layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT,
+                                                                      LinearLayout.LayoutParams.WRAP_CONTENT)
                     if (content is String) {
                         textview.text = content
                     } else if(content is Int) {
                         textview.text = content.toString()
                     }
                     rowView.addView(textview)
-                    // Add to the set...
-                    if(lastID == -1) {
-                        set.connect(textview.id, ConstraintSet.TOP, rowView.id, ConstraintSet.BOTTOM)
-                    } else {
-                        set.connect(lastID, ConstraintSet.START, textview.id, ConstraintSet.END)
-                    }
-                    lastID = textview.id
+                    lastView = textview
                 }
             }
-
-            // Finally apply the layout
-            set.applyTo(rowView)
-
             // TODO: Add code to optionally add other columns
         } else {
             // Otherwise we just need to update the existing layout
