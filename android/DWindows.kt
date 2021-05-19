@@ -624,6 +624,7 @@ class DWContainerAdapter(c: Context) : BaseAdapter()
 {
     private var context = c
     var model = DWContainerModel()
+    var selectedItem: Int = -1
 
     override fun getCount(): Int {
         val count = model.numberOfRows()
@@ -2009,13 +2010,24 @@ class DWindows : AppCompatActivity() {
                 val title = adapter.model.getRowTitle(position)
                 val data = adapter.model.getRowData(position)
 
-                eventHandlerContainer(cont!!, 9, title, 0, 0, data)
+                view.isSelected = !view.isSelected
+                adapter.selectedItem = position
+                eventHandlerContainer(cont!!, 12, title, 0, 0, data)
+            }
+            cont!!.setOnContextClickListener {
+                if(adapter.selectedItem > -1 && adapter.selectedItem < adapter.model.numberOfRows()) {
+                    val title = adapter.model.getRowTitle(adapter.selectedItem)
+                    val data = adapter.model.getRowData(adapter.selectedItem)
+
+                    eventHandlerContainer(cont!!, 10, title, 0, 0, data)
+                }
+                true
             }
             cont!!.setOnItemLongClickListener { parent, view, position, id ->
                 val title = adapter.model.getRowTitle(position)
                 val data = adapter.model.getRowData(position)
 
-                eventHandlerContainer(cont!!, 10, title, 0, 0, data)
+                eventHandlerContainer(cont!!, 9, title, 0, 0, data)
                 true
             }
         }

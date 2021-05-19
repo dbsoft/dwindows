@@ -69,10 +69,10 @@ Added initial support for Wayland on GTK3 and GTK4.
 Added initial iOS support, kicking off a push for mobile.
     iOS requires 13.0 or later due use of SF Symbols and features
     introduced with iOS 13 and Mac Catalyst. Several widgets are
-    currently unsupported: Tree, Scrollbars, MDI and Taskbar.
+    currently unsupported: Tree, MDI and Taskbar.
     Command line builds not supported, create an Xcode project.
 Added initial Android support, Android Studio with Kotlin required.
-    API 19 (KitKat) or later is required to run the produced apps.
+    API 23 (Android 6) or later is required to run the apps.
     Like iOS several widgets are not supported: Tree, Taskbar, MDI.
     Command line builds not supported, create a JNI project.
 Added DW_FEATURE_WINDOW_PLACEMENT to test to see if we can get or
