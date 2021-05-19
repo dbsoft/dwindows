@@ -53,6 +53,7 @@ import com.google.android.material.tabs.TabLayoutMediator
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileNotFoundException
+import java.io.IOException
 import java.util.*
 import java.util.concurrent.locks.ReentrantLock
 
@@ -1327,20 +1328,26 @@ class DWindows : AppCompatActivity() {
         waitOnUiThread {
             button = ImageButton(this)
             var dataArrayMap = SimpleArrayMap<String, Long>()
+            var exts = arrayOf("", ".png", ".webp", ".jpg", ".jpeg", ".gif")
 
             button!!.tag = dataArrayMap
             button!!.id = cid
             button!!.setOnClickListener {
                 eventHandlerSimple(button!!, 8)
             }
-            // Try to load the image, and protect against exceptions
-            try {
-                val f = File(filename)
-                val b = BitmapFactory.decodeStream(FileInputStream(f))
-                button!!.setImageBitmap(b)
-            }
-            catch (e: FileNotFoundException)
-            {
+
+            for (ext in exts) {
+                // Try to load the image, and protect against exceptions
+                try {
+                    val f = this.assets.open(filename + ext)
+                    val b = BitmapFactory.decodeStream(f)
+
+                    if(b != null) {
+                        button!!.setImageBitmap(b)
+                        break
+                    }
+                } catch (e: IOException) {
+                }
             }
         }
         return button
@@ -2602,20 +2609,28 @@ class DWindows : AppCompatActivity() {
                     imageview.setImageResource(resID)
                 }
             } else if(filename != null) {
-                // Try to load the image, and protect against exceptions
-                try {
-                    val f = File(filename)
-                    val b = BitmapFactory.decodeStream(FileInputStream(f))
-                    if(window is ImageButton) {
-                        val button = window
+                var exts = arrayOf("", ".png", ".webp", ".jpg", ".jpeg", ".gif")
 
-                        button.setImageBitmap(b)
-                    } else if(window is ImageView) {
-                        val imageview = window
+                for (ext in exts) {
+                    // Try to load the image, and protect against exceptions
+                    try {
+                        val f = this.assets.open(filename + ext)
+                        val b = BitmapFactory.decodeStream(f)
 
-                        imageview.setImageBitmap(b)
+                        if(b != null) {
+                            if (window is ImageButton) {
+                                val button = window
+
+                                button.setImageBitmap(b)
+                            } else if (window is ImageView) {
+                                val imageview = window
+
+                                imageview.setImageBitmap(b)
+                            }
+                            break
+                        }
+                    } catch (e: IOException) {
                     }
-                } catch (e: FileNotFoundException) {
                 }
             }
         }
@@ -2658,10 +2673,19 @@ class DWindows : AppCompatActivity() {
             if(resID != 0) {
                 icon = ResourcesCompat.getDrawable(resources, resID, null);
             } else if(filename != null) {
-                // Try to load the image, and protect against exceptions
-                try {
-                    icon = Drawable.createFromPath(filename)
-                } catch (e: FileNotFoundException) {
+                var exts = arrayOf("", ".png", ".webp", ".jpg", ".jpeg", ".gif")
+
+                for (ext in exts) {
+                    // Try to load the image, and protect against exceptions
+                    try {
+                        val f = this.assets.open(filename + ext)
+                        icon = Drawable.createFromStream(f, null)
+                    } catch (e: IOException) {
+                    }
+                    if(icon != null) {
+                        break
+                    }
+
                 }
             } else if(data != null) {
                 icon = BitmapDrawable(resources, BitmapFactory.decodeByteArray(data, 0, length))
@@ -2680,11 +2704,18 @@ class DWindows : AppCompatActivity() {
             } else if(resID != 0) {
                 pixmap = BitmapFactory.decodeResource(resources, resID);
             } else if(filename != null) {
-                // Try to load the image, and protect against exceptions
-                try {
-                    val f = File(filename)
-                    pixmap = BitmapFactory.decodeStream(FileInputStream(f))
-                } catch (e: FileNotFoundException) {
+                var exts = arrayOf("", ".png", ".webp", ".jpg", ".jpeg", ".gif")
+
+                for (ext in exts) {
+                    // Try to load the image, and protect against exceptions
+                    try {
+                        val f = this.assets.open(filename + ext)
+                        pixmap = BitmapFactory.decodeStream(f)
+                    } catch (e: IOException) {
+                    }
+                    if(pixmap != null) {
+                        break
+                    }
                 }
             } else if(data != null) {
                 pixmap = BitmapFactory.decodeByteArray(data, 0, length)
