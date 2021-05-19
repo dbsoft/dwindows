@@ -629,11 +629,7 @@ class DWContainerAdapter(c: Context) : BaseAdapter()
     var simpleMode: Boolean = true
 
     override fun getCount(): Int {
-        val count = model.numberOfRows()
-        if(count > 0) {
-            return count
-        }
-        return 1
+        return model.numberOfRows()
     }
 
     override fun getItem(position: Int): Any? {
