@@ -626,6 +626,7 @@ class DWContainerAdapter(c: Context) : BaseAdapter()
     private var context = c
     var model = DWContainerModel()
     var selectedItem: Int = -1
+    var simpleMode: Boolean = true
 
     override fun getCount(): Int {
         val count = model.numberOfRows()
@@ -636,7 +637,7 @@ class DWContainerAdapter(c: Context) : BaseAdapter()
     }
 
     override fun getItem(position: Int): Any? {
-        return model.getRowAndColumn(position, 1)
+        return model.getRowAndColumn(position, 0)
     }
 
     override fun getItemId(position: Int): Long {
@@ -645,50 +646,97 @@ class DWContainerAdapter(c: Context) : BaseAdapter()
 
     override fun getView(position: Int, view: View?, parent: ViewGroup): View {
         var rowView: ConstraintLayout? = view as ConstraintLayout?
+        var displayColumns = model.numberOfColumns()
+
+        // In simple mode, limit the columns to 1 or 2
+        if(simpleMode == true) {
+            // If column 1 is bitmap and column 2 is text...
+            if(displayColumns > 1 && (model.getColumnType(0) and 1) != 0 &&
+                (model.getColumnType(1) and (1 shl 1)) != 0) {
+                displayColumns = 2
+            } else {
+                displayColumns = 1
+            }
+        }
 
         // If the view passed in is null we need to create the layout
         if(rowView == null) {
             rowView = ConstraintLayout(context)
             val set = ConstraintSet()
-            // Every container at least has an icon and text
-            val imageview = ImageView(context)
-            val textview = TextView(context)
+            var lastID: Int = -1
 
-            if (model.numberOfColumns() > 1 && model.numberOfRows() > position) {
-                val first = model.getRowAndColumn(position, 0)
-                val second = model.getRowAndColumn(position, 1)
+            // Initialize the constraint layout and set
+            rowView.id = View.generateViewId()
+            set.clone(rowView)
 
-                if (first is Drawable) {
-                    imageview.setImageDrawable(first)
-                }
-                if (second is String) {
-                    textview.text = second
+            for(i in 0 until displayColumns) {
+                val content = model.getRowAndColumn(position, i)
+
+                // Image
+                if((model.getColumnType(i) and 1) != 0) {
+                    val imageview = ImageView(context)
+                    imageview.id = View.generateViewId()
+                    imageview.layoutParams = ConstraintLayout.LayoutParams(ConstraintLayout.LayoutParams.WRAP_CONTENT, ConstraintLayout.LayoutParams.WRAP_CONTENT)
+                    if (content is Drawable) {
+                        imageview.setImageDrawable(content)
+                    }
+                    rowView.addView(imageview)
+                    // Add to the set...
+                    if(lastID == -1) {
+                        set.connect(imageview.id, ConstraintSet.TOP, rowView.id, ConstraintSet.BOTTOM)
+                    } else {
+                        set.connect(lastID, ConstraintSet.START, imageview.id, ConstraintSet.END)
+                    }
+                    lastID = imageview.id
+                } else  {
+                    // Everything else id displayed as text
+                    val textview = TextView(context)
+                    textview.id = View.generateViewId()
+                    textview.layoutParams = ConstraintLayout.LayoutParams(ConstraintLayout.LayoutParams.WRAP_CONTENT, ConstraintLayout.LayoutParams.WRAP_CONTENT)
+                    if (content is String) {
+                        textview.text = content
+                    } else if(content is Int) {
+                        textview.text = content.toString()
+                    }
+                    rowView.addView(textview)
+                    // Add to the set...
+                    if(lastID == -1) {
+                        set.connect(textview.id, ConstraintSet.TOP, rowView.id, ConstraintSet.BOTTOM)
+                    } else {
+                        set.connect(lastID, ConstraintSet.START, textview.id, ConstraintSet.END)
+                    }
+                    lastID = textview.id
                 }
             }
 
-            // Add the two main components to the layout
-            imageview.id = View.generateViewId()
-            textview.id = View.generateViewId()
-            rowView.addView(imageview)
-            rowView.addView(textview)
-            set.clone(rowView)
-            set.connect(imageview.id, ConstraintSet.LEFT, textview.id, ConstraintSet.RIGHT)
+            // Finally apply the layout
             set.applyTo(rowView)
 
             // TODO: Add code to optionally add other columns
         } else {
             // Otherwise we just need to update the existing layout
-            if (model.numberOfColumns() > 1 && model.numberOfRows() > position) {
-                val first = model.getRowAndColumn(position, 0)
-                val second = model.getRowAndColumn(position, 1)
-                val imageview = rowView.getChildAt(0)
-                val textview = rowView.getChildAt(1)
 
-                if (first is Drawable && imageview is ImageView) {
-                    imageview.setImageDrawable(first)
-                }
-                if (second is String && textview is TextView) {
-                    textview.text = second
+            for(i in 0 until displayColumns) {
+                val content = model.getRowAndColumn(position, i)
+
+                // Image
+                if((model.getColumnType(i) and 1) != 0) {
+                    val imageview = rowView.getChildAt(i)
+
+                    if (imageview is ImageView && content is Drawable) {
+                        imageview.setImageDrawable(content)
+                    }
+                } else {
+                    // Text
+                    val textview = rowView.getChildAt(i)
+
+                    if (textview is TextView) {
+                        if (content is String) {
+                            textview.text = content
+                        } else if (content is Int) {
+                            textview.text = content.toString()
+                        }
+                    }
                 }
             }
         }
