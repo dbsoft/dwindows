@@ -36,6 +36,11 @@ inline pid_t getsid(pid_t pid)
 extern "C" {
 #endif
 
+/* Define this to enable threading for events...
+ * most Android events don't handle return values, so
+ * we can launch a new thread to handle the event.
+ * #define _DW_EVENT_THREADING
+ */
 #define DW_CLASS_NAME "org/dbsoft/dwindows/DWindows"
 
 /* Dynamic Windows internal variables */
@@ -250,9 +255,11 @@ static DWSignalList DWSignalTranslate[SIGNALMAX] = {
         { 19,   DW_SIGNAL_HTML_CHANGED }
 };
 
-int _dw_event_handler(jobject object, void **params, int message)
+
+int _dw_event_handler2(void **params)
 {
-    SignalHandler *handler = _dw_get_handler(object, message);
+    SignalHandler *handler = (SignalHandler *)params[9];
+    int message = DW_POINTER_TO_INT(params[8]);
 
     if(handler)
     {
@@ -417,6 +424,25 @@ int _dw_event_handler(jobject object, void **params, int message)
     return -1;
 }
 
+int _dw_event_handler(jobject object, void **params) {
+    SignalHandler *handler = _dw_get_handler(object, DW_POINTER_TO_INT(params[8]));
+
+    if (handler)
+    {
+        params[9] = (void *)handler;
+
+#ifdef _DW_EVENT_THREADING
+        /* We can't launch a thread for draw events it won't work */
+        if(DW_POINTER_TO_INT(params[8]) != 7)
+            dw_thread_new((void *)_dw_event_handler2, (void *)params, 0);
+        else
+#endif
+        return _dw_event_handler2(params);
+
+    }
+    return 0;
+}
+
 /*
  * Entry location for all event handlers from the Android UI
  */
@@ -426,28 +452,30 @@ Java_org_dbsoft_dwindows_DWindows_eventHandler(JNIEnv* env, jobject obj, jobject
                                                       jint inta, jint intb, jint intc, jint intd) {
     const char *utf81 = str1 ? env->GetStringUTFChars(str1, nullptr) : nullptr;
     const char *utf82 = str2 ? env->GetStringUTFChars(str2, nullptr) : nullptr;
-    void *params[8] = { (void *)obj2, (void *)utf81, (void *)utf82,
-                        DW_INT_TO_POINTER(inta), DW_INT_TO_POINTER(intb),
-                        DW_INT_TO_POINTER(intc), DW_INT_TO_POINTER(intd), nullptr };
+    void *params[10] = { (void *)obj2, (void *)utf81, (void *)utf82,
+                         DW_INT_TO_POINTER(inta), DW_INT_TO_POINTER(intb),
+                         DW_INT_TO_POINTER(intc), DW_INT_TO_POINTER(intd), nullptr,
+                         DW_INT_TO_POINTER(message), nullptr };
 
-    return _dw_event_handler(obj1, params, message);
+    return _dw_event_handler(obj1, params);
 }
 
 /* A more simple method for quicker calls */
 JNIEXPORT void JNICALL
 Java_org_dbsoft_dwindows_DWindows_eventHandlerSimple(JNIEnv* env, jobject obj, jobject obj1, jint message) {
-    void *params[8] = { nullptr };
+    void *params[10] = { nullptr };
 
-    _dw_event_handler(obj1, params, message);
+    params[8] = DW_INT_TO_POINTER(message);
+    _dw_event_handler(obj1, params);
 }
 
 /* Handler for notebook page changes */
 JNIEXPORT void JNICALL
 Java_org_dbsoft_dwindows_DWindows_eventHandlerNotebook(JNIEnv* env, jobject obj, jobject obj1, jint message, jlong pageID) {
-    void *params[8] = { nullptr };
+    void *params[10] = { nullptr };
 
-    params[3] = DW_INT_TO_POINTER(pageID);
-    _dw_event_handler(obj1, params, message);
+    params[8] = DW_INT_TO_POINTER(message);
+    _dw_event_handler(obj1, params);
 }
 
 /* Handlers for HTML events */
@@ -455,79 +483,86 @@ JNIEXPORT void JNICALL
 Java_org_dbsoft_dwindows_DWindows_eventHandlerHTMLResult(JNIEnv* env, jobject obj, jobject obj1,
                                                jint message, jstring htmlResult, jlong data) {
     const char *result = env->GetStringUTFChars(htmlResult, nullptr);
-    void *params[8] = { nullptr, DW_POINTER(result), nullptr, nullptr, nullptr, nullptr, nullptr, DW_INT_TO_POINTER(data) };
+    void *params[10] = { nullptr, DW_POINTER(result), nullptr, nullptr, nullptr, nullptr, nullptr,
+                         DW_INT_TO_POINTER(data), DW_INT_TO_POINTER(message), nullptr };
 
-    _dw_event_handler(obj1, params, message);
+    _dw_event_handler(obj1, params);
 }
 
 JNIEXPORT void JNICALL
 Java_org_dbsoft_dwindows_DWWebViewClient_eventHandlerHTMLChanged(JNIEnv* env, jobject obj, jobject obj1,
                                                          jint message, jstring URI, jint status) {
     const char *uri = env->GetStringUTFChars(URI, nullptr);
-    void *params[8] = { nullptr, DW_POINTER(uri), nullptr, DW_INT_TO_POINTER(status), nullptr, nullptr, nullptr, nullptr };
+    void *params[10] = { nullptr, DW_POINTER(uri), nullptr, DW_INT_TO_POINTER(status), nullptr, nullptr,
+                         nullptr, nullptr, DW_INT_TO_POINTER(message), nullptr };
 
-    _dw_event_handler(obj1, params, message);
+    _dw_event_handler(obj1, params);
 }
 
 JNIEXPORT void JNICALL
 Java_org_dbsoft_dwindows_DWindows_eventHandlerInt(JNIEnv* env, jobject obj, jobject obj1, jint message,
                                                jint inta, jint intb, jint intc, jint intd) {
-    void *params[8] = { nullptr, nullptr, nullptr,
-                        DW_INT_TO_POINTER(inta), DW_INT_TO_POINTER(intb),
-                        DW_INT_TO_POINTER(intc), DW_INT_TO_POINTER(intd), nullptr };
+    void *params[10] = { nullptr, nullptr, nullptr,
+                         DW_INT_TO_POINTER(inta), DW_INT_TO_POINTER(intb),
+                         DW_INT_TO_POINTER(intc), DW_INT_TO_POINTER(intd), nullptr,
+                         DW_INT_TO_POINTER(message), nullptr };
 
-    _dw_event_handler(obj1, params, message);
+    _dw_event_handler(obj1, params);
 }
 
 JNIEXPORT void JNICALL
 Java_org_dbsoft_dwindows_DWComboBox_eventHandlerInt(JNIEnv* env, jobject obj, jint message,
                                                   jint inta, jint intb, jint intc, jint intd) {
-    void *params[8] = { nullptr, nullptr, nullptr,
-                        DW_INT_TO_POINTER(inta), DW_INT_TO_POINTER(intb),
-                        DW_INT_TO_POINTER(intc), DW_INT_TO_POINTER(intd), nullptr };
+    void *params[10] = { nullptr, nullptr, nullptr,
+                         DW_INT_TO_POINTER(inta), DW_INT_TO_POINTER(intb),
+                         DW_INT_TO_POINTER(intc), DW_INT_TO_POINTER(intd), nullptr,
+                         DW_INT_TO_POINTER(message), nullptr };
 
-    _dw_event_handler(obj, params, message);
+    _dw_event_handler(obj, params);
 }
 
 JNIEXPORT void JNICALL
 Java_org_dbsoft_dwindows_DWSpinButton_eventHandlerInt(JNIEnv* env, jobject obj, jint message,
                                                     jint inta, jint intb, jint intc, jint intd) {
-    void *params[8] = { nullptr, nullptr, nullptr,
-                        DW_INT_TO_POINTER(inta), DW_INT_TO_POINTER(intb),
-                        DW_INT_TO_POINTER(intc), DW_INT_TO_POINTER(intd), nullptr };
+    void *params[10] = { nullptr, nullptr, nullptr,
+                         DW_INT_TO_POINTER(inta), DW_INT_TO_POINTER(intb),
+                         DW_INT_TO_POINTER(intc), DW_INT_TO_POINTER(intd), nullptr,
+                         DW_INT_TO_POINTER(message), nullptr };
 
-    _dw_event_handler(obj, params, message);
+    _dw_event_handler(obj, params);
 }
 
 JNIEXPORT void JNICALL
 Java_org_dbsoft_dwindows_DWListBox_eventHandlerInt(JNIEnv* env, jobject obj, jint message,
                                                     jint inta, jint intb, jint intc, jint intd) {
-    void *params[8] = { nullptr, nullptr, nullptr,
-                        DW_INT_TO_POINTER(inta), DW_INT_TO_POINTER(intb),
-                        DW_INT_TO_POINTER(intc), DW_INT_TO_POINTER(intd), nullptr };
+    void *params[10] = { nullptr, nullptr, nullptr,
+                         DW_INT_TO_POINTER(inta), DW_INT_TO_POINTER(intb),
+                         DW_INT_TO_POINTER(intc), DW_INT_TO_POINTER(intd), nullptr,
+                         DW_INT_TO_POINTER(message), nullptr };
 
-    _dw_event_handler(obj, params, message);
+    _dw_event_handler(obj, params);
 }
 
 JNIEXPORT void JNICALL
 Java_org_dbsoft_dwindows_DWRender_eventHandlerInt(JNIEnv* env, jobject obj, jint message,
                                                    jint inta, jint intb, jint intc, jint intd) {
-    void *params[8] = { nullptr, nullptr, nullptr,
-                        DW_INT_TO_POINTER(inta), DW_INT_TO_POINTER(intb),
-                        DW_INT_TO_POINTER(intc), DW_INT_TO_POINTER(intd), nullptr };
+    void *params[10] = { nullptr, nullptr, nullptr,
+                         DW_INT_TO_POINTER(inta), DW_INT_TO_POINTER(intb),
+                         DW_INT_TO_POINTER(intc), DW_INT_TO_POINTER(intd), nullptr,
+                         DW_INT_TO_POINTER(message), nullptr };
 
-    _dw_event_handler(obj, params, message);
+    _dw_event_handler(obj, params);
 }
 
 JNIEXPORT void JNICALL
 Java_org_dbsoft_dwindows_DWindows_eventHandlerContainer(JNIEnv* env, jobject obj, jobject obj1,
                                                   jint message, jstring jtitle, jint x, jint y, jlong data) {
     const char *title = jtitle ? env->GetStringUTFChars(jtitle, nullptr) : nullptr;
-    void *params[8] = { nullptr, (void *)title, nullptr,
-                        DW_INT_TO_POINTER(x), DW_INT_TO_POINTER(y),
-                        nullptr, nullptr, (void *)data };
+    void *params[10] = { nullptr, (void *)title, nullptr,
+                         DW_INT_TO_POINTER(x), DW_INT_TO_POINTER(y),
+                         nullptr, nullptr, (void *)data, DW_INT_TO_POINTER(message), nullptr };
 
-    _dw_event_handler(obj1, params, message);
+    _dw_event_handler(obj1, params);
 }
 
 /* Handler for Timer events */
@@ -542,9 +577,10 @@ Java_org_dbsoft_dwindows_DWindows_eventHandlerTimer(JNIEnv* env, jobject obj, jl
 /* A more simple method for quicker calls */
 JNIEXPORT void JNICALL
 Java_org_dbsoft_dwindows_DWMenu_eventHandlerSimple(JNIEnv* env, jobject obj, jobject obj1, jint message) {
-    void *params[8] = { nullptr };
+    void *params[10] = { nullptr };
 
-    _dw_event_handler(obj1, params, message);
+    params[8] = DW_INT_TO_POINTER(message);
+    _dw_event_handler(obj1, params);
 }
 
 
