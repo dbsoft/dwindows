@@ -1427,8 +1427,8 @@ BOOL _dw_is_dark(void)
     CGRect frame = [window frame];
     DWView *view = nil;
     UINavigationBar *nav = nil;
-    NSInteger sbheight = 0;
-    
+    NSInteger sbheight = [[[window windowScene] statusBarManager] statusBarFrame].size.height;
+
     for(id obj in array)
     {
         if([obj isMemberOfClass:[DWView class]])
@@ -1447,8 +1447,10 @@ BOOL _dw_is_dark(void)
     {
         CGRect navrect = [nav frame];
         
-        sbheight = navrect.size.height;
         navrect.size.width = frame.size.width;
+        navrect.origin.x = 0;
+        navrect.origin.y = sbheight;
+        sbheight += navrect.size.height;
         [nav setFrame:navrect];
         
         if (@available(iOS 14.0, *)) {
@@ -1465,8 +1467,6 @@ BOOL _dw_is_dark(void)
             // Fallback on earlier versions
         }
     }
-    else
-        sbheight = [[[window windowScene] statusBarManager] statusBarFrame].size.height;
     frame.size.height -= sbheight;
     /* Account for the special area on iPhone X and iPad Pro
      * https://blog.maxrudberg.com/post/165590234593/ui-design-for-iphone-x-bottom-elements
@@ -8015,7 +8015,8 @@ DW_FUNCTION_RESTORE_PARAM3(DW_UNUSED(hwndOwner), HWND, title, char *, DW_UNUSED(
         [window setLargeContentTitle:nstitle];
         if(flStyle & DW_FCF_TITLEBAR)
         {
-            UINavigationBar* navbar = [[UINavigationBar alloc] initWithFrame:CGRectMake(0, 0, screenrect.size.width, 60)];
+            NSInteger sbheight = [[[window windowScene] statusBarManager] statusBarFrame].size.height;
+            UINavigationBar* navbar = [[UINavigationBar alloc] initWithFrame:CGRectMake(0, sbheight, screenrect.size.width, 40)];
             UINavigationItem* navItem = [[UINavigationItem alloc] initWithTitle:nstitle];
 
             [navbar setItems:@[navItem]];
