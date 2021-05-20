@@ -41,6 +41,7 @@ extern "C" {
  * we can launch a new thread to handle the event.
  * #define _DW_EVENT_THREADING
  */
+#define _DW_EVENT_THREADING
 #define DW_CLASS_NAME "org/dbsoft/dwindows/DWindows"
 
 /* Dynamic Windows internal variables */
@@ -255,11 +256,13 @@ static DWSignalList DWSignalTranslate[SIGNALMAX] = {
         { 19,   DW_SIGNAL_HTML_CHANGED }
 };
 
+#define _DW_EVENT_PARAM_SIZE 10
 
 int _dw_event_handler2(void **params)
 {
     SignalHandler *handler = (SignalHandler *)params[9];
     int message = DW_POINTER_TO_INT(params[8]);
+    int retval = -1;
 
     if(handler)
     {
@@ -272,7 +275,8 @@ int _dw_event_handler2(void **params)
 
                 if(!timerfunc(handler->data))
                     dw_timer_disconnect(handler->id);
-                return 0;
+                retval = 0;
+                break;
             }
                 /* Configure/Resize event */
             case 1:
@@ -282,10 +286,10 @@ int _dw_event_handler2(void **params)
                 int height = DW_POINTER_TO_INT(params[4]);
 
                 if(width > 0 && height > 0)
-                {
-                    return sizefunc(handler->window, width, height, handler->data);
-                }
-                return 0;
+                    retval = sizefunc(handler->window, width, height, handler->data);
+                else
+                    retval = 0;
+                break;
             }
             case 2:
             {
@@ -293,7 +297,8 @@ int _dw_event_handler2(void **params)
                 char *utf8 = (char *)params[1], ch = utf8 ? utf8[0] : '\0';
                 int vk = 0, special = 0;
 
-                return keypressfunc(handler->window, ch, (int)vk, special, handler->data, utf8);
+                retval = keypressfunc(handler->window, ch, (int)vk, special, handler->data, utf8);
+                break;
             }
                 /* Button press and release event */
             case 3:
@@ -302,20 +307,23 @@ int _dw_event_handler2(void **params)
                 int (* API buttonfunc)(HWND, int, int, int, void *) = (int (* API)(HWND, int, int, int, void *))handler->signalfunction;
                 int button = 1;
 
-                return buttonfunc(handler->window, DW_POINTER_TO_INT(params[3]), DW_POINTER_TO_INT(params[4]), button, handler->data);
+                retval = buttonfunc(handler->window, DW_POINTER_TO_INT(params[3]), DW_POINTER_TO_INT(params[4]), button, handler->data);
+                break;
             }
             /* Motion notify event */
             case 5:
             {
                 int (* API motionfunc)(HWND, int, int, int, void *) = (int (* API)(HWND, int, int, int, void *))handler->signalfunction;
 
-                return motionfunc(handler->window, DW_POINTER_TO_INT(params[3]), DW_POINTER_TO_INT(params[4]), DW_POINTER_TO_INT(params[5]), handler->data);
+                retval = motionfunc(handler->window, DW_POINTER_TO_INT(params[3]), DW_POINTER_TO_INT(params[4]), DW_POINTER_TO_INT(params[5]), handler->data);
+                break;
             }
             /* Window close event */
             case 6:
             {
                 int (* API closefunc)(HWND, void *) = (int (* API)(HWND, void *))handler->signalfunction;
-                return closefunc(handler->window, handler->data);
+                retval = closefunc(handler->window, handler->data);
+                break;
             }
             /* Window expose/draw event */
             case 7:
@@ -327,22 +335,27 @@ int _dw_event_handler2(void **params)
                 exp.y = DW_POINTER_TO_INT(params[4]);
                 exp.width = DW_POINTER_TO_INT(params[5]);
                 exp.height = DW_POINTER_TO_INT(params[6]);
-                int result = exposefunc(handler->window, &exp, handler->data);
-                return result;
+                retval = exposefunc(handler->window, &exp, handler->data);
+                /* Return here so we don't free params since we
+                 * are always handling expose/draw on the UI thread.
+                 */
+                return retval;
             }
                 /* Clicked event for buttons and menu items */
             case 8:
             {
                 int (* API clickfunc)(HWND, void *) = (int (* API)(HWND, void *))handler->signalfunction;
 
-                return clickfunc(handler->window, handler->data);
+                retval = clickfunc(handler->window, handler->data);
+                break;
             }
                 /* Container class selection event */
             case 9:
             {
                 int (*containerselectfunc)(HWND, char *, void *, void *) =(int (* API)(HWND, char *, void *, void *)) handler->signalfunction;
 
-                return containerselectfunc(handler->window, (char *)params[1], handler->data, params[7]);
+                retval = containerselectfunc(handler->window, (char *)params[1], handler->data, params[7]);
+                break;
             }
                 /* Container context menu event */
             case 10:
@@ -353,7 +366,8 @@ int _dw_event_handler2(void **params)
                 int x = DW_POINTER_TO_INT(params[3]);
                 int y = DW_POINTER_TO_INT(params[4]);
 
-                return containercontextfunc(handler->window, text, x, y, handler->data, user);
+                retval = containercontextfunc(handler->window, text, x, y, handler->data, user);
+                break;
             }
                 /* Generic selection changed event for several classes */
             case 11:
@@ -362,7 +376,8 @@ int _dw_event_handler2(void **params)
                 int (* API valuechangedfunc)(HWND, int, void *) = (int (* API)(HWND, int, void *))handler->signalfunction;
                 int selected = DW_POINTER_TO_INT(params[3]);
 
-                return valuechangedfunc(handler->window, selected, handler->data);
+                retval = valuechangedfunc(handler->window, selected, handler->data);
+                break;
             }
                 /* Tree class selection event */
             case 12:
@@ -371,14 +386,16 @@ int _dw_event_handler2(void **params)
                 char *text = (char *)params[1];
                 void *user = params[7];
 
-                return treeselectfunc(handler->window, params[0], text, handler->data, user);
+                retval = treeselectfunc(handler->window, params[0], text, handler->data, user);
+                break;
             }
                 /* Set Focus event */
             case 13:
             {
                 int (* API setfocusfunc)(HWND, void *) = (int (* API)(HWND, void *))handler->signalfunction;
 
-                return setfocusfunc(handler->window, handler->data);
+                retval = setfocusfunc(handler->window, handler->data);
+                break;
             }
                 /* Notebook page change event */
             case 15:
@@ -386,14 +403,16 @@ int _dw_event_handler2(void **params)
                 int (* API switchpagefunc)(HWND, unsigned long, void *) = (int (* API)(HWND, unsigned long, void *))handler->signalfunction;
                 unsigned long pageID = DW_POINTER_TO_INT(params[3]);
 
-                return switchpagefunc(handler->window, pageID, handler->data);
+                retval = switchpagefunc(handler->window, pageID, handler->data);
+                break;
             }
                 /* Tree expand event */
             case 16:
             {
                 int (* API treeexpandfunc)(HWND, HTREEITEM, void *) = (int (* API)(HWND, HTREEITEM, void *))handler->signalfunction;
 
-                return treeexpandfunc(handler->window, (HTREEITEM)params[0], handler->data);
+                retval = treeexpandfunc(handler->window, (HTREEITEM)params[0], handler->data);
+                break;
             }
                 /* Column click event */
             case 17:
@@ -401,7 +420,8 @@ int _dw_event_handler2(void **params)
                 int (* API clickcolumnfunc)(HWND, int, void *) = (int (* API)(HWND, int, void *))handler->signalfunction;
                 int column_num = DW_POINTER_TO_INT(params[3]);
 
-                return clickcolumnfunc(handler->window, column_num, handler->data);
+                retval = clickcolumnfunc(handler->window, column_num, handler->data);
+                break;
             }
                 /* HTML result event */
             case 18:
@@ -409,7 +429,8 @@ int _dw_event_handler2(void **params)
                 int (* API htmlresultfunc)(HWND, int, char *, void *, void *) = (int (* API)(HWND, int, char *, void *, void *))handler->signalfunction;
                 char *result = (char *)params[1];
 
-                return htmlresultfunc(handler->window, result ? DW_ERROR_NONE : DW_ERROR_UNKNOWN, result, params[7], handler->data);
+                retval = htmlresultfunc(handler->window, result ? DW_ERROR_NONE : DW_ERROR_UNKNOWN, result, params[7], handler->data);
+                break;
             }
                 /* HTML changed event */
             case 19:
@@ -417,11 +438,20 @@ int _dw_event_handler2(void **params)
                 int (* API htmlchangedfunc)(HWND, int, char *, void *) = (int (* API)(HWND, int, char *, void *))handler->signalfunction;
                 char *uri = (char *)params[1];
 
-                return htmlchangedfunc(handler->window, DW_POINTER_TO_INT(params[3]), uri, handler->data);
+                retval = htmlchangedfunc(handler->window, DW_POINTER_TO_INT(params[3]), uri, handler->data);
+                break;
             }
         }
     }
-    return -1;
+#ifdef _DW_EVENT_THREADING
+    /* Free the memory we allocated for this tread */
+    if(params[1])
+        free(params[1]);
+    if(params[2])
+        free(params[2]);
+    free(params);
+#endif
+    return retval;
 }
 
 int _dw_event_handler(jobject object, void **params) {
@@ -434,7 +464,13 @@ int _dw_event_handler(jobject object, void **params) {
 #ifdef _DW_EVENT_THREADING
         /* We can't launch a thread for draw events it won't work */
         if(DW_POINTER_TO_INT(params[8]) != 7)
-            dw_thread_new((void *)_dw_event_handler2, (void *)params, 0);
+        {
+            /* Make a copy of the params so it isn't allocated from the stack */
+            void *newparams = calloc(_DW_EVENT_PARAM_SIZE, sizeof(void *));
+
+            memcpy(newparams, params, _DW_EVENT_PARAM_SIZE * sizeof(void *));
+            dw_thread_new((void *) _dw_event_handler2, newparams, 0);
+        }
         else
 #endif
         return _dw_event_handler2(params);
@@ -450,12 +486,17 @@ JNIEXPORT jint JNICALL
 Java_org_dbsoft_dwindows_DWindows_eventHandler(JNIEnv* env, jobject obj, jobject obj1, jobject obj2,
                                                       jint message, jstring str1, jstring str2,
                                                       jint inta, jint intb, jint intc, jint intd) {
+#ifdef _DW_EVENT_THREADING
+    char *utf81 = str1 ? strdup(env->GetStringUTFChars(str1, nullptr)) : nullptr;
+    char *utf82 = str2 ? strdup(env->GetStringUTFChars(str2, nullptr)) : nullptr;
+#else
     const char *utf81 = str1 ? env->GetStringUTFChars(str1, nullptr) : nullptr;
     const char *utf82 = str2 ? env->GetStringUTFChars(str2, nullptr) : nullptr;
-    void *params[10] = { (void *)obj2, (void *)utf81, (void *)utf82,
-                         DW_INT_TO_POINTER(inta), DW_INT_TO_POINTER(intb),
-                         DW_INT_TO_POINTER(intc), DW_INT_TO_POINTER(intd), nullptr,
-                         DW_INT_TO_POINTER(message), nullptr };
+#endif
+    void *params[_DW_EVENT_PARAM_SIZE] = { (void *)obj2, (void *)utf81, (void *)utf82,
+                                            DW_INT_TO_POINTER(inta), DW_INT_TO_POINTER(intb),
+                                            DW_INT_TO_POINTER(intc), DW_INT_TO_POINTER(intd), nullptr,
+                                            DW_INT_TO_POINTER(message), nullptr };
 
     return _dw_event_handler(obj1, params);
 }
@@ -463,7 +504,7 @@ Java_org_dbsoft_dwindows_DWindows_eventHandler(JNIEnv* env, jobject obj, jobject
 /* A more simple method for quicker calls */
 JNIEXPORT void JNICALL
 Java_org_dbsoft_dwindows_DWindows_eventHandlerSimple(JNIEnv* env, jobject obj, jobject obj1, jint message) {
-    void *params[10] = { nullptr };
+    void *params[_DW_EVENT_PARAM_SIZE] = { nullptr };
 
     params[8] = DW_INT_TO_POINTER(message);
     _dw_event_handler(obj1, params);
@@ -472,7 +513,7 @@ Java_org_dbsoft_dwindows_DWindows_eventHandlerSimple(JNIEnv* env, jobject obj, j
 /* Handler for notebook page changes */
 JNIEXPORT void JNICALL
 Java_org_dbsoft_dwindows_DWindows_eventHandlerNotebook(JNIEnv* env, jobject obj, jobject obj1, jint message, jlong pageID) {
-    void *params[10] = { nullptr };
+    void *params[_DW_EVENT_PARAM_SIZE] = { nullptr };
 
     params[8] = DW_INT_TO_POINTER(message);
     _dw_event_handler(obj1, params);
@@ -482,9 +523,13 @@ Java_org_dbsoft_dwindows_DWindows_eventHandlerNotebook(JNIEnv* env, jobject obj,
 JNIEXPORT void JNICALL
 Java_org_dbsoft_dwindows_DWindows_eventHandlerHTMLResult(JNIEnv* env, jobject obj, jobject obj1,
                                                jint message, jstring htmlResult, jlong data) {
+#ifdef _DW_EVENT_THREADING
+    char *result = strdup(env->GetStringUTFChars(htmlResult, nullptr));
+#else
     const char *result = env->GetStringUTFChars(htmlResult, nullptr);
-    void *params[10] = { nullptr, DW_POINTER(result), nullptr, nullptr, nullptr, nullptr, nullptr,
-                         DW_INT_TO_POINTER(data), DW_INT_TO_POINTER(message), nullptr };
+#endif
+    void *params[_DW_EVENT_PARAM_SIZE] = { nullptr, DW_POINTER(result), nullptr, nullptr, nullptr, nullptr, nullptr,
+                                           DW_INT_TO_POINTER(data), DW_INT_TO_POINTER(message), nullptr };
 
     _dw_event_handler(obj1, params);
 }
@@ -492,9 +537,13 @@ Java_org_dbsoft_dwindows_DWindows_eventHandlerHTMLResult(JNIEnv* env, jobject ob
 JNIEXPORT void JNICALL
 Java_org_dbsoft_dwindows_DWWebViewClient_eventHandlerHTMLChanged(JNIEnv* env, jobject obj, jobject obj1,
                                                          jint message, jstring URI, jint status) {
+#ifdef _DW_EVENT_THREADING
+    char *uri = strdup(env->GetStringUTFChars(URI, nullptr));
+#else
     const char *uri = env->GetStringUTFChars(URI, nullptr);
-    void *params[10] = { nullptr, DW_POINTER(uri), nullptr, DW_INT_TO_POINTER(status), nullptr, nullptr,
-                         nullptr, nullptr, DW_INT_TO_POINTER(message), nullptr };
+#endif
+    void *params[_DW_EVENT_PARAM_SIZE] = { nullptr, DW_POINTER(uri), nullptr, DW_INT_TO_POINTER(status),
+                                           nullptr, nullptr, nullptr, nullptr, DW_INT_TO_POINTER(message), nullptr };
 
     _dw_event_handler(obj1, params);
 }
@@ -502,10 +551,10 @@ Java_org_dbsoft_dwindows_DWWebViewClient_eventHandlerHTMLChanged(JNIEnv* env, jo
 JNIEXPORT void JNICALL
 Java_org_dbsoft_dwindows_DWindows_eventHandlerInt(JNIEnv* env, jobject obj, jobject obj1, jint message,
                                                jint inta, jint intb, jint intc, jint intd) {
-    void *params[10] = { nullptr, nullptr, nullptr,
-                         DW_INT_TO_POINTER(inta), DW_INT_TO_POINTER(intb),
-                         DW_INT_TO_POINTER(intc), DW_INT_TO_POINTER(intd), nullptr,
-                         DW_INT_TO_POINTER(message), nullptr };
+    void *params[_DW_EVENT_PARAM_SIZE] = { nullptr, nullptr, nullptr,
+                                           DW_INT_TO_POINTER(inta), DW_INT_TO_POINTER(intb),
+                                           DW_INT_TO_POINTER(intc), DW_INT_TO_POINTER(intd), nullptr,
+                                           DW_INT_TO_POINTER(message), nullptr };
 
     _dw_event_handler(obj1, params);
 }
@@ -513,10 +562,10 @@ Java_org_dbsoft_dwindows_DWindows_eventHandlerInt(JNIEnv* env, jobject obj, jobj
 JNIEXPORT void JNICALL
 Java_org_dbsoft_dwindows_DWComboBox_eventHandlerInt(JNIEnv* env, jobject obj, jint message,
                                                   jint inta, jint intb, jint intc, jint intd) {
-    void *params[10] = { nullptr, nullptr, nullptr,
-                         DW_INT_TO_POINTER(inta), DW_INT_TO_POINTER(intb),
-                         DW_INT_TO_POINTER(intc), DW_INT_TO_POINTER(intd), nullptr,
-                         DW_INT_TO_POINTER(message), nullptr };
+    void *params[_DW_EVENT_PARAM_SIZE] = { nullptr, nullptr, nullptr,
+                                           DW_INT_TO_POINTER(inta), DW_INT_TO_POINTER(intb),
+                                           DW_INT_TO_POINTER(intc), DW_INT_TO_POINTER(intd), nullptr,
+                                           DW_INT_TO_POINTER(message), nullptr };
 
     _dw_event_handler(obj, params);
 }
@@ -524,10 +573,10 @@ Java_org_dbsoft_dwindows_DWComboBox_eventHandlerInt(JNIEnv* env, jobject obj, ji
 JNIEXPORT void JNICALL
 Java_org_dbsoft_dwindows_DWSpinButton_eventHandlerInt(JNIEnv* env, jobject obj, jint message,
                                                     jint inta, jint intb, jint intc, jint intd) {
-    void *params[10] = { nullptr, nullptr, nullptr,
-                         DW_INT_TO_POINTER(inta), DW_INT_TO_POINTER(intb),
-                         DW_INT_TO_POINTER(intc), DW_INT_TO_POINTER(intd), nullptr,
-                         DW_INT_TO_POINTER(message), nullptr };
+    void *params[_DW_EVENT_PARAM_SIZE] = { nullptr, nullptr, nullptr,
+                                           DW_INT_TO_POINTER(inta), DW_INT_TO_POINTER(intb),
+                                           DW_INT_TO_POINTER(intc), DW_INT_TO_POINTER(intd), nullptr,
+                                           DW_INT_TO_POINTER(message), nullptr };
 
     _dw_event_handler(obj, params);
 }
@@ -535,10 +584,10 @@ Java_org_dbsoft_dwindows_DWSpinButton_eventHandlerInt(JNIEnv* env, jobject obj, 
 JNIEXPORT void JNICALL
 Java_org_dbsoft_dwindows_DWListBox_eventHandlerInt(JNIEnv* env, jobject obj, jint message,
                                                     jint inta, jint intb, jint intc, jint intd) {
-    void *params[10] = { nullptr, nullptr, nullptr,
-                         DW_INT_TO_POINTER(inta), DW_INT_TO_POINTER(intb),
-                         DW_INT_TO_POINTER(intc), DW_INT_TO_POINTER(intd), nullptr,
-                         DW_INT_TO_POINTER(message), nullptr };
+    void *params[_DW_EVENT_PARAM_SIZE] = { nullptr, nullptr, nullptr,
+                                           DW_INT_TO_POINTER(inta), DW_INT_TO_POINTER(intb),
+                                           DW_INT_TO_POINTER(intc), DW_INT_TO_POINTER(intd), nullptr,
+                                           DW_INT_TO_POINTER(message), nullptr };
 
     _dw_event_handler(obj, params);
 }
@@ -546,10 +595,10 @@ Java_org_dbsoft_dwindows_DWListBox_eventHandlerInt(JNIEnv* env, jobject obj, jin
 JNIEXPORT void JNICALL
 Java_org_dbsoft_dwindows_DWRender_eventHandlerInt(JNIEnv* env, jobject obj, jint message,
                                                    jint inta, jint intb, jint intc, jint intd) {
-    void *params[10] = { nullptr, nullptr, nullptr,
-                         DW_INT_TO_POINTER(inta), DW_INT_TO_POINTER(intb),
-                         DW_INT_TO_POINTER(intc), DW_INT_TO_POINTER(intd), nullptr,
-                         DW_INT_TO_POINTER(message), nullptr };
+    void *params[_DW_EVENT_PARAM_SIZE] = { nullptr, nullptr, nullptr,
+                                           DW_INT_TO_POINTER(inta), DW_INT_TO_POINTER(intb),
+                                           DW_INT_TO_POINTER(intc), DW_INT_TO_POINTER(intd), nullptr,
+                                           DW_INT_TO_POINTER(message), nullptr };
 
     _dw_event_handler(obj, params);
 }
@@ -557,10 +606,13 @@ Java_org_dbsoft_dwindows_DWRender_eventHandlerInt(JNIEnv* env, jobject obj, jint
 JNIEXPORT void JNICALL
 Java_org_dbsoft_dwindows_DWindows_eventHandlerContainer(JNIEnv* env, jobject obj, jobject obj1,
                                                   jint message, jstring jtitle, jint x, jint y, jlong data) {
+#ifdef _DW_EVENT_THREADING
+    char *title = jtitle ? strdup(env->GetStringUTFChars(jtitle, nullptr)) : nullptr;
+#else
     const char *title = jtitle ? env->GetStringUTFChars(jtitle, nullptr) : nullptr;
-    void *params[10] = { nullptr, (void *)title, nullptr,
-                         DW_INT_TO_POINTER(x), DW_INT_TO_POINTER(y),
-                         nullptr, nullptr, (void *)data, DW_INT_TO_POINTER(message), nullptr };
+#endif
+    void *params[_DW_EVENT_PARAM_SIZE] = { nullptr, DW_POINTER(title), nullptr, DW_INT_TO_POINTER(x), DW_INT_TO_POINTER(y),
+                                           nullptr, nullptr, (void *)data, DW_INT_TO_POINTER(message), nullptr };
 
     _dw_event_handler(obj1, params);
 }
@@ -577,7 +629,7 @@ Java_org_dbsoft_dwindows_DWindows_eventHandlerTimer(JNIEnv* env, jobject obj, jl
 /* A more simple method for quicker calls */
 JNIEXPORT void JNICALL
 Java_org_dbsoft_dwindows_DWMenu_eventHandlerSimple(JNIEnv* env, jobject obj, jobject obj1, jint message) {
-    void *params[10] = { nullptr };
+    void *params[_DW_EVENT_PARAM_SIZE] = { nullptr };
 
     params[8] = DW_INT_TO_POINTER(message);
     _dw_event_handler(obj1, params);
