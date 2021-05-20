@@ -774,7 +774,7 @@ API_AVAILABLE(ios(13.0))
 
 @interface DWWindow : UIWindow
 {
-    UIMenu *popupmenu;
+    DWMenu *windowmenu, *popupmenu;
     int redraw;
     int shown;
 }
@@ -786,8 +786,10 @@ API_AVAILABLE(ios(13.0))
 -(int)shown;
 -(void)setShown:(int)val;
 -(void)layoutSubviews;
--(UIMenu *)popupMenu;
--(void)setPopupMenu:(UIMenu *)input;
+-(void)setMenu:(DWMenu *)input;
+-(void)setPopupMenu:(DWMenu *)input;
+-(DWMenu *)menu;
+-(DWMenu *)popupMenu;
 @end
 
 @implementation DWWindow
@@ -807,10 +809,20 @@ API_AVAILABLE(ios(13.0))
 -(void)setRedraw:(int)val { redraw = val; }
 -(int)shown { return shown; }
 -(void)setShown:(int)val { shown = val; }
--(void)dealloc { dw_signal_disconnect_by_window(self); [super dealloc]; }
 -(void)layoutSubviews { }
--(UIMenu *)popupMenu { return popupmenu; }
--(void)setPopupMenu:(UIMenu *)input { [popupmenu release]; popupmenu = input; [popupmenu retain]; }
+-(void)setMenu:(DWMenu *)input { [windowmenu release]; windowmenu = input; [windowmenu retain]; }
+-(void)setPopupMenu:(DWMenu *)input { [popupmenu release]; popupmenu = input; [popupmenu retain]; }
+-(DWMenu *)menu { return windowmenu; }
+-(DWMenu *)popupMenu { return popupmenu; }
+-(void)dealloc
+{
+    if(windowmenu)
+        [windowmenu release];
+    if(popupmenu)
+        [popupmenu release];
+    dw_signal_disconnect_by_window(self);
+    [super dealloc];
+}
 @end
 
 @interface DWImage : NSObject
@@ -1345,14 +1357,9 @@ BOOL _dw_is_dark(void)
 /* Subclass for a top-level window */
 @interface DWView : DWBox /* <UIWindowDelegate> */
 {
-    DWMenu *windowmenu, *popupmenu;
     CGSize oldsize;
 }
 -(BOOL)windowShouldClose:(id)sender;
--(void)setMenu:(DWMenu *)input;
--(void)setPopupMenu:(DWMenu *)input;
--(DWMenu *)menu;
--(DWMenu *)popupMenu;
 -(void)windowDidBecomeMain:(id)sender;
 -(void)menuHandler:(id)sender;
 @end
@@ -1371,10 +1378,6 @@ BOOL _dw_is_dark(void)
 }
 -(void)dealloc
 {
-    if(windowmenu)
-    {
-        [windowmenu release];
-    }
     [[NSNotificationCenter defaultCenter] removeObserver:self];
     dw_signal_disconnect_by_window(self);
     [super dealloc];
@@ -1405,10 +1408,6 @@ BOOL _dw_is_dark(void)
 {
     _dw_event_handler([self window], nil, 13);
 }
--(void)setMenu:(DWMenu *)input { windowmenu = input; [windowmenu retain]; }
--(void)setPopupMenu:(DWMenu *)input { popupmenu = input; [popupmenu retain]; }
--(DWMenu *)menu { return windowmenu; }
--(DWMenu *)popupMenu { return popupmenu; }
 -(void)menuHandler:(id)sender
 {
     [DWObj menuHandler:sender];
@@ -1425,17 +1424,49 @@ BOOL _dw_is_dark(void)
 {
     DWWindow *window = (DWWindow *)[[self view] window];
     NSArray *array = [window subviews];
-    DWView *view = [array firstObject];
     CGRect frame = [window frame];
-    /* Hide the UITransitionView which is blocking the screen...
-     * This is probably not the correct solution, but it solves the
-     * problem for the moment.  Figure out what to do with this view.
-     */
-    id object = [array lastObject];
-    if(![object isMemberOfClass:[DWView class]])
-        [object setHidden:YES];
-    /* Adjust the frame to account for the status bar */
-    NSInteger sbheight = [[[window windowScene] statusBarManager] statusBarFrame].size.height;
+    DWView *view = nil;
+    UINavigationBar *nav = nil;
+    NSInteger sbheight = 0;
+    
+    for(id obj in array)
+    {
+        if([obj isMemberOfClass:[DWView class]])
+            view = obj;
+        else if([obj isMemberOfClass:[UINavigationBar class]])
+            nav = obj;
+        /* Hide the UITransitionView which is blocking the screen...
+         * This is probably not the correct solution, but it solves the
+         * problem for the moment.  Figure out what to do with this view.
+         */
+        else
+            [obj setHidden:YES];
+    }
+    /* Adjust the frame to account for the status bar and navigation bar if it exists */
+    if(nav)
+    {
+        CGRect navrect = [nav frame];
+        
+        sbheight = navrect.size.height;
+        navrect.size.width = frame.size.width;
+        [nav setFrame:navrect];
+        
+        if (@available(iOS 14.0, *)) {
+            DWMenu *windowmenu = [window menu];
+            UINavigationItem *item = [[nav items] firstObject];
+
+            if(windowmenu && !item.rightBarButtonItem)
+            {
+                UIBarButtonItem *options = [[UIBarButtonItem alloc] initWithImage:[UIImage systemImageNamed:@"list.bullet"]
+                                                                                 menu:[windowmenu menu]];
+                item.rightBarButtonItem = options;
+            }
+        } else {
+            // Fallback on earlier versions
+        }
+    }
+    else
+        sbheight = [[[window windowScene] statusBarManager] statusBarFrame].size.height;
     frame.size.height -= sbheight;
     /* Account for the special area on iPhone X and iPad Pro
      * https://blog.maxrudberg.com/post/165590234593/ui-design-for-iphone-x-bottom-elements
@@ -2126,7 +2157,7 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
 
     if(window)
     {
-        __block UIMenu *popupmenu = [window popupMenu];
+        __block UIMenu *popupmenu = [[window popupMenu] menu];
         config = [UIContextMenuConfiguration configurationWithIdentifier:@"DWContextMenu"
                                                          previewProvider:nil
                                                           actionProvider:^(NSArray* suggestedAction){return popupmenu;}];
@@ -7549,8 +7580,11 @@ HMENUI API dw_menu_new(ULONG cid)
  */
 HMENUI API dw_menubar_new(HWND location)
 {
-    /* TODO: Implement this with UIMenuSystem */
-    return NULL;
+    DWWindow *window = location;
+    DWMenu *menu = [[[DWMenu alloc] init] retain];
+
+    [window setMenu:menu];
+    return menu;
 }
 
 /*
@@ -7965,7 +7999,8 @@ DW_FUNCTION_RETURN(dw_window_new, HWND)
 DW_FUNCTION_RESTORE_PARAM3(DW_UNUSED(hwndOwner), HWND, title, char *, DW_UNUSED(flStyle), ULONG)
 {
     DW_FUNCTION_INIT;
-    DWWindow *window = [[DWWindow alloc] initWithFrame:[[UIScreen mainScreen] bounds]];
+    CGRect screenrect = [[UIScreen mainScreen] bounds];
+    DWWindow *window = [[DWWindow alloc] initWithFrame:screenrect];
     DWView *view = [[DWView alloc] init];
     UIUserInterfaceStyle style = [[DWObj hiddenWindow] overrideUserInterfaceStyle];
 
@@ -7976,7 +8011,16 @@ DW_FUNCTION_RESTORE_PARAM3(DW_UNUSED(hwndOwner), HWND, title, char *, DW_UNUSED(
 
     /* TODO: Handle style flags... if we can? There is no visible frame */
     if(@available(iOS 13.0, *)) {
-        [window setLargeContentTitle:[NSString stringWithUTF8String:title]];
+        NSString *nstitle = [NSString stringWithUTF8String:title];
+        [window setLargeContentTitle:nstitle];
+        if(flStyle & DW_FCF_TITLEBAR)
+        {
+            UINavigationBar* navbar = [[UINavigationBar alloc] initWithFrame:CGRectMake(0, 0, screenrect.size.width, 60)];
+            UINavigationItem* navItem = [[UINavigationItem alloc] initWithTitle:nstitle];
+
+            [navbar setItems:@[navItem]];
+            [window addSubview:navbar];
+        }
     }
     /* Copy the overrideUserInterfaceStyle property from the hiddenWindow */
     if(style != UIUserInterfaceStyleUnspecified)
@@ -8546,22 +8590,40 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, text, char *)
 {
     DW_FUNCTION_INIT;
     id object = _dw_text_handle(handle);
+    Item *item = NULL;
 
     if([object isKindOfClass:[UILabel class]] || [object isKindOfClass:[UITextField class]])
+    {
         [object setText:[NSString stringWithUTF8String:text]];
+        item = _dw_box_item(handle);
+    }
+    else if([object isMemberOfClass:[DWWindow class]])
+    {
+        DWWindow *window = object;
+        NSArray *array = [window subviews];
+        
+        for(id obj in array)
+        {
+            if([obj isMemberOfClass:[UINavigationBar class]])
+            {
+                UINavigationBar *nav = obj;
+                UINavigationItem *item = [[nav items] firstObject];
+                
+                [item setTitle:[NSString stringWithUTF8String:text]];
+            }
+        }
+    }
 #ifdef DW_INCLUDE_DEPRECATED
     else if([object isKindOfClass:[UIControl class]])
     {
         UIControl *control = object;
         [control setText:[NSString stringWithUTF8String:text]];
+        item = _dw_box_item(handle);
     }
 #endif
-    else
-        return;
-    /* If we changed the text... */
-    Item *item = _dw_box_item(handle);
-
-    /* Check to see if any of the sizes need to be recalculated */
+    /* If we changed the text...
+     * Check to see if any of the sizes need to be recalculated
+     */
     if(item && (item->origwidth == -1 || item->origheight == -1))
     {
       int newwidth, newheight;
