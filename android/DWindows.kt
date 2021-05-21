@@ -1241,13 +1241,17 @@ class DWindows : AppCompatActivity() {
                             w = width
                         }
                     } else {
-                        if (width > 0) {
-                            weight = width.toFloat()
-                        } else if (width == -1) {
-                            val newwidth = item.getMeasuredWidth()
+                        if (box.orientation == LinearLayout.VERTICAL) {
+                            w = LinearLayout.LayoutParams.MATCH_PARENT
+                        } else {
+                            if (width > 0) {
+                                weight = width.toFloat()
+                            } else if (width == -1) {
+                                val newwidth = item.getMeasuredWidth()
 
-                            if(newwidth > 0) {
-                                weight = newwidth.toFloat()
+                                if (newwidth > 0) {
+                                    weight = newwidth.toFloat()
+                                }
                             }
                         }
                     }
@@ -1256,13 +1260,17 @@ class DWindows : AppCompatActivity() {
                             h = height
                         }
                     } else {
-                        if (height > 0) {
-                            weight = height.toFloat()
-                        } else if (height == -1) {
-                            val newheight = item.getMeasuredHeight()
+                        if (box.orientation == LinearLayout.HORIZONTAL) {
+                            h = LinearLayout.LayoutParams.MATCH_PARENT
+                        } else {
+                            if (height > 0) {
+                                weight = height.toFloat()
+                            } else if (height == -1) {
+                                val newheight = item.getMeasuredHeight()
 
-                            if(newheight > 0) {
-                                weight = newheight.toFloat()
+                                if (newheight > 0) {
+                                    weight = newheight.toFloat()
+                                }
                             }
                         }
                     }
