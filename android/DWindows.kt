@@ -2830,7 +2830,7 @@ class DWindows : AppCompatActivity() {
         return retval
     }
 
-    fun drawPoint(render: DWRender?, bitmap: Bitmap?, x: Int, y: Int)
+    fun drawPoint(render: DWRender?, bitmap: Bitmap?, x: Int, y: Int, fgColor: Int, bgColor: Int)
     {
         waitOnUiThread {
             var canvas: Canvas? = null
@@ -2842,12 +2842,13 @@ class DWindows : AppCompatActivity() {
             }
 
             if(canvas != null) {
+                colorsSet(fgColor, bgColor)
                 canvas.drawPoint(x.toFloat(), y.toFloat(), Paint())
             }
         }
     }
 
-    fun drawLine(render: DWRender?, bitmap: Bitmap?, x1: Int, y1: Int, x2: Int, y2: Int)
+    fun drawLine(render: DWRender?, bitmap: Bitmap?, x1: Int, y1: Int, x2: Int, y2: Int, fgColor: Int, bgColor: Int)
     {
         waitOnUiThread {
             var canvas: Canvas? = null
@@ -2859,6 +2860,7 @@ class DWindows : AppCompatActivity() {
             }
 
             if(canvas != null) {
+                colorsSet(fgColor, bgColor)
                 paint.flags = 0
                 paint.style = Paint.Style.STROKE
                 canvas.drawLine(x1.toFloat(), y1.toFloat(), x2.toFloat(), y2.toFloat(), paint)
@@ -2905,7 +2907,8 @@ class DWindows : AppCompatActivity() {
         return dimensions
     }
 
-    fun drawText(render: DWRender?, bitmap: Bitmap?, x: Int, y: Int, text:String, typeface: Typeface?, fontsize: Int, window: View?)
+    fun drawText(render: DWRender?, bitmap: Bitmap?, x: Int, y: Int, text:String, typeface: Typeface?,
+                 fontsize: Int, window: View?, fgColor: Int, bgColor: Int)
     {
         waitOnUiThread {
             var canvas: Canvas? = null
@@ -2938,6 +2941,7 @@ class DWindows : AppCompatActivity() {
             }
 
             if(canvas != null) {
+                colorsSet(fgColor, bgColor)
                 // Save the old color for later...
                 var rect = Rect()
                 val oldcolor = paint.color
@@ -2961,7 +2965,7 @@ class DWindows : AppCompatActivity() {
         }
     }
 
-    fun drawRect(render: DWRender?, bitmap: Bitmap?, x: Int, y: Int, width: Int, height: Int)
+    fun drawRect(render: DWRender?, bitmap: Bitmap?, x: Int, y: Int, width: Int, height: Int, fgColor: Int, bgColor: Int)
     {
         waitOnUiThread {
             var canvas: Canvas? = null
@@ -2973,6 +2977,7 @@ class DWindows : AppCompatActivity() {
             }
 
             if(canvas != null) {
+                colorsSet(fgColor, bgColor)
                 paint.flags = 0
                 paint.style = Paint.Style.FILL_AND_STROKE
                 canvas.drawRect(x.toFloat(), y.toFloat(), x.toFloat() + width.toFloat(), y.toFloat() + height.toFloat(), paint)
@@ -2980,7 +2985,8 @@ class DWindows : AppCompatActivity() {
         }
     }
 
-    fun drawPolygon(render: DWRender?, bitmap: Bitmap?, flags: Int, npoints: Int, x: IntArray, y: IntArray)
+    fun drawPolygon(render: DWRender?, bitmap: Bitmap?, flags: Int, npoints: Int,
+                    x: IntArray, y: IntArray, fgColor: Int, bgColor: Int)
     {
         // Create a path with all our points
         val path = Path()
@@ -3000,6 +3006,7 @@ class DWindows : AppCompatActivity() {
             }
 
             if(canvas != null) {
+                colorsSet(fgColor, bgColor)
                 // Handle the DW_DRAW_NOAA flag
                 if((flags and (1 shl 2)) == 0) {
                     paint.flags = Paint.ANTI_ALIAS_FLAG
@@ -3018,7 +3025,7 @@ class DWindows : AppCompatActivity() {
     }
 
     fun drawArc(render: DWRender?, bitmap: Bitmap?, flags: Int, xorigin: Int, yorigin: Int,
-                x1: Int, y1: Int, x2: Int, y2: Int)
+                x1: Int, y1: Int, x2: Int, y2: Int, fgColor: Int, bgColor: Int)
     {
         waitOnUiThread {
             var canvas: Canvas? = null
@@ -3039,10 +3046,12 @@ class DWindows : AppCompatActivity() {
                 val top = (yorigin-r).toFloat()
                 val rect = RectF(left, top, (left + (r*2)).toFloat(), (top + (r*2)).toFloat())
 
-                /* Convert to degrees */
+                // Convert to degrees
                 a1 *= 180.0 / Math.PI
                 a2 *= 180.0 / Math.PI
                 val sweep = Math.abs(a1 - a2)
+
+                colorsSet(fgColor, bgColor)
 
                 // Handle the DW_DRAW_NOAA flag
                 if((flags and (1 shl 2)) == 0) {
@@ -3084,6 +3093,19 @@ class DWindows : AppCompatActivity() {
         } else {
             this.bgcolor = Color.rgb(red, green, blue)
         }
+    }
+
+    fun colorsSet(fgColor: Int, bgColor: Int)
+    {
+        val fgRed: Int = (fgColor and 0x000000FF)
+        val fgGreen: Int = (fgColor and 0x0000FF00) shr 8
+        val fgBlue: Int = (fgColor and 0x00FF0000) shr 16
+        val bgRed: Int = (bgColor and 0x000000FF)
+        val bgGreen: Int = (bgColor and 0x0000FF00) shr 8
+        val bgBlue: Int = (bgColor and 0x00FF0000) shr 16
+
+        paint.color = Color.rgb(fgRed, fgGreen, fgBlue)
+        this.bgcolor = Color.rgb(bgRed, bgGreen, bgBlue)
     }
 
     fun timerConnect(interval: Long, sigfunc: Long, data: Long): Timer
