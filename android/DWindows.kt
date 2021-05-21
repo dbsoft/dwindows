@@ -3213,6 +3213,7 @@ class DWindows : AppCompatActivity() {
                         throw java.lang.RuntimeException()
                     });
             }
+            alert.setCancelable(false)
             alert.show();
 
             // loop till a runtime exception is triggered.
