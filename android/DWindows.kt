@@ -1865,7 +1865,7 @@ class DWindows : AppCompatActivity() {
         waitOnUiThread {
             var dataArrayMap = SimpleArrayMap<String, Long>()
 
-            percent = ProgressBar(this)
+            percent = ProgressBar(this,null, R.attr.progressBarStyleHorizontal)
             percent!!.tag = dataArrayMap
             percent!!.id = cid
             percent!!.max = 100
