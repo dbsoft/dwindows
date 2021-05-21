@@ -51,6 +51,8 @@ static char _dw_exec_dir[MAX_PATH+1] = {0};
 static int _dw_android_api = 0;
 
 static pthread_key_t _dw_env_key;
+static pthread_key_t _dw_fgcolor_key;
+static pthread_key_t _dw_bgcolor_key;
 static HEV _dw_main_event;
 static JavaVM *_dw_jvm;
 static jobject _dw_obj;
@@ -173,6 +175,10 @@ Java_org_dbsoft_dwindows_DWindows_dwindowsInit(JNIEnv* env, jobject obj, jstring
         /* Save the JNIEnv for the main thread */
         pthread_key_create(&_dw_env_key, nullptr);
         pthread_setspecific(_dw_env_key, env);
+        pthread_key_create(&_dw_fgcolor_key, nullptr);
+        pthread_setspecific(_dw_fgcolor_key, nullptr);
+        pthread_key_create(&_dw_bgcolor_key, nullptr);
+        pthread_setspecific(_dw_bgcolor_key, nullptr);
 
         /* Create the dwmain event */
         _dw_main_event = dw_event_new();
@@ -2655,21 +2661,7 @@ void API dw_render_redraw(HWND handle)
  */
 void API dw_color_foreground_set(unsigned long value)
 {
-    JNIEnv *env;
-
-    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
-    {
-        unsigned long color = _dw_get_color(value);
-
-        // First get the class that contains the method you need to call
-        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
-        // Get the method that you want to call
-        jmethodID colorSet = env->GetMethodID(clazz, "colorSet",
-                                              "(IIII)V");
-        // Call the method on the object
-        env->CallVoidMethod(_dw_obj, colorSet, 0, (jint)DW_RED_VALUE(color), (jint)DW_GREEN_VALUE(color), (jint)DW_BLUE_VALUE(color));
-        _dw_jni_check_exception(env);
-    }
+    pthread_setspecific(_dw_fgcolor_key, (void *)_dw_get_color(value));
 }
 
 /* Sets the current background drawing color.
@@ -2680,21 +2672,7 @@ void API dw_color_foreground_set(unsigned long value)
  */
 void API dw_color_background_set(unsigned long value)
 {
-    JNIEnv *env;
-
-    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
-    {
-        unsigned long color = _dw_get_color(value);
-
-        // First get the class that contains the method you need to call
-        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
-        // Get the method that you want to call
-        jmethodID bgColorSet = env->GetMethodID(clazz, "bgColorSet",
-                                              "(IIII)V");
-        // Call the method on the object
-        env->CallVoidMethod(_dw_obj, bgColorSet, 0, (jint)DW_RED_VALUE(color), (jint)DW_GREEN_VALUE(color), (jint)DW_BLUE_VALUE(color));
-        _dw_jni_check_exception(env);
-    }
+    pthread_setspecific(_dw_bgcolor_key, (void *)_dw_get_color(value));
 }
 
 /* Allows the user to choose a color using the system's color chooser dialog.
@@ -2721,13 +2699,16 @@ void API dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
 
     if((handle || pixmap) && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
+        unsigned long fgcolor = (unsigned long)pthread_getspecific(_dw_fgcolor_key);
+        unsigned long bgcolor = (unsigned long)pthread_getspecific(_dw_bgcolor_key);
+
         // First get the class that contains the method you need to call
         jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
         // Get the method that you want to call
         jmethodID drawPoint = env->GetMethodID(clazz, "drawPoint",
-                                               "(Lorg/dbsoft/dwindows/DWRender;Landroid/graphics/Bitmap;II)V");
+                                               "(Lorg/dbsoft/dwindows/DWRender;Landroid/graphics/Bitmap;IIII)V");
         // Call the method on the object
-        env->CallVoidMethod(_dw_obj, drawPoint, handle, pixmap ? pixmap->bitmap : nullptr, x, y);
+        env->CallVoidMethod(_dw_obj, drawPoint, handle, pixmap ? pixmap->bitmap : nullptr, x, y, (jint)fgcolor, (jint)bgcolor);
         _dw_jni_check_exception(env);
     }
 }
@@ -2747,13 +2728,16 @@ void API dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y
 
     if((handle || pixmap) && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
+        unsigned long fgcolor = (unsigned long)pthread_getspecific(_dw_fgcolor_key);
+        unsigned long bgcolor = (unsigned long)pthread_getspecific(_dw_bgcolor_key);
+
         // First get the class that contains the method you need to call
         jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
         // Get the method that you want to call
         jmethodID drawLine = env->GetMethodID(clazz, "drawLine",
-                                              "(Lorg/dbsoft/dwindows/DWRender;Landroid/graphics/Bitmap;IIII)V");
+                                              "(Lorg/dbsoft/dwindows/DWRender;Landroid/graphics/Bitmap;IIIIII)V");
         // Call the method on the object
-        env->CallVoidMethod(_dw_obj, drawLine, handle, pixmap ? pixmap->bitmap : nullptr, x1, y1, x2, y2);
+        env->CallVoidMethod(_dw_obj, drawLine, handle, pixmap ? pixmap->bitmap : nullptr, x1, y1, x2, y2, (jint)fgcolor, (jint)bgcolor);
         _dw_jni_check_exception(env);
     }
 }
@@ -2772,16 +2756,20 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, const char *tex
 
     if((handle || pixmap) && text && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
+        unsigned long fgcolor = (unsigned long)pthread_getspecific(_dw_fgcolor_key);
+        unsigned long bgcolor = (unsigned long)pthread_getspecific(_dw_bgcolor_key);
+
         // Construct the string
         jstring jstr = env->NewStringUTF(text);
         // First get the class that contains the method you need to call
         jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
         // Get the method that you want to call
         jmethodID drawLine = env->GetMethodID(clazz, "drawText",
-                                              "(Lorg/dbsoft/dwindows/DWRender;Landroid/graphics/Bitmap;IILjava/lang/String;Landroid/graphics/Typeface;ILandroid/view/View;)V");
+                                              "(Lorg/dbsoft/dwindows/DWRender;Landroid/graphics/Bitmap;IILjava/lang/String;Landroid/graphics/Typeface;ILandroid/view/View;II)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, drawLine, handle, pixmap ? pixmap->bitmap : nullptr, x, y, jstr,
-                            pixmap ? pixmap->typeface : nullptr, pixmap ? pixmap->fontsize : 0, pixmap ? pixmap->handle : nullptr);
+                            pixmap ? pixmap->typeface : nullptr, pixmap ? pixmap->fontsize : 0,
+                            pixmap ? pixmap->handle : nullptr, (jint)fgcolor, (jint)bgcolor);
         _dw_jni_check_exception(env);
     }
 }
@@ -2840,6 +2828,9 @@ void API dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, in
 
         if(jx && jy)
         {
+            unsigned long fgcolor = (unsigned long)pthread_getspecific(_dw_fgcolor_key);
+            unsigned long bgcolor = (unsigned long)pthread_getspecific(_dw_bgcolor_key);
+
             // Construct the integer arrays
             env->SetIntArrayRegion(jx, 0, npoints, x);
             env->SetIntArrayRegion(jy, 0, npoints, y);
@@ -2847,9 +2838,9 @@ void API dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, in
             jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
             // Get the method that you want to call
             jmethodID drawPolygon = env->GetMethodID(clazz, "drawPolygon",
-                                                     "(Lorg/dbsoft/dwindows/DWRender;Landroid/graphics/Bitmap;II[I[I)V");
+                                                     "(Lorg/dbsoft/dwindows/DWRender;Landroid/graphics/Bitmap;II[I[III)V");
             // Call the method on the object
-            env->CallVoidMethod(_dw_obj, drawPolygon, handle, pixmap ? pixmap->bitmap : nullptr, flags, npoints, jx, jy);
+            env->CallVoidMethod(_dw_obj, drawPolygon, handle, pixmap ? pixmap->bitmap : nullptr, flags, npoints, jx, jy, (jint)fgcolor, (jint)bgcolor);
             _dw_jni_check_exception(env);
         }
     }
@@ -2871,13 +2862,16 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int 
 
     if((handle || pixmap) && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
+        unsigned long fgcolor = (unsigned long)pthread_getspecific(_dw_fgcolor_key);
+        unsigned long bgcolor = (unsigned long)pthread_getspecific(_dw_bgcolor_key);
+
         // First get the class that contains the method you need to call
         jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
         // Get the method that you want to call
         jmethodID drawLine = env->GetMethodID(clazz, "drawRect",
-                                              "(Lorg/dbsoft/dwindows/DWRender;Landroid/graphics/Bitmap;IIII)V");
+                                              "(Lorg/dbsoft/dwindows/DWRender;Landroid/graphics/Bitmap;IIIIII)V");
         // Call the method on the object
-        env->CallVoidMethod(_dw_obj, drawLine, handle, pixmap ? pixmap->bitmap : nullptr, x, y, width, height);
+        env->CallVoidMethod(_dw_obj, drawLine, handle, pixmap ? pixmap->bitmap : nullptr, x, y, width, height, (jint)fgcolor, (jint)bgcolor);
         _dw_jni_check_exception(env);
     }
 }
@@ -2901,13 +2895,16 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
 
     if((handle || pixmap) && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
+        unsigned long fgcolor = (unsigned long)pthread_getspecific(_dw_fgcolor_key);
+        unsigned long bgcolor = (unsigned long)pthread_getspecific(_dw_bgcolor_key);
+
         // First get the class that contains the method you need to call
         jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
         // Get the method that you want to call
         jmethodID drawLine = env->GetMethodID(clazz, "drawArc",
-                                              "(Lorg/dbsoft/dwindows/DWRender;Landroid/graphics/Bitmap;IIIIIII)V");
+                                              "(Lorg/dbsoft/dwindows/DWRender;Landroid/graphics/Bitmap;IIIIIIIII)V");
         // Call the method on the object
-        env->CallVoidMethod(_dw_obj, drawLine, handle, pixmap ? pixmap->bitmap : nullptr, flags, xorigin, yorigin, x1, y1, x2, y2);
+        env->CallVoidMethod(_dw_obj, drawLine, handle, pixmap ? pixmap->bitmap : nullptr, flags, xorigin, yorigin, x1, y1, x2, y2, (jint)fgcolor, (jint)bgcolor);
         _dw_jni_check_exception(env);
     }
 }
@@ -6579,6 +6576,8 @@ void API _dw_init_thread(void)
 
     _dw_jvm->AttachCurrentThread(&env, nullptr);
     pthread_setspecific(_dw_env_key, env);
+    pthread_setspecific(_dw_fgcolor_key, nullptr);
+    pthread_setspecific(_dw_bgcolor_key, nullptr);
 }
 
 /*
