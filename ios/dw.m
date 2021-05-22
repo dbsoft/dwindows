@@ -7581,7 +7581,7 @@ HMENUI API dw_menu_new(ULONG cid)
 HMENUI API dw_menubar_new(HWND location)
 {
     DWWindow *window = location;
-    DWMenu *menu = [[[DWMenu alloc] init] retain];
+    DWMenu *menu = [[[DWMenu alloc] initWithTag:0] retain];
 
     [window setMenu:menu];
     return menu;
