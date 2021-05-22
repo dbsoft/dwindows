@@ -39,8 +39,6 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.AppCompatEditText
 import androidx.collection.SimpleArrayMap
-import androidx.constraintlayout.widget.ConstraintLayout
-import androidx.constraintlayout.widget.ConstraintSet
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.res.ResourcesCompat
@@ -51,8 +49,6 @@ import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayout.OnTabSelectedListener
 import com.google.android.material.tabs.TabLayoutMediator
 import java.io.File
-import java.io.FileInputStream
-import java.io.FileNotFoundException
 import java.io.IOException
 import java.util.*
 import java.util.concurrent.locks.ReentrantLock
@@ -71,7 +67,7 @@ class DWTabViewPagerAdapter : RecyclerView.Adapter<DWTabViewPagerAdapter.DWEvent
         return position
     }
     override fun onBindViewHolder(holder: DWEventViewHolder, position: Int) {
-        holder.setIsRecyclable(false);
+        holder.setIsRecyclable(false)
     }
 
     class DWEventViewHolder(var view: View) : RecyclerView.ViewHolder(view)
@@ -103,7 +99,7 @@ class DWSpinButton(context: Context) : AppCompatEditText(context), OnTouchListen
     var maximum: Long = 65535
 
     init {
-        setCompoundDrawablesWithIntrinsicBounds(android.R.drawable.ic_media_previous, 0, android.R.drawable.ic_media_next, 0);
+        setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_media_previous, 0, R.drawable.ic_media_next, 0)
         setOnTouchListener(this)
     }
 
@@ -131,9 +127,7 @@ class DWSpinButton(context: Context) : AppCompatEditText(context), OnTouchListen
                 setText(value.toString())
                 eventHandlerInt(14, value.toInt(), 0, 0, 0)
                 return true
-            } else if (event.x <= (v as EditText)
-                    .compoundDrawables[DRAWABLE_LEFT].bounds.width()
-            ) {
+            } else if (event.x <= v.compoundDrawables[DRAWABLE_LEFT].bounds.width()) {
                 val newvalue = this.text.toString().toLongOrNull()
 
                 if(newvalue != null) {
@@ -170,13 +164,13 @@ class DWComboBox(context: Context) : AppCompatEditText(context), OnTouchListener
     var selected: Int = -1
 
     init {
-        setCompoundDrawablesWithIntrinsicBounds(0, 0, android.R.drawable.arrow_down_float, 0);
+        setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.arrow_down_float, 0)
         setOnTouchListener(this)
         lpw = ListPopupWindow(context)
         lpw!!.setAdapter(
             ArrayAdapter(
                 context,
-                android.R.layout.simple_list_item_1, list
+                R.layout.simple_list_item_1, list
             )
         )
         lpw!!.anchorView = this
@@ -223,7 +217,7 @@ class DWListBox(context: Context) : ListView(context), OnItemClickListener {
         setAdapter(
             ArrayAdapter(
                 context,
-                android.R.layout.simple_list_item_1, list
+                R.layout.simple_list_item_1, list
             )
         )
         onItemClickListener = this
@@ -428,10 +422,10 @@ class DWMenu {
             menu = newmenu
         }
         if(menu != null) {
-            var group: Int = 0
+            var group = 0
 
             // Enable group dividers for separators
-            MenuCompat.setGroupDividerEnabled(menu, true);
+            MenuCompat.setGroupDividerEnabled(menu, true)
 
             for (menuitem in children) {
                 // Submenus on Android can't have submenus, so stop at depth 1
@@ -448,10 +442,10 @@ class DWMenu {
                         menuitem.menuitem!!.isCheckable = menuitem.check
                         menuitem.menuitem!!.isChecked = menuitem.checked
                         menuitem.menuitem!!.isEnabled = menuitem.enabled
-                        menuitem.menuitem!!.setOnMenuItemClickListener(MenuItem.OnMenuItemClickListener { item: MenuItem? ->
+                        menuitem.menuitem!!.setOnMenuItemClickListener { item: MenuItem? ->
                             eventHandlerSimple(menuitem, 8)
                             true
-                        })
+                        }
                     }
                 }
             }
@@ -658,8 +652,6 @@ class DWContainerAdapter(c: Context) : BaseAdapter()
         // If the view passed in is null we need to create the layout
         if(rowView == null) {
             rowView = LinearLayout(context)
-            var lastView: View? = null
-
             rowView.orientation = LinearLayout.HORIZONTAL
 
             for(i in 0 until displayColumns) {
@@ -675,7 +667,6 @@ class DWContainerAdapter(c: Context) : BaseAdapter()
                         imageview.setImageDrawable(content)
                     }
                     rowView.addView(imageview)
-                    lastView = imageview
                 } else  {
                     // Everything else id displayed as text
                     val textview = TextView(context)
@@ -688,7 +679,6 @@ class DWContainerAdapter(c: Context) : BaseAdapter()
                         textview.text = content.toString()
                     }
                     rowView.addView(textview)
-                    lastView = textview
                 }
             }
             // TODO: Add code to optionally add other columns
@@ -937,7 +927,7 @@ class DWindows : AppCompatActivity() {
     {
         waitOnUiThread {
             if (window is TextView && window !is EditText) {
-                val text = window as TextView
+                val text = window
                 val ourmask = (Gravity.HORIZONTAL_GRAVITY_MASK or Gravity.VERTICAL_GRAVITY_MASK) and mask
 
                 if (ourmask != 0) {
@@ -967,7 +957,7 @@ class DWindows : AppCompatActivity() {
     }
 
     fun windowGetData(window: View, name: String): Long {
-        var retval: Long = 0L
+        var retval = 0L
 
         if (window.tag != null) {
             val dataArrayMap: SimpleArrayMap<String, Long> = window.tag as SimpleArrayMap<String, Long>
@@ -992,7 +982,7 @@ class DWindows : AppCompatActivity() {
             val italic: Boolean = fontname.contains(" Italic")
             val font = fontname.substringAfter('.')
             var fontFamily = font
-            var typeface: Typeface? = null
+            val typeface: Typeface?
 
             if (bold) {
                 fontFamily = font.substringBefore(" Bold")
@@ -1016,7 +1006,7 @@ class DWindows : AppCompatActivity() {
     }
 
     fun windowSetFont(window: View, fontname: String?) {
-        var typeface: Typeface? = typefaceFromFontName(fontname)
+        val typeface: Typeface? = typefaceFromFontName(fontname)
         var size: Float? = null
 
         if(fontname != null) {
@@ -1228,7 +1218,7 @@ class DWindows : AppCompatActivity() {
             }
 
             if (box != null) {
-                var weight: Float = 1F
+                var weight = 1F
 
                 // If it is a box, match parent based on direction
                 if ((item is LinearLayout) || (item is ScrollView)) {
@@ -1488,7 +1478,7 @@ class DWindows : AppCompatActivity() {
 
     fun checkOrRadioGetChecked(control: View): Boolean
     {
-        var retval: Boolean = false
+        var retval = false
 
         waitOnUiThread {
             if (control is CheckBox) {
@@ -1792,7 +1782,7 @@ class DWindows : AppCompatActivity() {
                 box.layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     LinearLayout.LayoutParams.MATCH_PARENT
-                );
+                )
 
                 adapter.viewList[index] = box
             }
@@ -1801,7 +1791,7 @@ class DWindows : AppCompatActivity() {
 
     fun notebookPageGet(notebook: RelativeLayout): Long
     {
-        var retval: Long = 0L
+        var retval = 0L
 
         waitOnUiThread {
             var pager: ViewPager2? = null
@@ -1893,7 +1883,7 @@ class DWindows : AppCompatActivity() {
 
     fun percentGetPos(percent: ProgressBar): Int
     {
-        var retval: Int = 0
+        var retval = 0
 
         waitOnUiThread {
             retval = percent.progress
@@ -1975,7 +1965,7 @@ class DWindows : AppCompatActivity() {
         var spinbutton: DWSpinButton? = null
 
         waitOnUiThread {
-            var dataArrayMap = SimpleArrayMap<String, Long>()
+            val dataArrayMap = SimpleArrayMap<String, Long>()
             val newval = text.toLongOrNull()
 
             spinbutton = DWSpinButton(this)
@@ -2033,7 +2023,7 @@ class DWindows : AppCompatActivity() {
         var combobox: DWComboBox? = null
 
         waitOnUiThread {
-            var dataArrayMap = SimpleArrayMap<String, Long>()
+            val dataArrayMap = SimpleArrayMap<String, Long>()
 
             combobox = DWComboBox(this)
             combobox!!.tag = dataArrayMap
@@ -2056,7 +2046,7 @@ class DWindows : AppCompatActivity() {
             cont!!.id = cid
             cont!!.adapter = adapter
             if(multi != 0) {
-                cont!!.choiceMode = ListView.CHOICE_MODE_MULTIPLE;
+                cont!!.choiceMode = ListView.CHOICE_MODE_MULTIPLE
             }
             cont!!.setOnItemClickListener { parent, view, position, id ->
                 val title = adapter.model.getRowTitle(position)
@@ -2288,7 +2278,7 @@ class DWindows : AppCompatActivity() {
 
     fun containerGetColumnType(cont: ListView, column: Int): Int
     {
-        var type: Int = 0
+        var type = 0
 
         waitOnUiThread {
             val adapter: DWContainerAdapter = cont.adapter as DWContainerAdapter
@@ -2345,7 +2335,7 @@ class DWindows : AppCompatActivity() {
             listbox!!.tag = dataArrayMap
             listbox!!.id = cid
             if(multi != 0) {
-                listbox!!.choiceMode = ListView.CHOICE_MODE_MULTIPLE;
+                listbox!!.choiceMode = ListView.CHOICE_MODE_MULTIPLE
             }
         }
         return listbox
@@ -2398,7 +2388,7 @@ class DWindows : AppCompatActivity() {
 
     fun listOrComboBoxCount(window: View): Int
     {
-        var retval: Int = 0
+        var retval = 0
 
         waitOnUiThread {
             if(window is DWComboBox) {
@@ -2485,9 +2475,9 @@ class DWindows : AppCompatActivity() {
                 if(index < listbox.list.count()) {
                     if(state != 0) {
                         listbox.selected = index
-                        listbox.setItemChecked(index, true);
+                        listbox.setItemChecked(index, true)
                     } else {
-                        listbox.setItemChecked(index, false);
+                        listbox.setItemChecked(index, false)
                     }
                 }
             }
@@ -2567,8 +2557,8 @@ class DWindows : AppCompatActivity() {
             calendar!!.tag = dataArrayMap
             calendar!!.id = cid
             calendar!!.setOnDateChangeListener { calendar, year, month, day ->
-                val c: Calendar = Calendar.getInstance();
-                c.set(year, month, day);
+                val c: Calendar = Calendar.getInstance()
+                c.set(year, month, day)
                 calendar.date = c.timeInMillis
             }
         }
@@ -2686,7 +2676,7 @@ class DWindows : AppCompatActivity() {
 
         waitOnUiThread {
             if(resID != 0) {
-                icon = ResourcesCompat.getDrawable(resources, resID, null);
+                icon = ResourcesCompat.getDrawable(resources, resID, null)
             } else if(filename != null) {
                 val exts = arrayOf("", ".png", ".webp", ".jpg", ".jpeg", ".gif")
 
@@ -2717,7 +2707,7 @@ class DWindows : AppCompatActivity() {
             if(width > 0 && height > 0) {
                 pixmap = Bitmap.createBitmap(null, width, height, Bitmap.Config.ARGB_8888)
             } else if(resID != 0) {
-                pixmap = BitmapFactory.decodeResource(resources, resID);
+                pixmap = BitmapFactory.decodeResource(resources, resID)
             } else if(filename != null) {
                 val exts = arrayOf("", ".png", ".webp", ".jpg", ".jpeg", ".gif")
 
@@ -2781,7 +2771,7 @@ class DWindows : AppCompatActivity() {
     {
         val dst = Rect(dstx, dsty, dstx + dstw, dsty + dsth)
         val src = Rect(srcx, srcy, srcx + srcw, srcy + srch)
-        var retval: Int = 1
+        var retval = 1
 
         if(srcw == -1) {
             src.right = srcx + dstw
@@ -2877,7 +2867,7 @@ class DWindows : AppCompatActivity() {
                         paint.textSize = fontsize.toFloat()
                     }
                 } else if (window != null && window is DWRender) {
-                    val secondary: DWRender = window as DWRender
+                    val secondary: DWRender = window
 
                     if (secondary.typeface != null) {
                         paint.typeface = secondary.typeface
@@ -2917,7 +2907,7 @@ class DWindows : AppCompatActivity() {
                         paint.textSize = fontsize.toFloat()
                     }
                 } else if(window != null && window is DWRender) {
-                    val secondary: DWRender = window as DWRender
+                    val secondary: DWRender = window
 
                     if(secondary.typeface != null) {
                         paint.typeface = secondary.typeface
@@ -3175,7 +3165,7 @@ class DWindows : AppCompatActivity() {
 
     fun messageBox(title: String, body: String, flags: Int): Int
     {
-        var retval: Int = 0
+        var retval = 0
 
         waitOnUiThread {
             // make a text input dialog and show it
@@ -3184,39 +3174,41 @@ class DWindows : AppCompatActivity() {
             alert.setTitle(title)
             alert.setMessage(body)
             if ((flags and (1 shl 3)) != 0) {
-                alert.setPositiveButton("Yes",
-                    //android.R.string.yes,
-                    DialogInterface.OnClickListener { _: DialogInterface, _: Int ->
-                        retval = 1
-                        throw java.lang.RuntimeException()
-                    });
+                alert.setPositiveButton("Yes"
+                )
+                //R.string.yes,
+                { _: DialogInterface, _: Int ->
+                    retval = 1
+                    throw java.lang.RuntimeException()
+                }
             }
             if ((flags and ((1 shl 1) or (1 shl 2))) != 0) {
                 alert.setNegativeButton(
-                    android.R.string.ok,
-                    DialogInterface.OnClickListener { _: DialogInterface, _: Int ->
-                        retval = 0
-                        throw java.lang.RuntimeException()
-                    });
+                    R.string.ok
+                ) { _: DialogInterface, _: Int ->
+                    retval = 0
+                    throw java.lang.RuntimeException()
+                }
             }
             if ((flags and ((1 shl 3) or (1 shl 4))) != 0) {
-                alert.setNegativeButton("No",
-                    //android.R.string.no,
-                    DialogInterface.OnClickListener { _: DialogInterface, _: Int ->
-                        retval = 0
-                        throw java.lang.RuntimeException()
-                    });
+                alert.setNegativeButton("No"
+                )
+                //R.string.no,
+                { _: DialogInterface, _: Int ->
+                    retval = 0
+                    throw java.lang.RuntimeException()
+                }
             }
             if ((flags and ((1 shl 2) or (1 shl 4))) != 0) {
                 alert.setNeutralButton(
-                    android.R.string.cancel,
-                    DialogInterface.OnClickListener { _: DialogInterface, _: Int ->
-                        retval = 2
-                        throw java.lang.RuntimeException()
-                    });
+                    R.string.cancel
+                ) { _: DialogInterface, _: Int ->
+                    retval = 2
+                    throw java.lang.RuntimeException()
+                }
             }
             alert.setCancelable(false)
-            alert.show();
+            alert.show()
 
             // loop till a runtime exception is triggered.
             try {
