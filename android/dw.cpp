@@ -5044,6 +5044,19 @@ int API dw_window_set_border(HWND handle, int border)
  */
 void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
 {
+    JNIEnv *env;
+
+    if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID windowSetStyle = env->GetMethodID(clazz, "windowSetStyle",
+                                                    "(Landroid/view/View;II)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, windowSetStyle, handle, (jint)style, (jint)mask);
+        _dw_jni_check_exception(env);
+    }
 }
 
 /*

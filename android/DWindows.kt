@@ -493,7 +493,7 @@ class DWContainerModel {
 
     fun getRowAndColumn(row: Int, column: Int): Any?
     {
-        var index: Int = (row * columns.size) + column
+        val index: Int = (row * columns.size) + column
 
         if(index > -1 && index < data.size) {
             return data[index]
@@ -503,7 +503,7 @@ class DWContainerModel {
 
     fun setRowAndColumn(row: Int, column: Int, obj: Any?)
     {
-        var index: Int = (row * columns.size) + column
+        val index: Int = (row * columns.size) + column
 
         if(index > -1 && index < data.size && column < types.size) {
             // Verify the data matches the column type
@@ -598,7 +598,7 @@ class DWContainerModel {
 
     fun addRows(count: Int): Long
     {
-        var startRow: Long = numberOfRows().toLong()
+        val startRow: Long = numberOfRows().toLong()
 
         for(i in 0 until count)
         {
@@ -786,8 +786,8 @@ class DWindows : AppCompatActivity() {
 
         // Send a DW_SIGNAL_CONFIGURE on orientation change
         if(windowLayout != null) {
-            var width: Int = windowLayout!!.width
-            var height: Int = windowLayout!!.height
+            val width: Int = windowLayout!!.width
+            val height: Int = windowLayout!!.height
 
             eventHandlerInt(windowLayout as View, 1, width, height, 0, 0)
         }
@@ -917,7 +917,7 @@ class DWindows : AppCompatActivity() {
     fun windowNew(title: String, style: Int): LinearLayout? {
         if (firstWindow) {
             waitOnUiThread {
-                var dataArrayMap = SimpleArrayMap<String, Long>()
+                val dataArrayMap = SimpleArrayMap<String, Long>()
                 windowLayout = LinearLayout(this)
 
                 windowLayout!!.visibility = View.GONE
@@ -933,13 +933,30 @@ class DWindows : AppCompatActivity() {
         return null
     }
 
+    fun windowSetStyle(window: View, style: Int, mask: Int)
+    {
+        waitOnUiThread {
+            if (window is TextView && window !is EditText) {
+                val text = window as TextView
+                val ourmask = (Gravity.HORIZONTAL_GRAVITY_MASK or Gravity.VERTICAL_GRAVITY_MASK) and mask
+
+                if (ourmask != 0) {
+                    // Gravity with the masked parts zeroed out
+                    val newgravity = style and ourmask
+
+                    text.gravity = newgravity
+                }
+            }
+        }
+    }
+
     fun windowFromId(window: View, cid: Int): View {
         return window.findViewById(cid)
     }
 
     fun windowSetData(window: View, name: String, data: Long) {
         if (window.tag != null) {
-            var dataArrayMap: SimpleArrayMap<String, Long> = window.tag as SimpleArrayMap<String, Long>
+            val dataArrayMap: SimpleArrayMap<String, Long> = window.tag as SimpleArrayMap<String, Long>
 
             if (data != 0L) {
                 dataArrayMap.put(name, data)
@@ -953,7 +970,7 @@ class DWindows : AppCompatActivity() {
         var retval: Long = 0L
 
         if (window.tag != null) {
-            var dataArrayMap: SimpleArrayMap<String, Long> = window.tag as SimpleArrayMap<String, Long>
+            val dataArrayMap: SimpleArrayMap<String, Long> = window.tag as SimpleArrayMap<String, Long>
 
             if(dataArrayMap.containsKey(name)) {
                 retval = dataArrayMap.get(name)!!
@@ -977,23 +994,22 @@ class DWindows : AppCompatActivity() {
             var fontFamily = font
             var typeface: Typeface? = null
 
-            if (bold && font != null) {
+            if (bold) {
                 fontFamily = font.substringBefore(" Bold")
-            } else if (italic && font != null) {
+            } else if (italic) {
                 fontFamily = font.substringBefore(" Italic")
             }
 
-            if (fontFamily != null) {
-                var style: Int = Typeface.NORMAL
-                if (bold && italic) {
-                    style = Typeface.BOLD_ITALIC
-                } else if (bold) {
-                    style = Typeface.BOLD
-                } else if (italic) {
-                    style = Typeface.ITALIC
-                }
-                typeface = Typeface.create(fontFamily, style)
+            var style: Int = Typeface.NORMAL
+            if (bold && italic) {
+                style = Typeface.BOLD_ITALIC
+            } else if (bold) {
+                style = Typeface.BOLD
+            } else if (italic) {
+                style = Typeface.ITALIC
             }
+            typeface = Typeface.create(fontFamily, style)
+
             return typeface
         }
         return Typeface.DEFAULT
@@ -1010,19 +1026,19 @@ class DWindows : AppCompatActivity() {
         if(typeface != null) {
             waitOnUiThread {
                 if (window is TextView) {
-                    var textview: TextView = window
+                    val textview: TextView = window
                     textview.typeface = typeface
                     if(size != null) {
                         textview.textSize = size
                     }
                 } else if (window is Button) {
-                    var button: Button = window
+                    val button: Button = window
                     button.typeface = typeface
                     if(size != null) {
                         button.textSize = size
                     }
                 } else if(window is DWRender) {
-                    var render: DWRender = window
+                    val render: DWRender = window
                     render.typeface = typeface
                     if(size != null) {
                         render.fontsize = size
@@ -1045,7 +1061,7 @@ class DWindows : AppCompatActivity() {
 
         waitOnUiThread {
             if (window is TextView) {
-                var textview: TextView = window
+                val textview: TextView = window
 
                 // Handle DW_CLR_DEFAULT
                 if(fore == 16) {
@@ -1056,24 +1072,18 @@ class DWindows : AppCompatActivity() {
                 textview.setTextColor(colorfore)
                 textview.setBackgroundColor(colorback)
             } else if (window is Button) {
-                var button: Button = window
+                val button: Button = window
 
                 // Handle DW_CLR_DEFAULT
                 if(fore == 16) {
                     val value = TypedValue()
-                    // colorButtonNormal requires API 21... use the editTextColor...
-                    // on older versions as a placeholder... this is probably wrong
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                        this.theme.resolveAttribute(R.attr.colorButtonNormal, value, true)
-                    } else {
-                        this.theme.resolveAttribute(R.attr.editTextColor, value, true)
-                    }
+                    this.theme.resolveAttribute(R.attr.colorButtonNormal, value, true)
                     colorfore = value.data
                 }
                 button.setTextColor(colorfore)
                 button.setBackgroundColor(colorback)
             } else if(window is LinearLayout) {
-                var box: LinearLayout = window
+                val box: LinearLayout = window
 
                 box.setBackgroundColor(colorback)
             }
@@ -1083,10 +1093,10 @@ class DWindows : AppCompatActivity() {
     fun windowSetText(window: View, text: String) {
         waitOnUiThread {
             if (window is TextView) {
-                var textview: TextView = window
+                val textview: TextView = window
                 textview.text = text
             } else if (window is Button) {
-                var button: Button = window
+                val button: Button = window
                 button.text = text
             } else if (window is LinearLayout) {
                 // TODO: Make sure this is actually the top-level layout, not just a box
@@ -1100,10 +1110,10 @@ class DWindows : AppCompatActivity() {
 
         waitOnUiThread {
             if (window is TextView) {
-                var textview: TextView = window
+                val textview: TextView = window
                 text = textview.text.toString()
             } else if (window is Button) {
-                var button: Button = window
+                val button: Button = window
                 text = button.text.toString()
             } else if (window is LinearLayout) {
                 // TODO: Make sure this is actually the top-level layout, not just a box
@@ -1125,8 +1135,8 @@ class DWindows : AppCompatActivity() {
     }
 
     fun clipboardGetText(): String {
-        var cm: ClipboardManager = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
-        var clipdata = cm.primaryClip
+        val cm: ClipboardManager = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+        val clipdata = cm.primaryClip
 
         if (clipdata != null && clipdata.itemCount > 0) {
             return clipdata.getItemAt(0).coerceToText(this).toString()
@@ -1135,8 +1145,8 @@ class DWindows : AppCompatActivity() {
     }
 
     fun clipboardSetText(text: String) {
-        var cm: ClipboardManager = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
-        var clipdata = ClipData.newPlainText("text", text)
+        val cm: ClipboardManager = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+        val clipdata = ClipData.newPlainText("text", text)
 
         cm.setPrimaryClip(clipdata)
     }
@@ -1145,7 +1155,7 @@ class DWindows : AppCompatActivity() {
         var box: LinearLayout? = null
         waitOnUiThread {
             box = LinearLayout(this)
-            var dataArrayMap = SimpleArrayMap<String, Long>()
+            val dataArrayMap = SimpleArrayMap<String, Long>()
 
             box!!.tag = dataArrayMap
             box!!.layoutParams =
@@ -1169,7 +1179,7 @@ class DWindows : AppCompatActivity() {
         waitOnUiThread {
             val box = LinearLayout(this)
             scrollBox = ScrollView(this)
-            var dataArrayMap = SimpleArrayMap<String, Long>()
+            val dataArrayMap = SimpleArrayMap<String, Long>()
 
             scrollBox!!.tag = dataArrayMap
             box.layoutParams =
@@ -1210,7 +1220,7 @@ class DWindows : AppCompatActivity() {
             if (boxview is LinearLayout) {
                 box = boxview
             } else if (boxview is ScrollView) {
-                var sv: ScrollView = boxview
+                val sv: ScrollView = boxview
 
                 if (sv.getChildAt(0) is LinearLayout) {
                     box = sv.getChildAt(0) as LinearLayout
@@ -1276,7 +1286,7 @@ class DWindows : AppCompatActivity() {
                     }
                 }
 
-                var params: LinearLayout.LayoutParams = LinearLayout.LayoutParams(w, h)
+                val params: LinearLayout.LayoutParams = LinearLayout.LayoutParams(w, h)
 
                 // Handle expandable items by giving them a weight...
                 // in the direction of the box.
@@ -1290,7 +1300,7 @@ class DWindows : AppCompatActivity() {
                     }
                 }
                 // Gravity needs to match the expandable settings
-                var grav: Int = Gravity.CLIP_HORIZONTAL or Gravity.CLIP_VERTICAL
+                val grav: Int = Gravity.CLIP_HORIZONTAL or Gravity.CLIP_VERTICAL
                 if (hsize != 0 && vsize != 0) {
                     params.gravity = Gravity.FILL or grav
                 } else if (hsize != 0) {
@@ -1310,7 +1320,7 @@ class DWindows : AppCompatActivity() {
 
     fun boxUnpack(item: View) {
         waitOnUiThread {
-            var box: LinearLayout = item.parent as LinearLayout
+            val box: LinearLayout = item.parent as LinearLayout
             box.removeView(item)
         }
     }
@@ -1330,7 +1340,7 @@ class DWindows : AppCompatActivity() {
         var button: Button? = null
         waitOnUiThread {
             button = Button(this)
-            var dataArrayMap = SimpleArrayMap<String, Long>()
+            val dataArrayMap = SimpleArrayMap<String, Long>()
 
             button!!.tag = dataArrayMap
             button!!.text = text
@@ -1346,7 +1356,7 @@ class DWindows : AppCompatActivity() {
         var button: ImageButton? = null
         waitOnUiThread {
             button = ImageButton(this)
-            var dataArrayMap = SimpleArrayMap<String, Long>()
+            val dataArrayMap = SimpleArrayMap<String, Long>()
 
             button!!.tag = dataArrayMap
             button!!.id = resid
@@ -1362,8 +1372,8 @@ class DWindows : AppCompatActivity() {
         var button: ImageButton? = null
         waitOnUiThread {
             button = ImageButton(this)
-            var dataArrayMap = SimpleArrayMap<String, Long>()
-            var exts = arrayOf("", ".png", ".webp", ".jpg", ".jpeg", ".gif")
+            val dataArrayMap = SimpleArrayMap<String, Long>()
+            val exts = arrayOf("", ".png", ".webp", ".jpg", ".jpeg", ".gif")
 
             button!!.tag = dataArrayMap
             button!!.id = cid
@@ -1392,7 +1402,7 @@ class DWindows : AppCompatActivity() {
         var button: ImageButton? = null
         waitOnUiThread {
             button = ImageButton(this)
-            var dataArrayMap = SimpleArrayMap<String, Long>()
+            val dataArrayMap = SimpleArrayMap<String, Long>()
             val b = BitmapFactory.decodeByteArray(data,0, length)
 
             button!!.tag = dataArrayMap
@@ -1409,7 +1419,7 @@ class DWindows : AppCompatActivity() {
         var entryfield: EditText? = null
 
         waitOnUiThread {
-            var dataArrayMap = SimpleArrayMap<String, Long>()
+            val dataArrayMap = SimpleArrayMap<String, Long>()
             entryfield = EditText(this)
 
             entryfield!!.tag = dataArrayMap
@@ -1433,7 +1443,7 @@ class DWindows : AppCompatActivity() {
         var radiobutton: RadioButton? = null
 
         waitOnUiThread {
-            var dataArrayMap = SimpleArrayMap<String, Long>()
+            val dataArrayMap = SimpleArrayMap<String, Long>()
             radiobutton = RadioButton(this)
 
             radiobutton!!.tag = dataArrayMap
@@ -1450,7 +1460,7 @@ class DWindows : AppCompatActivity() {
         var checkbox: CheckBox? = null
 
         waitOnUiThread {
-            var dataArrayMap = SimpleArrayMap<String, Long>()
+            val dataArrayMap = SimpleArrayMap<String, Long>()
 
             checkbox = CheckBox(this)
             checkbox!!.tag = dataArrayMap
@@ -1467,10 +1477,10 @@ class DWindows : AppCompatActivity() {
     {
         waitOnUiThread {
             if (control is CheckBox) {
-                var checkbox: CheckBox = control
+                val checkbox: CheckBox = control
                 checkbox.isChecked = state != 0
             } else if (control is RadioButton) {
-                var radiobutton: RadioButton = control
+                val radiobutton: RadioButton = control
                 radiobutton.isChecked = state != 0
             }
         }
@@ -1482,10 +1492,10 @@ class DWindows : AppCompatActivity() {
 
         waitOnUiThread {
             if (control is CheckBox) {
-                var checkbox: CheckBox = control
+                val checkbox: CheckBox = control
                 retval = checkbox.isChecked
             } else if (control is RadioButton) {
-                var radiobutton: RadioButton = control
+                val radiobutton: RadioButton = control
                 retval = radiobutton.isChecked
             }
         }
@@ -1496,7 +1506,7 @@ class DWindows : AppCompatActivity() {
         var textview: TextView? = null
 
         waitOnUiThread {
-            var dataArrayMap = SimpleArrayMap<String, Long>()
+            val dataArrayMap = SimpleArrayMap<String, Long>()
 
             textview = TextView(this)
             textview!!.tag = dataArrayMap
@@ -1521,7 +1531,7 @@ class DWindows : AppCompatActivity() {
         var mle: EditText? = null
 
         waitOnUiThread {
-            var dataArrayMap = SimpleArrayMap<String, Long>()
+            val dataArrayMap = SimpleArrayMap<String, Long>()
 
             mle = EditText(this)
             mle!!.tag = dataArrayMap
@@ -1618,9 +1628,9 @@ class DWindows : AppCompatActivity() {
         waitOnUiThread {
             val pager = ViewPager2(this)
             val tabs = TabLayout(this)
-            var w: Int = RelativeLayout.LayoutParams.MATCH_PARENT
-            var h: Int = RelativeLayout.LayoutParams.WRAP_CONTENT
-            var dataArrayMap = SimpleArrayMap<String, Long>()
+            val w: Int = RelativeLayout.LayoutParams.MATCH_PARENT
+            val h: Int = RelativeLayout.LayoutParams.WRAP_CONTENT
+            val dataArrayMap = SimpleArrayMap<String, Long>()
 
             notebook = RelativeLayout(this)
             notebook!!.tag = dataArrayMap
@@ -1683,8 +1693,8 @@ class DWindows : AppCompatActivity() {
             }
 
             if (pager != null && tabs != null) {
-                var adapter: DWTabViewPagerAdapter = pager.adapter as DWTabViewPagerAdapter
-                var tab = tabs.newTab()
+                val adapter: DWTabViewPagerAdapter = pager.adapter as DWTabViewPagerAdapter
+                val tab = tabs.newTab()
 
                 // Increment our page ID... making sure no duplicates exist
                 do {
@@ -1721,7 +1731,7 @@ class DWindows : AppCompatActivity() {
             }
 
             if (pager != null && tabs != null) {
-                var adapter: DWTabViewPagerAdapter = pager.adapter as DWTabViewPagerAdapter
+                val adapter: DWTabViewPagerAdapter = pager.adapter as DWTabViewPagerAdapter
                 val index = adapter.pageList.indexOf(pageID)
                 val tab = tabs.getTabAt(index)
 
@@ -1775,7 +1785,7 @@ class DWindows : AppCompatActivity() {
             }
 
             if (pager != null && tabs != null) {
-                var adapter: DWTabViewPagerAdapter = pager.adapter as DWTabViewPagerAdapter
+                val adapter: DWTabViewPagerAdapter = pager.adapter as DWTabViewPagerAdapter
                 val index = adapter.pageList.indexOf(pageID)
 
                 // Make sure the box is MATCH_PARENT
@@ -1806,7 +1816,7 @@ class DWindows : AppCompatActivity() {
             }
 
             if (pager != null && tabs != null) {
-                var adapter: DWTabViewPagerAdapter = pager.adapter as DWTabViewPagerAdapter
+                val adapter: DWTabViewPagerAdapter = pager.adapter as DWTabViewPagerAdapter
                 retval = adapter.pageList.get(tabs.selectedTabPosition)
             }
         }
@@ -1842,7 +1852,7 @@ class DWindows : AppCompatActivity() {
         var slider: SeekBar? = null
 
         waitOnUiThread {
-            var dataArrayMap = SimpleArrayMap<String, Long>()
+            val dataArrayMap = SimpleArrayMap<String, Long>()
 
             slider = SeekBar(this)
             slider!!.tag = dataArrayMap
@@ -1871,7 +1881,7 @@ class DWindows : AppCompatActivity() {
         var percent: ProgressBar? = null
 
         waitOnUiThread {
-            var dataArrayMap = SimpleArrayMap<String, Long>()
+            val dataArrayMap = SimpleArrayMap<String, Long>()
 
             percent = ProgressBar(this,null, R.attr.progressBarStyleHorizontal)
             percent!!.tag = dataArrayMap
@@ -1910,7 +1920,7 @@ class DWindows : AppCompatActivity() {
         var html: WebView? = null
 
         waitOnUiThread {
-            var dataArrayMap = SimpleArrayMap<String, Long>()
+            val dataArrayMap = SimpleArrayMap<String, Long>()
 
             html = WebView(this)
             html!!.tag = dataArrayMap
@@ -2038,8 +2048,8 @@ class DWindows : AppCompatActivity() {
         var cont: ListView? = null
 
         waitOnUiThread {
-            var dataArrayMap = SimpleArrayMap<String, Long>()
-            var adapter = DWContainerAdapter(this)
+            val dataArrayMap = SimpleArrayMap<String, Long>()
+            val adapter = DWContainerAdapter(this)
 
             cont = ListView(this)
             cont!!.tag = dataArrayMap
@@ -2088,12 +2098,8 @@ class DWindows : AppCompatActivity() {
                 val checked: SparseBooleanArray = cont.getCheckedItemPositions()
                 val position = checked.keyAt(0)
 
-                if(position != null) {
-                    adapter.model.querypos = position
-                    retval = adapter.model.getRowTitle(position)
-                } else {
-                    adapter.model.querypos = -1
-                }
+                adapter.model.querypos = position
+                retval = adapter.model.getRowTitle(position)
             } else {
                 if(adapter.model.rowdata.size == 0) {
                     adapter.model.querypos = -1
@@ -2123,22 +2129,11 @@ class DWindows : AppCompatActivity() {
                         // Item position in adapter
                         val position: Int = checked.keyAt(i)
 
-                        if (position != null) {
-                            // If we are at our current point... check to see
-                            // if there is another one, and return it...
-                            // otherwise we will return -1 to indicated we are done.
-                            if (adapter.model.querypos == position && (i + 1) < checked.size()) {
-                                val newpos = checked.keyAt(i + 1)
+                        if (adapter.model.querypos == position && (i + 1) < checked.size()) {
+                            val newpos = checked.keyAt(i + 1)
 
-                                if (newpos != null) {
-                                    adapter.model.querypos = newpos
-                                    retval = adapter.model.getRowTitle(newpos)
-                                } else {
-                                    adapter.model.querypos = -1
-                                }
-                            }
-                        } else {
-                            adapter.model.querypos = -1
+                            adapter.model.querypos = newpos
+                            retval = adapter.model.getRowTitle(newpos)
                         }
                     }
                 } else {
@@ -2166,12 +2161,8 @@ class DWindows : AppCompatActivity() {
                 val checked: SparseBooleanArray = cont.getCheckedItemPositions()
                 val position = checked.keyAt(0)
 
-                if(position != null) {
-                    adapter.model.querypos = position
-                    retval = adapter.model.getRowData(position)
-                } else {
-                    adapter.model.querypos = -1
-                }
+                adapter.model.querypos = position
+                retval = adapter.model.getRowData(position)
             } else {
                 if(adapter.model.rowdata.size == 0) {
                     adapter.model.querypos = -1
@@ -2201,22 +2192,11 @@ class DWindows : AppCompatActivity() {
                         // Item position in adapter
                         val position: Int = checked.keyAt(i)
 
-                        if (position != null) {
-                            // If we are at our current point... check to see
-                            // if there is another one, and return it...
-                            // otherwise we will return -1 to indicated we are done.
-                            if (adapter.model.querypos == position && (i + 1) < checked.size()) {
-                                val newpos = checked.keyAt(i + 1)
+                        if (adapter.model.querypos == position && (i + 1) < checked.size()) {
+                            val newpos = checked.keyAt(i + 1)
 
-                                if (newpos != null) {
-                                    adapter.model.querypos = newpos
-                                    retval = adapter.model.getRowData(newpos)
-                                } else {
-                                    adapter.model.querypos = -1
-                                }
-                            }
-                        } else {
-                            adapter.model.querypos = -1
+                            adapter.model.querypos = newpos
+                            retval = adapter.model.getRowData(newpos)
                         }
                     }
                 } else {
@@ -2359,7 +2339,7 @@ class DWindows : AppCompatActivity() {
         var listbox: DWListBox? = null
 
         waitOnUiThread {
-            var dataArrayMap = SimpleArrayMap<String, Long>()
+            val dataArrayMap = SimpleArrayMap<String, Long>()
 
             listbox = DWListBox(this)
             listbox!!.tag = dataArrayMap
@@ -2581,7 +2561,7 @@ class DWindows : AppCompatActivity() {
         var calendar: CalendarView? = null
 
         waitOnUiThread {
-            var dataArrayMap = SimpleArrayMap<String, Long>()
+            val dataArrayMap = SimpleArrayMap<String, Long>()
 
             calendar = CalendarView(this)
             calendar!!.tag = dataArrayMap
@@ -2620,7 +2600,7 @@ class DWindows : AppCompatActivity() {
         var imageview: ImageView? = null
 
         waitOnUiThread {
-            var dataArrayMap = SimpleArrayMap<String, Long>()
+            val dataArrayMap = SimpleArrayMap<String, Long>()
 
             imageview = ImageView(this)
             imageview!!.tag = dataArrayMap
@@ -2644,7 +2624,7 @@ class DWindows : AppCompatActivity() {
                     imageview.setImageResource(resID)
                 }
             } else if(filename != null) {
-                var exts = arrayOf("", ".png", ".webp", ".jpg", ".jpeg", ".gif")
+                val exts = arrayOf("", ".png", ".webp", ".jpg", ".jpeg", ".gif")
 
                 for (ext in exts) {
                     // Try to load the image, and protect against exceptions
@@ -2708,7 +2688,7 @@ class DWindows : AppCompatActivity() {
             if(resID != 0) {
                 icon = ResourcesCompat.getDrawable(resources, resID, null);
             } else if(filename != null) {
-                var exts = arrayOf("", ".png", ".webp", ".jpg", ".jpeg", ".gif")
+                val exts = arrayOf("", ".png", ".webp", ".jpg", ".jpeg", ".gif")
 
                 for (ext in exts) {
                     // Try to load the image, and protect against exceptions
@@ -2739,7 +2719,7 @@ class DWindows : AppCompatActivity() {
             } else if(resID != 0) {
                 pixmap = BitmapFactory.decodeResource(resources, resID);
             } else if(filename != null) {
-                var exts = arrayOf("", ".png", ".webp", ".jpg", ".jpeg", ".gif")
+                val exts = arrayOf("", ".png", ".webp", ".jpg", ".jpeg", ".gif")
 
                 for (ext in exts) {
                     // Try to load the image, and protect against exceptions
@@ -2780,7 +2760,7 @@ class DWindows : AppCompatActivity() {
         var render: DWRender? = null
 
         waitOnUiThread {
-            var dataArrayMap = SimpleArrayMap<String, Long>()
+            val dataArrayMap = SimpleArrayMap<String, Long>()
 
             render = DWRender(this)
             render!!.tag = dataArrayMap
@@ -2800,7 +2780,7 @@ class DWindows : AppCompatActivity() {
                      srcr: DWRender?, srcp: Bitmap?, srcy: Int, srcx: Int, srcw: Int, srch: Int): Int
     {
         val dst = Rect(dstx, dsty, dstx + dstw, dsty + dsth)
-        var src = Rect(srcx, srcy, srcx + srcw, srcy + srch)
+        val src = Rect(srcx, srcy, srcx + srcw, srcy + srch)
         var retval: Int = 1
 
         if(srcw == -1) {
@@ -2881,7 +2861,7 @@ class DWindows : AppCompatActivity() {
         var dimensions: Long = 0
 
         waitOnUiThread {
-            var rect = Rect()
+            val rect = Rect()
 
             if (render != null) {
                 if (render.typeface != null) {
@@ -2951,7 +2931,7 @@ class DWindows : AppCompatActivity() {
             if(canvas != null) {
                 colorsSet(fgColor, bgColor)
                 // Save the old color for later...
-                var rect = Rect()
+                val rect = Rect()
                 val oldcolor = paint.color
                 // Prepare to draw the background rect
                 paint.color = bgcolor
@@ -3075,8 +3055,6 @@ class DWindows : AppCompatActivity() {
                         bottom = y1.toFloat()
                     }
 
-                    val width: Float = Math.abs((x1-x2)).toFloat()
-                    val height: Float = Math.abs((y1-y2)).toFloat()
                     canvas.drawOval(left, top, right, bottom, paint)
                 } else {
                     var a1: Double = Math.atan2((y1 - yorigin).toDouble(), (x1 - xorigin).toDouble())
@@ -3201,7 +3179,7 @@ class DWindows : AppCompatActivity() {
 
         waitOnUiThread {
             // make a text input dialog and show it
-            var alert = AlertDialog.Builder(this)
+            val alert = AlertDialog.Builder(this)
 
             alert.setTitle(title)
             alert.setMessage(body)
