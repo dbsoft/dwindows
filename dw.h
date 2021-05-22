@@ -788,17 +788,17 @@ typedef struct _hpixmap {
    HWND handle;
 } *HPIXMAP;
 
-#define DW_DT_LEFT               0
+#define DW_DT_LEFT               3  /* Gravity.LEFT */
 #define DW_DT_QUERYEXTENT        0
 #define DW_DT_UNDERSCORE         0
 #define DW_DT_STRIKEOUT          0
 #define DW_DT_TEXTATTRS          0
 #define DW_DT_EXTERNALLEADING    0
-#define DW_DT_CENTER             0
-#define DW_DT_RIGHT              0
-#define DW_DT_TOP                0
-#define DW_DT_VCENTER            0
-#define DW_DT_BOTTOM             0
+#define DW_DT_CENTER             1  /* Gravity.CENTER_HORIZONTAL */
+#define DW_DT_RIGHT              5  /* Gravity.RIGHT */
+#define DW_DT_TOP                48 /* Gravity.TOP */
+#define DW_DT_VCENTER            16 /* Gravity.CENTER_VERTICAL */
+#define DW_DT_BOTTOM             80 /* Gravity.BOTTOM */
 #define DW_DT_HALFTONE           0
 #define DW_DT_MNEMONIC           0
 #define DW_DT_WORDBREAK          0
