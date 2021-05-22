@@ -521,6 +521,7 @@ JNIEXPORT void JNICALL
 Java_org_dbsoft_dwindows_DWindows_eventHandlerNotebook(JNIEnv* env, jobject obj, jobject obj1, jint message, jlong pageID) {
     void *params[_DW_EVENT_PARAM_SIZE] = { nullptr };
 
+    params[3] = DW_INT_TO_POINTER(pageID);
     params[8] = DW_INT_TO_POINTER(message);
     _dw_event_handler(obj1, params);
 }
