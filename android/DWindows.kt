@@ -3045,20 +3045,6 @@ class DWindows : AppCompatActivity() {
             }
 
             if(canvas != null) {
-                var a1: Double = Math.atan2((y1 - yorigin).toDouble(), (x1 - xorigin).toDouble())
-                var a2: Double = Math.atan2((y2 - yorigin).toDouble(), (x2 - xorigin).toDouble())
-                val dx = (xorigin - x1).toDouble()
-                val dy = (yorigin - y1).toDouble()
-                val r: Double = Math.sqrt(dx * dx + dy * dy)
-                val left = (xorigin-r).toFloat()
-                val top = (yorigin-r).toFloat()
-                val rect = RectF(left, top, (left + (r*2)).toFloat(), (top + (r*2)).toFloat())
-
-                // Convert to degrees
-                a1 *= 180.0 / Math.PI
-                a2 *= 180.0 / Math.PI
-                val sweep = Math.abs(a1 - a2)
-
                 colorsSet(fgColor, bgColor)
 
                 // Handle the DW_DRAW_NOAA flag
@@ -3075,8 +3061,38 @@ class DWindows : AppCompatActivity() {
                 }
                 // Handle the DW_DRAW_FULL flag
                 if((flags and (1 shl 1)) != 0) {
-                    canvas.drawOval(rect, paint)
+                    var left: Float = x1.toFloat()
+                    var top: Float = y1.toFloat()
+                    var right: Float = x2.toFloat()
+                    var bottom: Float = y2.toFloat()
+
+                    if(x2 < x1) {
+                        left = x2.toFloat()
+                        right = x1.toFloat()
+                    }
+                    if(y2 < y1) {
+                        top = y2.toFloat()
+                        bottom = y1.toFloat()
+                    }
+
+                    val width: Float = Math.abs((x1-x2)).toFloat()
+                    val height: Float = Math.abs((y1-y2)).toFloat()
+                    canvas.drawOval(left, top, right, bottom, paint)
                 } else {
+                    var a1: Double = Math.atan2((y1 - yorigin).toDouble(), (x1 - xorigin).toDouble())
+                    var a2: Double = Math.atan2((y2 - yorigin).toDouble(), (x2 - xorigin).toDouble())
+                    val dx = (xorigin - x1).toDouble()
+                    val dy = (yorigin - y1).toDouble()
+                    val r: Double = Math.sqrt(dx * dx + dy * dy)
+                    val left = (xorigin-r).toFloat()
+                    val top = (yorigin-r).toFloat()
+                    val rect = RectF(left, top, (left + (r*2)).toFloat(), (top + (r*2)).toFloat())
+
+                    // Convert to degrees
+                    a1 *= 180.0 / Math.PI
+                    a2 *= 180.0 / Math.PI
+                    val sweep = Math.abs(a1 - a2)
+
                     canvas.drawArc(rect, a1.toFloat(), sweep.toFloat(), false, paint)
                 }
             }
