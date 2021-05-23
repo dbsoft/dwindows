@@ -280,7 +280,7 @@ int _dw_event_handler2(void **params)
                 int (*timerfunc)(void *) = (int (* API)(void *))handler->signalfunction;
 
                 if(!timerfunc(handler->data))
-                    dw_timer_disconnect(handler->id);
+                    dw_timer_disconnect(handler->window);
                 retval = 0;
                 break;
             }
@@ -5800,10 +5800,10 @@ int API dw_window_compare(HWND window1, HWND window2)
  * Returns:
  *       Timer ID for use with dw_timer_disconnect(), 0 on error.
  */
-int API dw_timer_connect(int interval, void *sigfunc, void *data)
+HTIMER API dw_timer_connect(int interval, void *sigfunc, void *data)
 {
     JNIEnv *env;
-    int retval = 0;
+    HTIMER retval = 0;
 
     if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
@@ -5815,8 +5815,8 @@ int API dw_timer_connect(int interval, void *sigfunc, void *data)
         jmethodID timerConnect = env->GetMethodID(clazz, "timerConnect",
                                                   "(JJJ)Ljava/util/Timer;");
         // Call the method on the object
-        retval = DW_POINTER_TO_INT(_dw_jni_check_result(env, env->CallObjectMethod(_dw_obj,
-                                    timerConnect, longinterval, (jlong)sigfunc, (jlong)data), _DW_REFERENCE_STRONG));
+        retval = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj,
+                                    timerConnect, longinterval, (jlong)sigfunc, (jlong)data), _DW_REFERENCE_STRONG);
     }
     return retval;
 }
@@ -5826,21 +5826,19 @@ int API dw_timer_connect(int interval, void *sigfunc, void *data)
  * Parameters:
  *       id: Timer ID returned by dw_timer_connect().
  */
-void API dw_timer_disconnect(int timerid)
+void API dw_timer_disconnect(HTIMER timerid)
 {
     JNIEnv *env;
 
     if(timerid && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
-        // Use a long parameter
-        jobject timer = (jobject)timerid;
         // First get the class that contains the method you need to call
         jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
         // Get the method that you want to call
         jmethodID timerDisconnect = env->GetMethodID(clazz, "timerDisconnect",
                                                      "(Ljava/util/Timer;)V");
         // Call the method on the object
-        env->CallVoidMethod(_dw_obj, timerDisconnect, timer);
+        env->CallVoidMethod(_dw_obj, timerDisconnect, timerid);
         _dw_jni_check_exception(env);
     }
 }

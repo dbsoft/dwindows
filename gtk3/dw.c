@@ -12208,7 +12208,7 @@ gboolean _dw_timer_func(gpointer data)
  * Returns:
  *       Timer ID for use with dw_timer_disconnect(), 0 on error.
  */
-int API dw_timer_connect(int interval, void *sigfunc, void *data)
+HTIMER API dw_timer_connect(int interval, void *sigfunc, void *data)
 {
    int *tag, _locked_by_me = FALSE;
    char tmpbuf[31] = {0};
@@ -12230,7 +12230,7 @@ int API dw_timer_connect(int interval, void *sigfunc, void *data)
  * Parameters:
  *       id: Timer ID returned by dw_timer_connect().
  */
-void API dw_timer_disconnect(int id)
+void API dw_timer_disconnect(HTIMER id)
 {
    int _locked_by_me = FALSE;
    char tmpbuf[31] = {0};

@@ -11518,7 +11518,7 @@ static NSTimer *DWTimers[DW_TIMER_MAX];
  * Returns:
  *       Timer ID for use with dw_timer_disconnect(), 0 on error.
  */
-int API dw_timer_connect(int interval, void *sigfunc, void *data)
+HTIMER API dw_timer_connect(int interval, void *sigfunc, void *data)
 {
     int z;
 
@@ -11545,7 +11545,7 @@ int API dw_timer_connect(int interval, void *sigfunc, void *data)
  * Parameters:
  *       id: Timer ID returned by dw_timer_connect().
  */
-void API dw_timer_disconnect(int timerid)
+void API dw_timer_disconnect(HTIMER timerid)
 {
     SignalHandler *prev = NULL, *tmp = DWRoot;
     NSTimer *thistimer;
