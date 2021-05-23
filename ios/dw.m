@@ -333,7 +333,7 @@ static DWSignalList DWSignalTranslate[SIGNALMAX] = {
     { 19,   DW_SIGNAL_HTML_CHANGED }
 };
 
-int _dw_event_handler1(id object, UIEvent *event, int message)
+int _dw_event_handler1(id object, id event, int message)
 {
     SignalHandler *handler = _dw_get_handler(object, message);
     /* NSLog(@"Event handler - type %d\n", message); */
@@ -377,15 +377,18 @@ int _dw_event_handler1(id object, UIEvent *event, int message)
             case 2:
             {
                 int (*keypressfunc)(HWND, char, int, int, void *, char *) = handler->signalfunction;
-                NSString *nchar = @""; /* [event charactersIgnoringModifiers]; */
+                int special = 0;
+                NSString *nchar = @"";
+                if (@available(iOS 13.4, *)) {
+                    UIKey *key = event;
+                    
+                    nchar = [key charactersIgnoringModifiers];
+                    special = (int)[key modifierFlags];
+                } else {
+                    // Probably won't even get here if not 13.4
+                }
                 unichar vk = [nchar characterAtIndex:0];
                 char *utf8 = NULL, ch = '\0';
-                int special = 0;
-
-                if(@available(iOS 13.4, *))
-                {
-                    special = (int)[event modifierFlags];
-                }
 
                 /* Handle a valid key */
                 if([nchar length] == 1)
@@ -424,14 +427,15 @@ int _dw_event_handler1(id object, UIEvent *event, int message)
                 return buttonfunc(object, (int)p.x, (int)p.y, button, handler->data);
             }
             /* Motion notify event */
-#if 0 /* Not sure if motion notify applies */
             case 5:
             {
+#if 0 /* TODO: See if this can be replicated with gestures/swipes */
                 int (* API motionfunc)(HWND, int, int, int, void *) = (int (* API)(HWND, int, int, int, void *))handler->signalfunction;
 
                 return motionfunc(object, (int)p.x, (int)p.y, (int)buttonmask, handler->data);
-            }
 #endif
+                return -1;
+            }
             /* Window close event */
             case 6:
             {
@@ -560,7 +564,7 @@ int _dw_event_handler1(id object, UIEvent *event, int message)
 }
 
 /* Sub function to handle redraws */
-int _dw_event_handler(id object, UIEvent *event, int message)
+int _dw_event_handler(id object, id event, int message)
 {
     int ret = _dw_event_handler1(object, event, message);
     if(ret != -1)
@@ -689,20 +693,11 @@ API_AVAILABLE(ios(13.0))
 -(id)init;
 -(void)dealloc;
 -(Box *)box;
--(id)contentView;
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
 -(void)drawRect:(CGRect)rect;
--(BOOL)isFlipped;
--(void)mouseDown:(UIEvent *)theEvent;
--(void)mouseUp:(UIEvent *)theEvent;
--(DWMenu *)menuForEvent:(UIEvent *)theEvent;
--(void)rightMouseUp:(UIEvent *)theEvent;
--(void)otherMouseDown:(UIEvent *)theEvent;
--(void)otherMouseUp:(UIEvent *)theEvent;
--(void)keyDown:(UIEvent *)theEvent;
+-(void)keyDown:(UIKey *)key API_AVAILABLE(ios(13.4));
 -(void)setColor:(unsigned long)input;
--(void)layoutSubviews;
 @end
 
 @implementation DWBox
@@ -730,7 +725,6 @@ API_AVAILABLE(ios(13.0))
     [super dealloc];
 }
 -(Box *)box { return box; }
--(id)contentView { return self; }
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
 -(void)drawRect:(CGRect)rect
@@ -741,14 +735,7 @@ API_AVAILABLE(ios(13.0))
         UIRectFill([self bounds]);
     }
 }
--(BOOL)isFlipped { return YES; }
--(void)mouseDown:(UIEvent *)theEvent { _dw_event_handler(self, (void *)1, 3); }
--(void)mouseUp:(UIEvent *)theEvent { _dw_event_handler(self, (void *)1, 4); }
--(DWMenu *)menuForEvent:(UIEvent *)theEvent { _dw_event_handler(self, (void *)2, 3); return nil; }
--(void)rightMouseUp:(UIEvent *)theEvent { _dw_event_handler(self, (void *)2, 4); }
--(void)otherMouseDown:(UIEvent *)theEvent { _dw_event_handler(self, (void *)3, 3); }
--(void)otherMouseUp:(UIEvent *)theEvent { _dw_event_handler(self, (void *)3, 4); }
--(void)keyDown:(UIEvent *)theEvent { _dw_event_handler(self, theEvent, 2); }
+-(void)keyDown:(UIKey *)key  API_AVAILABLE(ios(13.4)){ _dw_event_handler(self, key, 2); }
 -(void)setColor:(unsigned long)input
 {
     id orig = bgcolor;
@@ -769,7 +756,6 @@ API_AVAILABLE(ios(13.0))
     [self setNeedsDisplay];
     [orig release];
 }
--(void)layoutSubviews { };
 @end
 
 @interface DWWindow : UIWindow
@@ -779,8 +765,7 @@ API_AVAILABLE(ios(13.0))
     int shown;
 }
 -(void)sendEvent:(UIEvent *)theEvent;
--(void)keyDown:(UIEvent *)theEvent;
--(void)mouseDragged:(UIEvent *)theEvent;
+-(void)keyDown:(UIKey *)key API_AVAILABLE(ios(13.4));
 -(int)redraw;
 -(void)setRedraw:(int)val;
 -(int)shown;
@@ -803,8 +788,7 @@ API_AVAILABLE(ios(13.0))
    if ( rcode != TRUE )
       [super sendEvent:theEvent];
 }
--(void)keyDown:(UIEvent *)theEvent { }
--(void)mouseDragged:(UIEvent *)theEvent { _dw_event_handler(self, theEvent, 5); }
+-(void)keyDown:(UIKey *)key { }
 -(int)redraw { return redraw; }
 -(void)setRedraw:(int)val { redraw = val; }
 -(int)shown { return shown; }
@@ -854,15 +838,7 @@ API_AVAILABLE(ios(13.0))
 -(void)setSize:(CGSize)input;
 -(CGSize)size;
 -(DWImage *)cachedImage;
--(void)mouseDown:(UIEvent *)theEvent;
--(void)mouseUp:(UIEvent *)theEvent;
--(DWMenu *)menuForEvent:(UIEvent *)theEvent;
--(void)rightMouseUp:(UIEvent *)theEvent;
--(void)otherMouseDown:(UIEvent *)theEvent;
--(void)otherMouseUp:(UIEvent *)theEvent;
--(void)drawRect:(CGRect)rect;
--(void)keyDown:(UIEvent *)theEvent;
--(BOOL)isFlipped;
+-(void)keyDown:(UIKey *)key API_AVAILABLE(ios(13.4));
 @end
 
 @implementation DWRender
@@ -902,17 +878,6 @@ API_AVAILABLE(ios(13.0))
         [_DWDirtyDrawables addObject:self];
     return cachedImage;
 }
--(void)mouseDown:(UIEvent *)theEvent
-{
-    if(![theEvent isMemberOfClass:[UIEvent class]])
-        _dw_event_handler(self, theEvent, 3);
-}
--(void)mouseUp:(UIEvent *)theEvent { _dw_event_handler(self, theEvent, 4); }
--(DWMenu *)menuForEvent:(UIEvent *)theEvent { _dw_event_handler(self, theEvent, 3); return nil; }
--(void)rightMouseUp:(UIEvent *)theEvent { _dw_event_handler(self, theEvent, 4); }
--(void)otherMouseDown:(UIEvent *)theEvent { _dw_event_handler(self, theEvent, 3); }
--(void)otherMouseUp:(UIEvent *)theEvent { _dw_event_handler(self, theEvent, 4); }
--(void)mouseDragged:(UIEvent *)theEvent { _dw_event_handler(self, theEvent, 5); }
 -(void)drawRect:(CGRect)rect {
     _dw_event_handler(self, nil, 7);
     if(cachedImage)
@@ -922,8 +887,7 @@ API_AVAILABLE(ios(13.0))
         [self setNeedsDisplay];
     }
 }
--(void)keyDown:(UIEvent *)theEvent { _dw_event_handler(self, theEvent, 2); }
--(BOOL)isFlipped { return YES; }
+-(void)keyDown:(UIKey *)key  API_AVAILABLE(ios(13.4)){ _dw_event_handler(self, key, 2); }
 -(void)dealloc {
     UserData *root = userdata;
     _dw_remove_userdata(&root, NULL, TRUE);
@@ -1334,22 +1298,22 @@ BOOL _dw_is_dark(void)
 -(void)webView:(WKWebView *)webView didCommitNavigation:(WKNavigation *)navigation
 {
     void *params[2] = { DW_INT_TO_POINTER(DW_HTML_CHANGE_STARTED), [[self URL] absoluteString] };
-    _dw_event_handler(self, (UIEvent *)params, 19);
+    _dw_event_handler(self, (id)params, 19);
 }
 -(void)webView:(WKWebView *)webView didFinishNavigation:(WKNavigation *)navigation
 {
     void *params[2] = { DW_INT_TO_POINTER(DW_HTML_CHANGE_COMPLETE), [[self URL] absoluteString] };
-    _dw_event_handler(self, (UIEvent *)params, 19);
+    _dw_event_handler(self, (id)params, 19);
 }
 -(void)webView:(WKWebView *)webView didStartProvisionalNavigation:(WKNavigation *)navigation
 {
     void *params[2] = { DW_INT_TO_POINTER(DW_HTML_CHANGE_LOADING), [[self URL] absoluteString] };
-    _dw_event_handler(self, (UIEvent *)params, 19);
+    _dw_event_handler(self, (id)params, 19);
 }
 -(void)webView:(WKWebView *)webView didReceiveServerRedirectForProvisionalNavigation:(WKNavigation *)navigation
 {
     void *params[2] = { DW_INT_TO_POINTER(DW_HTML_CHANGE_REDIRECT), [[self URL] absoluteString] };
-    _dw_event_handler(self, (UIEvent *)params, 19);
+    _dw_event_handler(self, (id)params, 19);
 }
 -(void)dealloc { UserData *root = userdata; _dw_remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
@@ -2153,7 +2117,7 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
     params[2] = DW_INT_TO_POINTER((int)point.x);
     params[3] = DW_INT_TO_POINTER((int)point.y);
 
-    _dw_event_handler(self, (UIEvent *)params, 10);
+    _dw_event_handler(self, (id)params, 10);
 
     if(window)
     {
@@ -2420,14 +2384,14 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
     if([self allowsMultipleSelection])
     {
         /* Handler for container class */
-        _dw_event_handler(self, (UIEvent *)params, 12);
+        _dw_event_handler(self, (id)params, 12);
         /* Handler for listbox class */
         _dw_event_handler(self, DW_INT_TO_POINTER((int)indexPath.row), 11);
     }
     else /* Otherwise treat it as doubleClicked: */
     {
         /* Handler for container class */
-        _dw_event_handler(self, (UIEvent *)params, 9);
+        _dw_event_handler(self, (id)params, 9);
    }
 }
 -(void)tableView:(UITableView *)tableView didDeselectRowAtIndexPath:(NSIndexPath *)indexPath
@@ -7352,11 +7316,17 @@ DW_FUNCTION_RETURN(dw_calendar_new, HWND)
 DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
 {
     DWCalendar *calendar = nil;
-#if 0 /* TODO: Figure out why this hangs the UI */
+#if 0 /* TODO: Figure out why this corrupts DWBoxes in its hierarchy */
     DWCalendar *calendar = [[[DWCalendar alloc] init] retain];
+    if (@available(iOS 14.0, *)) {
+        [calendar setPreferredDatePickerStyle:UIDatePickerStyleInline];
+    } else {
+        // We really want the iOS 14 style to match the other platforms...
+        // but just leave it the default spinner style on 13 and earlier.
+    }
     [calendar setDatePickerMode:UIDatePickerModeDate];
-    [calendar setTag:cid];
     [calendar setDate:[NSDate date]];
+    [calendar setTag:cid];
 #endif
     DW_FUNCTION_RETURN_THIS(calendar);
 }
@@ -7507,7 +7477,7 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, script, const char *, scriptdata, void 
     [html evaluateJavaScript:[NSString stringWithUTF8String:script] completionHandler:^(NSString *result, NSError *error)
     {
         void *params[2] = { result, scriptdata };
-        _dw_event_handler(html, (UIEvent *)params, 18);
+        _dw_event_handler(html, (id)params, 18);
     }];
     DW_LOCAL_POOL_OUT;
     DW_FUNCTION_RETURN_THIS(retval);
@@ -7614,7 +7584,7 @@ void API dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
     id object = parent;
     DWWindow *window = [object isMemberOfClass:[DWWindow class]] ? object : (DWWindow *)[object window];
     [thismenu autorelease];
-    [window setPopupMenu:[thismenu menu]];
+    [window setPopupMenu:thismenu];
     *menu = nil;
 }
 
