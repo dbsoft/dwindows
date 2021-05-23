@@ -621,6 +621,8 @@ class DWContainerAdapter(c: Context) : BaseAdapter()
     var model = DWContainerModel()
     var selectedItem: Int = -1
     var simpleMode: Boolean = true
+    var oddColor: Int? = null
+    var evenColor: Int? = null
 
     override fun getCount(): Int {
         return model.numberOfRows()
@@ -660,9 +662,11 @@ class DWContainerAdapter(c: Context) : BaseAdapter()
                 // Image
                 if((model.getColumnType(i) and 1) != 0) {
                     val imageview = ImageView(context)
+                    val params = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT,
+                                                           LinearLayout.LayoutParams.WRAP_CONTENT)
+                    params.gravity = Gravity.CENTER
+                    imageview.layoutParams = params
                     imageview.id = View.generateViewId()
-                    imageview.layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT,
-                                                                       LinearLayout.LayoutParams.WRAP_CONTENT)
                     if (content is Drawable) {
                         imageview.setImageDrawable(content)
                     }
@@ -670,9 +674,11 @@ class DWContainerAdapter(c: Context) : BaseAdapter()
                 } else  {
                     // Everything else id displayed as text
                     val textview = TextView(context)
+                    val params = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT,
+                                                           LinearLayout.LayoutParams.WRAP_CONTENT)
+                    params.gravity = Gravity.CENTER
+                    textview.layoutParams = params
                     textview.id = View.generateViewId()
-                    textview.layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT,
-                                                                      LinearLayout.LayoutParams.WRAP_CONTENT)
                     if (content is String) {
                         textview.text = content
                     } else if(content is Int) {
@@ -707,6 +713,16 @@ class DWContainerAdapter(c: Context) : BaseAdapter()
                         }
                     }
                 }
+            }
+        }
+        // Handle row stripe
+        if (position % 2 == 0) {
+            if(evenColor != null) {
+                rowView.setBackgroundColor(evenColor!!)
+            }
+        } else {
+            if(oddColor != null) {
+                rowView.setBackgroundColor(oddColor!!)
             }
         }
         return rowView
@@ -2076,6 +2092,30 @@ class DWindows : AppCompatActivity() {
         return cont
     }
 
+    fun containerSetStripe(cont: ListView, oddcolor: Long, evencolor: Long)
+    {
+        waitOnUiThread {
+            val adapter: DWContainerAdapter = cont.adapter as DWContainerAdapter
+
+            if(oddcolor == -1L) {
+                adapter.oddColor = null
+            } else if(evencolor == -2L) {
+                if(darkMode == 1) {
+                    adapter.oddColor = Color.rgb(100, 100, 100)
+                } else {
+                    adapter.oddColor = Color.rgb(230, 230, 230)
+                }
+            } else {
+                adapter.oddColor = colorFromDW(oddcolor)
+            }
+            if(evencolor == -1L || evencolor == -2L) {
+                adapter.evenColor = null
+            } else {
+                adapter.evenColor = colorFromDW(evencolor)
+            }
+        }
+    }
+
     fun containerGetTitleStart(cont: ListView, flags: Int): String?
     {
         var retval: String? = null
@@ -2808,7 +2848,7 @@ class DWindows : AppCompatActivity() {
         return retval
     }
 
-    fun drawPoint(render: DWRender?, bitmap: Bitmap?, x: Int, y: Int, fgColor: Int, bgColor: Int)
+    fun drawPoint(render: DWRender?, bitmap: Bitmap?, x: Int, y: Int, fgColor: Long, bgColor: Long)
     {
         waitOnUiThread {
             var canvas: Canvas? = null
@@ -2826,7 +2866,7 @@ class DWindows : AppCompatActivity() {
         }
     }
 
-    fun drawLine(render: DWRender?, bitmap: Bitmap?, x1: Int, y1: Int, x2: Int, y2: Int, fgColor: Int, bgColor: Int)
+    fun drawLine(render: DWRender?, bitmap: Bitmap?, x1: Int, y1: Int, x2: Int, y2: Int, fgColor: Long, bgColor: Long)
     {
         waitOnUiThread {
             var canvas: Canvas? = null
@@ -2886,7 +2926,7 @@ class DWindows : AppCompatActivity() {
     }
 
     fun drawText(render: DWRender?, bitmap: Bitmap?, x: Int, y: Int, text:String, typeface: Typeface?,
-                 fontsize: Int, window: View?, fgColor: Int, bgColor: Int)
+                 fontsize: Int, window: View?, fgColor: Long, bgColor: Long)
     {
         waitOnUiThread {
             var canvas: Canvas? = null
@@ -2943,7 +2983,7 @@ class DWindows : AppCompatActivity() {
         }
     }
 
-    fun drawRect(render: DWRender?, bitmap: Bitmap?, x: Int, y: Int, width: Int, height: Int, fgColor: Int, bgColor: Int)
+    fun drawRect(render: DWRender?, bitmap: Bitmap?, x: Int, y: Int, width: Int, height: Int, fgColor: Long, bgColor: Long)
     {
         waitOnUiThread {
             var canvas: Canvas? = null
@@ -2964,7 +3004,7 @@ class DWindows : AppCompatActivity() {
     }
 
     fun drawPolygon(render: DWRender?, bitmap: Bitmap?, flags: Int, npoints: Int,
-                    x: IntArray, y: IntArray, fgColor: Int, bgColor: Int)
+                    x: IntArray, y: IntArray, fgColor: Long, bgColor: Long)
     {
         // Create a path with all our points
         val path = Path()
@@ -3003,7 +3043,7 @@ class DWindows : AppCompatActivity() {
     }
 
     fun drawArc(render: DWRender?, bitmap: Bitmap?, flags: Int, xorigin: Int, yorigin: Int,
-                x1: Int, y1: Int, x2: Int, y2: Int, fgColor: Int, bgColor: Int)
+                x1: Int, y1: Int, x2: Int, y2: Int, fgColor: Long, bgColor: Long)
     {
         waitOnUiThread {
             var canvas: Canvas? = null
@@ -3067,37 +3107,21 @@ class DWindows : AppCompatActivity() {
         }
     }
 
-    fun colorSet(alpha: Int, red: Int, green: Int, blue: Int)
+    fun colorFromDW(color: Long): Int
+    {
+        val red: Int = (color and 0x000000FF).toInt()
+        val green: Int = ((color and 0x0000FF00) shr 8).toInt()
+        val blue: Int = ((color and 0x00FF0000) shr 16).toInt()
+
+        return Color.rgb(red, green, blue)
+    }
+
+    fun colorsSet(fgColor: Long, bgColor: Long)
     {
         waitOnUiThread {
-            if(alpha != 0) {
-                paint.color = Color.argb(alpha, red, green, blue)
-            } else {
-                paint.color = Color.rgb(red, green, blue)
-            }
+            paint.color = colorFromDW(fgColor)
+            this.bgcolor = colorFromDW(bgColor)
         }
-    }
-
-    fun bgColorSet(alpha: Int, red: Int, green: Int, blue: Int)
-    {
-        if(alpha != 0) {
-            this.bgcolor = Color.argb(alpha, red, green, blue)
-        } else {
-            this.bgcolor = Color.rgb(red, green, blue)
-        }
-    }
-
-    fun colorsSet(fgColor: Int, bgColor: Int)
-    {
-        val fgRed: Int = (fgColor and 0x000000FF)
-        val fgGreen: Int = (fgColor and 0x0000FF00) shr 8
-        val fgBlue: Int = (fgColor and 0x00FF0000) shr 16
-        val bgRed: Int = (bgColor and 0x000000FF)
-        val bgGreen: Int = (bgColor and 0x0000FF00) shr 8
-        val bgBlue: Int = (bgColor and 0x00FF0000) shr 16
-
-        paint.color = Color.rgb(fgRed, fgGreen, fgBlue)
-        this.bgcolor = Color.rgb(bgRed, bgGreen, bgBlue)
     }
 
     fun timerConnect(interval: Long, sigfunc: Long, data: Long): Timer
