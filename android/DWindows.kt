@@ -739,6 +739,7 @@ class DWindows : AppCompatActivity() {
     private var paint = Paint()
     private var bgcolor: Int = 0
     private var menuBar: DWMenu? = null
+    private var defaultItem: View? = null
 
     // Our version of runOnUiThread that waits for execution
     fun waitOnUiThread(runnable: Runnable)
@@ -939,6 +940,19 @@ class DWindows : AppCompatActivity() {
         return null
     }
 
+    fun windowSetFocus(window: View)
+    {
+        waitOnUiThread {
+            window.requestFocus()
+        }
+    }
+
+    fun windowDefault(window: View, default: View)
+    {
+        // TODO: Verify this is the correct activity...
+        defaultItem = default
+    }
+
     fun windowSetStyle(window: View, style: Int, mask: Int)
     {
         waitOnUiThread {
@@ -1054,6 +1068,35 @@ class DWindows : AppCompatActivity() {
         }
     }
 
+    fun windowGetFont(window: View): String?
+    {
+        var fontname: String? = null
+
+        waitOnUiThread {
+            var typeface: Typeface? = null
+            var fontsize: Float? = null
+
+            if(window is DWRender) {
+                typeface = window.typeface
+                fontsize = window.fontsize
+            } else if(window is TextView) {
+                typeface = window.typeface
+                fontsize = window.textSize
+            } else if(window is Button) {
+                typeface = window.typeface
+                fontsize = window.textSize
+            }
+
+            if(typeface != null && fontsize != null) {
+                val isize = fontsize.toInt()
+                val name = typeface.toString()
+
+                fontname = "$isize.$name"
+            }
+        }
+        return null
+    }
+
     fun windowSetColor(window: View, fore: Int, falpha: Int, fred: Int, fgreen: Int, fblue: Int,
                        back: Int, balpha: Int, bred: Int, bgreen: Int, bblue: Int) {
         var colorfore: Int = Color.rgb(fred, fgreen, fblue)
@@ -1136,6 +1179,7 @@ class DWindows : AppCompatActivity() {
                 window.visibility = View.GONE
             } else {
                 window.visibility = View.VISIBLE
+                defaultItem?.requestFocus()
             }
         }
     }

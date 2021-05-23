@@ -5093,6 +5093,19 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
  */
 void API dw_window_set_focus(HWND handle)
 {
+    JNIEnv *env;
+
+    if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID windowSetFocus = env->GetMethodID(clazz, "windowSetFocus",
+                                                    "(Landroid/view/View;)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, windowSetFocus, handle);
+        _dw_jni_check_exception(env);
+    }
 }
 
 /*
@@ -5105,6 +5118,19 @@ void API dw_window_set_focus(HWND handle)
  */
 void API dw_window_default(HWND handle, HWND defaultitem)
 {
+    JNIEnv *env;
+
+    if(handle && defaultitem && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID windowDefault = env->GetMethodID(clazz, "windowDefault",
+                                                    "(Landroid/view/View;Landroid/view/View;)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, windowDefault, handle, defaultitem);
+        _dw_jni_check_exception(env);
+    }
 }
 
 /*
@@ -5162,10 +5188,10 @@ int API dw_window_set_font(HWND handle, const char *fontname)
         // First get the class that contains the method you need to call
         jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
         // Get the method that you want to call
-        jmethodID windowHideShow = env->GetMethodID(clazz, "windowSetFont",
+        jmethodID windowSetFont = env->GetMethodID(clazz, "windowSetFont",
                                                     "(Landroid/view/View;Ljava/lang/String;)V");
         // Call the method on the object
-        env->CallVoidMethod(_dw_obj, windowHideShow, handle, jstr);
+        env->CallVoidMethod(_dw_obj, windowSetFont, handle, jstr);
         if(!_dw_jni_check_exception(env))
             return DW_ERROR_NONE;
     }
@@ -5181,7 +5207,23 @@ int API dw_window_set_font(HWND handle, const char *fontname)
  */
 char * API dw_window_get_font(HWND handle)
 {
-    return nullptr;
+    JNIEnv *env;
+    char *fontname = nullptr;
+
+    if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID windowGetFont = env->GetMethodID(clazz, "windowGetFont",
+                                                   "(Landroid/view/View;)Ljava/lang/String;");
+        // Call the method on the object
+        jstring jstr = (jstring)_dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, windowGetFont, handle), _DW_REFERENCE_NONE);
+
+        if(jstr)
+            fontname = strdup(env->GetStringUTFChars(jstr, nullptr));
+    }
+    return fontname;
 }
 
 /* Allows the user to choose a font using the system's font chooser dialog.
