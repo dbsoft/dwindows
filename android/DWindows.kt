@@ -1548,6 +1548,7 @@ class DWindows : AppCompatActivity() {
             mle!!.isVerticalScrollBarEnabled = true
             mle!!.scrollBarStyle = View.SCROLLBARS_INSIDE_INSET
             mle!!.setHorizontallyScrolling(true)
+            mle!!.gravity = Gravity.TOP or Gravity.LEFT
         }
         return mle
     }
