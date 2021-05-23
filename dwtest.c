@@ -151,7 +151,7 @@ int font_width = 8;
 int font_height=12;
 int rows=10,width1=6,cols=80;
 char *current_file = NULL;
-int timerid;
+HTIMER timerid;
 int num_lines=0;
 int max_linewidth=0;
 int current_row=0,current_col=0;

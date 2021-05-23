@@ -13572,7 +13572,7 @@ int API dw_window_compare(HWND window1, HWND window2)
  * Returns:
  *       Timer ID for use with dw_timer_disconnect(), 0 on error.
  */
-int API dw_timer_connect(int interval, void *sigfunc, void *data)
+HTIMER API dw_timer_connect(int interval, void *sigfunc, void *data)
 {
    if(sigfunc)
    {
@@ -13595,7 +13595,7 @@ int API dw_timer_connect(int interval, void *sigfunc, void *data)
  * Parameters:
  *       id: Timer ID returned by dw_timer_connect().
  */
-void API dw_timer_disconnect(int id)
+void API dw_timer_disconnect(HTIMER id)
 {
    SignalHandler *prev = NULL, *tmp = Root;
 

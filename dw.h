@@ -358,6 +358,10 @@ static int _dw_snprintf(char *str, size_t size, const char *format, ...)
 #define FALSE 0
 
 typedef void *HWND;
+#ifdef __IOS__
+typedef void *HTIMER
+#define HTIMER_TYPEDEFED 1
+#endif
 typedef void *HSHM;
 typedef unsigned long ULONG;
 typedef long LONG;
@@ -741,6 +745,8 @@ typedef HWND HMENUI;
 #define FALSE 0
 
 typedef jobject HWND;
+typedef jobject HTIMER;
+#define HTIMER_TYPEDEFED 1
 
 typedef unsigned long ULONG;
 typedef long LONG;
@@ -1597,6 +1603,11 @@ typedef unsigned long DWTID;
 #define DW_DIR_SEPARATOR '\\'
 #endif
 
+#ifndef HTIMER_TYPEDEFED
+typedef int HTIMER;
+#define HTIMER_TYPEDEFED 1
+#endif
+
 /* Some dark mode constants for supported platforms */
 #define DW_DARK_MODE_DISABLED 0
 #define DW_DARK_MODE_BASIC    1
@@ -2128,8 +2139,8 @@ int API dw_window_compare(HWND window1, HWND window2);
 int API dw_module_load(const char *name, HMOD *handle);
 int API dw_module_symbol(HMOD handle, const char *name, void**func);
 int API dw_module_close(HMOD handle);
-int API dw_timer_connect(int interval, void *sigfunc, void *data);
-void API dw_timer_disconnect(int id);
+HTIMER API dw_timer_connect(int interval, void *sigfunc, void *data);
+void API dw_timer_disconnect(HTIMER id);
 void API dw_signal_connect(HWND window, const char *signame, void *sigfunc, void *data);
 void API dw_signal_connect_data(HWND window, const char *signame, void *sigfunc, void *discfunc, void *data);
 void API dw_signal_disconnect_by_window(HWND window);

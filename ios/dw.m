@@ -9361,9 +9361,6 @@ int API dw_window_compare(HWND window1, HWND window2)
     return FALSE;
 }
 
-#define DW_TIMER_MAX 64
-static NSTimer *DWTimers[DW_TIMER_MAX];
-
 /*
  * Add a callback to a timer event.
  * Parameters:
@@ -9373,27 +9370,19 @@ static NSTimer *DWTimers[DW_TIMER_MAX];
  * Returns:
  *       Timer ID for use with dw_timer_disconnect(), 0 on error.
  */
-DW_FUNCTION_DEFINITION(dw_timer_connect, int, int interval, void *sigfunc, void *data)
+DW_FUNCTION_DEFINITION(dw_timer_connect, HTIMER, int interval, void *sigfunc, void *data)
 DW_FUNCTION_ADD_PARAM3(interval, sigfunc, data)
-DW_FUNCTION_RETURN(dw_timer_connect, int)
+DW_FUNCTION_RETURN(dw_timer_connect, HTIMER)
 DW_FUNCTION_RESTORE_PARAM3(interval, int, sigfunc, void *, data, void *)
 {
-    int z, retval = 0;
+    HTIMER retval = 0;
 
-    for(z=0;z<DW_TIMER_MAX;z++)
-    {
-        if(!DWTimers[z])
-        {
-            break;
-        }
-    }
-
-    if(sigfunc && !DWTimers[z])
+    if(sigfunc)
     {
         NSTimeInterval seconds = (double)interval / 1000.0;
-        NSTimer *thistimer = DWTimers[z] = [NSTimer scheduledTimerWithTimeInterval:seconds target:DWHandler selector:@selector(runTimer:) userInfo:nil repeats:YES];
-        _dw_new_signal(0, thistimer, z+1, sigfunc, NULL, data);
-        retval = z+1;
+
+        retval = [NSTimer scheduledTimerWithTimeInterval:seconds target:DWHandler selector:@selector(runTimer:) userInfo:nil repeats:YES];
+        _dw_new_signal(0, retval, 0, sigfunc, NULL, data);
     }
     DW_FUNCTION_RETURN_THIS(retval);
 }
@@ -9403,25 +9392,23 @@ DW_FUNCTION_RESTORE_PARAM3(interval, int, sigfunc, void *, data, void *)
  * Parameters:
  *       id: Timer ID returned by dw_timer_connect().
  */
-DW_FUNCTION_DEFINITION(dw_timer_disconnect, void, int timerid)
+DW_FUNCTION_DEFINITION(dw_timer_disconnect, void, HTIMER timerid)
 DW_FUNCTION_ADD_PARAM1(timerid)
 DW_FUNCTION_NO_RETURN(dw_timer_disconnect)
-DW_FUNCTION_RESTORE_PARAM1(timerid, int)
+DW_FUNCTION_RESTORE_PARAM1(timerid, HTIMER)
 {
     SignalHandler *prev = NULL, *tmp = DWRoot;
-    NSTimer *thistimer;
 
     /* 0 is an invalid timer ID */
-    if(timerid > 0 && timerid < DW_TIMER_MAX && DWTimers[timerid-1])
+    if(timerid)
     {
-        thistimer = DWTimers[timerid-1];
-        DWTimers[timerid-1] = nil;
+        NSTimer *thistimer = timerid;
 
         [thistimer invalidate];
 
         while(tmp)
         {
-            if(tmp->id == timerid && tmp->window == thistimer)
+            if(tmp->window == thistimer)
             {
                 if(prev)
                 {
