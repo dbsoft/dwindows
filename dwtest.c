@@ -1608,9 +1608,9 @@ void buttons_add(void)
     dw_window_set_color(buttonsbox, DW_CLR_RED, DW_CLR_RED);
 
     calbox = dw_box_new(DW_HORZ, 0);
-    dw_box_pack_start(notebookbox5, calbox, 500, 200, TRUE, TRUE, 1);
+    dw_box_pack_start(notebookbox5, calbox, 0, 0, TRUE, TRUE, 1);
     cal = dw_calendar_new(100);
-    dw_box_pack_start(calbox, cal, 180, 120, TRUE, TRUE, 0);
+    dw_box_pack_start(calbox, cal, -1, -1, TRUE, TRUE, 0);
 
     dw_calendar_set_date(cal, 2019, 4, 30);
 
