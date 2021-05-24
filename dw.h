@@ -156,6 +156,8 @@ typedef struct _user_data
 
 #include <os2.h>
 
+#define HTIMER_TYPEDEFED 1
+
 #define DW_DT_LEFT               DT_LEFT
 #define DW_DT_QUERYEXTENT        DT_QUERYEXTENT
 #define DW_DT_UNDERSCORE         DT_UNDERSCORE
