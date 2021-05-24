@@ -688,16 +688,13 @@ API_AVAILABLE(ios(13.0))
 {
     Box *box;
     void *userdata;
-    UIColor *bgcolor;
 }
 -(id)init;
 -(void)dealloc;
 -(Box *)box;
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
--(void)drawRect:(CGRect)rect;
 -(void)keyDown:(UIKey *)key API_AVAILABLE(ios(13.4));
--(void)setColor:(unsigned long)input;
 @end
 
 @implementation DWBox
@@ -727,35 +724,7 @@ API_AVAILABLE(ios(13.0))
 -(Box *)box { return box; }
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
--(void)drawRect:(CGRect)rect
-{
-    if(bgcolor)
-    {
-        [bgcolor set];
-        UIRectFill([self bounds]);
-    }
-}
 -(void)keyDown:(UIKey *)key  API_AVAILABLE(ios(13.4)){ _dw_event_handler(self, key, 2); }
--(void)setColor:(unsigned long)input
-{
-    id orig = bgcolor;
-
-    if(input == _dw_colors[DW_CLR_DEFAULT])
-    {
-        bgcolor = nil;
-    }
-    else
-    {
-        bgcolor = [[UIColor colorWithRed: DW_RED_VALUE(input)/255.0 green: DW_GREEN_VALUE(input)/255.0 blue: DW_BLUE_VALUE(input)/255.0 alpha: 1] retain];
-        if(UIGraphicsGetCurrentContext())
-        {
-            [bgcolor set];
-            UIRectFill([self bounds]);
-        }
-    }
-    [self setNeedsDisplay];
-    [orig release];
-}
 @end
 
 @interface DWWindow : UIWindow
@@ -3708,10 +3677,30 @@ void _dw_control_size(id handle, int *width, int *height)
     /* Handle calendar */
     else if([object isMemberOfClass:[DWCalendar class]])
     {
-            CGSize size = [object intrinsicContentSize];
+        DWCalendar *calendar = object;
+        CGSize size = [calendar intrinsicContentSize];
 
+        /* If we can't detect the size... */
+        if(size.width < 1 || size.height < 1)
+        {
+            if(DWOSMajor >= 14)
+            {
+                /* Bigger new style in ios 14 */
+                thiswidth = 200;
+                thisheight = 200;
+            }
+            else
+            {
+                /* Smaller spinner style in iOS 13 and earlier */
+                thiswidth = 200;
+                thisheight = 100;
+            }
+        }
+        else
+        {
             thiswidth = size.width;
             thisheight = size.height;
+        }
     }
     /* MLE and Container */
     else if([object isMemberOfClass:[DWMLE class]] ||
@@ -8135,7 +8124,6 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, fore, unsigned long, back, unsigned lon
     {
         DWBox *box = object;
 
-        [box setColor:_back];
         [box setBackgroundColor:bg];
     }
     else if([object isKindOfClass:[UITableView class]])
