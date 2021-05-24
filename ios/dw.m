@@ -3473,7 +3473,6 @@ DW_FUNCTION_RESTORE_PARAM2(type, int, pad, int)
     DW_FUNCTION_INIT;
     DWBox *view = [[[DWBox alloc] init] retain];
     Box *newbox = [view box];
-    [view setTranslatesAutoresizingMaskIntoConstraints:NO];
     memset(newbox, 0, sizeof(Box));
     newbox->pad = pad;
     newbox->type = type;
@@ -7315,8 +7314,6 @@ DW_FUNCTION_ADD_PARAM1(cid)
 DW_FUNCTION_RETURN(dw_calendar_new, HWND)
 DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
 {
-    DWCalendar *calendar = nil;
-#if 0 /* TODO: Figure out why this corrupts DWBoxes in its hierarchy */
     DWCalendar *calendar = [[[DWCalendar alloc] init] retain];
     if (@available(iOS 14.0, *)) {
         [calendar setPreferredDatePickerStyle:UIDatePickerStyleInline];
@@ -7327,7 +7324,6 @@ DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
     [calendar setDatePickerMode:UIDatePickerModeDate];
     [calendar setDate:[NSDate date]];
     [calendar setTag:cid];
-#endif
     DW_FUNCTION_RETURN_THIS(calendar);
 }
 
