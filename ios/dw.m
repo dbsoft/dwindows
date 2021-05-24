@@ -8511,9 +8511,16 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
 {
     DW_FUNCTION_INIT;
     id object = _dw_text_handle(handle);
+    id control = handle;
     char *retval = NULL;
 
-    if([object isKindOfClass:[UILabel class]] || [object isKindOfClass:[UITextField class]])
+    if([control isKindOfClass:[UIButton class]])
+    {
+        NSString *nsstr = [control titleForState:UIControlStateNormal];
+
+        retval = strdup([nsstr UTF8String]);
+    }
+    else if([object isKindOfClass:[UILabel class]] || [object isKindOfClass:[UITextField class]])
     {
         NSString *nsstr = [object text];
 
@@ -8545,9 +8552,15 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, text, char *)
 {
     DW_FUNCTION_INIT;
     id object = _dw_text_handle(handle);
+    id control = handle;
     Item *item = NULL;
 
-    if([object isKindOfClass:[UILabel class]] || [object isKindOfClass:[UITextField class]])
+    if([control isKindOfClass:[UIButton class]])
+    {
+        [control setTitle:[NSString stringWithUTF8String:text] forState:UIControlStateNormal];
+        item = _dw_box_item(handle);
+    }
+    else if([object isKindOfClass:[UILabel class]] || [object isKindOfClass:[UITextField class]])
     {
         [object setText:[NSString stringWithUTF8String:text]];
         item = _dw_box_item(handle);
