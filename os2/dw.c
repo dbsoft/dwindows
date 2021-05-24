@@ -13529,7 +13529,7 @@ HTIMER API dw_timer_connect(int interval, void *sigfunc, void *data)
 {
    if(sigfunc)
    {
-      int timerid = WinStartTimer(dwhab, NULLHANDLE, 0, interval);
+      HTIMER timerid = WinStartTimer(dwhab, NULLHANDLE, 0, interval);
 
       if(timerid)
       {
