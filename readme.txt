@@ -85,10 +85,15 @@ Added dw_render_redraw() function to trigger a DW_SIGNAL_EXPOSE
     dw_flush() call.  dw_flush() may cause multiple draw passes.
 Added new function dw_window_compare() to check if two window handles
     reference the same object.  Necessary in the Android port since
-    handles passed to callbacks are local references, so they don't
-    always match the handles saved during window creation.
+    handles passed to callbacks can be local references, so they
+    don't always match the handles saved during window creation.
 Added support for dw_window_set_font() with a NULL font parameter.
     This resets the font used on the widget to the default font.
+Changed dw_timer_connnect() and dw_timer_disconnect() to use HTIMER.
+    This allows newer ports to use object handles that won't fit in
+    what had been an integer reference.  OS/2 will use its native 
+    HTIMER and other existing platforms will continue to use "int"
+    for compatibility. Other platforms may change in the future.
 Fixed GTK warnings on GTK3 caused by using Pango style font syntax.
 Fixed GTK3 leaks when setting fonts or colors on a widget repeatedly.
 Fixed incorrect reporting of word wrap support on Windows.
