@@ -1393,6 +1393,7 @@ class DWindows : AppCompatActivity() {
             val dataArrayMap = SimpleArrayMap<String, Long>()
 
             button!!.tag = dataArrayMap
+            button!!.isAllCaps = false
             button!!.text = text
             button!!.id = cid
             button!!.setOnClickListener {
@@ -1767,6 +1768,20 @@ class DWindows : AppCompatActivity() {
         return pageID
     }
 
+    fun notebookCapsOff(view: View?) {
+        if (view !is ViewGroup) {
+            return
+        }
+        for (i in 0 until view.childCount) {
+            val child = view.getChildAt(i)
+            if (child is TextView) {
+                child.isAllCaps = false
+            } else {
+                notebookCapsOff(child)
+            }
+        }
+    }
+
     fun notebookPageDestroy(notebook: RelativeLayout, pageID: Long)
     {
         waitOnUiThread {
@@ -1817,6 +1832,8 @@ class DWindows : AppCompatActivity() {
                 if (tab != null) {
                     tab.text = text
                 }
+
+                notebookCapsOff(tabs)
             }
         }
     }
