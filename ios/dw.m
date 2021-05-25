@@ -348,7 +348,7 @@ int _dw_event_handler1(id object, id event, int message)
                 int (* API timerfunc)(void *) = (int (* API)(void *))handler->signalfunction;
 
                 if(!timerfunc(handler->data))
-                    dw_timer_disconnect(handler->id);
+                    dw_timer_disconnect(handler->window);
                 return 0;
             }
             /* Configure/Resize event */
@@ -4081,9 +4081,9 @@ DW_FUNCTION_RESTORE_PARAM7(box, HWND, item, HWND, width, int, height, int, hsize
 }
 
 /* Internal function to create a basic button, used by all button types */
-HWND _dw_internal_button_new(const char *text, ULONG cid)
+HWND _dw_internal_button_new(const char *text, ULONG cid, UIButtonType type)
 {
-    DWButton *button = [[DWButton buttonWithType:UIButtonTypeRoundedRect] retain];
+    DWButton *button = [[DWButton buttonWithType:type] retain];
     if(text)
     {
         [button setTitle:[NSString stringWithUTF8String:text] forState:UIControlStateNormal];
@@ -4110,7 +4110,7 @@ DW_FUNCTION_ADD_PARAM2(text, cid)
 DW_FUNCTION_RETURN(dw_button_new, HWND)
 DW_FUNCTION_RESTORE_PARAM2(text, const char *, cid, ULONG)
 {
-    DWButton *button = _dw_internal_button_new(text, cid);
+    DWButton *button = _dw_internal_button_new(text, cid, UIButtonTypeSystem);
     [button setContentHorizontalAlignment:UIControlContentHorizontalAlignmentCenter];
     DW_FUNCTION_RETURN_THIS(button);
 }
@@ -4180,7 +4180,7 @@ DW_FUNCTION_RESTORE_PARAM2(DW_UNUSED(text), const char *, cid, ULONG)
     NSString *respath = [bundle resourcePath];
     NSString *filepath = [respath stringByAppendingFormat:@"/%lu.png", cid];
     UIImage *image = [[UIImage alloc] initWithContentsOfFile:filepath];
-    DWButton *button = _dw_internal_button_new("", cid);
+    DWButton *button = _dw_internal_button_new("", cid, UIButtonTypeCustom);
     if(image)
     {
         [button setImage:image forState:UIControlStateNormal];
@@ -4213,7 +4213,7 @@ DW_FUNCTION_RESTORE_PARAM3(DW_UNUSED(text), const char *, cid, ULONG, filename, 
         nstr = [nstr stringByAppendingString: [NSString stringWithUTF8String:ext]];
         image = [[UIImage alloc] initWithContentsOfFile:nstr];
     }
-    DWButton *button = _dw_internal_button_new("", cid);
+    DWButton *button = _dw_internal_button_new("", cid, UIButtonTypeCustom);
     if(image)
     {
         [button setImage:image forState:UIControlStateNormal];
@@ -4238,7 +4238,7 @@ DW_FUNCTION_RESTORE_PARAM4(DW_UNUSED(text), const char *, cid, ULONG, data, cons
 {
     NSData *thisdata = [NSData dataWithBytes:data length:len];
     UIImage *image = [[UIImage alloc] initWithData:thisdata];
-    DWButton *button = _dw_internal_button_new("", cid);
+    DWButton *button = _dw_internal_button_new("", cid, UIButtonTypeCustom);
     if(image)
     {
         [button setImage:image forState:UIControlStateNormal];
@@ -4338,7 +4338,7 @@ DW_FUNCTION_ADD_PARAM2(text, cid)
 DW_FUNCTION_RETURN(dw_radiobutton_new, HWND)
 DW_FUNCTION_RESTORE_PARAM2(text, const char *, cid, ULONG)
 {
-    DWButton *button = _dw_internal_button_new(text, cid);
+    DWButton *button = _dw_internal_button_new(text, cid, UIButtonTypeSystem);
     [button setType:_DW_BUTTON_TYPE_RADIO];
     DW_FUNCTION_RETURN_THIS(button);
 }
@@ -4490,7 +4490,7 @@ DW_FUNCTION_ADD_PARAM2(text, cid)
 DW_FUNCTION_RETURN(dw_checkbox_new, HWND)
 DW_FUNCTION_RESTORE_PARAM2(text, const char *, cid, ULONG)
 {
-    DWButton *button = _dw_internal_button_new(text, cid);
+    DWButton *button = _dw_internal_button_new(text, cid, UIButtonTypeSystem);
     [button setType:_DW_BUTTON_TYPE_CHECK];
     DW_FUNCTION_RETURN_THIS(button);
 }
@@ -8029,7 +8029,7 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
     NSObject *object = handle;
     int retval = DW_ERROR_NONE;
 
-    if([ object isMemberOfClass:[ DWWindow class ] ])
+    if([ object isMemberOfClass:[DWWindow class]])
     {
         DWWindow *window = handle;
         CGRect rect = [window frame];
@@ -8569,15 +8569,18 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, text, char *)
     {
         DWWindow *window = object;
         NSArray *array = [window subviews];
-        
+        NSString *nstr = [NSString stringWithUTF8String:text];
+
+        [window setLargeContentTitle:nstr];
+
         for(id obj in array)
         {
             if([obj isMemberOfClass:[UINavigationBar class]])
             {
                 UINavigationBar *nav = obj;
                 UINavigationItem *item = [[nav items] firstObject];
-                
-                [item setTitle:[NSString stringWithUTF8String:text]];
+
+                [item setTitle:nstr];
             }
         }
     }
