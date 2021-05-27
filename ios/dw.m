@@ -941,18 +941,12 @@ API_AVAILABLE(ios(13.0))
     NSURL *url = [urls firstObject];
     char *file = NULL;
 
-    if(url && [[url absoluteString] length] > 0)
+    if(url)
     {
-        const char *tmp = [[url absoluteString] UTF8String];
+        const char *tmp = [url fileSystemRepresentation];
 
         if(tmp)
-        {
-            /* Strip off file:// so it looks the same as other platforms */
-            if(strncmp(tmp, "file://", 7) == 0)
-                file = strdup(&tmp[7]);
-            else
-                file = strdup(tmp);
-        }
+            file = strdup(tmp);
     }
     dw_dialog_dismiss(dialog, file);
 }
