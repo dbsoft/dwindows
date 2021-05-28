@@ -742,6 +742,8 @@ class DWindows : AppCompatActivity() {
     private var menuBar: DWMenu? = null
     private var defaultItem: View? = null
     private var fileURI: Uri? = null
+    private var fileLock = ReentrantLock()
+    private var fileCond = threadLock.newCondition()
 
     // Our version of runOnUiThread that waits for execution
     fun waitOnUiThread(runnable: Runnable)
@@ -3225,9 +3227,15 @@ class DWindows : AppCompatActivity() {
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if(requestCode == 100 && resultCode == Activity.RESULT_OK) {
-            fileURI = data!!.data
-            throw java.lang.RuntimeException()
+        if(requestCode == 100) {
+            fileLock.lock()
+            if(resultCode == Activity.RESULT_OK) {
+                fileURI = data!!.data
+            } else {
+                fileURI = null
+            }
+            fileCond.signal()
+            fileLock.unlock()
         }
     }
 
@@ -3235,20 +3243,24 @@ class DWindows : AppCompatActivity() {
     {
         var retval: String? = null
 
-        waitOnUiThread {
-            val fileintent = Intent(Intent.ACTION_GET_CONTENT)
-            fileintent.type = "text/plain"
-            fileintent.addCategory(Intent.CATEGORY_OPENABLE)
-            startActivityForResult(fileintent, 100)
-        }
+        // This can't be called from the main thread
+        if(Looper.getMainLooper() != Looper.myLooper()) {
+            fileLock.lock()
+            waitOnUiThread {
+                val fileintent = Intent(Intent.ACTION_GET_CONTENT)
+                fileintent.type = "text/plain"
+                fileintent.addCategory(Intent.CATEGORY_OPENABLE)
+                startActivityForResult(fileintent, 100)
+            }
 
-        // loop till a runtime exception is triggered.
-        try {
-            Looper.loop()
-        } catch (e2: RuntimeException) {
-        }
+            // Wait until the intent finishes.
+            fileCond.await()
+            fileLock.unlock()
 
-        retval = getUriRealPath(this, fileURI)
+            if(fileURI != null) {
+                retval = getUriRealPath(this, fileURI)
+            }
+        }
         return retval
     }
 
