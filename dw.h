@@ -877,89 +877,89 @@ typedef struct _hpixmap {
 #define DW_MB_QUESTION           (1 << 13)
 
 /* Virtual Key Codes */
-#define VK_LBUTTON               0
-#define VK_RBUTTON               1
-#define VK_CANCEL                2
-#define VK_MBUTTON               3
-#define VK_BACK                  4
-#define VK_TAB                   5
-#define VK_CLEAR                 6
-#define VK_RETURN                7
-#define VK_MENU                  8
-#define VK_PAUSE                 9
-#define VK_CAPITAL               10
-#define VK_ESCAPE                11
-#define VK_SPACE                 12
-#define VK_PRIOR                 13
-#define VK_NEXT                  14
-#define VK_END                   15
-#define VK_HOME                  16
-#define VK_LEFT                  17
-#define VK_UP                    18
-#define VK_RIGHT                 19
-#define VK_DOWN                  20
-#define VK_SELECT                21
-#define VK_PRINT                 22
-#define VK_EXECUTE               23
-#define VK_SNAPSHOT              24
-#define VK_INSERT                25
-#define VK_DELETE                26
-#define VK_HELP                  27
-#define VK_LWIN                  28
-#define VK_RWIN                  29
-#define VK_NUMPAD0               30
-#define VK_NUMPAD1               31
-#define VK_NUMPAD2               32
-#define VK_NUMPAD3               33
-#define VK_NUMPAD4               34
-#define VK_NUMPAD5               35
-#define VK_NUMPAD6               36
-#define VK_NUMPAD7               37
-#define VK_NUMPAD8               38
-#define VK_NUMPAD9               39
-#define VK_MULTIPLY              40
-#define VK_ADD                   41
-#define VK_SEPARATOR             42
-#define VK_SUBTRACT              43
-#define VK_DECIMAL               44
-#define VK_DIVIDE                45
-#define VK_F1                    46
-#define VK_F2                    47
-#define VK_F3                    48
-#define VK_F4                    49
-#define VK_F5                    50
-#define VK_F6                    51
-#define VK_F7                    52
-#define VK_F8                    53
-#define VK_F9                    54
-#define VK_F10                   55
-#define VK_F11                   56
-#define VK_F12                   57
-#define VK_F13                   58
-#define VK_F14                   59
-#define VK_F15                   60
-#define VK_F16                   61
-#define VK_F17                   62
-#define VK_F18                   63
-#define VK_F19                   64
-#define VK_F20                   65
-#define VK_F21                   66
-#define VK_F22                   67
-#define VK_F23                   68
-#define VK_F24                   69
-#define VK_NUMLOCK               70
-#define VK_SCROLL                71
-#define VK_LSHIFT                72
-#define VK_RSHIFT                73
-#define VK_LCONTROL              74
-#define VK_RCONTROL              75
-#define VK_LMENU                 76
-#define VK_RMENU                 77
+#define VK_LBUTTON               1000
+#define VK_RBUTTON               1001
+#define VK_CANCEL                1002
+#define VK_MBUTTON               1003
+#define VK_BACK                  4    /* KeyEvent.KEYCODE_BACK */
+#define VK_TAB                   61   /* KeyEvent.KEYCODE_TAB */
+#define VK_CLEAR                 28   /* KeyEvent.KEYCODE_CLEAR */
+#define VK_RETURN                66   /* KeyEvent.KEYCODE_ENTER */
+#define VK_MENU                  82   /* KeyEvent.KEYCODE_MENU */
+#define VK_PAUSE                 121  /* KeyEvent.KEYCODE_BREAK */
+#define VK_CAPITAL               115  /* KeyEvent.KEYCODE_CAPS_LOCK */
+#define VK_ESCAPE                111  /* KeyEvent.KEYCODE_ESCAPE */
+#define VK_SPACE                 62   /* KeyEvent.KEYCODE_SPACE */
+#define VK_PRIOR                 92   /* KeyEvent.KEYCODE_PAGE_UP */
+#define VK_NEXT                  93   /* KeyEvent.KEYCODE_PAGE_DOWN */
+#define VK_END                   123  /* KeyEvent.KEYCODE_MOVE_END */
+#define VK_HOME                  122  /* KeyEvent.KEYCODE_MOVE_HOME */
+#define VK_LEFT                  21   /* KeyEvent.KEYCODE_DPAD_LEFT */
+#define VK_UP                    19   /* KeyEvent.KEYCODE_DPAD_UP */
+#define VK_RIGHT                 22   /* KeyEvent.KEYCODE_DPAD_RIGHT */
+#define VK_DOWN                  20   /* KeyEvent.KEYCODE_DPAD_DOWN */
+#define VK_SELECT                1004
+#define VK_PRINT                 1005
+#define VK_EXECUTE               1006
+#define VK_SNAPSHOT              120  /* KeyEvent.KEYCODE_SYSRQ */
+#define VK_INSERT                124  /* KeyEvent.KEYCODE_INSERT */
+#define VK_DELETE                67   /* KeyEvent.KEYCODE_DEL */
+#define VK_HELP                  259  /* KeyEvent.KEYCODE_HELP */
+#define VK_LWIN                  1007
+#define VK_RWIN                  1008
+#define VK_NUMPAD0               7    /* KeyEvent.KEYCODE_0 */
+#define VK_NUMPAD1               8    /* KeyEvent.KEYCODE_1 */
+#define VK_NUMPAD2               9    /* KeyEvent.KEYCODE_2 */
+#define VK_NUMPAD3               10   /* KeyEvent.KEYCODE_3 */
+#define VK_NUMPAD4               11   /* KeyEvent.KEYCODE_4 */
+#define VK_NUMPAD5               12   /* KeyEvent.KEYCODE_5 */
+#define VK_NUMPAD6               13   /* KeyEvent.KEYCODE_6 */
+#define VK_NUMPAD7               14   /* KeyEvent.KEYCODE_7 */
+#define VK_NUMPAD8               15   /* KeyEvent.KEYCODE_8 */
+#define VK_NUMPAD9               16   /* KeyEvent.KEYCODE_9 */
+#define VK_MULTIPLY              155  /* KeyEvent.KEYCODE_NUMPAD_MULTIPLY */
+#define VK_ADD                   157  /* KeyEvent.KEYCODE_NUMPAD_ADD */
+#define VK_SEPARATOR             1009
+#define VK_SUBTRACT              156  /* KeyEvent.KEYCODE_NUMPAD_SUBTRACT */
+#define VK_DECIMAL               158  /* KeyEvent.KEYCODE_NUMPAD_DOT */
+#define VK_DIVIDE                154  /* KeyEvent.KEYCODE_NUMPAD_DIVIDE */
+#define VK_F1                    131  /* KeyEvent.KEYCODE_F1 */
+#define VK_F2                    132  /* KeyEvent.KEYCODE_F2 */
+#define VK_F3                    133  /* KeyEvent.KEYCODE_F3 */
+#define VK_F4                    134  /* KeyEvent.KEYCODE_F4 */
+#define VK_F5                    135  /* KeyEvent.KEYCODE_F5 */
+#define VK_F6                    136  /* KeyEvent.KEYCODE_F6 */
+#define VK_F7                    137  /* KeyEvent.KEYCODE_F7 */
+#define VK_F8                    138  /* KeyEvent.KEYCODE_F8 */
+#define VK_F9                    139  /* KeyEvent.KEYCODE_F9 */
+#define VK_F10                   140  /* KeyEvent.KEYCODE_F10 */
+#define VK_F11                   141  /* KeyEvent.KEYCODE_F11 */
+#define VK_F12                   142  /* KeyEvent.KEYCODE_F12 */
+#define VK_F13                   1010
+#define VK_F14                   1011
+#define VK_F15                   1012
+#define VK_F16                   1014
+#define VK_F17                   1015
+#define VK_F18                   1016
+#define VK_F19                   1017
+#define VK_F20                   1018
+#define VK_F21                   1019
+#define VK_F22                   1020
+#define VK_F23                   1021
+#define VK_F24                   1022
+#define VK_NUMLOCK               143   /* KeyEvent.KEYCODE_NUMLOCK */
+#define VK_SCROLL                116   /* KeyEvent.KEYCODE_SCROLL_LOCK */
+#define VK_LSHIFT                59    /* KeyEvent.KEYCODE_SHIFT_LEFT */
+#define VK_RSHIFT                60    /* KeyEvent.KEYCODE_SHIFT_RIGHT */
+#define VK_LCONTROL              113   /* KeyEvent.KEYCODE_CTRL_LEFT */
+#define VK_RCONTROL              114   /* KeyEvent.KEYCODE_CTRL_RIGHT */
+#define VK_LMENU                 117   /* KeyEvent.KEYCODE_META_LEFT */
+#define VK_RMENU                 118   /* KeyEvent.KEYCODE_META_RIGHT */
 
 /* Key Modifiers */
-#define KC_CTRL                  (1)
-#define KC_SHIFT                 (1 << 1)
-#define KC_ALT                   (1 << 2)
+#define KC_CTRL                  28672   /* KeyEvent.META_CTRL_MASK */
+#define KC_SHIFT                 193     /* KeyEvent.META_SHIFT_MASK */
+#define KC_ALT                   458752  /* KeyEvent.META_META_MASK */
 #endif
 
 /* Template section, framework for new platform ports */

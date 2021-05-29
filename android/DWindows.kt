@@ -2861,6 +2861,13 @@ class DWindows : AppCompatActivity() {
             render = DWRender(this)
             render!!.tag = dataArrayMap
             render!!.id = cid
+            render!!.setOnKeyListener(View.OnKeyListener { v, keyCode, event ->
+                if (event.action == KeyEvent.ACTION_DOWN) {
+                    eventHandlerKey(render!!, 2, keyCode, event.unicodeChar, event.modifiers, event.characters)
+                    true
+                }
+                false
+            })
         }
         return render
     }
@@ -3676,6 +3683,7 @@ class DWindows : AppCompatActivity() {
     external fun eventHandlerTimer(sigfunc: Long, data: Long): Int
     external fun eventHandlerHTMLResult(obj1: View, message: Int, result: String, data: Long)
     external fun eventHandlerContainer(obj1: View, message: Int, title: String?, x: Int, y: Int, data: Long)
+    external fun eventHandlerKey(obj1: View, message: Int, character: Int, vk: Int, modifiers: Int, str: String)
 
     companion object
     {

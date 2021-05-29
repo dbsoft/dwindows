@@ -300,8 +300,8 @@ int _dw_event_handler2(void **params)
             case 2:
             {
                 int (*keypressfunc)(HWND, char, int, int, void *, char *) = (int (* API)(HWND, char, int, int, void *, char *))handler->signalfunction;
-                char *utf8 = (char *)params[1], ch = utf8 ? utf8[0] : '\0';
-                int vk = 0, special = 0;
+                char *utf8 = (char *)params[1], ch = (char)DW_POINTER_TO_INT(params[3]);
+                int vk = DW_POINTER_TO_INT(params[4]), special = DW_POINTER_TO_INT(params[5]);
 
                 retval = keypressfunc(handler->window, ch, (int)vk, special, handler->data, utf8);
                 break;
@@ -620,6 +620,20 @@ Java_org_dbsoft_dwindows_DWindows_eventHandlerContainer(JNIEnv* env, jobject obj
 #endif
     void *params[_DW_EVENT_PARAM_SIZE] = { nullptr, DW_POINTER(title), nullptr, DW_INT_TO_POINTER(x), DW_INT_TO_POINTER(y),
                                            nullptr, nullptr, (void *)data, DW_INT_TO_POINTER(message), nullptr };
+
+    _dw_event_handler(obj1, params);
+}
+
+JNIEXPORT void JNICALL
+Java_org_dbsoft_dwindows_DWindows_eventHandlerKey(JNIEnv *env, jobject obj, jobject obj1, jint message, jint ch,
+                                                  jint vk, jint modifiers, jstring str) {
+#ifdef _DW_EVENT_THREADING
+    char *cstr = str ? strdup(env->GetStringUTFChars(str, nullptr)) : nullptr;
+#else
+    const char *cstr = str ? env->GetStringUTFChars(str, nullptr) : nullptr;
+#endif
+    void *params[_DW_EVENT_PARAM_SIZE] = { nullptr, DW_POINTER(cstr), nullptr, DW_INT_TO_POINTER(ch), DW_INT_TO_POINTER(vk),
+                                           DW_INT_TO_POINTER(modifiers), nullptr, nullptr, DW_INT_TO_POINTER(message), nullptr };
 
     _dw_event_handler(obj1, params);
 }
