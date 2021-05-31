@@ -269,6 +269,15 @@ int _dw_main_iteration(NSDate *date);
 CGContextRef _dw_draw_context(id image, bool antialias);
 typedef id (*DWIMP)(id, SEL, ...);
 
+void _dw_display_responder_chain(id window)
+{
+    NSLog(@"=== Starting responder chain dump ===\n");
+    do {
+        NSLog(@"%@\n", [window description]);
+    } while((window = [window nextResponder]));
+    NSLog(@"=== Responder chain dump complete ===\n");
+}
+
 /* Internal function to queue a window redraw */
 void _dw_redraw(id window, int skip)
 {
@@ -1289,6 +1298,7 @@ BOOL _dw_is_dark(void)
 -(BOOL)windowShouldClose:(id)sender;
 -(void)windowDidBecomeMain:(id)sender;
 -(void)menuHandler:(id)sender;
+-(UIResponder *)nextResponder;
 @end
 
 @implementation DWView
@@ -1339,10 +1349,12 @@ BOOL _dw_is_dark(void)
 {
     [DWObj menuHandler:sender];
 }
+-(UIResponder *)nextResponder { return [[self window] rootViewController]; }
 @end
 
 @interface DWViewController : UIViewController
 -(void)viewWillLayoutSubviews;
+-(UIResponder *)nextResponder;
 @end
 
 
@@ -1403,6 +1415,7 @@ BOOL _dw_is_dark(void)
     [view setFrame:frame];
     [view windowResized:frame.size];
 }
+-(UIResponder *)nextResponder { return [[self viewIfLoaded] window]; }
 @end
 
 #define _DW_BUTTON_TYPE_NORMAL 0
@@ -2085,6 +2098,7 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
     if(window)
     {
         __block UIMenu *popupmenu = [[window popupMenu] menu];
+        _dw_display_responder_chain(tableView);
         config = [UIContextMenuConfiguration configurationWithIdentifier:@"DWContextMenu"
                                                          previewProvider:nil
                                                           actionProvider:^(NSArray* suggestedAction){return popupmenu;}];
@@ -7942,10 +7956,10 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, pageid, ULONG, page, HWND)
  *       title: The Window title.
  *       flStyle: Style flags, see the PM reference.
  */
-DW_FUNCTION_DEFINITION(dw_window_new, HWND, DW_UNUSED(HWND hwndOwner), const char *title, DW_UNUSED(ULONG flStyle))
+DW_FUNCTION_DEFINITION(dw_window_new, HWND, DW_UNUSED(HWND hwndOwner), const char *title, ULONG flStyle)
 DW_FUNCTION_ADD_PARAM3(hwndOwner, title, flStyle)
 DW_FUNCTION_RETURN(dw_window_new, HWND)
-DW_FUNCTION_RESTORE_PARAM3(DW_UNUSED(hwndOwner), HWND, title, char *, DW_UNUSED(flStyle), ULONG)
+DW_FUNCTION_RESTORE_PARAM3(DW_UNUSED(hwndOwner), HWND, title, char *, flStyle, ULONG)
 {
     DW_FUNCTION_INIT;
     CGRect screenrect = [[UIScreen mainScreen] bounds];
@@ -7958,7 +7972,9 @@ DW_FUNCTION_RESTORE_PARAM3(DW_UNUSED(hwndOwner), HWND, title, char *, DW_UNUSED(
     [window addSubview:view];
     [window setBackgroundColor:[UIColor systemBackgroundColor]];
 
-    /* TODO: Handle style flags... if we can? There is no visible frame */
+    /* Handle style flags... There is no visible frame...
+     * On iOS 13 and higher if a titlebar is requested create a navigation bar.
+     */
     if(@available(iOS 13.0, *)) {
         NSString *nstitle = [NSString stringWithUTF8String:title];
         [window setLargeContentTitle:nstitle];
