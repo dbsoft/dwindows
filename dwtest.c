@@ -120,7 +120,6 @@ HWND mainwindow,
     pagebox,
     containerbox,
     textbox1, textbox2, textboxA,
-    gap_box,
     buttonbox,
     buttonsbox,
     buttonboxperm,
@@ -170,11 +169,9 @@ char *resolve_keyname(int vk)
         case  VK_RBUTTON : keyname =  "VK_RBUTTON"; break;
         case  VK_CANCEL  : keyname =  "VK_CANCEL"; break;
         case  VK_MBUTTON : keyname =  "VK_MBUTTON"; break;
-/*      case  VK_BACK    : keyname =  "VK_BACK"; break;*/
         case  VK_TAB     : keyname =  "VK_TAB"; break;
         case  VK_CLEAR   : keyname =  "VK_CLEAR"; break;
         case  VK_RETURN  : keyname =  "VK_RETURN"; break;
-/*      case  VK_MENU    : keyname =  "VK_MENU"; break;*/
         case  VK_PAUSE   : keyname =  "VK_PAUSE"; break;
         case  VK_CAPITAL : keyname =  "VK_CAPITAL"; break;
         case  VK_ESCAPE  : keyname =  "VK_ESCAPE"; break;
@@ -242,8 +239,6 @@ char *resolve_keyname(int vk)
         case  VK_RSHIFT  : keyname =  "VK_RSHIFT"; break;
         case  VK_LCONTROL: keyname =  "VK_LCONTROL"; break;
         case  VK_RCONTROL: keyname =  "VK_RCONTROL"; break;
-/*      case  VK_LMENU   : keyname =  "VK_LMENU"; break; */
-/*      case  VK_RMENU   : keyname =  "VK_RMENU"; break;*/
         default: keyname = "<unknown>"; break;
     }
     return keyname;
@@ -542,6 +537,7 @@ int DWSIGNAL cursortoggle_callback(HWND window, void *data)
 int DWSIGNAL beep_callback(HWND window, void *data)
 {
     dw_timer_disconnect(timerid);
+    timerid = 0;
     return TRUE;
 }
 
