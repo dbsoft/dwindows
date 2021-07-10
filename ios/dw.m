@@ -1362,7 +1362,7 @@ BOOL _dw_is_dark(void)
 -(void)viewWillLayoutSubviews
 {
     DWWindow *window = (DWWindow *)[[self view] window];
-    NSArray *array = [window subviews];
+    NSArray *array = [[self view] subviews];
     CGRect frame = [window frame];
     DWView *view = nil;
     UINavigationBar *nav = nil;
@@ -1374,12 +1374,6 @@ BOOL _dw_is_dark(void)
             view = obj;
         else if([obj isMemberOfClass:[UINavigationBar class]])
             nav = obj;
-        /* Hide the UITransitionView which is blocking the screen...
-         * This is probably not the correct solution, but it solves the
-         * problem for the moment.  Figure out what to do with this view.
-         */
-        else
-            [obj setHidden:YES];
     }
     /* Adjust the frame to account for the status bar and navigation bar if it exists */
     if(nav)
@@ -3791,7 +3785,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
     if([object isKindOfClass:[UIWindow class]])
     {
         UIWindow *window = box;
-        NSArray *subviews = [window subviews];
+        NSArray *subviews = [[[window rootViewController] view] subviews];
         view = [subviews firstObject];
     }
     else if([object isMemberOfClass:[DWScrollBox class]])
@@ -7967,10 +7961,13 @@ DW_FUNCTION_RESTORE_PARAM3(DW_UNUSED(hwndOwner), HWND, title, char *, flStyle, U
     DWView *view = [[DWView alloc] init];
     UIUserInterfaceStyle style = [[DWObj hiddenWindow] overrideUserInterfaceStyle];
 
+    /* Copy the overrideUserInterfaceStyle property from the hiddenWindow */
+    if(style != UIUserInterfaceStyleUnspecified)
+        [window setOverrideUserInterfaceStyle:style];
     [window setWindowLevel:UIWindowLevelNormal];
     [window setRootViewController:[[DWViewController alloc] init]];
-    [window addSubview:view];
     [window setBackgroundColor:[UIColor systemBackgroundColor]];
+    [[[window rootViewController] view] addSubview:view];
 
     /* Handle style flags... There is no visible frame...
      * On iOS 13 and higher if a titlebar is requested create a navigation bar.
@@ -7985,12 +7982,9 @@ DW_FUNCTION_RESTORE_PARAM3(DW_UNUSED(hwndOwner), HWND, title, char *, flStyle, U
             UINavigationItem* navItem = [[UINavigationItem alloc] initWithTitle:nstitle];
 
             [navbar setItems:@[navItem]];
-            [window addSubview:navbar];
+            [[[window rootViewController] view] addSubview:navbar];
         }
     }
-    /* Copy the overrideUserInterfaceStyle property from the hiddenWindow */
-    if(style != UIUserInterfaceStyleUnspecified)
-        [window setOverrideUserInterfaceStyle:style];
     DW_FUNCTION_RETURN_THIS(window);
 }
 
