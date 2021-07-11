@@ -269,15 +269,6 @@ int _dw_main_iteration(NSDate *date);
 CGContextRef _dw_draw_context(id image, bool antialias);
 typedef id (*DWIMP)(id, SEL, ...);
 
-void _dw_display_responder_chain(id window)
-{
-    NSLog(@"=== Starting responder chain dump ===\n");
-    do {
-        NSLog(@"%@\n", [window description]);
-    } while((window = [window nextResponder]));
-    NSLog(@"=== Responder chain dump complete ===\n");
-}
-
 /* Internal function to queue a window redraw */
 void _dw_redraw(id window, int skip)
 {
@@ -1392,8 +1383,9 @@ BOOL _dw_is_dark(void)
 
             if(windowmenu && !item.rightBarButtonItem)
             {
+                UIMenu *menu = [windowmenu menu];
                 UIBarButtonItem *options = [[UIBarButtonItem alloc] initWithImage:[UIImage systemImageNamed:@"list.bullet"]
-                                                                                 menu:[windowmenu menu]];
+                                                                             menu:menu];
                 item.rightBarButtonItem = options;
             }
         } else {
@@ -2091,9 +2083,8 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
 
     if(window)
     {
-        __block UIMenu *popupmenu = [[window popupMenu] menu];
-        _dw_display_responder_chain(tableView);
-        config = [UIContextMenuConfiguration configurationWithIdentifier:@"DWContextMenu"
+        __block UIMenu *popupmenu = [[[window popupMenu] menu] retain];
+        config = [UIContextMenuConfiguration configurationWithIdentifier:nil
                                                          previewProvider:nil
                                                           actionProvider:^(NSArray* suggestedAction){return popupmenu;}];
         [window setPopupMenu:nil];
