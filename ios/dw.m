@@ -2081,7 +2081,7 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
 
     _dw_event_handler(self, (id)params, 10);
 
-    if(window)
+    if(window && [window popupMenu])
     {
         __block UIMenu *popupmenu = [[[window popupMenu] menu] retain];
         config = [UIContextMenuConfiguration configurationWithIdentifier:nil
@@ -7620,6 +7620,7 @@ HWND API dw_menu_append_item(HMENUI menux, const char *title, ULONG itemid, ULON
         item = [[DWMenuItem commandWithTitle:nstr image:nil
                                       action:@selector(menuHandler:)
                                 propertyList:nil] autorelease];
+        /* Don't set the tag if the ID is 0 or -1 */
         if(itemid != DW_MENU_AUTO && itemid != DW_MENU_POPUP)
             [item setTag:itemid];
         [menu addItem:item];
@@ -7630,8 +7631,7 @@ HWND API dw_menu_append_item(HMENUI menux, const char *title, ULONG itemid, ULON
             if(flags & DW_MIS_CHECKED)
                 [item setState:UIMenuElementStateOn];
         }
-        if(flags & DW_MIS_DISABLED)
-            [item setEnabled:NO];
+        [item setEnabled:(flags & DW_MIS_DISABLED ? NO : YES)];
 
         if(submenux)
         {
