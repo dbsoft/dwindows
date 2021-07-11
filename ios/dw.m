@@ -1524,7 +1524,7 @@ BOOL _dw_is_dark(void)
 /* Subclass for a menu item type */
 @implementation DWMenuItem
 -(void)setCheck:(BOOL)input { check = input; }
--(void)setEnabled:(BOOL)input { enabled = input; }
+-(void)setEnabled:(BOOL)input { enabled = input; [self setAttributes:(enabled ? 0 : UIMenuElementAttributesDisabled)]; }
 -(void)setSubmenu:(DWMenu *)input { submenu = input; }
 -(void)setMenu:(DWMenu *)input { menu = input; }
 -(void)setTag:(unsigned long)input { tag = input; }
@@ -7620,7 +7620,8 @@ HWND API dw_menu_append_item(HMENUI menux, const char *title, ULONG itemid, ULON
         item = [[DWMenuItem commandWithTitle:nstr image:nil
                                       action:@selector(menuHandler:)
                                 propertyList:nil] autorelease];
-        [item setTag:itemid];
+        if(itemid != DW_MENU_AUTO && itemid != DW_MENU_POPUP)
+            [item setTag:itemid];
         [menu addItem:item];
         
         if(check)
@@ -7710,7 +7711,6 @@ void API dw_menu_item_set_state(HMENUI menux, unsigned long itemid, unsigned lon
         {
             [menuitem setState:UIMenuElementStateOff];
         }
-#if 0 /* TODO: Disabled items not supported on iOS */
         if(state & DW_MIS_ENABLED)
         {
             [menuitem setEnabled:YES];
@@ -7719,7 +7719,6 @@ void API dw_menu_item_set_state(HMENUI menux, unsigned long itemid, unsigned lon
         {
             [menuitem setEnabled:NO];
         }
-#endif
     }
 }
 
@@ -8197,7 +8196,6 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, style, ULONG, mask, ULONG)
             else if(style & DW_MIS_UNCHECKED)
                 [menuitem setState:UIMenuElementStateOff];
         }
-#if 0 /* Disabled menu items not available on iOS currently */
         if(mask & (DW_MIS_ENABLED | DW_MIS_DISABLED))
         {
             if(style & DW_MIS_ENABLED)
@@ -8205,7 +8203,6 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, style, ULONG, mask, ULONG)
             else if(style & DW_MIS_DISABLED)
                 [menuitem setEnabled:NO];
         }
-#endif
     }
     DW_FUNCTION_RETURN_NOTHING;
 }
