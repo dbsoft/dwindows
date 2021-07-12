@@ -656,7 +656,7 @@ API_AVAILABLE(ios(13.0))
 @end
 
 API_AVAILABLE(ios(13.0))
-@interface DWMenuItem : UICommand
+@interface DWMenuItem : UIKeyCommand
 {
     BOOL check, enabled;
     unsigned long tag;
@@ -1572,7 +1572,10 @@ BOOL _dw_is_dark(void)
         }
     }
     if(title)
-        menu = [UIMenu menuWithTitle:title children:menuchildren];
+    {
+        menu = [UIMenu menuWithTitle:title image:[UIImage systemImageNamed:@"ellipsis"] identifier:nil
+                             options:0  children:menuchildren];
+    }
     else
     {
         if(@available(iOS 14.0, *))
@@ -7619,6 +7622,8 @@ HWND API dw_menu_append_item(HMENUI menux, const char *title, ULONG itemid, ULON
 
         item = [[DWMenuItem commandWithTitle:nstr image:nil
                                       action:@selector(menuHandler:)
+                                       input:[NSString stringWithUTF8String:accel]
+                               modifierFlags:UIKeyModifierCommand
                                 propertyList:nil] autorelease];
         /* Don't set the tag if the ID is 0 or -1 */
         if(itemid != DW_MENU_AUTO && itemid != DW_MENU_POPUP)
