@@ -656,7 +656,7 @@ API_AVAILABLE(ios(13.0))
 @end
 
 API_AVAILABLE(ios(13.0))
-@interface DWMenuItem : UIKeyCommand
+@interface DWMenuItem : UIAction
 {
     BOOL check, enabled;
     unsigned long tag;
@@ -7605,7 +7605,7 @@ char _dw_removetilde(char *dest, const char *src)
 HWND API dw_menu_append_item(HMENUI menux, const char *title, ULONG itemid, ULONG flags, int end, int check, HMENUI submenux)
 {
     DWMenu *menu = menux;
-    DWMenuItem *item = nil;
+    __block DWMenuItem *item = nil;
     if(!title || strlen(title) == 0)
         [menu addItem:[[NSNull alloc] init]];
     else
@@ -7620,11 +7620,10 @@ HWND API dw_menu_append_item(HMENUI menux, const char *title, ULONG itemid, ULON
         nstr = [NSString stringWithUTF8String:newtitle];
         free(newtitle);
 
-        item = [[DWMenuItem commandWithTitle:nstr image:nil
-                                      action:@selector(menuHandler:)
-                                       input:[NSString stringWithUTF8String:accel]
-                               modifierFlags:UIKeyModifierCommand
-                                propertyList:nil] autorelease];
+        item = [[DWMenuItem actionWithTitle:nstr image:nil identifier:nil
+                                    handler:^(__kindof UIAction * _Nonnull action) {
+            [DWObj menuHandler:item];
+        }] autorelease];
         /* Don't set the tag if the ID is 0 or -1 */
         if(itemid != DW_MENU_AUTO && itemid != DW_MENU_POPUP)
             [item setTag:itemid];
