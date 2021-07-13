@@ -1557,6 +1557,7 @@ BOOL _dw_is_dark(void)
     /* Create or recreate the UIMenu recursively */
     UIMenu *oldmenu = menu;
     NSMutableArray *menuchildren = [[NSMutableArray alloc] init];
+    NSMutableArray *section = menuchildren;
 
     for(id child in children)
     {
@@ -1566,10 +1567,35 @@ BOOL _dw_is_dark(void)
             DWMenu *submenu = [menuitem submenu];
 
             if(submenu)
-                [menuchildren addObject:[submenu menu]];
+                [section addObject:[submenu menu]];
             else
-                [menuchildren addObject:child];
+                [section addObject:child];
         }
+        /* NSNull entry tells us to make a new section...
+         * we do this by making a new UIMenu inline.
+         */
+        else if([child isMemberOfClass:[NSNull class]])
+        {
+            if(section != menuchildren)
+            {
+                UIMenu *sectionmenu = [UIMenu menuWithTitle:@""
+                                                      image:nil
+                                                 identifier:nil
+                                                    options:UIMenuOptionsDisplayInline
+                                                   children:section];
+                [menuchildren addObject:sectionmenu];
+            }
+            section = [[NSMutableArray alloc] init];
+        }
+    }
+    if(section != menuchildren)
+    {
+        UIMenu *sectionmenu = [UIMenu menuWithTitle:@""
+                                              image:nil
+                                         identifier:nil
+                                            options:UIMenuOptionsDisplayInline
+                                           children:section];
+        [menuchildren addObject:sectionmenu];
     }
     if(title)
     {
