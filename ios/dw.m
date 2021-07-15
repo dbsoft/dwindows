@@ -238,6 +238,7 @@ static int DWOSMajor, DWOSMinor, DWOSBuild;
 static char _dw_bundle_path[PATH_MAX+1] = { 0 };
 static char _dw_app_id[_DW_APP_ID_SIZE+1]= {0};
 static int _dw_dark_mode_state = DW_FEATURE_UNSUPPORTED;
+static CGPoint _dw_event_point = {0};
 
 /* Create a default colors for a thread */
 void _dw_init_colors(void)
@@ -409,9 +410,9 @@ int _dw_event_handler1(id object, id event, int message)
             {
                 int (* API buttonfunc)(HWND, int, int, int, void *) = (int (* API)(HWND, int, int, int, void *))handler->signalfunction;
                 int button = 1;
-                CGPoint p = {0};
+                CGPoint p = _dw_event_point;
 
-                if([event isMemberOfClass:[UIEvent class]])
+                if(event && [event isMemberOfClass:[UIEvent class]])
                 {
                     UITouch *touch = [[event allTouches] anyObject];
 
@@ -793,7 +794,7 @@ API_AVAILABLE(ios(13.0))
 @end
 
 /* Subclass for a render area type */
-@interface DWRender : UIView
+@interface DWRender : UIView <UIContextMenuInteractionDelegate>
 {
     void *userdata;
     UIFont *font;
@@ -808,6 +809,7 @@ API_AVAILABLE(ios(13.0))
 -(CGSize)size;
 -(DWImage *)cachedImage;
 -(void)keyDown:(UIKey *)key API_AVAILABLE(ios(13.4));
+-(UIContextMenuConfiguration *)contextMenuInteraction:(UIContextMenuInteraction *)interaction configurationForMenuAtLocation:(CGPoint)location;
 @end
 
 @implementation DWRender
@@ -857,6 +859,24 @@ API_AVAILABLE(ios(13.0))
     }
 }
 -(void)keyDown:(UIKey *)key  API_AVAILABLE(ios(13.4)){ _dw_event_handler(self, key, 2); }
+-(UIContextMenuConfiguration *)contextMenuInteraction:(UIContextMenuInteraction *)interaction configurationForMenuAtLocation:(CGPoint)location
+{
+    DWWindow *window = (DWWindow *)[self window];
+    UIContextMenuConfiguration *config = nil;
+
+    _dw_event_point = location;
+    _dw_event_handler(self, nil, 3);
+
+    if(window && [window popupMenu])
+    {
+        __block UIMenu *popupmenu = [[[window popupMenu] menu] retain];
+        config = [UIContextMenuConfiguration configurationWithIdentifier:nil
+                                                         previewProvider:nil
+                                                          actionProvider:^(NSArray* suggestedAction){return popupmenu;}];
+        [window setPopupMenu:nil];
+    }
+    return config;
+}
 -(void)dealloc {
     UserData *root = userdata;
     _dw_remove_userdata(&root, NULL, TRUE);
@@ -2108,6 +2128,7 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
     params[2] = DW_INT_TO_POINTER((int)point.x);
     params[3] = DW_INT_TO_POINTER((int)point.y);
 
+    _dw_event_point = point;
     _dw_event_handler(self, (id)params, 10);
 
     if(window && [window popupMenu])
@@ -5355,7 +5376,9 @@ DW_FUNCTION_RETURN(dw_render_new, HWND)
 DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
 {
     DWRender *render = [[[DWRender alloc] init] retain];
+    UIContextMenuInteraction *interaction = [[UIContextMenuInteraction alloc] initWithDelegate:render];
     [render setTag:cid];
+    [render addInteraction:interaction];
     DW_FUNCTION_RETURN_THIS(render);
 }
 
@@ -7519,11 +7542,11 @@ void API dw_pointer_query_pos(long *x, long *y)
 {
     if(x)
     {
-        *x = 0;
+        *x = (long)_dw_event_point.x;
     }
     if(y)
     {
-        *y = 0;
+        *y = (long)_dw_event_point.y;
     }
 }
 
