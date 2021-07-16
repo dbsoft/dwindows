@@ -830,6 +830,16 @@ class DWindows : AppCompatActivity() {
         return darkMode
     }
 
+    fun menuPopup(menu: DWMenu, parent: View, x: Int, y: Int)
+    {
+        runOnUiThread {
+            val popup = PopupMenu(this, parent)
+
+            menu.createMenu(popup.menu)
+            popup.show()
+        }
+    }
+
     fun menuBarNew(location: View): DWMenu?
     {
         // TODO: Make sure location is this activity
