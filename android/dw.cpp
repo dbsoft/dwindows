@@ -4651,6 +4651,20 @@ int API dw_menu_delete_item(HMENUI menux, unsigned long id)
  */
 void API dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
 {
+    JNIEnv *env;
+
+    if(menu && *menu && parent && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID menuPopup = env->GetMethodID(clazz, "menuPopup",
+                                               "(Lorg/dbsoft/dwindows/DWMenu;Landroid/view/View;II)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, menuPopup, *menu, parent, x, y);
+        _dw_jni_check_exception(env);
+        *menu = nullptr;
+    }
 }
 
 char _dw_removetilde(char *dest, const char *src)
