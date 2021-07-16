@@ -1,6 +1,7 @@
 package org.dbsoft.dwindows
 
 import android.R
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.Dialog
 import android.app.NotificationChannel
@@ -242,6 +243,8 @@ class DWRender(context: Context) : View(context) {
     var cachedCanvas: Canvas? = null
     var typeface: Typeface? = null
     var fontsize: Float? = null
+    var evx: Float = 0f
+    var evy: Float = 0f
 
     override fun onSizeChanged(width: Int, height: Int, oldWidth: Int, oldHeight: Int) {
         super.onSizeChanged(width, height, oldWidth, oldHeight)
@@ -2871,6 +2874,32 @@ class DWindows : AppCompatActivity() {
             render = DWRender(this)
             render!!.tag = dataArrayMap
             render!!.id = cid
+            render!!.setOnTouchListener(object : View.OnTouchListener {
+                @SuppressLint("ClickableViewAccessibility")
+                override fun onTouch(v: View, event: MotionEvent): Boolean {
+                    when (event.action) {
+                        MotionEvent.ACTION_DOWN -> {
+                            render!!.evx = event.x
+                            render!!.evy = event.y
+                        }
+                        MotionEvent.ACTION_UP -> {
+                            render!!.evx = event.x
+                            render!!.evy = event.y
+                        }
+                    }
+                    return false
+                }
+            })
+            render!!.setOnLongClickListener{
+                // Long click functions as button 2
+                eventHandlerInt(render!!, 3, render!!.evx.toInt(), render!!.evy.toInt(), 2, 0)
+                true
+            }
+            render!!.setOnClickListener{
+                // Normal click functions as button 1
+                eventHandlerInt(render!!, 3, render!!.evx.toInt(), render!!.evy.toInt(), 1, 0)
+                true
+            }
             render!!.setOnKeyListener(View.OnKeyListener { v, keyCode, event ->
                 if (event.action == KeyEvent.ACTION_DOWN) {
                     eventHandlerKey(render!!, 2, keyCode, event.unicodeChar, event.modifiers, event.characters)

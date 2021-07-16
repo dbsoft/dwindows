@@ -311,7 +311,7 @@ int _dw_event_handler2(void **params)
             case 4:
             {
                 int (* API buttonfunc)(HWND, int, int, int, void *) = (int (* API)(HWND, int, int, int, void *))handler->signalfunction;
-                int button = 1;
+                int button = params[5] ? DW_POINTER_TO_INT(params[5]) : 1;
 
                 retval = buttonfunc(handler->window, DW_POINTER_TO_INT(params[3]), DW_POINTER_TO_INT(params[4]), button, handler->data);
                 break;
