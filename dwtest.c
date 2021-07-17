@@ -1056,7 +1056,7 @@ void archive_add(void)
 int API motion_notify_event(HWND window, int x, int y, int buttonmask, void *data)
 {
     char buf[200];
-    sprintf(buf, "%s: %dx%d", data ? "motion_notify" : "button_press", x, y);
+    sprintf(buf, "%s: %dx%d buttons %d", data ? "motion_notify" : "button_press", x, y, buttonmask);
     dw_window_set_text(status2, buf);
     return 0;
 }
