@@ -628,6 +628,8 @@ class DWContainerAdapter(c: Context) : BaseAdapter()
     var simpleMode: Boolean = true
     var oddColor: Int? = null
     var evenColor: Int? = null
+    var lastClick: Long = 0
+    var lastClickRow: Int = -1
 
     override fun getCount(): Int {
         return model.numberOfRows()
@@ -2147,10 +2149,22 @@ class DWindows : AppCompatActivity() {
             cont!!.setOnItemClickListener { parent, view, position, id ->
                 val title = adapter.model.getRowTitle(position)
                 val data = adapter.model.getRowData(position)
+                val now = System.currentTimeMillis()
 
                 view.isSelected = !view.isSelected
                 adapter.selectedItem = position
-                eventHandlerContainer(cont!!, 12, title, 0, 0, data)
+                // If we are single select or we got a double tap...
+                // Generate an ENTER event
+                if(cont!!.choiceMode != ListView.CHOICE_MODE_MULTIPLE ||
+                    (position == adapter.lastClickRow &&
+                    (now - adapter.lastClick) < ViewConfiguration.getDoubleTapTimeout())) {
+                    eventHandlerContainer(cont!!, 9, title, 0, 0, data)
+                } else {
+                    // If we are mutiple select, generate a SELECT event
+                    eventHandlerContainer(cont!!, 12, title, 0, 0, data)
+                }
+                adapter.lastClick = now
+                adapter.lastClickRow = position
             }
             cont!!.setOnContextClickListener {
                 if(adapter.selectedItem > -1 && adapter.selectedItem < adapter.model.numberOfRows()) {
@@ -2165,7 +2179,7 @@ class DWindows : AppCompatActivity() {
                 val title = adapter.model.getRowTitle(position)
                 val data = adapter.model.getRowData(position)
 
-                eventHandlerContainer(cont!!, 9, title, 0, 0, data)
+                eventHandlerContainer(cont!!, 10, title, 0, 0, data)
                 true
             }
         }
