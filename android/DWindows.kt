@@ -245,6 +245,7 @@ class DWRender(context: Context) : View(context) {
     var fontsize: Float? = null
     var evx: Float = 0f
     var evy: Float = 0f
+    var button: Int = 1
 
     override fun onSizeChanged(width: Int, height: Int, oldWidth: Int, oldHeight: Int) {
         super.onSizeChanged(width, height, oldWidth, oldHeight)
@@ -2881,10 +2882,18 @@ class DWindows : AppCompatActivity() {
                         MotionEvent.ACTION_DOWN -> {
                             render!!.evx = event.x
                             render!!.evy = event.y
+                            // Event will be generated in the onClickListener or
+                            // onLongClickListener below, just save the location
                         }
                         MotionEvent.ACTION_UP -> {
                             render!!.evx = event.x
                             render!!.evy = event.y
+                            eventHandlerInt(render!!, 4, event.x.toInt(), event.y.toInt(), render!!.button, 0)
+                        }
+                        MotionEvent.ACTION_MOVE -> {
+                            render!!.evx = event.x
+                            render!!.evy = event.y
+                            eventHandlerInt(render!!, 5, event.x.toInt(), event.y.toInt(), 1, 0)
                         }
                     }
                     return false
@@ -2892,18 +2901,18 @@ class DWindows : AppCompatActivity() {
             })
             render!!.setOnLongClickListener{
                 // Long click functions as button 2
+                render!!.button = 2
                 eventHandlerInt(render!!, 3, render!!.evx.toInt(), render!!.evy.toInt(), 2, 0)
                 true
             }
             render!!.setOnClickListener{
                 // Normal click functions as button 1
+                render!!.button = 1
                 eventHandlerInt(render!!, 3, render!!.evx.toInt(), render!!.evy.toInt(), 1, 0)
-                true
             }
             render!!.setOnKeyListener(View.OnKeyListener { v, keyCode, event ->
                 if (event.action == KeyEvent.ACTION_DOWN) {
                     eventHandlerKey(render!!, 2, keyCode, event.unicodeChar, event.modifiers, event.characters)
-                    true
                 }
                 false
             })
