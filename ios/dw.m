@@ -409,19 +409,29 @@ int _dw_event_handler1(id object, id event, int message)
             case 4:
             {
                 int (* API buttonfunc)(HWND, int, int, int, void *) = (int (* API)(HWND, int, int, int, void *))handler->signalfunction;
-                int button = 1;
+                /* Event will be nil when handling the context menu events...
+                 * So button should default to 2 if event is nil
+                 */
+                int button = event ? 1 : 2;
                 CGPoint p = _dw_event_point;
 
-                if(event && [event isMemberOfClass:[UIEvent class]])
+                if(event && [event isKindOfClass:[UIEvent class]])
                 {
-                    UITouch *touch = [[event allTouches] anyObject];
+                    NSSet *touches = [event allTouches];
 
-                    p = [touch locationInView:[touch view]];
-                    
-                    if(@available(ios 13.4, *))
+                    for(id touch in touches)
                     {
-                        if([event buttonMask] & UIEventButtonMaskSecondary)
-                            button = 2;
+                        if((message == 3 && [touch phase] == UITouchPhaseBegan) ||
+                           (message == 4 && [touch phase] == UITouchPhaseEnded))
+                        {
+                            p = [touch locationInView:[touch view]];
+                            
+                            if(@available(ios 13.4, *))
+                            {
+                                if([event buttonMask] & UIEventButtonMaskSecondary)
+                                    button = 2;
+                            }
+                        }
                     }
                 }
 
@@ -430,11 +440,23 @@ int _dw_event_handler1(id object, id event, int message)
             /* Motion notify event */
             case 5:
             {
-#if 0 /* TODO: See if this can be replicated with gestures/swipes */
                 int (* API motionfunc)(HWND, int, int, int, void *) = (int (* API)(HWND, int, int, int, void *))handler->signalfunction;
+                int button = 1;
 
-                return motionfunc(object, (int)p.x, (int)p.y, (int)buttonmask, handler->data);
-#endif
+                if(event && [event isKindOfClass:[UIEvent class]])
+                {
+                    NSSet *touches = [event allTouches];
+
+                    for(id touch in touches)
+                    {
+                        if([touch phase] == UITouchPhaseMoved)
+                        {
+                            CGPoint p = [touch locationInView:[touch view]];
+
+                            return motionfunc(object, (int)p.x, (int)p.y, button, handler->data);
+                        }
+                    }
+                }
                 return -1;
             }
             /* Window close event */
@@ -859,6 +881,21 @@ API_AVAILABLE(ios(13.0))
     }
 }
 -(void)keyDown:(UIKey *)key  API_AVAILABLE(ios(13.4)){ _dw_event_handler(self, key, 2); }
+-(void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event
+{
+    _dw_event_handler(self, event, 3);
+    [super touchesBegan:touches withEvent:event];
+}
+-(void)touchesEnded:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event
+{
+    _dw_event_handler(self, event, 4);
+    [super touchesEnded:touches withEvent:event];
+}
+-(void)touchesMoved:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event
+{
+    _dw_event_handler(self, event, 5);
+    [super touchesMoved:touches withEvent:event];
+}
 -(UIContextMenuConfiguration *)contextMenuInteraction:(UIContextMenuInteraction *)interaction configurationForMenuAtLocation:(CGPoint)location
 {
     DWWindow *window = (DWWindow *)[self window];
