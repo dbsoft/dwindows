@@ -2078,6 +2078,8 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
     unsigned long _DW_COLOR_ROW_ODD, _DW_COLOR_ROW_EVEN;
     int iLastAddPoint, iLastQueryPoint;
     int filesystem;
+    NSTimeInterval lastClick;
+    NSInteger lastClickRow;
 }
 -(NSInteger)tableView:(UITableView *)aTable numberOfRowsInSection:(NSInteger)section;
 -(UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath;
@@ -2432,10 +2434,18 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
     /* If multiple selection is enabled, treat it as selectionChanged: */
     if([self allowsMultipleSelection])
     {
-        /* Handler for container class */
-        _dw_event_handler(self, (id)params, 12);
+        NSTimeInterval now = [NSDate timeIntervalSinceReferenceDate];
+        
+        /* Handler for container class... check for double tap */
+        if(lastClickRow == indexPath.row && now - lastClick < 0.3)
+            _dw_event_handler(self, (id)params, 9);
+        else
+            _dw_event_handler(self, (id)params, 12);
         /* Handler for listbox class */
         _dw_event_handler(self, DW_INT_TO_POINTER((int)indexPath.row), 11);
+        /* Update lastClick for double tap check */
+        lastClick = now;
+        lastClickRow = indexPath.row;
     }
     else /* Otherwise treat it as doubleClicked: */
     {
