@@ -717,9 +717,9 @@ static gint _dw_button_press_event(GtkGestureSingle *gesture, int n_press, doubl
       int mybutton = gtk_gesture_single_get_current_button(gesture);
 
       if(mybutton == 3)
-         mybutton = 2;
+         mybutton = DW_BUTTON2_MASK;
       else if(mybutton == 2)
-         mybutton = 3;
+         mybutton = DW_BUTTON3_MASK;
 
       retval = buttonfunc(work.window, (int)x, (int)y, mybutton, work.data);
    }
@@ -737,9 +737,9 @@ static gint _dw_button_release_event(GtkGestureSingle *gesture, int n_press, dou
       int mybutton = gtk_gesture_single_get_current_button(gesture);
 
       if(mybutton == 3)
-         mybutton = 2;
+         mybutton = DW_BUTTON2_MASK;
       else if(mybutton == 2)
-         mybutton = 3;
+         mybutton = DW_BUTTON3_MASK;
 
       retval = buttonfunc(work.window, (int)x, (int)y, mybutton, work.data);
    }

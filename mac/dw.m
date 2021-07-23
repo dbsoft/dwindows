@@ -623,7 +623,7 @@ int _dw_event_handler1(id object, NSEvent *event, int message)
             {
                 int (* API buttonfunc)(HWND, int, int, int, void *) = (int (* API)(HWND, int, int, int, void *))handler->signalfunction;
                 NSPoint p = [NSEvent mouseLocation];
-                int button = 1;
+                int button = DW_BUTTON1_MASK;
 
                 if([event isMemberOfClass:[NSEvent class]])
                 {
@@ -634,15 +634,15 @@ int _dw_event_handler1(id object, NSEvent *event, int message)
 
                     if(type == DWEventTypeRightMouseDown || type == DWEventTypeRightMouseUp)
                     {
-                        button = 2;
+                        button = DW_BUTTON2_MASK;
                     }
                     else if(type == DWEventTypeOtherMouseDown || type == DWEventTypeOtherMouseUp)
                     {
-                        button = 3;
+                        button = DW_BUTTON3_MASK;
                     }
                     else if([event modifierFlags] & DWEventModifierFlagControl)
                     {
-                        button = 2;
+                        button = DW_BUTTON2_MASK;
                     }
                 }
 

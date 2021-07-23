@@ -2320,13 +2320,13 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                         switch(origmsg)
                         {
                         case WM_LBUTTONDOWN:
-                           button = 1;
+                           button = DW_BUTTON1_MASK;
                            break;
                         case WM_RBUTTONDOWN:
-                           button = 2;
+                           button = DW_BUTTON2_MASK;
                            break;
                         case WM_MBUTTONDOWN:
-                           button = 3;
+                           button = DW_BUTTON3_MASK;
                            break;
                         }
                         if(taskbar)
@@ -2355,13 +2355,13 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                         switch(origmsg)
                         {
                         case WM_LBUTTONUP:
-                           button = 1;
+                           button = DW_BUTTON1_MASK;
                            break;
                         case WM_RBUTTONUP:
-                           button = 2;
+                           button = DW_BUTTON2_MASK;
                            break;
                         case WM_MBUTTONUP:
-                           button = 3;
+                           button = DW_BUTTON3_MASK;
                            break;
                         }
                         if(taskbar)
