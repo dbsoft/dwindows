@@ -56,10 +56,23 @@ if a popular notification system is not already in existance.
 Ports to iOS and Android are underway.
 
 Changes from version 3.1:
+Changed handling of button 3 press and release events.
+    WARNING: This could be a breaking change for apps handling
+    mouse button 3.  Windows, Mac and GTK now pass button 3 as
+    the mask (value 4) instead of the button number (value 3).
+    OS/2 and the related motion event passed buttons as a mask.
+    In these value 3 is buttons 1 and 2 together.  Button 
+    press and release events are only for a single button...
+    so this would never happen allowing value 3 for button 3.
+    To allow the same code to work for button presses and motion
+    events, I am standardizing on using the masks for both.
+    If you use button 3 press/release, please audit code for 3.2.
 Added initial support for GTK4. --with-gtk4 is now available.
     GTK4 support is less complete than GTK3, a number of features
     of the GTK3 version are no longer possible in GTK4 like:
     Taskbar icon support, MDI, gravity and non-callback drawing.
+    Also at the time of this writing, WebKitGTK does not officially
+    support GTK4, so HTML is also unsupported.
 Added initial support for Wayland on GTK3 and GTK4.
     Wayland is not in my opinion ready for prime time, many features,
     possibly a half a dozen functions, dealing with coordinates, 
