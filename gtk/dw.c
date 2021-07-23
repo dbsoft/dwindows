@@ -1296,12 +1296,12 @@ static gint _button_press_event(GtkWidget *widget, GdkEventButton *event, gpoint
    if(work.window)
    {
       int (*buttonfunc)(HWND, int, int, int, void *) = work.func;
-      int mybutton = event->button;
+      int mybutton = DW_BUTTON1_MASK;
 
       if(event->button == 3)
-         mybutton = 2;
+         mybutton = DW_BUTTON2_MASK;
       else if(event->button == 2)
-         mybutton = 3;
+         mybutton = DW_BUTTON3_MASK;
 
       retval = buttonfunc(work.window, event->x, event->y, mybutton, work.data);
    }
@@ -1317,12 +1317,12 @@ static gint _button_release_event(GtkWidget *widget, GdkEventButton *event, gpoi
    if(work.window)
    {
       int (*buttonfunc)(HWND, int, int, int, void *) = work.func;
-      int mybutton = event->button;
+      int mybutton = DW_BUTTON1_MASK;
 
       if(event->button == 3)
-         mybutton = 2;
+         mybutton = DW_BUTTON2_MASK;
       else if(event->button == 2)
-         mybutton = 3;
+         mybutton = DW_BUTTON3_MASK;
 
       retval = buttonfunc(work.window, event->x, event->y, mybutton, work.data);
    }
