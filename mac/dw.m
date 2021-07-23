@@ -9432,25 +9432,29 @@ NSPoint _dw_windowPointFromScreen(id window, NSPoint p)
  */
 void API dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
 {
-    NSMenu *thismenu = (NSMenu *)*menu;
-    id object = parent;
-    NSView *view = [object isKindOfClass:[NSWindow class]] ? [object contentView] : parent;
-    NSWindow *window = [view window];
-    NSEvent *event = [DWApp currentEvent];
-    if(!window)
-        window = [event window];
-    [thismenu autorelease];
-    NSPoint p = NSMakePoint(x, [[NSScreen mainScreen] frame].size.height - y);
-    NSEvent* fake = [NSEvent mouseEventWithType:DWEventTypeRightMouseDown
-                                       location:_dw_windowPointFromScreen(window, p)
-                                  modifierFlags:0
-                                      timestamp:[event timestamp]
-                                   windowNumber:[window windowNumber]
-                                        context:[NSGraphicsContext currentContext]
-                                    eventNumber:1
-                                     clickCount:1
-                                       pressure:0.0];
-    [NSMenu popUpContextMenu:thismenu withEvent:fake forView:view];
+    if(menu)
+    {
+        NSMenu *thismenu = (NSMenu *)*menu;
+        id object = parent;
+        NSView *view = [object isKindOfClass:[NSWindow class]] ? [object contentView] : parent;
+        NSWindow *window = [view window];
+        NSEvent *event = [DWApp currentEvent];
+        if(!window)
+            window = [event window];
+        [thismenu autorelease];
+        NSPoint p = NSMakePoint(x, [[NSScreen mainScreen] frame].size.height - y);
+        NSEvent* fake = [NSEvent mouseEventWithType:DWEventTypeRightMouseDown
+                                           location:_dw_windowPointFromScreen(window, p)
+                                      modifierFlags:0
+                                          timestamp:[event timestamp]
+                                       windowNumber:[window windowNumber]
+                                            context:[NSGraphicsContext currentContext]
+                                        eventNumber:1
+                                         clickCount:1
+                                           pressure:0.0];
+        [NSMenu popUpContextMenu:thismenu withEvent:fake forView:view];
+        *menu = NULL;
+    }
 }
 
 char _dw_removetilde(char *dest, const char *src)
