@@ -6055,7 +6055,10 @@ HMENUI API dw_menubar_new(HWND location)
 void API dw_menu_destroy(HMENUI *menu)
 {
    if(menu)
+   {
       WinDestroyWindow(*menu);
+      *menu = 0;
+   }
 }
 
 /* Internal function to make sure menu ID isn't in use */

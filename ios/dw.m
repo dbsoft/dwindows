@@ -7641,10 +7641,14 @@ HMENUI API dw_menubar_new(HWND location)
  */
 void API dw_menu_destroy(HMENUI *menu)
 {
-    DWMenu *thismenu = *menu;
-    DW_LOCAL_POOL_IN;
-    [thismenu release];
-    DW_LOCAL_POOL_OUT;
+    if(menu)
+    {
+        DWMenu *thismenu = *menu;
+        DW_LOCAL_POOL_IN;
+        [thismenu release];
+        DW_LOCAL_POOL_OUT;
+        *menu = NULL;
+    }
 }
 
 /*
