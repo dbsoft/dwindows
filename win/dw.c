@@ -6484,6 +6484,7 @@ void API dw_menu_destroy(HMENUI *menu)
       }
       if(IsMenu(mymenu))
          DestroyMenu(mymenu);
+      *menu = NULL;
    }
 }
 

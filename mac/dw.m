@@ -9386,10 +9386,14 @@ HMENUI API dw_menubar_new(HWND location)
  */
 void API dw_menu_destroy(HMENUI *menu)
 {
-    NSMenu *thismenu = *menu;
-    DW_LOCAL_POOL_IN;
-    [thismenu release];
-    DW_LOCAL_POOL_OUT;
+    if(menu)
+    {
+        NSMenu *thismenu = *menu;
+        DW_LOCAL_POOL_IN;
+        [thismenu release];
+        DW_LOCAL_POOL_OUT;
+        *menu = NULL;
+    }
 }
 
 /* Handle deprecation of convertScreenToBase in 10.10 yet still supporting
