@@ -7661,12 +7661,14 @@ void API dw_menu_destroy(HMENUI *menu)
  */
 void API dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
 {
-    DWMenu *thismenu = (DWMenu *)*menu;
-    id object = parent;
-    DWWindow *window = [object isMemberOfClass:[DWWindow class]] ? object : (DWWindow *)[object window];
-    [thismenu autorelease];
-    [window setPopupMenu:thismenu];
-    *menu = nil;
+    if(menu)
+    {
+        DWMenu *thismenu = (DWMenu *)*menu;
+        id object = parent;
+        DWWindow *window = [object isMemberOfClass:[DWWindow class]] ? object : (DWWindow *)[object window];
+        [window setPopupMenu:thismenu];
+        *menu = nil;
+    }
 }
 
 char _dw_removetilde(char *dest, const char *src)
@@ -7720,10 +7722,10 @@ HWND API dw_menu_append_item(HMENUI menux, const char *title, ULONG itemid, ULON
         nstr = [NSString stringWithUTF8String:newtitle];
         free(newtitle);
 
-        item = [[DWMenuItem actionWithTitle:nstr image:nil identifier:nil
+        item = [DWMenuItem actionWithTitle:nstr image:nil identifier:nil
                                     handler:^(__kindof UIAction * _Nonnull action) {
             [DWObj menuHandler:item];
-        }] autorelease];
+        }];
         /* Don't set the tag if the ID is 0 or -1 */
         if(itemid != DW_MENU_AUTO && itemid != DW_MENU_POPUP)
             [item setTag:itemid];
