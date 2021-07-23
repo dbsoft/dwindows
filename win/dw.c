@@ -6848,6 +6848,7 @@ void API dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
       _dw_popup = parent;
       TrackPopupMenu(mymenu, 0, x, y, 0, parent, NULL);
       PostMessage(DW_HWND_OBJECT, WM_USER+5, (LPARAM)mymenu, 0);
+      *menu = NULL;
    }
 }
 
