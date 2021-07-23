@@ -743,6 +743,7 @@ class DWindows : AppCompatActivity() {
     var threadCond = threadLock.newCondition()
     var notificationID: Int = 0
     var darkMode: Int = -1
+    var lastClickView: View? = null
     private var paint = Paint()
     private var bgcolor: Int = 0
     private var menuBar: DWMenu? = null
@@ -838,8 +839,15 @@ class DWindows : AppCompatActivity() {
 
     fun menuPopup(menu: DWMenu, parent: View, x: Int, y: Int)
     {
+        var anchor: View? = parent
+
+        // If lastClickView is valid, use that instead of parent
+        if(lastClickView != null) {
+            anchor = lastClickView
+        }
+
         runOnUiThread {
-            val popup = PopupMenu(this, parent)
+            val popup = PopupMenu(this, anchor)
 
             menu.createMenu(popup.menu)
             popup.show()
@@ -1417,6 +1425,7 @@ class DWindows : AppCompatActivity() {
             button!!.text = text
             button!!.id = cid
             button!!.setOnClickListener {
+                lastClickView = button!!
                 eventHandlerSimple(button!!, 8)
             }
         }
@@ -1433,6 +1442,7 @@ class DWindows : AppCompatActivity() {
             button!!.id = resid
             button!!.setImageResource(resid)
             button!!.setOnClickListener {
+                lastClickView = button!!
                 eventHandlerSimple(button!!, 8)
             }
         }
@@ -1449,6 +1459,7 @@ class DWindows : AppCompatActivity() {
             button!!.tag = dataArrayMap
             button!!.id = cid
             button!!.setOnClickListener {
+                lastClickView = button!!
                 eventHandlerSimple(button!!, 8)
             }
 
@@ -1479,6 +1490,7 @@ class DWindows : AppCompatActivity() {
             button!!.tag = dataArrayMap
             button!!.id = cid
             button!!.setOnClickListener {
+                lastClickView = button!!
                 eventHandlerSimple(button!!, 8)
             }
             button!!.setImageBitmap(b)
@@ -1521,6 +1533,7 @@ class DWindows : AppCompatActivity() {
             radiobutton!!.id = cid
             radiobutton!!.text = text
             radiobutton!!.setOnClickListener {
+                lastClickView = radiobutton!!
                 eventHandlerSimple(radiobutton!!, 8)
             }
         }
@@ -1538,6 +1551,7 @@ class DWindows : AppCompatActivity() {
             checkbox!!.id = cid
             checkbox!!.text = text
             checkbox!!.setOnClickListener {
+                lastClickView = checkbox!!
                 eventHandlerSimple(checkbox!!, 8)
             }
         }
@@ -2153,6 +2167,7 @@ class DWindows : AppCompatActivity() {
 
                 view.isSelected = !view.isSelected
                 adapter.selectedItem = position
+                lastClickView = cont!!
                 // If we are single select or we got a double tap...
                 // Generate an ENTER event
                 if(cont!!.choiceMode != ListView.CHOICE_MODE_MULTIPLE ||
@@ -2171,6 +2186,7 @@ class DWindows : AppCompatActivity() {
                     val title = adapter.model.getRowTitle(adapter.selectedItem)
                     val data = adapter.model.getRowData(adapter.selectedItem)
 
+                    lastClickView = cont!!
                     eventHandlerContainer(cont!!, 10, title, 0, 0, data)
                 }
                 true
@@ -2179,6 +2195,7 @@ class DWindows : AppCompatActivity() {
                 val title = adapter.model.getRowTitle(position)
                 val data = adapter.model.getRowData(position)
 
+                lastClickView = cont!!
                 eventHandlerContainer(cont!!, 10, title, 0, 0, data)
                 true
             }
@@ -2902,11 +2919,13 @@ class DWindows : AppCompatActivity() {
                         MotionEvent.ACTION_UP -> {
                             render!!.evx = event.x
                             render!!.evy = event.y
+                            lastClickView = render!!
                             eventHandlerInt(render!!, 4, event.x.toInt(), event.y.toInt(), render!!.button, 0)
                         }
                         MotionEvent.ACTION_MOVE -> {
                             render!!.evx = event.x
                             render!!.evy = event.y
+                            lastClickView = render!!
                             eventHandlerInt(render!!, 5, event.x.toInt(), event.y.toInt(), 1, 0)
                         }
                     }
@@ -2916,12 +2935,14 @@ class DWindows : AppCompatActivity() {
             render!!.setOnLongClickListener{
                 // Long click functions as button 2
                 render!!.button = 2
+                lastClickView = render!!
                 eventHandlerInt(render!!, 3, render!!.evx.toInt(), render!!.evy.toInt(), 2, 0)
                 true
             }
             render!!.setOnClickListener{
                 // Normal click functions as button 1
                 render!!.button = 1
+                lastClickView = render!!
                 eventHandlerInt(render!!, 3, render!!.evx.toInt(), render!!.evy.toInt(), 1, 0)
             }
             render!!.setOnKeyListener(View.OnKeyListener { v, keyCode, event ->
