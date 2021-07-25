@@ -55,6 +55,28 @@ import java.io.IOException
 import java.util.*
 import java.util.concurrent.locks.ReentrantLock
 
+object DWEvent {
+    const val TIMER = 0
+    const val CONFIGURE = 1
+    const val KEY_PRESS = 2
+    const val BUTTON_PRESS = 3
+    const val BUTTON_RELEASE = 4
+    const val MOTION_NOTIFY = 5
+    const val DELETE = 6
+    const val EXPOSE = 7
+    const val CLICKED = 8
+    const val ITEM_ENTER = 9
+    const val ITEM_CONTEXT = 10
+    const val LIST_SELECT = 11
+    const val ITEM_SELECT = 12
+    const val SET_FOCUS = 13
+    const val VALUE_CHANGED = 14
+    const val SWITCH_PAGE = 15
+    const val TREE_EXPAND = 16
+    const val COLUMN_CLICK = 17
+    const val HTML_RESULT = 18
+    const val HTML_CHANGED = 19
+}
 
 class DWTabViewPagerAdapter : RecyclerView.Adapter<DWTabViewPagerAdapter.DWEventViewHolder>() {
     val viewList = mutableListOf<LinearLayout>()
@@ -84,12 +106,12 @@ private class DWWebViewClient : WebViewClient() {
     }
     override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) {
         // Handle the DW_HTML_CHANGE_STARTED event
-        eventHandlerHTMLChanged(view, 19, url, 1)
+        eventHandlerHTMLChanged(view, DWEvent.HTML_CHANGED, url, 1)
     }
 
     override fun onPageFinished(view: WebView, url: String) {
         // Handle the DW_HTML_CHANGE_COMPLETE event
-        eventHandlerHTMLChanged(view, 19, url, 4)
+        eventHandlerHTMLChanged(view, DWEvent.HTML_CHANGED, url, 4)
     }
 
     external fun eventHandlerHTMLChanged(obj1: View, message: Int, URI: String, status: Int)
@@ -127,7 +149,7 @@ class DWSpinButton(context: Context) : AppCompatEditText(context), OnTouchListen
                     value = minimum
                 }
                 setText(value.toString())
-                eventHandlerInt(14, value.toInt(), 0, 0, 0)
+                eventHandlerInt(DWEvent.VALUE_CHANGED, value.toInt(), 0, 0, 0)
                 return true
             } else if (event.x <= v.compoundDrawables[DRAWABLE_LEFT].bounds.width()) {
                 val newvalue = this.text.toString().toLongOrNull()
@@ -144,7 +166,7 @@ class DWSpinButton(context: Context) : AppCompatEditText(context), OnTouchListen
                     value = minimum
                 }
                 setText(value.toString())
-                eventHandlerInt(14, value.toInt(), 0, 0, 0)
+                eventHandlerInt(DWEvent.VALUE_CHANGED, value.toInt(), 0, 0, 0)
                 return true
             }
         }
@@ -185,7 +207,7 @@ class DWComboBox(context: Context) : AppCompatEditText(context), OnTouchListener
         selected = position
         setText(item)
         lpw!!.dismiss()
-        eventHandlerInt(11, position, 0, 0, 0)
+        eventHandlerInt(DWEvent.LIST_SELECT, position, 0, 0, 0)
     }
 
     override fun onTouch(v: View, event: MotionEvent): Boolean {
@@ -227,7 +249,7 @@ class DWListBox(context: Context) : ListView(context), OnItemClickListener {
 
     override fun onItemClick(parent: AdapterView<*>?, view: View, position: Int, id: Long) {
         selected = position
-        eventHandlerInt(11, position, 0, 0, 0)
+        eventHandlerInt(DWEvent.LIST_SELECT, position, 0, 0, 0)
     }
 
     external fun eventHandlerInt(
@@ -250,14 +272,14 @@ class DWRender(context: Context) : View(context) {
     override fun onSizeChanged(width: Int, height: Int, oldWidth: Int, oldHeight: Int) {
         super.onSizeChanged(width, height, oldWidth, oldHeight)
         // Send DW_SIGNAL_CONFIGURE
-        eventHandlerInt(1, width, height, 0, 0)
+        eventHandlerInt(DWEvent.CONFIGURE, width, height, 0, 0)
     }
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         cachedCanvas = canvas
         // Send DW_SIGNAL_EXPOSE
-        eventHandlerInt(7, 0, 0, this.width, this.height)
+        eventHandlerInt(DWEvent.EXPOSE, 0, 0, this.width, this.height)
         cachedCanvas = null
     }
 
@@ -448,7 +470,7 @@ class DWMenu {
                         menuitem.menuitem!!.isChecked = menuitem.checked
                         menuitem.menuitem!!.isEnabled = menuitem.enabled
                         menuitem.menuitem!!.setOnMenuItemClickListener { item: MenuItem? ->
-                            eventHandlerSimple(menuitem, 8)
+                            eventHandlerSimple(menuitem, DWEvent.CLICKED)
                             true
                         }
                     }
@@ -807,7 +829,7 @@ class DWindows : AppCompatActivity() {
             val width: Int = windowLayout!!.width
             val height: Int = windowLayout!!.height
 
-            eventHandlerInt(windowLayout as View, 1, width, height, 0, 0)
+            eventHandlerInt(windowLayout as View, DWEvent.CONFIGURE, width, height, 0, 0)
         }
     }
 
@@ -1426,7 +1448,7 @@ class DWindows : AppCompatActivity() {
             button!!.id = cid
             button!!.setOnClickListener {
                 lastClickView = button!!
-                eventHandlerSimple(button!!, 8)
+                eventHandlerSimple(button!!, DWEvent.CLICKED)
             }
         }
         return button
@@ -1443,7 +1465,7 @@ class DWindows : AppCompatActivity() {
             button!!.setImageResource(resid)
             button!!.setOnClickListener {
                 lastClickView = button!!
-                eventHandlerSimple(button!!, 8)
+                eventHandlerSimple(button!!, DWEvent.CLICKED)
             }
         }
         return button
@@ -1460,7 +1482,7 @@ class DWindows : AppCompatActivity() {
             button!!.id = cid
             button!!.setOnClickListener {
                 lastClickView = button!!
-                eventHandlerSimple(button!!, 8)
+                eventHandlerSimple(button!!, DWEvent.CLICKED)
             }
 
             for (ext in exts) {
@@ -1491,7 +1513,7 @@ class DWindows : AppCompatActivity() {
             button!!.id = cid
             button!!.setOnClickListener {
                 lastClickView = button!!
-                eventHandlerSimple(button!!, 8)
+                eventHandlerSimple(button!!, DWEvent.CLICKED)
             }
             button!!.setImageBitmap(b)
         }
@@ -1534,7 +1556,7 @@ class DWindows : AppCompatActivity() {
             radiobutton!!.text = text
             radiobutton!!.setOnClickListener {
                 lastClickView = radiobutton!!
-                eventHandlerSimple(radiobutton!!, 8)
+                eventHandlerSimple(radiobutton!!, DWEvent.CLICKED)
             }
         }
         return radiobutton
@@ -1552,7 +1574,7 @@ class DWindows : AppCompatActivity() {
             checkbox!!.text = text
             checkbox!!.setOnClickListener {
                 lastClickView = checkbox!!
-                eventHandlerSimple(checkbox!!, 8)
+                eventHandlerSimple(checkbox!!, DWEvent.CLICKED)
             }
         }
         return checkbox
@@ -1752,7 +1774,7 @@ class DWindows : AppCompatActivity() {
                     val adapter = pager.adapter as DWTabViewPagerAdapter
 
                     pager.currentItem = tab.position
-                    eventHandlerNotebook(notebook!!, 15, adapter.pageList[tab.position])
+                    eventHandlerNotebook(notebook!!, DWEvent.SWITCH_PAGE, adapter.pageList[tab.position])
                 }
 
                 override fun onTabUnselected(tab: TabLayout.Tab) {}
@@ -1971,7 +1993,7 @@ class DWindows : AppCompatActivity() {
                 }
 
                 override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
-                    eventHandlerInt(slider as View, 14, slider!!.progress, 0, 0, 0)
+                    eventHandlerInt(slider as View, DWEvent.VALUE_CHANGED, slider!!.progress, 0, 0, 0)
                 }
             })
         }
@@ -2054,7 +2076,7 @@ class DWindows : AppCompatActivity() {
         waitOnUiThread {
             html.evaluateJavascript(javascript) { value ->
                 // Execute onReceiveValue's code
-                eventHandlerHTMLResult(html, 18, value, data)
+                eventHandlerHTMLResult(html, DWEvent.HTML_RESULT, value, data)
             }
         }
     }
@@ -2173,10 +2195,10 @@ class DWindows : AppCompatActivity() {
                 if(cont!!.choiceMode != ListView.CHOICE_MODE_MULTIPLE ||
                     (position == adapter.lastClickRow &&
                     (now - adapter.lastClick) < ViewConfiguration.getDoubleTapTimeout())) {
-                    eventHandlerContainer(cont!!, 9, title, 0, 0, data)
+                    eventHandlerContainer(cont!!, DWEvent.ITEM_ENTER, title, 0, 0, data)
                 } else {
                     // If we are mutiple select, generate a SELECT event
-                    eventHandlerContainer(cont!!, 12, title, 0, 0, data)
+                    eventHandlerContainer(cont!!, DWEvent.ITEM_SELECT, title, 0, 0, data)
                 }
                 adapter.lastClick = now
                 adapter.lastClickRow = position
@@ -2187,7 +2209,7 @@ class DWindows : AppCompatActivity() {
                     val data = adapter.model.getRowData(adapter.selectedItem)
 
                     lastClickView = cont!!
-                    eventHandlerContainer(cont!!, 10, title, 0, 0, data)
+                    eventHandlerContainer(cont!!, DWEvent.ITEM_CONTEXT, title, 0, 0, data)
                 }
                 true
             }
@@ -2196,7 +2218,7 @@ class DWindows : AppCompatActivity() {
                 val data = adapter.model.getRowData(position)
 
                 lastClickView = cont!!
-                eventHandlerContainer(cont!!, 10, title, 0, 0, data)
+                eventHandlerContainer(cont!!, DWEvent.ITEM_CONTEXT, title, 0, 0, data)
                 true
             }
         }
@@ -2920,13 +2942,13 @@ class DWindows : AppCompatActivity() {
                             render!!.evx = event.x
                             render!!.evy = event.y
                             lastClickView = render!!
-                            eventHandlerInt(render!!, 4, event.x.toInt(), event.y.toInt(), render!!.button, 0)
+                            eventHandlerInt(render!!, DWEvent.BUTTON_RELEASE, event.x.toInt(), event.y.toInt(), render!!.button, 0)
                         }
                         MotionEvent.ACTION_MOVE -> {
                             render!!.evx = event.x
                             render!!.evy = event.y
                             lastClickView = render!!
-                            eventHandlerInt(render!!, 5, event.x.toInt(), event.y.toInt(), 1, 0)
+                            eventHandlerInt(render!!, DWEvent.MOTION_NOTIFY, event.x.toInt(), event.y.toInt(), 1, 0)
                         }
                     }
                     return false
@@ -2936,18 +2958,18 @@ class DWindows : AppCompatActivity() {
                 // Long click functions as button 2
                 render!!.button = 2
                 lastClickView = render!!
-                eventHandlerInt(render!!, 3, render!!.evx.toInt(), render!!.evy.toInt(), 2, 0)
+                eventHandlerInt(render!!, DWEvent.BUTTON_PRESS, render!!.evx.toInt(), render!!.evy.toInt(), 2, 0)
                 true
             }
             render!!.setOnClickListener{
                 // Normal click functions as button 1
                 render!!.button = 1
                 lastClickView = render!!
-                eventHandlerInt(render!!, 3, render!!.evx.toInt(), render!!.evy.toInt(), 1, 0)
+                eventHandlerInt(render!!, DWEvent.BUTTON_PRESS, render!!.evx.toInt(), render!!.evy.toInt(), 1, 0)
             }
             render!!.setOnKeyListener(View.OnKeyListener { v, keyCode, event ->
                 if (event.action == KeyEvent.ACTION_DOWN) {
-                    eventHandlerKey(render!!, 2, keyCode, event.unicodeChar, event.modifiers, event.characters)
+                    eventHandlerKey(render!!, DWEvent.KEY_PRESS, keyCode, event.unicodeChar, event.modifiers, event.characters)
                 }
                 false
             })

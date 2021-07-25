@@ -1610,6 +1610,38 @@ typedef int HTIMER;
 #define HTIMER_TYPEDEFED 1
 #endif
 
+#if defined(__ANDROID__) || defined(__IOS__) || defined(__MAC__)
+/* On platforms which do not use integer messages: Android, iOS and Mac
+ * We create our own internal messages so it works similar to the message based 
+ * platforms: OS/2 and Windows.
+ * GTK does does not use integer messages, but already has a signal based system.
+ */
+typedef enum 
+{
+    _DW_EVENT_TIMER = 0,                /* Internal message for timers */
+    _DW_EVENT_CONFIGURE,                /* Internal message for configure (resize) */
+    _DW_EVENT_KEY_PRESS,                /* Internal message for key press */
+    _DW_EVENT_BUTTON_PRESS,             /* Internal message for button press */
+    _DW_EVENT_BUTTON_RELEASE,           /* Internal message for button release */
+    _DW_EVENT_MOTION_NOTIFY,            /* Internal message for motion notification */
+    _DW_EVENT_DELETE,                   /* Internal message for delete (object destruction) */
+    _DW_EVENT_EXPOSE,                   /* Internal message for expose (draw) */ 
+    _DW_EVENT_CLICKED,                  /* Internal message for click (touch) */
+    _DW_EVENT_ITEM_ENTER,               /* Internal message for (container) item enter (activation) */
+    _DW_EVENT_ITEM_CONTEXT,             /* Internal message for (container) item context (menu) */
+    _DW_EVENT_LIST_SELECT,              /* Internal message for list(box) selection */
+    _DW_EVENT_ITEM_SELECT,              /* Internal message for (container) item selection */
+    _DW_EVENT_SET_FOCUS,                /* Internal message for (widget) setting focus */
+    _DW_EVENT_VALUE_CHANGED,            /* Internal message for (widget) value changed */
+    _DW_EVENT_SWITCH_PAGE,              /* Internal message for (notebook) page changed */
+    _DW_EVENT_TREE_EXPAND,              /* Internal message for tree (node) expanded */
+    _DW_EVENT_COLUMN_CLICK,             /* Internal message for (container) column clicked */
+    _DW_EVENT_HTML_RESULT,              /* Internal message for HTML javascript result */
+    _DW_EVENT_HTML_CHANGED,             /* Internal message for HTML status changed */
+    _DW_EVENT_MAX
+} _DW_EVENTS;
+#endif
+
 /* Some dark mode constants for supported platforms */
 #define DW_DARK_MODE_DISABLED 0
 #define DW_DARK_MODE_BASIC    1

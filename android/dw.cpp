@@ -241,25 +241,25 @@ typedef struct
 #define SIGNALMAX 19
 
 static DWSignalList DWSignalTranslate[SIGNALMAX] = {
-        { 1,    DW_SIGNAL_CONFIGURE },
-        { 2,    DW_SIGNAL_KEY_PRESS },
-        { 3,    DW_SIGNAL_BUTTON_PRESS },
-        { 4,    DW_SIGNAL_BUTTON_RELEASE },
-        { 5,    DW_SIGNAL_MOTION_NOTIFY },
-        { 6,    DW_SIGNAL_DELETE },
-        { 7,    DW_SIGNAL_EXPOSE },
-        { 8,    DW_SIGNAL_CLICKED },
-        { 9,    DW_SIGNAL_ITEM_ENTER },
-        { 10,   DW_SIGNAL_ITEM_CONTEXT },
-        { 11,   DW_SIGNAL_LIST_SELECT },
-        { 12,   DW_SIGNAL_ITEM_SELECT },
-        { 13,   DW_SIGNAL_SET_FOCUS },
-        { 14,   DW_SIGNAL_VALUE_CHANGED },
-        { 15,   DW_SIGNAL_SWITCH_PAGE },
-        { 16,   DW_SIGNAL_TREE_EXPAND },
-        { 17,   DW_SIGNAL_COLUMN_CLICK },
-        { 18,   DW_SIGNAL_HTML_RESULT },
-        { 19,   DW_SIGNAL_HTML_CHANGED }
+        { _DW_EVENT_CONFIGURE,      DW_SIGNAL_CONFIGURE },
+        { _DW_EVENT_KEY_PRESS,      DW_SIGNAL_KEY_PRESS },
+        { _DW_EVENT_BUTTON_PRESS,   DW_SIGNAL_BUTTON_PRESS },
+        { _DW_EVENT_BUTTON_RELEASE, DW_SIGNAL_BUTTON_RELEASE },
+        { _DW_EVENT_MOTION_NOTIFY,  DW_SIGNAL_MOTION_NOTIFY },
+        { _DW_EVENT_DELETE,         DW_SIGNAL_DELETE },
+        { _DW_EVENT_EXPOSE,         DW_SIGNAL_EXPOSE },
+        { _DW_EVENT_CLICKED,        DW_SIGNAL_CLICKED },
+        { _DW_EVENT_ITEM_ENTER,     DW_SIGNAL_ITEM_ENTER },
+        { _DW_EVENT_ITEM_CONTEXT,   DW_SIGNAL_ITEM_CONTEXT },
+        { _DW_EVENT_LIST_SELECT,    DW_SIGNAL_LIST_SELECT },
+        { _DW_EVENT_ITEM_SELECT,    DW_SIGNAL_ITEM_SELECT },
+        { _DW_EVENT_SET_FOCUS,      DW_SIGNAL_SET_FOCUS },
+        { _DW_EVENT_VALUE_CHANGED,  DW_SIGNAL_VALUE_CHANGED },
+        { _DW_EVENT_SWITCH_PAGE,    DW_SIGNAL_SWITCH_PAGE },
+        { _DW_EVENT_TREE_EXPAND,    DW_SIGNAL_TREE_EXPAND },
+        { _DW_EVENT_COLUMN_CLICK,   DW_SIGNAL_COLUMN_CLICK },
+        { _DW_EVENT_HTML_RESULT,    DW_SIGNAL_HTML_RESULT },
+        { _DW_EVENT_HTML_CHANGED,   DW_SIGNAL_HTML_CHANGED }
 };
 
 #define _DW_EVENT_PARAM_SIZE 10
@@ -275,7 +275,7 @@ int _dw_event_handler2(void **params)
         switch(message)
         {
             /* Timer event */
-            case 0:
+            case _DW_EVENT_TIMER:
             {
                 int (*timerfunc)(void *) = (int (* API)(void *))handler->signalfunction;
 
@@ -285,7 +285,7 @@ int _dw_event_handler2(void **params)
                 break;
             }
                 /* Configure/Resize event */
-            case 1:
+            case _DW_EVENT_CONFIGURE:
             {
                 int (*sizefunc)(HWND, int, int, void *) = (int (* API)(HWND, int, int, void *))handler->signalfunction;
                 int width = DW_POINTER_TO_INT(params[3]);
@@ -297,7 +297,7 @@ int _dw_event_handler2(void **params)
                     retval = 0;
                 break;
             }
-            case 2:
+            case _DW_EVENT_KEY_PRESS:
             {
                 int (*keypressfunc)(HWND, char, int, int, void *, char *) = (int (* API)(HWND, char, int, int, void *, char *))handler->signalfunction;
                 char *utf8 = (char *)params[1], ch = (char)DW_POINTER_TO_INT(params[3]);
@@ -307,8 +307,8 @@ int _dw_event_handler2(void **params)
                 break;
             }
                 /* Button press and release event */
-            case 3:
-            case 4:
+            case _DW_EVENT_BUTTON_PRESS:
+            case _DW_EVENT_BUTTON_RELEASE:
             {
                 int (* API buttonfunc)(HWND, int, int, int, void *) = (int (* API)(HWND, int, int, int, void *))handler->signalfunction;
                 int button = params[5] ? DW_POINTER_TO_INT(params[5]) : 1;
@@ -317,7 +317,7 @@ int _dw_event_handler2(void **params)
                 break;
             }
             /* Motion notify event */
-            case 5:
+            case _DW_EVENT_MOTION_NOTIFY:
             {
                 int (* API motionfunc)(HWND, int, int, int, void *) = (int (* API)(HWND, int, int, int, void *))handler->signalfunction;
 
@@ -325,14 +325,14 @@ int _dw_event_handler2(void **params)
                 break;
             }
             /* Window close event */
-            case 6:
+            case _DW_EVENT_DELETE:
             {
                 int (* API closefunc)(HWND, void *) = (int (* API)(HWND, void *))handler->signalfunction;
                 retval = closefunc(handler->window, handler->data);
                 break;
             }
             /* Window expose/draw event */
-            case 7:
+            case _DW_EVENT_EXPOSE:
             {
                 DWExpose exp;
                 int (* API exposefunc)(HWND, DWExpose *, void *) = (int (* API)(HWND, DWExpose *, void *))handler->signalfunction;
@@ -348,7 +348,7 @@ int _dw_event_handler2(void **params)
                 return retval;
             }
                 /* Clicked event for buttons and menu items */
-            case 8:
+            case _DW_EVENT_CLICKED:
             {
                 int (* API clickfunc)(HWND, void *) = (int (* API)(HWND, void *))handler->signalfunction;
 
@@ -356,7 +356,7 @@ int _dw_event_handler2(void **params)
                 break;
             }
                 /* Container class selection event */
-            case 9:
+            case _DW_EVENT_ITEM_ENTER:
             {
                 int (*containerselectfunc)(HWND, char *, void *, void *) =(int (* API)(HWND, char *, void *, void *)) handler->signalfunction;
 
@@ -364,7 +364,7 @@ int _dw_event_handler2(void **params)
                 break;
             }
                 /* Container context menu event */
-            case 10:
+            case _DW_EVENT_ITEM_CONTEXT:
             {
                 int (* API containercontextfunc)(HWND, char *, int, int, void *, void *) = (int (* API)(HWND, char *, int, int, void *, void *))handler->signalfunction;
                 char *text = (char *)params[1];
@@ -376,8 +376,8 @@ int _dw_event_handler2(void **params)
                 break;
             }
                 /* Generic selection changed event for several classes */
-            case 11:
-            case 14:
+            case _DW_EVENT_LIST_SELECT:
+            case _DW_EVENT_VALUE_CHANGED:
             {
                 int (* API valuechangedfunc)(HWND, int, void *) = (int (* API)(HWND, int, void *))handler->signalfunction;
                 int selected = DW_POINTER_TO_INT(params[3]);
@@ -386,7 +386,7 @@ int _dw_event_handler2(void **params)
                 break;
             }
                 /* Tree class selection event */
-            case 12:
+            case _DW_EVENT_ITEM_SELECT:
             {
                 int (* API treeselectfunc)(HWND, HTREEITEM, char *, void *, void *) = (int (* API)(HWND, HTREEITEM, char *, void *, void *))handler->signalfunction;
                 char *text = (char *)params[1];
@@ -396,7 +396,7 @@ int _dw_event_handler2(void **params)
                 break;
             }
                 /* Set Focus event */
-            case 13:
+            case _DW_EVENT_SET_FOCUS:
             {
                 int (* API setfocusfunc)(HWND, void *) = (int (* API)(HWND, void *))handler->signalfunction;
 
@@ -404,7 +404,7 @@ int _dw_event_handler2(void **params)
                 break;
             }
                 /* Notebook page change event */
-            case 15:
+            case _DW_EVENT_SWITCH_PAGE:
             {
                 int (* API switchpagefunc)(HWND, unsigned long, void *) = (int (* API)(HWND, unsigned long, void *))handler->signalfunction;
                 unsigned long pageID = DW_POINTER_TO_INT(params[3]);
@@ -413,7 +413,7 @@ int _dw_event_handler2(void **params)
                 break;
             }
                 /* Tree expand event */
-            case 16:
+            case _DW_EVENT_TREE_EXPAND:
             {
                 int (* API treeexpandfunc)(HWND, HTREEITEM, void *) = (int (* API)(HWND, HTREEITEM, void *))handler->signalfunction;
 
@@ -421,7 +421,7 @@ int _dw_event_handler2(void **params)
                 break;
             }
                 /* Column click event */
-            case 17:
+            case _DW_EVENT_COLUMN_CLICK:
             {
                 int (* API clickcolumnfunc)(HWND, int, void *) = (int (* API)(HWND, int, void *))handler->signalfunction;
                 int column_num = DW_POINTER_TO_INT(params[3]);
@@ -430,7 +430,7 @@ int _dw_event_handler2(void **params)
                 break;
             }
                 /* HTML result event */
-            case 18:
+            case _DW_EVENT_HTML_RESULT:
             {
                 int (* API htmlresultfunc)(HWND, int, char *, void *, void *) = (int (* API)(HWND, int, char *, void *, void *))handler->signalfunction;
                 char *result = (char *)params[1];
@@ -439,7 +439,7 @@ int _dw_event_handler2(void **params)
                 break;
             }
                 /* HTML changed event */
-            case 19:
+            case _DW_EVENT_HTML_CHANGED:
             {
                 int (* API htmlchangedfunc)(HWND, int, char *, void *) = (int (* API)(HWND, int, char *, void *))handler->signalfunction;
                 char *uri = (char *)params[1];
