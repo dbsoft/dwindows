@@ -60,13 +60,13 @@ BOOL APIENTRY WinStretchPointer(HPS hps, LONG x, LONG y, LONG cx, LONG cy, HPOIN
 #define API_FUNC API *
 #endif
 
-MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2);
-MRESULT EXPENTRY _wndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2);
-MRESULT EXPENTRY _scrollwndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2);
-void _do_resize(Box *thisbox, int x, int y);
-void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y);
-int _load_bitmap_file(char *file, HWND handle, HBITMAP *hbm, HDC *hdc, HPS *hps, unsigned long *width, unsigned long *height, int *depth, unsigned long backrgb);
-void _free_menu_data(HWND menu);
+MRESULT EXPENTRY _dw_run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2);
+MRESULT EXPENTRY _dw_wndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2);
+MRESULT EXPENTRY _dw_scrollwndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2);
+void _dw_do_resize(Box *thisbox, int x, int y);
+void _dw_handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y);
+int _dw_load_bitmap_file(char *file, HWND handle, HBITMAP *hbm, HDC *hdc, HPS *hps, unsigned long *width, unsigned long *height, int *depth, unsigned long backrgb);
+void _dw_free_menu_data(HWND menu);
 BOOL (API_FUNC _WinQueryDesktopWorkArea)(HWND hwndDesktop, PWRECT pwrcWorkArea) = 0;
 /* PMPrintf support for dw_debug() */
 ULONG (API_FUNC _PmPrintfString)(char *String) = 0;
@@ -178,12 +178,12 @@ typedef struct
    ULONG message;
    char name[30];
 
-} SignalList;
+} DWSignalList;
 
 /* List of signals and their equivilent OS/2 message */
 #define SIGNALMAX 16
 
-SignalList SignalTranslate[SIGNALMAX] = {
+DWSignalList DWSignalTranslate[SIGNALMAX] = {
    { WM_SIZE,         DW_SIGNAL_CONFIGURE },
    { WM_CHAR,         DW_SIGNAL_KEY_PRESS },
    { WM_BUTTON1DOWN,  DW_SIGNAL_BUTTON_PRESS },
@@ -203,7 +203,7 @@ SignalList SignalTranslate[SIGNALMAX] = {
 };
 
 /* Internal function to keep a semi-unique ID within valid range */
-USHORT _GlobalID(void)
+USHORT _dw_global_id(void)
 {
     static USHORT GlobalID = 9999;
 
@@ -217,7 +217,7 @@ USHORT _GlobalID(void)
 
 /* This function adds a signal handler callback into the linked list.
  */
-void _new_signal(ULONG message, HWND window, int id, void *signalfunction, void *discfunc, void *data)
+void _dw_new_signal(ULONG message, HWND window, int id, void *signalfunction, void *discfunc, void *data)
 {
    SignalHandler *new = malloc(sizeof(SignalHandler));
 
@@ -256,14 +256,14 @@ void _new_signal(ULONG message, HWND window, int id, void *signalfunction, void 
 }
 
 /* Finds the message number for a given signal name */
-ULONG _findsigmessage(const char *signame)
+ULONG _dw_findsigmessage(const char *signame)
 {
    int z;
 
    for(z=0;z<SIGNALMAX;z++)
    {
-      if(stricmp(signame, SignalTranslate[z].name) == 0)
-         return SignalTranslate[z].message;
+      if(stricmp(signame, DWSignalTranslate[z].name) == 0)
+         return DWSignalTranslate[z].message;
    }
    return 0L;
 }
@@ -278,7 +278,7 @@ typedef struct _CNRITEM
 } CNRITEM, *PCNRITEM;
 
 
-int _null_key(HWND DW_UNUSED(window), int DW_UNUSED(key), void * DW_UNUSED(data))
+int _dw_null_key(HWND DW_UNUSED(window), int DW_UNUSED(key), void * DW_UNUSED(data))
 {
    return TRUE;
 }
@@ -300,7 +300,7 @@ void _dw_redraw(HWND window, int skip)
 }
 
 /* Find the desktop window handle */
-HWND _toplevel_window(HWND handle)
+HWND _dw_toplevel_window(HWND handle)
 {
    HWND box, lastbox = WinQueryWindow(handle, QW_PARENT);
 
@@ -325,7 +325,7 @@ HWND _toplevel_window(HWND handle)
 
 
 /* Returns height of specified window. */
-int _get_height(HWND handle)
+int _dw_get_height(HWND handle)
 {
    unsigned long height;
    dw_window_get_pos_size(handle, NULL, NULL, NULL, &height);
@@ -333,14 +333,14 @@ int _get_height(HWND handle)
 }
 
 /* Find the height of the frame a desktop style window is sitting on */
-int _get_frame_height(HWND handle)
+int _dw_get_frame_height(HWND handle)
 {
    while(handle)
    {
       HWND client;
       if((client = WinWindowFromID(handle, FID_CLIENT)) != NULLHANDLE)
       {
-            return _get_height(WinQueryWindow(handle, QW_PARENT));
+            return _dw_get_height(WinQueryWindow(handle, QW_PARENT));
       }
         handle = WinQueryWindow(handle, QW_PARENT);
    }
@@ -372,7 +372,7 @@ unsigned int _dw_percent_get_range(HWND handle)
 }
 
 /* Return the entryfield child of a window */
-HWND _find_entryfield(HWND handle)
+HWND _dw_find_entryfield(HWND handle)
 {
    HENUM henum;
    HWND child, entry = 0;
@@ -397,7 +397,7 @@ HWND _find_entryfield(HWND handle)
 /* This function changes the owner of buttons in to the
  * dynamicwindows handle to fix a problem in notebooks.
  */
-void _fix_button_owner(HWND handle, HWND dw)
+void _dw_fix_button_owner(HWND handle, HWND dw)
 {
    HENUM henum;
    HWND child;
@@ -414,14 +414,14 @@ void _fix_button_owner(HWND handle, HWND dw)
       else if(strncmp(tmpbuf, "dynamicwindows", 14) == 0)
          dw = child;
 
-      _fix_button_owner(child, dw);
+      _dw_fix_button_owner(child, dw);
    }
    WinEndEnumWindows(henum);
    return;
 }
 
 /* Free bitmap data associated with a window */
-void _free_bitmap(HWND handle)
+void _dw_free_bitmap(HWND handle)
 {
    HBITMAP hbm = (HBITMAP)dw_window_get_data(handle, "_dw_bitmap");
    HPS hps = (HPS)dw_window_get_data(handle, "_dw_hps");
@@ -464,7 +464,7 @@ void _free_bitmap(HWND handle)
 /* This function removes any handlers on windows and frees
  * the user memory allocated to it.
  */
-void _free_window_memory(HWND handle)
+void _dw_free_window_memory(HWND handle)
 {
    HENUM henum;
    HWND child;
@@ -473,7 +473,7 @@ void _free_window_memory(HWND handle)
    dw_signal_disconnect_by_window(handle);
 
    if((child = WinWindowFromID(handle, FID_MENU)) != NULLHANDLE)
-      _free_menu_data(child);
+      _dw_free_menu_data(child);
 
    if((child = WinWindowFromID(handle, FID_CLIENT)) != NULLHANDLE)
    {
@@ -499,7 +499,7 @@ void _free_window_memory(HWND handle)
       if(strncmp(tmpbuf, "ColorSelectClass", 17)!=0)
       {
          /* If this window has an associate bitmap destroy it. */
-         _free_bitmap(handle);
+         _dw_free_bitmap(handle);
 
          if(strncmp(tmpbuf, "#1", 3)==0 && !WinWindowFromID(handle, FID_CLIENT))
          {
@@ -549,18 +549,18 @@ void _free_window_memory(HWND handle)
 
    henum = WinBeginEnumWindows(handle);
    while((child = WinGetNextWindow(henum)) != NULLHANDLE)
-      _free_window_memory(child);
+      _dw_free_window_memory(child);
 
    WinEndEnumWindows(henum);
    return;
 }
 
-void _free_menu_data(HWND menu)
+void _dw_free_menu_data(HWND menu)
 {
    int i, count = (int)WinSendMsg(menu, MM_QUERYITEMCOUNT, 0, 0);
 
    dw_signal_disconnect_by_name(menu, DW_SIGNAL_CLICKED);
-   _free_window_memory(menu);
+   _dw_free_window_memory(menu);
 
    for(i=0;i<count;i++)
    {
@@ -585,14 +585,14 @@ void _free_menu_data(HWND menu)
       /* Check any submenus */
       if(WinSendMsg(menu, MM_QUERYITEM, MPFROMSHORT(menuid), MPFROMP(&mi))
          && mi.hwndSubMenu)
-         _free_menu_data(mi.hwndSubMenu);
+         _dw_free_menu_data(mi.hwndSubMenu);
    }
 }
 
 /* This function returns 1 if the window (widget) handle
  * passed to it is a valid window that can gain input focus.
  */
-int _validate_focus(HWND handle)
+int _dw_validate_focus(HWND handle)
 {
    char tmpbuf[100] = {0};
 
@@ -625,16 +625,16 @@ int _validate_focus(HWND handle)
 #define _DW_DIRECTION_FORWARD -1
 #define _DW_DIRECTION_BACKWARD 1
 
-int _focus_check_box(Box *box, HWND handle, int start, int direction, HWND defaultitem);
+int _dw_focus_check_box(Box *box, HWND handle, int start, int direction, HWND defaultitem);
 
 /* Internal comparision function */
-int _focus_comp(int direction, int z, int end)
+int _dw_focus_comp(int direction, int z, int end)
 {
    if(direction == _DW_DIRECTION_FORWARD)
       return z > -1;
    return z < end;
 }
-int _focus_notebook(HWND hwnd, HWND handle, int start, int direction, HWND defaultitem)
+int _dw_focus_notebook(HWND hwnd, HWND handle, int start, int direction, HWND defaultitem)
 {
    Box *notebox;
    HWND page = (HWND)WinSendMsg(hwnd, BKM_QUERYPAGEWINDOWHWND,
@@ -644,13 +644,13 @@ int _focus_notebook(HWND hwnd, HWND handle, int start, int direction, HWND defau
    {
       notebox = (Box *)WinQueryWindowPtr(page, QWP_USER);
 
-      if(notebox && _focus_check_box(notebox, handle, start == 3 ? 3 : 0, direction, defaultitem))
+      if(notebox && _dw_focus_check_box(notebox, handle, start == 3 ? 3 : 0, direction, defaultitem))
          return 1;
    }
    return 0;
 }
 
-int _focus_check_box(Box *box, HWND handle, int start, int direction, HWND defaultitem)
+int _dw_focus_check_box(Box *box, HWND handle, int start, int direction, HWND defaultitem)
 {
    int z;
    static HWND lasthwnd, firsthwnd;
@@ -680,21 +680,21 @@ int _focus_check_box(Box *box, HWND handle, int start, int direction, HWND defau
       firsthwnd = 0;
    }
 
-   for(z=beg;_focus_comp(direction, z, end);z+=direction)
+   for(z=beg;_dw_focus_comp(direction, z, end);z+=direction)
    {
       if(box->items[z].type == TYPEBOX)
       {
          Box *thisbox = WinQueryWindowPtr(box->items[z].hwnd, QWP_USER);
 
-         if(thisbox && _focus_check_box(thisbox, handle, start == 3 ? 3 : 0, direction, defaultitem))
+         if(thisbox && _dw_focus_check_box(thisbox, handle, start == 3 ? 3 : 0, direction, defaultitem))
             return 1;
       }
       else
       {
-         int type = _validate_focus(box->items[z].hwnd);
+         int type = _dw_validate_focus(box->items[z].hwnd);
 
          /* Special case notebook, can focus and contains items */
-         if(type == 2 && direction == _DW_DIRECTION_FORWARD && _focus_notebook(box->items[z].hwnd, handle, start, direction, defaultitem))
+         if(type == 2 && direction == _DW_DIRECTION_FORWARD && _dw_focus_notebook(box->items[z].hwnd, handle, start, direction, defaultitem))
             return 1;
          if(box->items[z].hwnd == handle)
          {
@@ -711,7 +711,7 @@ int _focus_check_box(Box *box, HWND handle, int start, int direction, HWND defau
             if(!finish_searching)
                return 1;
          }
-         if(_validate_focus(box->items[z].hwnd))
+         if(_dw_validate_focus(box->items[z].hwnd))
          {
             /* Start is 3 when we are looking for the
              * first valid item in the layout.
@@ -744,7 +744,7 @@ int _focus_check_box(Box *box, HWND handle, int start, int direction, HWND defau
                {
                   Box *splitbox = (Box *)WinQueryWindowPtr(mybox, QWP_USER);
 
-                  if(splitbox && _focus_check_box(splitbox, handle, start == 3 ? 3 : 0, direction, defaultitem))
+                  if(splitbox && _dw_focus_check_box(splitbox, handle, start == 3 ? 3 : 0, direction, defaultitem))
                      return 1;
                }
 
@@ -755,7 +755,7 @@ int _focus_check_box(Box *box, HWND handle, int start, int direction, HWND defau
                {
                   Box *splitbox = (Box *)WinQueryWindowPtr(mybox, QWP_USER);
 
-                  if(splitbox && _focus_check_box(splitbox, handle, start == 3 ? 3 : 0, direction, defaultitem))
+                  if(splitbox && _dw_focus_check_box(splitbox, handle, start == 3 ? 3 : 0, direction, defaultitem))
                      return 1;
                }
             }
@@ -768,13 +768,13 @@ int _focus_check_box(Box *box, HWND handle, int start, int direction, HWND defau
                 {
                     Box *scrollbox = (Box *)WinQueryWindowPtr(mybox, QWP_USER);
 
-                    if(scrollbox && _focus_check_box(scrollbox, handle, start == 3 ? 3 : 0, direction, defaultitem))
+                    if(scrollbox && _dw_focus_check_box(scrollbox, handle, start == 3 ? 3 : 0, direction, defaultitem))
                         return 1;
                 }
             }
          }
          /* Special case notebook, can focus and contains items */
-         if(type == 2 && direction == _DW_DIRECTION_BACKWARD && _focus_notebook(box->items[z].hwnd, handle, start, direction, defaultitem))
+         if(type == 2 && direction == _DW_DIRECTION_BACKWARD && _dw_focus_notebook(box->items[z].hwnd, handle, start, direction, defaultitem))
             return 1;
       }
    }
@@ -784,7 +784,7 @@ int _focus_check_box(Box *box, HWND handle, int start, int direction, HWND defau
 /* This function finds the first widget in the
  * layout and moves the current focus to it.
  */
-int _initial_focus(HWND handle)
+int _dw_initial_focus(HWND handle)
 {
    Box *thisbox = NULL;
    HWND box;
@@ -796,17 +796,17 @@ int _initial_focus(HWND handle)
       return 1;
 
    if(thisbox)
-      _focus_check_box(thisbox, handle, 3, _DW_DIRECTION_FORWARD, thisbox->defaultitem);
+      _dw_focus_check_box(thisbox, handle, 3, _DW_DIRECTION_FORWARD, thisbox->defaultitem);
    return 0;
 }
 
 /* This function finds the current widget in the
  * layout and moves the current focus to the next item.
  */
-void _shift_focus(HWND handle, int direction)
+void _dw_shift_focus(HWND handle, int direction)
 {
    Box *thisbox;
-   HWND box, lastbox = _toplevel_window(handle);
+   HWND box, lastbox = _dw_toplevel_window(handle);
 
    box = WinWindowFromID(lastbox, FID_CLIENT);
    if(box)
@@ -816,13 +816,13 @@ void _shift_focus(HWND handle, int direction)
 
    if(thisbox)
    {
-      if(_focus_check_box(thisbox, handle, 1, direction, 0)  == 0)
-         _focus_check_box(thisbox, handle, 2, direction, 0);
+      if(_dw_focus_check_box(thisbox, handle, 1, direction, 0)  == 0)
+         _dw_focus_check_box(thisbox, handle, 2, direction, 0);
    }
 }
 
 /* This function will recursively search a box and add up the total height of it */
-void _count_size(HWND box, int type, int *xsize, int *xorigsize)
+void _dw_count_size(HWND box, int type, int *xsize, int *xorigsize)
 {
    int size = 0, origsize = 0, z;
    Box *tmp = WinQueryWindowPtr(box, QWP_USER);
@@ -844,7 +844,7 @@ void _count_size(HWND box, int type, int *xsize, int *xorigsize)
          {
             int s, os;
 
-            _count_size(tmp->items[z].hwnd, type, &s, &os);
+            _dw_count_size(tmp->items[z].hwnd, type, &s, &os);
             size += s;
             origsize += os;
          }
@@ -865,7 +865,7 @@ void _count_size(HWND box, int type, int *xsize, int *xorigsize)
       for(z=0;z<tmp->count;z++)
       {
          if(tmp->items[z].type == TYPEBOX)
-            _count_size(tmp->items[z].hwnd, type, &tmpsize, &tmporigsize);
+            _dw_count_size(tmp->items[z].hwnd, type, &tmpsize, &tmporigsize);
          else
          {
             tmpsize = (type == DW_HORZ ? tmp->items[z].width : tmp->items[z].height);
@@ -890,7 +890,7 @@ void _count_size(HWND box, int type, int *xsize, int *xorigsize)
  * desktop.
  */
 
-BOOL _TrackRectangle(HWND hwndBase, RECTL* rclTrack, RECTL* rclBounds)
+BOOL _dw_track_rectangle(HWND hwndBase, RECTL* rclTrack, RECTL* rclBounds)
 {
    TRACKINFO track;
    APIRET rc;
@@ -943,7 +943,7 @@ BOOL _TrackRectangle(HWND hwndBase, RECTL* rclTrack, RECTL* rclBounds)
    return rc;
 }
 
-void _check_resize_notebook(HWND hwnd)
+void _dw_check_resize_notebook(HWND hwnd)
 {
    char tmpbuf[100] = {0};
 
@@ -973,7 +973,7 @@ void _check_resize_notebook(HWND hwnd)
 
             WinSendMsg(hwnd, BKM_CALCPAGERECT, (MPARAM)&rc, (MPARAM)TRUE);
 
-            _do_resize(pagebox, rc.xRight - rc.xLeft, rc.yTop - rc.yBottom);
+            _dw_do_resize(pagebox, rc.xRight - rc.xLeft, rc.yTop - rc.yBottom);
          }
          page = (ULONG)WinSendMsg(hwnd, BKM_QUERYPAGEID, (MPARAM)page, MPFROM2SHORT(BKA_NEXT, BKA_MAJOR));
       }
@@ -982,21 +982,21 @@ void _check_resize_notebook(HWND hwnd)
 }
 
 /* Return the OS/2 color from the DW color */
-unsigned long _internal_color(unsigned long color)
+unsigned long _dw_internal_color(unsigned long color)
 {
    if(color < 16)
       return _colors[color];
    return color;
 }
 
-unsigned long _os2_color(unsigned long color)
+unsigned long _dw_os2_color(unsigned long color)
 {
    return DW_RED_VALUE(color) << 16 | DW_GREEN_VALUE(color) << 8 | DW_BLUE_VALUE(color);
 }
 
-BOOL _MySetWindowPos(HWND hwnd, HWND parent, HWND behind, LONG x, LONG y, LONG cx, LONG cy, ULONG fl)
+BOOL _dw_set_window_pos(HWND hwnd, HWND parent, HWND behind, LONG x, LONG y, LONG cx, LONG cy, ULONG fl)
 {
-   int height = _get_height(parent);
+   int height = _dw_get_height(parent);
 
    return WinSetWindowPos(hwnd, behind, x, height - y - cy, cx, cy, fl);
 }
@@ -1005,7 +1005,7 @@ BOOL _MySetWindowPos(HWND hwnd, HWND parent, HWND behind, LONG x, LONG y, LONG c
 #define MAX_CP_NAME     12      /* maximum length of a codepage name */
 #define MAX_CP_SPEC     64      /* maximum length of a UconvObject codepage specifier */
 
-char *_WideToUTF8(UniChar *unistr)
+char *_dw_WideToUTF8(UniChar *unistr)
 {
     /* Convert text to UTF-8 codepage */
     char *retval = NULL;
@@ -1026,7 +1026,7 @@ char *_WideToUTF8(UniChar *unistr)
     return retval;
 }
 
-UniChar *_UTF8toWide(char *utf8str)
+UniChar *_dw_UTF8toWide(char *utf8str)
 {
     /* Convert text to Unicode */
     UniChar *retval = NULL;
@@ -1048,7 +1048,7 @@ UniChar *_UTF8toWide(char *utf8str)
 /* This function calculates how much space the widgets and boxes require
  * and does expansion as necessary.
  */
-static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
+static void _dw_resize_box(Box *thisbox, int *depth, int x, int y, int pass)
 {
    /* Current item position */
    int z, currentx = thisbox->pad, currenty = thisbox->pad;
@@ -1116,7 +1116,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                (*depth)++;
 
                /* Save the newly calculated values on the box */
-               _resize_box(tmp, depth, x, y, pass);
+               _dw_resize_box(tmp, depth, x, y, pass);
 
                /* Duplicate the values in the item list for use below */
                thisbox->items[z].width = tmp->minwidth;
@@ -1248,20 +1248,20 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                /* Make the combobox big enough to drop down. :) */
                WinSetWindowPos(handle, HWND_TOP, 0, -100,
                            width, height + 100, SWP_MOVE | SWP_SIZE | SWP_ZORDER);
-               _MySetWindowPos(frame, thisbox->hwnd, HWND_TOP, currentx + pad, currenty + pad,
+               _dw_set_window_pos(frame, thisbox->hwnd, HWND_TOP, currentx + pad, currenty + pad,
                            width, height, SWP_MOVE | SWP_SIZE | SWP_ZORDER);
             }
             else if(strncmp(tmpbuf, "#6", 3)==0)
             {
                /* Entryfields on OS/2 have a thick border that isn't on Windows and GTK */
-               _MySetWindowPos(handle, thisbox->hwnd, HWND_TOP, (currentx + pad) + 3, (currenty + pad) + 3,
+               _dw_set_window_pos(handle, thisbox->hwnd, HWND_TOP, (currentx + pad) + 3, (currenty + pad) + 3,
                            width - 6, height - 6, SWP_MOVE | SWP_SIZE | SWP_ZORDER);
             }
             else if(strncmp(tmpbuf, "#40", 5)==0)
             {
-               _MySetWindowPos(handle, thisbox->hwnd, HWND_TOP, currentx + pad, currenty + pad,
+               _dw_set_window_pos(handle, thisbox->hwnd, HWND_TOP, currentx + pad, currenty + pad,
                            width, height, SWP_MOVE | SWP_SIZE | SWP_ZORDER);
-               _check_resize_notebook(handle);
+               _dw_check_resize_notebook(handle);
             }
             else if(strncmp(tmpbuf, ScrollClassName, strlen(ScrollClassName)+1)==0)
             {
@@ -1277,7 +1277,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                 unsigned int vpos = (unsigned int)WinSendMsg(vscroll, SBM_QUERYPOS, 0, 0);
 
                 /* Position the scrollbox parts */
-                _MySetWindowPos(handle, thisbox->hwnd, HWND_TOP, currentx + pad, currenty + pad, width, height, SWP_MOVE | SWP_SIZE | SWP_ZORDER);
+                _dw_set_window_pos(handle, thisbox->hwnd, HWND_TOP, currentx + pad, currenty + pad, width, height, SWP_MOVE | SWP_SIZE | SWP_ZORDER);
                 WinSetWindowPos(client, HWND_TOP, 0, WinQuerySysValue(HWND_DESKTOP, SV_CYHSCROLL), width - WinQuerySysValue(HWND_DESKTOP, SV_CXVSCROLL), height - WinQuerySysValue(HWND_DESKTOP, SV_CYHSCROLL), SWP_MOVE | SWP_SIZE | SWP_ZORDER);
                 WinSetWindowPos(hscroll, HWND_TOP, 0, 0, width - WinQuerySysValue(HWND_DESKTOP, SV_CXVSCROLL), WinQuerySysValue(HWND_DESKTOP, SV_CYHSCROLL), SWP_MOVE | SWP_SIZE | SWP_ZORDER);
                 WinSetWindowPos(vscroll, HWND_TOP, width - WinQuerySysValue(HWND_DESKTOP, SV_CXVSCROLL), WinQuerySysValue(HWND_DESKTOP, SV_CYHSCROLL), WinQuerySysValue(HWND_DESKTOP, SV_CXVSCROLL), height - WinQuerySysValue(HWND_DESKTOP, SV_CYHSCROLL), SWP_MOVE | SWP_SIZE | SWP_ZORDER);
@@ -1286,7 +1286,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                 origy = cy = height - WinQuerySysValue(HWND_DESKTOP, SV_CYHSCROLL);
 
                 /* Get the required space for the box */
-                _resize_box(contentbox, &depth, cx, cy, 1);
+                _dw_resize_box(contentbox, &depth, cx, cy, 1);
 
                 if(cx < contentbox->minwidth)
                 {
@@ -1321,7 +1321,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                 dw_window_set_data(handle, "_dw_cy", (void *)(cy - origy));
 
                 /* Layout the content of the scrollbox */
-                _do_resize(contentbox, cx, cy);
+                _dw_do_resize(contentbox, cx, cy);
             }
             else if(strncmp(tmpbuf, SplitbarClassName, strlen(SplitbarClassName)+1)==0)
             {
@@ -1329,16 +1329,16 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                float *percent = (float *)dw_window_get_data(handle, "_dw_percent");
                int type = (int)dw_window_get_data(handle, "_dw_type");
 
-               _MySetWindowPos(handle, thisbox->hwnd, HWND_TOP, currentx + pad, currenty + pad,
+               _dw_set_window_pos(handle, thisbox->hwnd, HWND_TOP, currentx + pad, currenty + pad,
                            width, height, SWP_MOVE | SWP_SIZE | SWP_ZORDER);
 
                if(percent)
-                  _handle_splitbar_resize(handle, *percent, type, width, height);
+                  _dw_handle_splitbar_resize(handle, *percent, type, width, height);
             }
             else
             {
                /* Everything else */
-               _MySetWindowPos(handle, thisbox->hwnd, HWND_TOP, currentx + pad, currenty + pad,
+               _dw_set_window_pos(handle, thisbox->hwnd, HWND_TOP, currentx + pad, currenty + pad,
                            width, height, SWP_MOVE | SWP_SIZE | SWP_ZORDER);
 
                /* After placing a box... place its components */
@@ -1356,7 +1356,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                      }
                      /* Dive into the box */
                      (*depth)++;
-                     _resize_box(boxinfo, depth, width, height, pass);
+                     _dw_resize_box(boxinfo, depth, width, height, pass);
                      (*depth)--;
                   }
                }
@@ -1372,7 +1372,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
    }
 }
 
-void _do_resize(Box *thisbox, int x, int y)
+void _dw_do_resize(Box *thisbox, int x, int y)
 {
    if(x != 0 && y != 0)
    {
@@ -1381,16 +1381,16 @@ void _do_resize(Box *thisbox, int x, int y)
          int depth = 0;
 
          /* Calculate space requirements */
-         _resize_box(thisbox, &depth, x, y, 1);
+         _dw_resize_box(thisbox, &depth, x, y, 1);
 
          /* Finally place all the boxes and controls */
-         _resize_box(thisbox, &depth, x, y, 2);
+         _dw_resize_box(thisbox, &depth, x, y, 2);
       }
    }
 }
 
 /* This procedure handles WM_QUERYTRACKINFO requests from the frame */
-MRESULT EXPENTRY _sizeproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
+MRESULT EXPENTRY _dw_sizeproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
    PFNWP *blah = WinQueryWindowPtr(hWnd, QWP_USER);
    Box *thisbox = NULL;
@@ -1433,7 +1433,7 @@ MRESULT EXPENTRY _sizeproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
    return WinDefWindowProc(hWnd, msg, mp1, mp2);
 }
 
-void _Top(HPS hpsPaint, RECTL rclPaint)
+void _dw_top(HPS hpsPaint, RECTL rclPaint)
 {
    POINTL ptl1, ptl2;
 
@@ -1445,7 +1445,7 @@ void _Top(HPS hpsPaint, RECTL rclPaint)
 }
 
 /* Left hits the bottom */
-void _Left(HPS hpsPaint, RECTL rclPaint)
+void _dw_left(HPS hpsPaint, RECTL rclPaint)
 {
    POINTL ptl1, ptl2;
 
@@ -1456,7 +1456,7 @@ void _Left(HPS hpsPaint, RECTL rclPaint)
    GpiLine(hpsPaint, &ptl2);
 }
 
-void _Bottom(HPS hpsPaint, RECTL rclPaint)
+void _dw_bottom(HPS hpsPaint, RECTL rclPaint)
 {
    POINTL ptl1, ptl2;
 
@@ -1468,7 +1468,7 @@ void _Bottom(HPS hpsPaint, RECTL rclPaint)
 }
 
 /* Right hits the top */
-void _Right(HPS hpsPaint, RECTL rclPaint)
+void _dw_right(HPS hpsPaint, RECTL rclPaint)
 {
    POINTL ptl1, ptl2;
 
@@ -1479,7 +1479,7 @@ void _Right(HPS hpsPaint, RECTL rclPaint)
    GpiLine(hpsPaint, &ptl2);
 }
 
-void _drawtext(HWND hWnd, HPS hpsPaint)
+void _dw_drawtext(HWND hWnd, HPS hpsPaint)
 {
     RECTL rclPaint;
     int len = WinQueryWindowTextLength(hWnd);
@@ -1522,7 +1522,7 @@ void _drawtext(HWND hWnd, HPS hpsPaint)
 /* Function: BubbleProc
  * Abstract: Subclass procedure for bubble help
  */
-MRESULT EXPENTRY _BubbleProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
+MRESULT EXPENTRY _dw_bubbleproc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
    PFNWP proc = (PFNWP)WinQueryWindowPtr(hwnd, QWL_USER);
 
@@ -1540,7 +1540,7 @@ MRESULT EXPENTRY _BubbleProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
       /* Draw a border around the bubble help */
       hpsTemp = WinBeginPaint(hwnd, 0, 0);
 
-      _drawtext(hwnd, hpsTemp);
+      _dw_drawtext(hwnd, hpsTemp);
       GpiSetColor(hpsTemp, CLR_BLACK);
       ptl.x = ptl.y = 0;
       GpiMove(hpsTemp, &ptl);
@@ -1573,7 +1573,7 @@ MRESULT EXPENTRY _BubbleProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 }
 
 /* Subclass WC_STATIC to draw a bitmap centered */
-MRESULT EXPENTRY _BitmapProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
+MRESULT EXPENTRY _dw_bitmapproc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
     WindowData *blah = (WindowData *)WinQueryWindowPtr(hwnd, QWL_USER);
 
@@ -1620,7 +1620,7 @@ MRESULT EXPENTRY _BitmapProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 }
 
 /* Function to handle tooltip messages from a variety of procedures */
-MRESULT EXPENTRY _TooltipProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2, WindowData *blah)
+MRESULT EXPENTRY _dw_tooltipproc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2, WindowData *blah)
 {
     static HWND hstart, hend;
 
@@ -1729,7 +1729,7 @@ MRESULT EXPENTRY _TooltipProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2, Wind
                         ptlWork.x = 0;
                 }
 
-                bubbleproc = (void *)WinSubclassWindow(hwndBubble, _BubbleProc);
+                bubbleproc = (void *)WinSubclassWindow(hwndBubble, _dw_bubbleproc);
 
                 if(bubbleproc)
                     WinSetWindowPtr(hwndBubble, QWP_USER, bubbleproc);
@@ -1756,7 +1756,7 @@ MRESULT EXPENTRY _TooltipProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2, Wind
 #define CALENDAR_ARROW 8
 
 /* Returns a rectangle for a single day on the calendar */
-RECTL _CalendarDayRect(int position, RECTL rclPaint)
+RECTL _dw_calendar_day_rect(int position, RECTL rclPaint)
 {
     int height = rclPaint.yTop - rclPaint.yBottom - (CALENDAR_BORDER*2);
     int width = rclPaint.xRight - rclPaint.xLeft - (CALENDAR_BORDER*2);
@@ -1782,7 +1782,7 @@ static char months[12][20];
 static char daysofweek[7][20];
 
 /* This procedure handles drawing of a status border */
-MRESULT EXPENTRY _calendarproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
+MRESULT EXPENTRY _dw_calendarproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
    /* How many days are in each month usually (not including leap years) */
    static int days[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
@@ -1794,7 +1794,7 @@ MRESULT EXPENTRY _calendarproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
       oldproc = blah->oldproc;
 
       if(blah->bubbletext[0])
-          _TooltipProc(hWnd, msg, mp1, mp2, blah);
+          _dw_tooltipproc(hWnd, msg, mp1, mp2, blah);
 
       switch(msg)
       {
@@ -1884,7 +1884,7 @@ MRESULT EXPENTRY _calendarproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
               /* Check all the valid days of the month */
               for(x=dayofweek+7;x<(daysthismonth+dayofweek+7);x++)
               {
-                  RECTL rclThis = _CalendarDayRect(x, rclArea);
+                  RECTL rclThis = _dw_calendar_day_rect(x, rclArea);
                   if(pts.x < rclThis.xRight && pts.x > rclThis.xLeft && pts.y < rclThis.yTop && pts.y > rclThis.yBottom)
                   {
                       dw_window_set_data(hWnd, "_dw_day", DW_INT_TO_POINTER((x-(dayofweek+7))));
@@ -1957,12 +1957,12 @@ MRESULT EXPENTRY _calendarproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
             GpiEndArea(hpsPaint);
 
             /* Draw a border around control */
-            _Top(hpsPaint, rclPaint);
-            _Left(hpsPaint, rclPaint);
+            _dw_top(hpsPaint, rclPaint);
+            _dw_left(hpsPaint, rclPaint);
             /* With shadow */
             GpiSetColor(hpsPaint, CLR_WHITE);
-            _Right(hpsPaint, rclPaint);
-            _Bottom(hpsPaint, rclPaint);
+            _dw_right(hpsPaint, rclPaint);
+            _dw_bottom(hpsPaint, rclPaint);
 
             /* Draw the days of the week */
             GpiSetColor(hpsPaint, CLR_BLACK);
@@ -1970,7 +1970,7 @@ MRESULT EXPENTRY _calendarproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
             {
                 char *title = daysofweek[x];
 
-                rclDraw = _CalendarDayRect(x, rclPaint);
+                rclDraw = _dw_calendar_day_rect(x, rclPaint);
 
                 if(rclDraw.xRight - rclDraw.xLeft < 60)
                 {
@@ -1986,7 +1986,7 @@ MRESULT EXPENTRY _calendarproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
                 int daysthismonth = days[month] + (isleapyear && month == 1);
                 int dayslastmonth = days[lastmonth] + (isleapyear && lastmonth == 1);
 
-                rclDraw = _CalendarDayRect(x+7, rclPaint);
+                rclDraw = _dw_calendar_day_rect(x+7, rclPaint);
                 if(x < dayofweek)
                 {
                     GpiSetColor(hpsPaint, CLR_DARKGRAY);
@@ -2006,14 +2006,14 @@ MRESULT EXPENTRY _calendarproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
             }
 
             /* Draw a border around selected day */
-            rclPaint = _CalendarDayRect(day + dayofweek + 7, rclPaint);
+            rclPaint = _dw_calendar_day_rect(day + dayofweek + 7, rclPaint);
             GpiSetColor(hpsPaint, CLR_DARKGRAY);
-            _Top(hpsPaint, rclPaint);
-            _Left(hpsPaint, rclPaint);
+            _dw_top(hpsPaint, rclPaint);
+            _dw_left(hpsPaint, rclPaint);
             /* With shadow */
             GpiSetColor(hpsPaint, CLR_WHITE);
-            _Right(hpsPaint, rclPaint);
-            _Bottom(hpsPaint, rclPaint);
+            _dw_right(hpsPaint, rclPaint);
+            _dw_bottom(hpsPaint, rclPaint);
 
             WinEndPaint(hpsPaint);
 
@@ -2029,12 +2029,12 @@ MRESULT EXPENTRY _calendarproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
 
 /* This procedure handles drawing of a status border */
-MRESULT EXPENTRY _statusproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
+MRESULT EXPENTRY _dw_statusproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
    WindowData *blah = (WindowData *)WinQueryWindowPtr(hWnd, QWP_USER);
    PFNWP oldproc = 0;
 
-   if(msg == WM_MOUSEMOVE && _wndproc(hWnd, msg, mp1, mp2))
+   if(msg == WM_MOUSEMOVE && _dw_wndproc(hWnd, msg, mp1, mp2))
       return MPFROMSHORT(FALSE);
 
    if(blah)
@@ -2042,10 +2042,10 @@ MRESULT EXPENTRY _statusproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
       oldproc = blah->oldproc;
 
       if(blah->bubbletext[0])
-          _TooltipProc(hWnd, msg, mp1, mp2, blah);
+          _dw_tooltipproc(hWnd, msg, mp1, mp2, blah);
 
       if(blah->bubbletext[0])
-          _TooltipProc(hWnd, msg, mp1, mp2, blah);
+          _dw_tooltipproc(hWnd, msg, mp1, mp2, blah);
 
       switch(msg)
       {
@@ -2060,12 +2060,12 @@ MRESULT EXPENTRY _statusproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
             WinFillRect(hpsPaint, &rclPaint, CLR_PALEGRAY);
 
             GpiSetColor(hpsPaint, CLR_DARKGRAY);
-            _Top(hpsPaint, rclPaint);
-            _Left(hpsPaint, rclPaint);
+            _dw_top(hpsPaint, rclPaint);
+            _dw_left(hpsPaint, rclPaint);
 
             GpiSetColor(hpsPaint, CLR_WHITE);
-            _Right(hpsPaint, rclPaint);
-            _Bottom(hpsPaint, rclPaint);
+            _dw_right(hpsPaint, rclPaint);
+            _dw_bottom(hpsPaint, rclPaint);
 
             WinQueryWindowText(hWnd, 1024, (PSZ)buf);
             rclPaint.xLeft += 3;
@@ -2088,14 +2088,14 @@ MRESULT EXPENTRY _statusproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 }
 
 /* This procedure handles pointer changes */
-MRESULT EXPENTRY _textproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
+MRESULT EXPENTRY _dw_textproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
    WindowData *blah = (WindowData *)WinQueryWindowPtr(hWnd, QWP_USER);
 
    if(blah && blah->bubbletext[0])
-       _TooltipProc(hWnd, msg, mp1, mp2, blah);
+       _dw_tooltipproc(hWnd, msg, mp1, mp2, blah);
 
-   if(msg == WM_MOUSEMOVE &&_wndproc(hWnd, msg, mp1, mp2))
+   if(msg == WM_MOUSEMOVE &&_dw_wndproc(hWnd, msg, mp1, mp2))
       return MPFROMSHORT(FALSE);
 
    if(blah && blah->oldproc)
@@ -2108,7 +2108,7 @@ MRESULT EXPENTRY _textproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
           {
               HPS hpsPaint = WinBeginPaint(hWnd, 0, 0);
 
-              _drawtext(hWnd, hpsPaint);
+              _dw_drawtext(hWnd, hpsPaint);
               WinEndPaint(hpsPaint);
               return (MRESULT)TRUE;
           }
@@ -2121,7 +2121,7 @@ MRESULT EXPENTRY _textproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 }
 
 /* This procedure handles scrollbox */
-MRESULT EXPENTRY _scrollwndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
+MRESULT EXPENTRY _dw_scrollwndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
     switch(msg)
     {
@@ -2204,7 +2204,7 @@ MRESULT EXPENTRY _scrollwndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
     return WinDefWindowProc(hWnd, msg, mp1, mp2);
 }
 
-void _click_default(HWND handle)
+void _dw_click_default(HWND handle)
 {
    char tmpbuf[100] = {0};
 
@@ -2248,7 +2248,7 @@ void _click_default(HWND handle)
 #define ENTRY_SALL   60906
 
 #ifdef UNICODE
-void _combine_text(HWND handle, USHORT pos1, char *text, char *pastetext)
+void _dw_combine_text(HWND handle, USHORT pos1, char *text, char *pastetext)
 {
     char *combined = calloc((text ? strlen(text) : 0) + strlen(pastetext) + 1, 1);
     SHORT newsel = pos1 + strlen(pastetext);
@@ -2269,7 +2269,7 @@ void _combine_text(HWND handle, USHORT pos1, char *text, char *pastetext)
 }
 
 /* Internal function to handle Unicode enabled MLE cut, copy and paste */
-void _MleCopyPaste(HWND hWnd, int command)
+void _dw_mle_copy_paste(HWND hWnd, int command)
 {
     /* MLE insertion points (for querying selection) */
     IPT ipt1, ipt2;
@@ -2303,7 +2303,7 @@ void _MleCopyPaste(HWND hWnd, int command)
 }
 
 /* Internal function to handle Unicode enabled Entryfield cut, copy and paste */
-void _EntryCopyPaste(HWND handle, int command)
+void _dw_entry_copy_paste(HWND handle, int command)
 {
     /* Get the selected text */
     char *text = dw_window_get_text(handle);
@@ -2334,7 +2334,7 @@ void _EntryCopyPaste(HWND handle, int command)
 
         if(pastetext)
         {
-            _combine_text(handle, pos1, text, pastetext);
+            _dw_combine_text(handle, pos1, text, pastetext);
             /* Free temporary memory */
             dw_free(pastetext);
         }
@@ -2347,7 +2347,7 @@ void _EntryCopyPaste(HWND handle, int command)
 /* Originally just intended for entryfields, it now serves as a generic
  * procedure for handling TAB presses to change input focus on controls.
  */
-MRESULT EXPENTRY _entryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
+MRESULT EXPENTRY _dw_entryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
    WindowData *blah = (WindowData *)WinQueryWindowPtr(hWnd, QWP_USER);
    PFNWP oldproc = 0;
@@ -2359,7 +2359,7 @@ MRESULT EXPENTRY _entryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
    WinQueryClassName(hWnd, 99, (PCH)tmpbuf);
 
    if(blah && blah->bubbletext[0])
-       _TooltipProc(hWnd, msg, mp1, mp2, blah);
+       _dw_tooltipproc(hWnd, msg, mp1, mp2, blah);
 
    /* These are the window classes which should get a menu */
    if(strncmp(tmpbuf, "#2", 3)==0 ||  /* Combobox */
@@ -2371,22 +2371,22 @@ MRESULT EXPENTRY _entryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
       {
 #ifdef UNICODE
       case MLM_PASTE:
-          _MleCopyPaste(hWnd, ENTRY_PASTE);
+          _dw_mle_copy_paste(hWnd, ENTRY_PASTE);
           return (MRESULT)TRUE;
       case MLM_CUT:
-          _MleCopyPaste(hWnd, ENTRY_CUT);
+          _dw_mle_copy_paste(hWnd, ENTRY_CUT);
           return (MRESULT)TRUE;
       case MLM_COPY:
-          _MleCopyPaste(hWnd, ENTRY_COPY);
+          _dw_mle_copy_paste(hWnd, ENTRY_COPY);
           return (MRESULT)TRUE;
       case EM_PASTE:
-          _EntryCopyPaste(hWnd, ENTRY_PASTE);
+          _dw_entry_copy_paste(hWnd, ENTRY_PASTE);
           return (MRESULT)TRUE;
       case EM_CUT:
-          _EntryCopyPaste(hWnd, ENTRY_CUT);
+          _dw_entry_copy_paste(hWnd, ENTRY_CUT);
           return (MRESULT)TRUE;
       case EM_COPY:
-          _EntryCopyPaste(hWnd, ENTRY_COPY);
+          _dw_entry_copy_paste(hWnd, ENTRY_COPY);
           return (MRESULT)TRUE;
 #endif
       case WM_CONTEXTMENU:
@@ -2489,31 +2489,31 @@ MRESULT EXPENTRY _entryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
    case WM_BUTTON3DOWN:
       {
          if(strncmp(tmpbuf, "#32", 4)==0)
-            _run_event(hWnd, WM_SETFOCUS, (MPARAM)FALSE, (MPARAM)TRUE);
+            _dw_run_event(hWnd, WM_SETFOCUS, (MPARAM)FALSE, (MPARAM)TRUE);
       }
       break;
    case WM_CONTROL:
        {
            if(strncmp(tmpbuf, "#38", 4)==0)
-               _run_event(hWnd, msg, mp1, mp2);
+               _dw_run_event(hWnd, msg, mp1, mp2);
        }
        break;
    case WM_SETFOCUS:
-      _run_event(hWnd, msg, mp1, mp2);
+      _dw_run_event(hWnd, msg, mp1, mp2);
       break;
    case WM_CHAR:
-      if(_run_event(hWnd, msg, mp1, mp2) == (MRESULT)TRUE)
+      if(_dw_run_event(hWnd, msg, mp1, mp2) == (MRESULT)TRUE)
          return (MRESULT)TRUE;
       if(SHORT1FROMMP(mp2) == '\t')
       {
          if(CHARMSG(&msg)->fs & KC_SHIFT)
-            _shift_focus(hWnd, _DW_DIRECTION_BACKWARD);
+            _dw_shift_focus(hWnd, _DW_DIRECTION_BACKWARD);
          else
-            _shift_focus(hWnd, _DW_DIRECTION_FORWARD);
+            _dw_shift_focus(hWnd, _DW_DIRECTION_FORWARD);
          return FALSE;
       }
       else if(SHORT1FROMMP(mp2) == '\r' && blah && blah->clickdefault)
-         _click_default(blah->clickdefault);
+         _dw_click_default(blah->clickdefault);
       /* When you hit escape we get this value and the
        * window hangs for reasons unknown. (in an MLE)
        */
@@ -2529,7 +2529,7 @@ MRESULT EXPENTRY _entryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
           UniTranslateKey(Keyboard, SHORT1FROMMP(mp1) & KC_SHIFT  ? 1 : 0, CHAR4FROMMP(mp1), uc, &vdk, &bscan);
 
-          if((utf8 = _WideToUTF8(uc)) != NULL)
+          if((utf8 = _dw_WideToUTF8(uc)) != NULL)
           {
               if(*utf8)
               {
@@ -2553,7 +2553,7 @@ MRESULT EXPENTRY _entryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
                           SHORT pos1 = SHORT1FROMMP(sel);
 
                            WinSendMsg(handle, EM_CLEAR, 0, 0);
-                          _combine_text(handle, pos1, text, utf8);
+                          _dw_combine_text(handle, pos1, text, utf8);
 
                           if(text)
                               free(text);
@@ -2580,7 +2580,7 @@ MRESULT EXPENTRY _entryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
       }
       break;
    case WM_MOUSEMOVE:
-      if(_wndproc(hWnd, msg, mp1, mp2))
+      if(_dw_wndproc(hWnd, msg, mp1, mp2))
          return MPFROMSHORT(FALSE);
       break;
    }
@@ -2592,17 +2592,17 @@ MRESULT EXPENTRY _entryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 }
 
 /*  Deal with combobox specifics and enhancements */
-MRESULT EXPENTRY _comboentryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
+MRESULT EXPENTRY _dw_comboentryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
    WindowData *blah = (WindowData *)WinQueryWindowPtr(hWnd, QWP_USER);
 
    if(blah && blah->bubbletext[0])
-       _TooltipProc(hWnd, msg, mp1, mp2, blah);
+       _dw_tooltipproc(hWnd, msg, mp1, mp2, blah);
 
    switch(msg)
    {
    case WM_MOUSEMOVE:
-      if(_wndproc(hWnd, msg, mp1, mp2))
+      if(_dw_wndproc(hWnd, msg, mp1, mp2))
          return MPFROMSHORT(FALSE);
       break;
    case WM_CONTEXTMENU:
@@ -2612,12 +2612,12 @@ MRESULT EXPENTRY _comboentryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
    case EM_CUT:
    case EM_COPY:
 #endif
-      return _entryproc(hWnd, msg, mp1, mp2);
+      return _dw_entryproc(hWnd, msg, mp1, mp2);
    case WM_SETFOCUS:
-      _run_event(hWnd, msg, mp1, mp2);
+      _dw_run_event(hWnd, msg, mp1, mp2);
       break;
    case WM_CHAR:
-      if(_run_event(hWnd, msg, mp1, mp2) == (MRESULT)TRUE)
+      if(_dw_run_event(hWnd, msg, mp1, mp2) == (MRESULT)TRUE)
          return (MRESULT)TRUE;
       /* A Similar problem to the MLE, if ESC just return */
       if(SHORT1FROMMP(mp2) == 283)
@@ -2632,7 +2632,7 @@ MRESULT EXPENTRY _comboentryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 }
 
 /* Enhance the standard OS/2 MLE control */
-MRESULT EXPENTRY _mleproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
+MRESULT EXPENTRY _dw_mleproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
    switch(msg)
    {
@@ -2645,11 +2645,11 @@ MRESULT EXPENTRY _mleproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
       }
       break;
    }
-   return _entryproc(hWnd, msg, mp1, mp2);
+   return _dw_entryproc(hWnd, msg, mp1, mp2);
 }
 
 /* Handle special messages for the spinbutton's entryfield */
-MRESULT EXPENTRY _spinentryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
+MRESULT EXPENTRY _dw_spinentryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
    WindowData *blah = (WindowData *)WinQueryWindowPtr(hWnd, QWP_USER);
    PFNWP oldproc = 0;
@@ -2658,12 +2658,12 @@ MRESULT EXPENTRY _spinentryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
       oldproc = blah->oldproc;
 
    if(blah && blah->bubbletext[0])
-       _TooltipProc(hWnd, msg, mp1, mp2, blah);
+       _dw_tooltipproc(hWnd, msg, mp1, mp2, blah);
 
    switch(msg)
    {
    case WM_MOUSEMOVE:
-      if(_wndproc(hWnd, msg, mp1, mp2))
+      if(_dw_wndproc(hWnd, msg, mp1, mp2))
          return MPFROMSHORT(FALSE);
       break;
    case WM_CONTEXTMENU:
@@ -2673,7 +2673,7 @@ MRESULT EXPENTRY _spinentryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
    case EM_CUT:
    case EM_COPY:
 #endif
-       return _entryproc(hWnd, msg, mp1, mp2);
+       return _dw_entryproc(hWnd, msg, mp1, mp2);
    }
 
    if(oldproc)
@@ -2706,7 +2706,7 @@ void _dw_int_set(HWND hwnd, int pos)
 }
 
 /* Handle size changes in the percent class */
-MRESULT EXPENTRY _percentproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
+MRESULT EXPENTRY _dw_percentproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
    WindowData *blah = (WindowData *)WinQueryWindowPtr(hWnd, QWP_USER);
    PFNWP oldproc = 0;
@@ -2715,12 +2715,12 @@ MRESULT EXPENTRY _percentproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
       oldproc = blah->oldproc;
 
    if(blah && blah->bubbletext[0])
-       _TooltipProc(hWnd, msg, mp1, mp2, blah);
+       _dw_tooltipproc(hWnd, msg, mp1, mp2, blah);
 
    switch(msg)
    {
    case WM_MOUSEMOVE:
-      if(_wndproc(hWnd, msg, mp1, mp2))
+      if(_dw_wndproc(hWnd, msg, mp1, mp2))
          return MPFROMSHORT(FALSE);
       break;
    case WM_SIZE:
@@ -2740,7 +2740,7 @@ MRESULT EXPENTRY _percentproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 /* Handle correct painting of a combobox with the WS_CLIPCHILDREN
  * flag enabled, and also handle TABs to switch input focus.
  */
-MRESULT EXPENTRY _comboproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
+MRESULT EXPENTRY _dw_comboproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
    WindowData *blah = WinQueryWindowPtr(hWnd, QWP_USER);
    PFNWP oldproc = 0;
@@ -2749,25 +2749,25 @@ MRESULT EXPENTRY _comboproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
       oldproc = blah->oldproc;
 
    if(blah && blah->bubbletext[0])
-       _TooltipProc(hWnd, msg, mp1, mp2, blah);
+       _dw_tooltipproc(hWnd, msg, mp1, mp2, blah);
 
    switch(msg)
    {
    case WM_MOUSEMOVE:
-      if(_wndproc(hWnd, msg, mp1, mp2))
+      if(_dw_wndproc(hWnd, msg, mp1, mp2))
          return MPFROMSHORT(FALSE);
       break;
    case WM_CHAR:
       if(SHORT1FROMMP(mp2) == '\t')
       {
          if(CHARMSG(&msg)->fs & KC_SHIFT)
-            _shift_focus(hWnd, _DW_DIRECTION_BACKWARD);
+            _dw_shift_focus(hWnd, _DW_DIRECTION_BACKWARD);
          else
-            _shift_focus(hWnd, _DW_DIRECTION_FORWARD);
+            _dw_shift_focus(hWnd, _DW_DIRECTION_FORWARD);
          return FALSE;
       }
       else if(SHORT1FROMMP(mp2) == '\r' && blah && blah->clickdefault)
-         _click_default(blah->clickdefault);
+         _dw_click_default(blah->clickdefault);
       break;
    case WM_BUTTON1DBLCLK:
    case WM_BUTTON2DBLCLK:
@@ -2778,12 +2778,12 @@ MRESULT EXPENTRY _comboproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
    case WM_BUTTON1DOWN:
    case WM_BUTTON2DOWN:
    case WM_BUTTON3DOWN:
-      if(_run_event(hWnd, msg, mp1, mp2) == (MRESULT)TRUE)
+      if(_dw_run_event(hWnd, msg, mp1, mp2) == (MRESULT)TRUE)
          return (MRESULT)TRUE;
-      _run_event(hWnd, WM_SETFOCUS, (MPARAM)FALSE, (MPARAM)TRUE);
+      _dw_run_event(hWnd, WM_SETFOCUS, (MPARAM)FALSE, (MPARAM)TRUE);
       break;
    case WM_SETFOCUS:
-      _run_event(hWnd, msg, mp1, mp2);
+      _dw_run_event(hWnd, msg, mp1, mp2);
       break;
    case WM_PAINT:
       {
@@ -2809,7 +2809,7 @@ MRESULT EXPENTRY _comboproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
          {
             hpsPaint = WinGetPS(hWnd);
             if(color)
-               GpiSetColor(hpsPaint, _internal_color(color-1));
+               GpiSetColor(hpsPaint, _dw_internal_color(color-1));
             else
                GpiSetColor(hpsPaint, CLR_PALEGRAY);
 
@@ -2831,7 +2831,7 @@ MRESULT EXPENTRY _comboproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
    return WinDefWindowProc(hWnd, msg, mp1, mp2);
 }
 
-void _GetPPFont(HWND hwnd, char *buff)
+void _dw_get_pp_font(HWND hwnd, char *buff)
 {
     ULONG AttrFound;
     BYTE  AttrValue[128];
@@ -2851,7 +2851,7 @@ void _GetPPFont(HWND hwnd, char *buff)
     }
 }
 
-int _HandleScroller(HWND handle, int pos, int which)
+int _dw_handle_scroller(HWND handle, int pos, int which)
 {
    MPARAM res;
    int min, max, page;
@@ -2896,7 +2896,7 @@ int _HandleScroller(HWND handle, int pos, int which)
    return -1;
 }
 
-void _clear_emphasis(void)
+void _dw_clear_emphasis(void)
 {
    if(hwndEmph && WinIsWindow(dwhab, hwndEmph) && pCoreEmph)
       WinSendMsg(hwndEmph, CM_SETRECORDEMPHASIS, pCoreEmph, MPFROM2SHORT(FALSE, CRA_SOURCE));
@@ -2905,7 +2905,7 @@ void _clear_emphasis(void)
 }
 
 /* Find the desktop window handle */
-HWND _menu_owner(HWND handle)
+HWND _dw_menu_owner(HWND handle)
 {
    HWND menuowner = NULLHANDLE, lastowner = (HWND)dw_window_get_data(handle, "_dw_owner");
    int menubar = (int)dw_window_get_data(handle, "_dw_menubar");
@@ -2925,7 +2925,7 @@ HWND _menu_owner(HWND handle)
    return NULLHANDLE;
 }
 
-MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
+MRESULT EXPENTRY _dw_run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
    int result = -1;
    SignalHandler *tmp = Root;
@@ -3004,7 +3004,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
                      break;
                   }
 
-                  result = buttonfunc(tmp->window, pts.x, WinQueryWindow(tmp->window, QW_PARENT) == HWND_DESKTOP ? dw_screen_height() - pts.y : _get_height(tmp->window) - pts.y, button, tmp->data);
+                  result = buttonfunc(tmp->window, pts.x, WinQueryWindow(tmp->window, QW_PARENT) == HWND_DESKTOP ? dw_screen_height() - pts.y : _dw_get_height(tmp->window) - pts.y, button, tmp->data);
                   tmp = NULL;
                }
             }
@@ -3031,7 +3031,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
                      break;
                   }
 
-                  result = buttonfunc(tmp->window, pts.x, WinQueryWindow(tmp->window, QW_PARENT) == HWND_DESKTOP ? dw_screen_height() - pts.y : _get_height(tmp->window) - pts.y, button, tmp->data);
+                  result = buttonfunc(tmp->window, pts.x, WinQueryWindow(tmp->window, QW_PARENT) == HWND_DESKTOP ? dw_screen_height() - pts.y : _dw_get_height(tmp->window) - pts.y, button, tmp->data);
                   tmp = NULL;
                }
             }
@@ -3052,7 +3052,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
                   if (WinGetKeyState(HWND_DESKTOP, VK_BUTTON3) & 0x8000)
                      keys |= DW_BUTTON3_MASK;
 
-                  result = motionfunc(tmp->window, x, _get_height(hWnd) - y, keys, tmp->data);
+                  result = motionfunc(tmp->window, x, _dw_get_height(hWnd) - y, keys, tmp->data);
                   tmp = NULL;
                }
             }
@@ -3061,7 +3061,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
             {
                 int (API_FUNC keypressfunc)(HWND, char, int, int, void *, char *) = (int (API_FUNC)(HWND, char, int, int, void *, char *))tmp->signalfunction;
 
-                if((hWnd == tmp->window || _toplevel_window(hWnd) == tmp->window) && !(SHORT1FROMMP(mp1) & KC_KEYUP))
+                if((hWnd == tmp->window || _dw_toplevel_window(hWnd) == tmp->window) && !(SHORT1FROMMP(mp1) & KC_KEYUP))
                 {
                   int vk;
                   char ch[2] = {0};
@@ -3071,7 +3071,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
                   VDKEY vdk;
                   BYTE bscan;
                   UniTranslateKey(Keyboard, SHORT1FROMMP(mp1) & KC_SHIFT  ? 1 : 0, CHAR4FROMMP(mp1), uc, &vdk, &bscan);
-                  utf8 = _WideToUTF8(uc);
+                  utf8 = _dw_WideToUTF8(uc);
 #endif
 
                   if(SHORT1FROMMP(mp1) & KC_CHAR)
@@ -3121,7 +3121,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
                if(hWnd == tmp->window)
                {
-                  int height = _get_height(hWnd);
+                  int height = _dw_get_height(hWnd);
 
                   hps = WinBeginPaint(hWnd, 0L, &rc);
                   exp.x = rc.xLeft;
@@ -3140,7 +3140,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
                if(tmp->id && command == tmp->id)
                {
-                  HWND menuowner = _menu_owner(tmp->window);
+                  HWND menuowner = _dw_menu_owner(tmp->window);
 
                   if(menuowner == hWnd || menuowner == NULLHANDLE)
                   {
@@ -3231,11 +3231,11 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
                            {
                               NOTIFYRECORDEMPHASIS pre;
 
-                              dw_tree_item_select(tmp->window, (HTREEITEM)mp2);
+                              dw_tree_dw_item_select(tmp->window, (HTREEITEM)mp2);
                               pre.pRecord = mp2;
                               pre.fEmphasisMask = CRA_CURSORED;
                               pre.hwndCnr = tmp->window;
-                              _run_event(hWnd, WM_CONTROL, MPFROM2SHORT(0, CN_EMPHASIS), (MPARAM)&pre);
+                              _dw_run_event(hWnd, WM_CONTROL, MPFROM2SHORT(0, CN_EMPHASIS), (MPARAM)&pre);
                               pre.pRecord->flRecordAttr |= CRA_CURSORED;
                               user = pci->user;
                            }
@@ -3244,7 +3244,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
                               PRECORDCORE rc = (PRECORDCORE)mp2;
 
                               if(pCoreEmph)
-                                 _clear_emphasis();
+                                 _dw_clear_emphasis();
                               hwndEmph = tmp->window;
                               pCoreEmph = mp2;
                               WinSendMsg(tmp->window, CM_SETRECORDEMPHASIS, mp2, MPFROM2SHORT(TRUE, CRA_SOURCE));
@@ -3408,7 +3408,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
                         /* Handle scrollbar control */
                         if(tmp->window > 65535 && tmp->window == notifyhwnd)
                         {
-                           int pos = _HandleScroller(tmp->window, (int)SHORT1FROMMP(mp2), (int)SHORT2FROMMP(mp2));;
+                           int pos = _dw_handle_scroller(tmp->window, (int)SHORT1FROMMP(mp2), (int)SHORT2FROMMP(mp2));;
 
                            if(pos > -1)
                            {
@@ -3484,28 +3484,28 @@ void _dw_color_spin_set(HWND window, unsigned long value)
 /* Sets the color selection control to be a DW_RGB value */
 void _dw_col_set(HWND col, unsigned long value)
 {
-   WinSendMsg(col, 0x0602, MPFROMLONG(_os2_color(value)), 0);
+   WinSendMsg(col, 0x0602, MPFROMLONG(_dw_os2_color(value)), 0);
    if(!IS_WARP4())
-      WinSendMsg(col, 0x1384, MPFROMLONG(_os2_color(value)), 0);
+      WinSendMsg(col, 0x1384, MPFROMLONG(_dw_os2_color(value)), 0);
 }
 
 /* Handles control messages sent to the box (owner). */
-MRESULT EXPENTRY _controlproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
+MRESULT EXPENTRY _dw_controlproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
    Box *blah = WinQueryWindowPtr(hWnd, QWP_USER);
 
    switch(msg)
    {
    case WM_MOUSEMOVE:
-      if(_wndproc(hWnd, msg, mp1, mp2))
+      if(_dw_wndproc(hWnd, msg, mp1, mp2))
          return MPFROMSHORT(FALSE);
       break;
    case WM_VSCROLL:
    case WM_HSCROLL:
-      if(_run_event(hWnd, msg, mp1, mp2))
+      if(_dw_run_event(hWnd, msg, mp1, mp2))
       {
          HWND window = WinWindowFromID(hWnd, (ULONG)mp1);
-         _HandleScroller(window, (int)SHORT1FROMMP(mp2), (int)SHORT2FROMMP(mp2));
+         _dw_handle_scroller(window, (int)SHORT1FROMMP(mp2), (int)SHORT2FROMMP(mp2));
       }
       break;
       /* Handles Color Selection control messages */
@@ -3520,7 +3520,7 @@ MRESULT EXPENTRY _controlproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
       }
       break;
    case WM_USER:
-       _run_event(hWnd, WM_CONTROL, mp1, mp2);
+       _dw_run_event(hWnd, WM_CONTROL, mp1, mp2);
        break;
    case WM_CONTROL:
        {
@@ -3546,7 +3546,7 @@ MRESULT EXPENTRY _controlproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
                    WinPostMsg(hWnd, WM_USER, mp1, mp2);
            }
            else
-               _run_event(hWnd, msg, mp1, mp2);
+               _dw_run_event(hWnd, msg, mp1, mp2);
       }
       break;
    }
@@ -3558,7 +3558,7 @@ MRESULT EXPENTRY _controlproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 }
 
 /* The main window procedure for Dynamic Windows, all the resizing code is done here. */
-MRESULT EXPENTRY _wndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
+MRESULT EXPENTRY _dw_wndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
    int result = -1;
    static int command_active = 0;
@@ -3570,9 +3570,9 @@ MRESULT EXPENTRY _wndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
       command_active = 1;
 
       if(msg == WM_ACTIVATE)
-          result = (int)_run_event((HWND)mp2, WM_SETFOCUS, 0, mp1);
+          result = (int)_dw_run_event((HWND)mp2, WM_SETFOCUS, 0, mp1);
       else
-          result = (int)_run_event(hWnd, msg, mp1, mp2);
+          result = (int)_dw_run_event(hWnd, msg, mp1, mp2);
 
       command_active = 0;
    }
@@ -3610,7 +3610,7 @@ MRESULT EXPENTRY _wndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
             if(mybox->items)
                 WinSetWindowPos(mybox->items[0].hwnd, HWND_TOP, 0, 0, SHORT1FROMMP(mp2), SHORT2FROMMP(mp2), SWP_MOVE | SWP_SIZE);
 
-            _do_resize(mybox, SHORT1FROMMP(mp2), SHORT2FROMMP(mp2));
+            _dw_do_resize(mybox, SHORT1FROMMP(mp2), SHORT2FROMMP(mp2));
 
             WinShowWindow(hWnd, TRUE);
          }
@@ -3648,14 +3648,14 @@ MRESULT EXPENTRY _wndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
              */
             WinShowWindow(hWnd, FALSE);
 
-            _do_resize(mybox, swp->cx, swp->cy);
+            _dw_do_resize(mybox, swp->cx, swp->cy);
 
             if(mybox->count == 1 && mybox->items[0].type == TYPEBOX)
             {
                mybox = (Box *)WinQueryWindowPtr(mybox->items[0].hwnd, QWP_USER);
 
                for(z=0;z<mybox->count;z++)
-                  _check_resize_notebook(mybox->items[z].hwnd);
+                  _dw_check_resize_notebook(mybox->items[z].hwnd);
 
             }
 
@@ -3686,7 +3686,7 @@ MRESULT EXPENTRY _wndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
                WinSendMsg(psn->hwndBook, BKM_CALCPAGERECT, (MPARAM)&rc, (MPARAM)TRUE);
 
-               _do_resize(pagebox, rc.xRight - rc.xLeft, rc.yTop - rc.yBottom);
+               _dw_do_resize(pagebox, rc.xRight - rc.xLeft, rc.yTop - rc.yBottom);
             }
          }
          break;
@@ -3704,7 +3704,7 @@ MRESULT EXPENTRY _wndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
          HPOINTER pointer;
 
          if((pointer = (HPOINTER)dw_window_get_data(hWnd, "_dw_pointer")) ||
-            (pointer = (HPOINTER)dw_window_get_data(_toplevel_window(hWnd), "_dw_pointer")))
+            (pointer = (HPOINTER)dw_window_get_data(_dw_toplevel_window(hWnd), "_dw_pointer")))
          {
             WinSetPointer(HWND_DESKTOP, pointer);
             return MRFROMSHORT(TRUE);
@@ -3721,9 +3721,9 @@ MRESULT EXPENTRY _wndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
       if(SHORT1FROMMP(mp2) == '\t')
       {
          if(CHARMSG(&msg)->fs & KC_SHIFT)
-            _shift_focus(hWnd, _DW_DIRECTION_BACKWARD);
+            _dw_shift_focus(hWnd, _DW_DIRECTION_BACKWARD);
          else
-            _shift_focus(hWnd, _DW_DIRECTION_FORWARD);
+            _dw_shift_focus(hWnd, _DW_DIRECTION_FORWARD);
          return FALSE;
       }
       break;
@@ -3733,9 +3733,9 @@ MRESULT EXPENTRY _wndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
          /* Free memory before destroying */
          if(parent && WinWindowFromID(parent, FID_CLIENT) == hWnd)
-            _free_window_memory(parent);
+            _dw_free_window_memory(parent);
          else
-            _free_window_memory(hWnd);
+            _dw_free_window_memory(hWnd);
       }
       break;
    case WM_MENUEND:
@@ -3755,12 +3755,12 @@ MRESULT EXPENTRY _wndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
    case WM_BUTTON2UP | 0x2000:
    case WM_BUTTON3UP | 0x2000:
        if(hwndTaskBar)
-           result = (int)_run_event(hwndTaskBar, msg & ~0x2000, mp1, mp2);
+           result = (int)_dw_run_event(hwndTaskBar, msg & ~0x2000, mp1, mp2);
        break;
    case WM_USER+2:
-      _clear_emphasis();
+      _dw_clear_emphasis();
       if(dw_window_get_data((HWND)mp2, "_dw_popup"))
-         _free_menu_data((HWND)mp2);
+         _dw_free_menu_data((HWND)mp2);
       break;
    }
 
@@ -3770,7 +3770,7 @@ MRESULT EXPENTRY _wndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
       return WinDefWindowProc(hWnd, msg, mp1, mp2);
 }
 
-void _changebox(Box *thisbox, int percent, int type)
+void _dw_change_box(Box *thisbox, int percent, int type)
 {
    int z;
 
@@ -3779,7 +3779,7 @@ void _changebox(Box *thisbox, int percent, int type)
       if(thisbox->items[z].type == TYPEBOX)
       {
          Box *tmp = WinQueryWindowPtr(thisbox->items[z].hwnd, QWP_USER);
-         _changebox(tmp, percent, type);
+         _dw_change_box(tmp, percent, type);
       }
       else
       {
@@ -3797,7 +3797,7 @@ void _changebox(Box *thisbox, int percent, int type)
    }
 }
 
-void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y)
+void _dw_handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y)
 {
    float ratio = (float)percent/(float)100.0;
    HWND handle1 = (HWND)dw_window_get_data(hwnd, "_dw_topleft");
@@ -3812,7 +3812,7 @@ void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y)
       int newx = (int)((float)x * ratio) - (SPLITBAR_WIDTH/2);
 
       WinSetWindowPos(handle1, NULLHANDLE, 0, 0, newx, y, SWP_MOVE | SWP_SIZE);
-      _do_resize(tmp, newx - 1, y - 1);
+      _dw_do_resize(tmp, newx - 1, y - 1);
 
       dw_window_set_data(hwnd, "_dw_start", (void *)newx);
 
@@ -3821,21 +3821,21 @@ void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y)
       newx = x - newx - SPLITBAR_WIDTH;
 
       WinSetWindowPos(handle2, NULLHANDLE, x - newx, 0, newx, y, SWP_MOVE | SWP_SIZE);
-      _do_resize(tmp, newx - 1, y - 1);
+      _dw_do_resize(tmp, newx - 1, y - 1);
    }
    else
    {
       int newy = (int)((float)y * ratio) - (SPLITBAR_WIDTH/2);
 
       WinSetWindowPos(handle1, NULLHANDLE, 0, y - newy, x, newy, SWP_MOVE | SWP_SIZE);
-      _do_resize(tmp, x - 1, newy - 1);
+      _dw_do_resize(tmp, x - 1, newy - 1);
 
       tmp = WinQueryWindowPtr(handle2, QWP_USER);
 
       newy = y - newy - SPLITBAR_WIDTH;
 
       WinSetWindowPos(handle2, NULLHANDLE, 0, 0, x, newy, SWP_MOVE | SWP_SIZE);
-      _do_resize(tmp, x - 1, newy - 1);
+      _dw_do_resize(tmp, x - 1, newy - 1);
 
       dw_window_set_data(hwnd, "_dw_start", (void *)newy);
    }
@@ -3846,7 +3846,7 @@ void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y)
 
 
 /* This handles any activity on the splitbars (sizers) */
-MRESULT EXPENTRY _splitwndproc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
+MRESULT EXPENTRY _dw_splitwndproc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
    switch (msg)
    {
@@ -3934,7 +3934,7 @@ MRESULT EXPENTRY _splitwndproc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
          if(percent)
          {
-            rc = _TrackRectangle(hwnd, &rclFrame, &rclBounds);
+            rc = _dw_track_rectangle(hwnd, &rclFrame, &rclBounds);
 
             if(rc == TRUE)
             {
@@ -3953,8 +3953,8 @@ MRESULT EXPENTRY _splitwndproc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
                   if(height - SPLITBAR_WIDTH > 1 && start < height - SPLITBAR_WIDTH)
                      *percent = 100.0 - (((float)start / (float)(height - SPLITBAR_WIDTH)) * 100.0);
                }
-               _handle_splitbar_resize(hwnd, *percent, type, width, height);
-               _handle_splitbar_resize(hwnd, *percent, type, width, height);
+               _dw_handle_splitbar_resize(hwnd, *percent, type, width, height);
+               _dw_handle_splitbar_resize(hwnd, *percent, type, width, height);
             }
          }
       }
@@ -3963,7 +3963,7 @@ MRESULT EXPENTRY _splitwndproc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
    return WinDefWindowProc(hwnd, msg, mp1, mp2);
 }
 
-MRESULT EXPENTRY _button_draw(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2, PFNWP oldproc, int indent)
+MRESULT EXPENTRY _dw_button_draw(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2, PFNWP oldproc, int indent)
 {
    HPIXMAP pixmap = (HPIXMAP)dw_window_get_data(hwnd, "_dw_hpixmap");
    HPIXMAP disable = (HPIXMAP)dw_window_get_data(hwnd, "_dw_hpixmap_disabled");
@@ -4068,7 +4068,7 @@ MRESULT EXPENTRY _button_draw(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2, PFNW
  * Abstract: Subclass procedure for buttons
  */
 
-MRESULT EXPENTRY _BtProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
+MRESULT EXPENTRY _dw_buttonproc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
    WindowData *blah = WinQueryWindowPtr(hwnd, QWL_USER);
    PFNWP oldproc;
@@ -4080,21 +4080,21 @@ MRESULT EXPENTRY _BtProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
    oldproc = blah->oldproc;
 
    if(blah->bubbletext[0])
-       _TooltipProc(hwnd, msg, mp1, mp2, blah);
+       _dw_tooltipproc(hwnd, msg, mp1, mp2, blah);
 
    switch(msg)
    {
    case WM_MOUSEMOVE:
-      if(_wndproc(hwnd, msg, mp1, mp2))
+      if(_dw_wndproc(hwnd, msg, mp1, mp2))
          return MPFROMSHORT(FALSE);
       break;
    case WM_PAINT:
-      return _button_draw(hwnd, msg, mp1, mp2, oldproc, 0);
+      return _dw_button_draw(hwnd, msg, mp1, mp2, oldproc, 0);
    case BM_SETHILITE:
-      return _button_draw(hwnd, msg, mp1, mp2, oldproc, (int)mp1);
+      return _dw_button_draw(hwnd, msg, mp1, mp2, oldproc, (int)mp1);
    case WM_SETFOCUS:
       if(mp2)
-         _run_event(hwnd, msg, mp1, mp2);
+         _dw_run_event(hwnd, msg, mp1, mp2);
       else
           WinSendMsg(hwnd, BM_SETDEFAULT, 0, 0);
       /*  FIX: Borderless buttons not displaying properly after gaining focus */
@@ -4188,20 +4188,20 @@ MRESULT EXPENTRY _BtProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
          if(SHORT1FROMMP(mp2) == '\t')
          {
             if(CHARMSG(&msg)->fs & KC_SHIFT)
-               _shift_focus(hwnd, _DW_DIRECTION_BACKWARD);
+               _dw_shift_focus(hwnd, _DW_DIRECTION_BACKWARD);
             else
-               _shift_focus(hwnd, _DW_DIRECTION_FORWARD);
+               _dw_shift_focus(hwnd, _DW_DIRECTION_FORWARD);
             WinSendMsg(hwnd, BM_SETDEFAULT, 0, 0);
             return FALSE;
          }
          else if(!(CHARMSG(&msg)->fs & KC_KEYUP) && (CHARMSG(&msg)->vkey == VK_LEFT || CHARMSG(&msg)->vkey == VK_UP))
          {
-            _shift_focus(hwnd, _DW_DIRECTION_BACKWARD);
+            _dw_shift_focus(hwnd, _DW_DIRECTION_BACKWARD);
             return FALSE;
          }
          else if(!(CHARMSG(&msg)->fs & KC_KEYUP) && (CHARMSG(&msg)->vkey == VK_RIGHT || CHARMSG(&msg)->vkey == VK_DOWN))
          {
-            _shift_focus(hwnd, _DW_DIRECTION_FORWARD);
+            _dw_shift_focus(hwnd, _DW_DIRECTION_FORWARD);
             return FALSE;
          }
       }
@@ -4219,15 +4219,15 @@ MRESULT EXPENTRY _BtProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 MRESULT EXPENTRY _RendProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
    WindowData *blah = (WindowData *)WinQueryWindowPtr(hwnd, QWP_USER);
-   int res = (int)_run_event(hwnd, msg, mp1, mp2);
+   int res = (int)_dw_run_event(hwnd, msg, mp1, mp2);
 
    if(blah && blah->bubbletext[0])
-       _TooltipProc(hwnd, msg, mp1, mp2, blah);
+       _dw_tooltipproc(hwnd, msg, mp1, mp2, blah);
 
    switch(msg)
    {
    case WM_MOUSEMOVE:
-      if(_wndproc(hwnd, msg, mp1, mp2))
+      if(_dw_wndproc(hwnd, msg, mp1, mp2))
          return MPFROMSHORT(FALSE);
       break;
    case WM_BUTTON1DOWN:
@@ -4241,7 +4241,7 @@ MRESULT EXPENTRY _RendProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
    return WinDefWindowProc(hwnd, msg, mp1, mp2);
 }
 
-MRESULT EXPENTRY _TreeProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
+MRESULT EXPENTRY _dw_treeproc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
    WindowData *blah = (WindowData *)WinQueryWindowPtr(hwnd, QWP_USER);
    PFNWP oldproc = 0;
@@ -4250,12 +4250,12 @@ MRESULT EXPENTRY _TreeProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
       oldproc = blah->oldproc;
 
    if(blah && blah->bubbletext[0])
-       _TooltipProc(hwnd, msg, mp1, mp2, blah);
+       _dw_tooltipproc(hwnd, msg, mp1, mp2, blah);
 
    switch(msg)
    {
    case WM_MOUSEMOVE:
-      if(_wndproc(hwnd, msg, mp1, mp2))
+      if(_dw_wndproc(hwnd, msg, mp1, mp2))
          return MPFROMSHORT(FALSE);
       break;
    case WM_PAINT:
@@ -4281,21 +4281,21 @@ MRESULT EXPENTRY _TreeProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
       }
       return MRFROMSHORT(FALSE);
    case WM_SETFOCUS:
-      _run_event(hwnd, msg, mp1, mp2);
+      _dw_run_event(hwnd, msg, mp1, mp2);
       break;
    case WM_CHAR:
       if(SHORT1FROMMP(mp2) == '\t')
       {
          if(CHARMSG(&msg)->fs & KC_SHIFT)
-            _shift_focus(hwnd, _DW_DIRECTION_BACKWARD);
+            _dw_shift_focus(hwnd, _DW_DIRECTION_BACKWARD);
          else
-            _shift_focus(hwnd, _DW_DIRECTION_FORWARD);
+            _dw_shift_focus(hwnd, _DW_DIRECTION_FORWARD);
          return FALSE;
       }
       break;
    }
 
-   _run_event(hwnd, msg, mp1, mp2);
+   _dw_run_event(hwnd, msg, mp1, mp2);
 
    if(oldproc)
       return oldproc(hwnd, msg, mp1, mp2);
@@ -4303,7 +4303,7 @@ MRESULT EXPENTRY _TreeProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
    return WinDefWindowProc(hwnd, msg, mp1, mp2);
 }
 
-MRESULT EXPENTRY _NotebookProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
+MRESULT EXPENTRY _dw_notebookproc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
    WindowData *blah = (WindowData *)WinQueryWindowPtr(hwnd, QWP_USER);
    PFNWP oldproc = 0;
@@ -4328,9 +4328,9 @@ MRESULT EXPENTRY _NotebookProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
       if(SHORT1FROMMP(mp2) == '\t')
       {
          if(CHARMSG(&msg)->fs & KC_SHIFT)
-            _shift_focus(hwnd, _DW_DIRECTION_BACKWARD);
+            _dw_shift_focus(hwnd, _DW_DIRECTION_BACKWARD);
          else
-            _shift_focus(hwnd, _DW_DIRECTION_FORWARD);
+            _dw_shift_focus(hwnd, _DW_DIRECTION_FORWARD);
          return FALSE;
       }
       break;
@@ -4344,7 +4344,7 @@ MRESULT EXPENTRY _NotebookProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
 #ifdef UNICODE
 /* Internal function to detect the active keyboard layout */
-UniChar *_detect_keyb(void)
+UniChar *_dw_detect_keyb(void)
 {
     HFILE handle;
     struct
@@ -4370,7 +4370,7 @@ UniChar *_detect_keyb(void)
         {
 
             /* Convert to Unicode */
-            buf = _UTF8toWide(kd.strings);
+            buf = _dw_UTF8toWide(kd.strings);
         }
         DosClose (handle);
     }
@@ -4423,7 +4423,7 @@ int API dw_init(int newthread, int argc, char *argv[])
       /* Create the Unicode atom for copy and paste */
       Unicode = WinAddAtom(WinQuerySystemAtomTable(), (PSZ)"text/unicode");
       /* Figure out how to determine the correct keyboard here */
-      kbd = _detect_keyb();
+      kbd = _dw_detect_keyb();
       /* Default to US if could not detect */
       UniCreateKeyboard(&Keyboard, (UniChar *)kbd ? kbd : L"us", 0);
       /* Free temporary memory */
@@ -4434,10 +4434,10 @@ int API dw_init(int newthread, int argc, char *argv[])
 #endif
    }
 
-   rc = WinRegisterClass(dwhab, (PSZ)ClassName, _wndproc, CS_SIZEREDRAW | CS_CLIPCHILDREN, 32);
-   rc = WinRegisterClass(dwhab, (PSZ)SplitbarClassName, _splitwndproc, 0L, 32);
-   rc = WinRegisterClass(dwhab, (PSZ)ScrollClassName, _scrollwndproc, 0L, 32);
-   rc = WinRegisterClass(dwhab, (PSZ)CalendarClassName, _calendarproc, 0L, 32);
+   rc = WinRegisterClass(dwhab, (PSZ)ClassName, _dw_wndproc, CS_SIZEREDRAW | CS_CLIPCHILDREN, 32);
+   rc = WinRegisterClass(dwhab, (PSZ)SplitbarClassName, _dw_splitwndproc, 0L, 32);
+   rc = WinRegisterClass(dwhab, (PSZ)ScrollClassName, _dw_scrollwndproc, 0L, 32);
+   rc = WinRegisterClass(dwhab, (PSZ)CalendarClassName, _dw_calendarproc, 0L, 32);
 
    /* Fill in the the calendar fields */
    for(x=0;x<7;x++)
@@ -4517,7 +4517,7 @@ void API dw_main(void)
    while(_dw_main_running && WinGetMsg(dwhab, &qmsg, 0, 0, 0))
    {
       if(qmsg.msg == WM_TIMER && qmsg.hwnd == NULLHANDLE)
-         _run_event(qmsg.hwnd, qmsg.msg, qmsg.mp1, qmsg.mp2);
+         _dw_run_event(qmsg.hwnd, qmsg.msg, qmsg.mp1, qmsg.mp2);
       WinDispatchMsg(dwhab, &qmsg);
    }
 }
@@ -4550,7 +4550,7 @@ void API dw_main_sleep(int milliseconds)
       {
          WinGetMsg(dwhab, &qmsg, 0, 0, 0);
          if(qmsg.msg == WM_TIMER && qmsg.hwnd == NULLHANDLE)
-            _run_event(qmsg.hwnd, qmsg.msg, qmsg.mp1, qmsg.mp2);
+            _dw_run_event(qmsg.hwnd, qmsg.msg, qmsg.mp1, qmsg.mp2);
          WinDispatchMsg(dwhab, &qmsg);
       }
       else
@@ -4566,7 +4566,7 @@ void API dw_main_sleep(int milliseconds)
       {
          WinGetMsg(dwhab, &qmsg, 0, 0, 0);
          if(qmsg.msg == WM_TIMER && qmsg.hwnd == NULLHANDLE)
-            _run_event(qmsg.hwnd, qmsg.msg, qmsg.mp1, qmsg.mp2);
+            _dw_run_event(qmsg.hwnd, qmsg.msg, qmsg.mp1, qmsg.mp2);
          WinDispatchMsg(dwhab, &qmsg);
       }
       else
@@ -4587,7 +4587,7 @@ void API dw_main_iteration(void)
    if(WinGetMsg(dwhab, &qmsg, 0, 0, 0))
    {
       if(qmsg.msg == WM_TIMER && qmsg.hwnd == NULLHANDLE)
-         _run_event(qmsg.hwnd, qmsg.msg, qmsg.mp1, qmsg.mp2);
+         _dw_run_event(qmsg.hwnd, qmsg.msg, qmsg.mp1, qmsg.mp2);
       WinDispatchMsg(dwhab, &qmsg);
    }
 }
@@ -4653,7 +4653,7 @@ void * API dw_dialog_wait(DWDialog *dialog)
    while (WinGetMsg(dwhab, &qmsg, 0, 0, 0))
    {
       if(qmsg.msg == WM_TIMER && qmsg.hwnd == NULLHANDLE)
-         _run_event(qmsg.hwnd, qmsg.msg, qmsg.mp1, qmsg.mp2);
+         _dw_run_event(qmsg.hwnd, qmsg.msg, qmsg.mp1, qmsg.mp2);
       WinDispatchMsg(dwhab, &qmsg);
       if(dialog->done)
          break;
@@ -4761,9 +4761,9 @@ int API dw_window_show(HWND handle)
    HSWITCH hswitch;
    SWCNTRL swcntrl;
 
-   _fix_button_owner(_toplevel_window(handle), 0);
+   _dw_fix_button_owner(_dw_toplevel_window(handle), 0);
    WinSetFocus(HWND_DESKTOP, handle);
-   _initial_focus(handle);
+   _dw_initial_focus(handle);
 
    /* If this window has a  switch list entry make sure it is visible */
    hswitch = WinQuerySwitchHandle(handle, 0);
@@ -4935,13 +4935,13 @@ int API dw_window_destroy(HWND handle)
    frame = (HWND)dw_window_get_data(handle, "_dw_combo_box");
 
    if((menu = WinWindowFromID(handle, FID_MENU)) != NULLHANDLE)
-      _free_menu_data(menu);
+      _dw_free_menu_data(menu);
 
    /* If it is a desktop window let WM_DESTROY handle it */
    if(parent != desktop)
    {
       dw_box_unpack(handle);
-      _free_window_memory(frame ? frame : handle);
+      _dw_free_window_memory(frame ? frame : handle);
    }
    return WinDestroyWindow(frame ? frame : handle);
 }
@@ -4956,7 +4956,7 @@ void API dw_window_redraw(HWND handle)
    HWND window = client ? client : handle;
    Box *mybox = (Box *)WinQueryWindowPtr(window, QWP_USER);
 
-   _fix_button_owner(_toplevel_window(handle), 0);
+   _dw_fix_button_owner(_dw_toplevel_window(handle), 0);
    if(window && mybox)
    {
       unsigned long width, height;
@@ -4967,7 +4967,7 @@ void API dw_window_redraw(HWND handle)
           WinSetWindowPos(mybox->items[0].hwnd, HWND_TOP, 0, 0, width, height, SWP_MOVE | SWP_SIZE);
 
       WinShowWindow(client && mybox->items ? mybox->items[0].hwnd : handle, FALSE);
-      _do_resize(mybox, width, height);
+      _dw_do_resize(mybox, width, height);
       WinShowWindow(client && mybox->items ? mybox->items[0].hwnd : handle, TRUE);
    }
 }
@@ -5072,7 +5072,7 @@ void API dw_font_set_default(const char *fontname)
 /* Internal function to return a pointer to an item struct
  * with information about the packing information regarding object.
  */
-Item *_box_item(HWND handle)
+Item *_dw_box_item(HWND handle)
 {
    HWND parent = WinQueryWindow(handle, QW_PARENT);
    Box *thisbox = (Box *)WinQueryWindowPtr(parent, QWP_USER);
@@ -5106,7 +5106,7 @@ Item *_box_item(HWND handle)
  * Ranged: 100x14 or 14x100 for vertical.
  * Buttons/Bitmaps: Size of text or image and border.
  */
-void _control_size(HWND handle, int *width, int *height)
+void _dw_control_size(HWND handle, int *width, int *height)
 {
    int thiswidth = 1, thisheight = 1, extrawidth = 0, extraheight = 0;
    char tmpbuf[100] = {0}, *buf = dw_window_get_text(handle);
@@ -5507,14 +5507,14 @@ int API dw_window_set_font(HWND handle, const char *fontname)
    if((!font && WinRemovePresParam(group ? group : handle, PP_FONTNAMESIZE)) ||
       (font && WinSetPresParam(group ? group : handle, PP_FONTNAMESIZE, strlen(font)+1, (void *)font)))
    {
-      Item *item = _box_item(handle);
+      Item *item = _dw_box_item(handle);
 
       /* Check to see if any of the sizes need to be recalculated */
       if(item && (item->origwidth == -1 || item->origheight == -1))
       {
-         _control_size(handle, item->origwidth == -1 ? &item->width : NULL, item->origheight == -1 ? &item->height : NULL);
+         _dw_control_size(handle, item->origwidth == -1 ? &item->width : NULL, item->origheight == -1 ? &item->height : NULL);
           /* Queue a redraw on the top-level window */
-         _dw_redraw(_toplevel_window(handle), TRUE);
+         _dw_redraw(_dw_toplevel_window(handle), TRUE);
       }
       return DW_ERROR_NONE;
    }
@@ -5537,7 +5537,7 @@ char * API dw_window_get_font(HWND handle)
 }
 
 /* Internal function to handle transparent children */
-void _handle_transparent(HWND handle)
+void _dw_handle_transparent(HWND handle)
 {
     ULONG pcolor, which = PP_BACKGROUNDCOLOR;;
 
@@ -5580,7 +5580,7 @@ int _dw_window_set_color(HWND handle, ULONG fore, ULONG back)
    }
    else if(fore != DW_CLR_DEFAULT)
    {
-      fore = _internal_color(fore);
+      fore = _dw_internal_color(fore);
 
       WinSetPresParam(handle, PP_FOREGROUNDCOLORINDEX, sizeof(ULONG), &fore);
    }
@@ -5619,7 +5619,7 @@ int _dw_window_set_color(HWND handle, ULONG fore, ULONG back)
    }
    else if(back != DW_CLR_DEFAULT)
    {
-      back = _internal_color(back);
+      back = _dw_internal_color(back);
 
       WinSetPresParam(handle, PP_BACKGROUNDCOLORINDEX, sizeof(ULONG), &back);
       dw_window_set_data(handle, "_dw_transparent", NULL);
@@ -5630,7 +5630,7 @@ int _dw_window_set_color(HWND handle, ULONG fore, ULONG back)
       WinRemovePresParam(handle, PP_BACKGROUNDCOLORINDEX);
    }
    /* If this is a box... check if any of the children are transparent */
-   _handle_transparent(handle);
+   _dw_handle_transparent(handle);
    return DW_ERROR_NONE;
 }
 /*
@@ -5754,7 +5754,7 @@ HWND API dw_window_new(HWND hwndOwner, const char *title, ULONG flStyle)
    newbox->hwndtitle = WinWindowFromID(hwndframe, FID_TITLEBAR);
    if(!newbox->titlebar && newbox->hwndtitle)
       WinSetParent(newbox->hwndtitle, HWND_OBJECT, FALSE);
-   blah->oldproc = WinSubclassWindow(hwndframe, _sizeproc);
+   blah->oldproc = WinSubclassWindow(hwndframe, _dw_sizeproc);
    WinSetWindowPtr(hwndframe, QWP_USER, blah);
    WinSetWindowPtr(newbox->hwnd, QWP_USER, newbox);
    return hwndframe;
@@ -5787,7 +5787,7 @@ HWND API dw_box_new(int type, int pad)
                            NULL,
                            NULL);
 
-   newbox->oldproc = WinSubclassWindow(newbox->hwnd, _controlproc);
+   newbox->oldproc = WinSubclassWindow(newbox->hwnd, _dw_controlproc);
    WinSetWindowPtr(newbox->hwnd, QWP_USER, newbox);
    dw_window_set_color(newbox->hwnd, DW_CLR_PALEGRAY, DW_CLR_PALEGRAY);
    return newbox->hwnd;
@@ -5954,7 +5954,7 @@ HWND API dw_bitmap_new(ULONG id)
                               id,
                               NULL,
                               NULL);
-   blah->oldproc = WinSubclassWindow(tmp, _BitmapProc);
+   blah->oldproc = WinSubclassWindow(tmp, _dw_bitmapproc);
    WinSetWindowPtr(tmp, QWP_USER, blah);
    return tmp;
 }
@@ -5998,7 +5998,7 @@ HWND API dw_notebook_new(ULONG id, int top)
       WinSendMsg(tmp, BKM_SETDIMENSIONS,MPFROM2SHORT(102, 28), MPFROMSHORT( BKA_MAJORTAB));
    }
 
-   blah->oldproc = WinSubclassWindow(tmp, _NotebookProc);
+   blah->oldproc = WinSubclassWindow(tmp, _dw_notebookproc);
    WinSetWindowPtr(tmp, QWP_USER, blah);
    dw_window_set_font(tmp, DefaultFont);
    return tmp;
@@ -6062,7 +6062,7 @@ void API dw_menu_destroy(HMENUI *menu)
 }
 
 /* Internal function to make sure menu ID isn't in use */
-int _menuid_allocated(int id)
+int _dw_menuid_allocated(int id)
 {
    SignalHandler *tmp = Root;
 
@@ -6142,7 +6142,7 @@ HWND API dw_menu_append_item(HMENUI menux, const char *title, ULONG id, ULONG fl
             if(menuid > 60000)
                menuid = 30000;
          }
-         while(_menuid_allocated(menuid));
+         while(_dw_menuid_allocated(menuid));
          id = menuid;
       }
       miSubMenu.afStyle = MIS_TEXT;
@@ -6348,10 +6348,10 @@ HWND API dw_container_new(ULONG id, int multi)
                         0,0,0,0,
                         NULLHANDLE,
                         HWND_TOP,
-                        id ? id : _GlobalID(),
+                        id ? id : _dw_global_id(),
                         NULL,
                         NULL);
-   blah->oldproc = WinSubclassWindow(tmp, _TreeProc);
+   blah->oldproc = WinSubclassWindow(tmp, _dw_treeproc);
    WinSetWindowPtr(tmp, QWP_USER, blah);
    dw_window_set_font(tmp, DefaultFont);
    dw_window_set_data(tmp, "_dw_container", (void *)1);
@@ -6376,7 +6376,7 @@ HWND API dw_tree_new(ULONG id)
                         0,0,2000,1000,
                         NULLHANDLE,
                         HWND_TOP,
-                        id ? id : _GlobalID(),
+                        id ? id : _dw_global_id(),
                         NULL,
                         NULL);
 
@@ -6389,7 +6389,7 @@ HWND API dw_tree_new(ULONG id)
 
    WinSendMsg(tmp, CM_SETCNRINFO, &cnrinfo, MPFROMLONG(CMA_FLWINDOWATTR | CMA_SLBITMAPORICON |
                                           CMA_LINESPACING | CMA_CXTREEINDENT | CMA_CXTREELINE));
-   blah->oldproc = WinSubclassWindow(tmp, _TreeProc);
+   blah->oldproc = WinSubclassWindow(tmp, _dw_treeproc);
    WinSetWindowPtr(tmp, QWP_USER, blah);
    dw_window_set_font(tmp, DefaultFont);
    return tmp;
@@ -6414,7 +6414,7 @@ HWND API dw_text_new(const char *text, ULONG id)
                         id,
                         NULL,
                         NULL);
-   blah->oldproc = WinSubclassWindow(tmp, _textproc);
+   blah->oldproc = WinSubclassWindow(tmp, _dw_textproc);
    WinSetWindowPtr(tmp, QWP_USER, blah);
    dw_window_set_font(tmp, DefaultFont);
    dw_window_set_color(tmp, DW_CLR_BLACK, DW_RGB_TRANSPARENT);
@@ -6440,7 +6440,7 @@ HWND API dw_status_text_new(const char *text, ULONG id)
                         id,
                         NULL,
                         NULL);
-   blah->oldproc = WinSubclassWindow(tmp, _statusproc);
+   blah->oldproc = WinSubclassWindow(tmp, _dw_statusproc);
    WinSetWindowPtr(tmp, QWP_USER, blah);
    dw_window_set_font(tmp, DefaultFont);
    dw_window_set_color(tmp, DW_CLR_BLACK, DW_CLR_PALEGRAY);
@@ -6473,7 +6473,7 @@ HWND API dw_mle_new(ULONG id)
                         NULL,
                         NULL);
    WinSendMsg(tmp, MLM_FORMAT, (MPARAM)MLFIE_NOTRANS, 0);
-   blah->oldproc = WinSubclassWindow(tmp, _mleproc);
+   blah->oldproc = WinSubclassWindow(tmp, _dw_mleproc);
    WinSetWindowPtr(tmp, QWP_USER, blah);
    dw_window_set_font(tmp, DefaultFont);
    return tmp;
@@ -6501,7 +6501,7 @@ HWND API dw_entryfield_new(const char *text, ULONG id)
                         id,
                         (PVOID)&efd,
                         NULL);
-   blah->oldproc = WinSubclassWindow(tmp, _entryproc);
+   blah->oldproc = WinSubclassWindow(tmp, _dw_entryproc);
    WinSetWindowPtr(tmp, QWP_USER, blah);
    dw_window_set_font(tmp, DefaultFont);
    dw_window_set_color(tmp, DW_CLR_BLACK, DW_CLR_WHITE);
@@ -6528,7 +6528,7 @@ HWND API dw_entryfield_password_new(const char *text, ULONG id)
                         id,
                         NULL,
                         NULL);
-   blah->oldproc = WinSubclassWindow(tmp, _entryproc);
+   blah->oldproc = WinSubclassWindow(tmp, _dw_entryproc);
    WinSetWindowPtr(tmp, QWP_USER, blah);
    dw_window_set_font(tmp, DefaultFont);
    dw_window_set_color(tmp, DW_CLR_BLACK, DW_CLR_WHITE);
@@ -6552,7 +6552,7 @@ HWND API dw_combobox_new(const char *text, ULONG id)
                         0,0,2000,1000,
                         NULLHANDLE,
                         HWND_TOP,
-                        id ? id : _GlobalID(),
+                        id ? id : _dw_global_id(),
                         NULL,
                         NULL);
    HENUM henum = WinBeginEnumWindows(tmp);
@@ -6561,13 +6561,13 @@ HWND API dw_combobox_new(const char *text, ULONG id)
    while((child = WinGetNextWindow(henum)) != NULLHANDLE)
    {
       WindowData *moreblah = calloc(1, sizeof(WindowData));
-      moreblah->oldproc = WinSubclassWindow(child, _comboentryproc);
+      moreblah->oldproc = WinSubclassWindow(child, _dw_comboentryproc);
       WinSetWindowPtr(child, QWP_USER, moreblah);
       dw_window_set_color(child, DW_CLR_BLACK, DW_CLR_WHITE);
       last = child;
    }
    WinEndEnumWindows(henum);
-   blah->oldproc = WinSubclassWindow(tmp, _comboproc);
+   blah->oldproc = WinSubclassWindow(tmp, _dw_comboproc);
    WinSetWindowPtr(tmp, QWP_USER, blah);
    dw_window_set_font(tmp, DefaultFont);
    dw_window_set_color(tmp, DW_CLR_BLACK, DW_CLR_WHITE);
@@ -6597,7 +6597,7 @@ HWND API dw_button_new(const char *text, ULONG id)
                         NULL,
                         NULL);
 
-   blah->oldproc = WinSubclassWindow(tmp, _BtProc);
+   blah->oldproc = WinSubclassWindow(tmp, _dw_buttonproc);
 
    WinSetWindowPtr(tmp, QWP_USER, blah);
    dw_window_set_font(tmp, DefaultFont);
@@ -6610,7 +6610,7 @@ HWND API dw_button_new(const char *text, ULONG id)
 **           controls
 */
 
-void _GenResIDStr(CHAR *buff, ULONG ulID)
+void _dw_gen_res_id_str(CHAR *buff, ULONG ulID)
 {
    char *str;
    int  slen = 0;
@@ -6654,7 +6654,7 @@ HWND API dw_bitmapbutton_new(const char *text, ULONG id)
    if(!icon)
    {
       name = idbuf;
-      _GenResIDStr(idbuf, id);
+      _dw_gen_res_id_str(idbuf, id);
    }
 
    tmp = WinCreateWindow(HWND_OBJECT,
@@ -6672,7 +6672,7 @@ HWND API dw_bitmapbutton_new(const char *text, ULONG id)
 
    if(text)
       strncpy(blah->bubbletext, text, BUBBLE_HELP_MAX - 1);
-   blah->oldproc = WinSubclassWindow(tmp, _BtProc);
+   blah->oldproc = WinSubclassWindow(tmp, _dw_buttonproc);
 
    WinSetWindowPtr(tmp, QWP_USER, blah);
 
@@ -6713,7 +6713,7 @@ HWND API dw_bitmapbutton_new(const char *text, ULONG id)
 }
 
 /* Internal function to create a disabled version of a pixmap */
-HPIXMAP _create_disabled(HWND handle, HPIXMAP pixmap)
+HPIXMAP _dw_create_disabled(HWND handle, HPIXMAP pixmap)
 {
     /* Create a disabled style pixmap */
     HPIXMAP disabled = dw_pixmap_new(handle, pixmap->width, pixmap->height, dw_color_depth_get());
@@ -6777,7 +6777,7 @@ HWND API dw_bitmapbutton_new_from_file(const char *text, unsigned long id, const
             if(stricmp(file + len - 4, ".ico") == 0)
                icon = WinLoadFileIcon((PSZ)file, FALSE);
             else
-               _load_bitmap_file(file, tmp, &pixmap->hbm, &pixmap->hdc, &pixmap->hps, &pixmap->width, &pixmap->height, &pixmap->depth, DW_CLR_DEFAULT);
+               _dw_load_bitmap_file(file, tmp, &pixmap->hbm, &pixmap->hdc, &pixmap->hps, &pixmap->width, &pixmap->height, &pixmap->depth, DW_CLR_DEFAULT);
          }
       }
       else
@@ -6793,7 +6793,7 @@ HWND API dw_bitmapbutton_new_from_file(const char *text, unsigned long id, const
                 strcpy(file, filename);
                 strcat(file, image_exts[z]);
                 if(access(file, 04) == 0 &&
-                   _load_bitmap_file(file, tmp, &pixmap->hbm, &pixmap->hdc, &pixmap->hps, &pixmap->width, &pixmap->height, &pixmap->depth, DW_CLR_DEFAULT))
+                   _dw_load_bitmap_file(file, tmp, &pixmap->hbm, &pixmap->hdc, &pixmap->hps, &pixmap->width, &pixmap->height, &pixmap->depth, DW_CLR_DEFAULT))
                     break;
             }
          }
@@ -6806,13 +6806,13 @@ HWND API dw_bitmapbutton_new_from_file(const char *text, unsigned long id, const
       }
       else
       {
-          disabled = _create_disabled(tmp, pixmap);
+          disabled = _dw_create_disabled(tmp, pixmap);
       }
    }
 
    if(text)
       strncpy(blah->bubbletext, text, BUBBLE_HELP_MAX - 1);
-   blah->oldproc = WinSubclassWindow(tmp, _BtProc);
+   blah->oldproc = WinSubclassWindow(tmp, _dw_buttonproc);
 
    WinSetWindowPtr(tmp, QWP_USER, blah);
 
@@ -6865,7 +6865,7 @@ HWND API dw_bitmapbutton_new_from_data(const char *text, unsigned long id, const
          {
             fwrite( data, 1, len, fp );
             fclose( fp );
-            if(!_load_bitmap_file( file, tmp, &pixmap->hbm, &pixmap->hdc, &pixmap->hps, &pixmap->width, &pixmap->height, &pixmap->depth, DW_CLR_DEFAULT))
+            if(!_dw_load_bitmap_file( file, tmp, &pixmap->hbm, &pixmap->hdc, &pixmap->hps, &pixmap->width, &pixmap->height, &pixmap->depth, DW_CLR_DEFAULT))
             {
                icon = WinLoadFileIcon((PSZ)file, FALSE);
             }
@@ -6885,13 +6885,13 @@ HWND API dw_bitmapbutton_new_from_data(const char *text, unsigned long id, const
       }
       else
       {
-          disabled = _create_disabled(tmp, pixmap);
+          disabled = _dw_create_disabled(tmp, pixmap);
       }
    }
 
    if(text)
       strncpy(blah->bubbletext, text, BUBBLE_HELP_MAX - 1);
-   blah->oldproc = WinSubclassWindow(tmp, _BtProc);
+   blah->oldproc = WinSubclassWindow(tmp, _dw_buttonproc);
 
    WinSetWindowPtr(tmp, QWP_USER, blah);
 
@@ -6925,13 +6925,13 @@ HWND API dw_spinbutton_new(const char *text, ULONG id)
                         id,
                         NULL,
                         NULL);
-   HWND entry = _find_entryfield(tmp);
+   HWND entry = _dw_find_entryfield(tmp);
    WinSendMsg(tmp, SPBM_SETLIMITS, MPFROMLONG(65536), MPFROMLONG(-65536));
    WinSendMsg(tmp, SPBM_SETCURRENTVALUE, MPFROMLONG(atoi(text)), 0L);
-   blah->oldproc = WinSubclassWindow(tmp, _entryproc);
+   blah->oldproc = WinSubclassWindow(tmp, _dw_entryproc);
    WinSetWindowPtr(tmp, QWP_USER, blah);
    blah = calloc(sizeof(WindowData), 1);
-   blah->oldproc = WinSubclassWindow(entry, _spinentryproc);
+   blah->oldproc = WinSubclassWindow(entry, _dw_spinentryproc);
    WinSetWindowPtr(entry, QWP_USER, blah);
    dw_window_set_font(tmp, DefaultFont);
    dw_window_set_color(entry, DW_CLR_BLACK, DW_CLR_WHITE);
@@ -6959,7 +6959,7 @@ HWND API dw_radiobutton_new(const char *text, ULONG id)
                         id,
                         NULL,
                         NULL);
-   blah->oldproc = WinSubclassWindow(tmp, _entryproc);
+   blah->oldproc = WinSubclassWindow(tmp, _dw_entryproc);
    WinSetWindowPtr(tmp, QWP_USER, blah);
    dw_window_set_font(tmp, DefaultFont);
    dw_window_set_color(tmp, DW_CLR_BLACK, DW_RGB_TRANSPARENT);
@@ -6991,11 +6991,11 @@ HWND API dw_slider_new(int vertical, int increments, ULONG id)
                     0,0,2000,1000,
                     NULLHANDLE,
                     HWND_TOP,
-                    id ? id : _GlobalID(),
+                    id ? id : _dw_global_id(),
                     &sldcData,
                     NULL);
 
-   blah->oldproc = WinSubclassWindow(tmp, _entryproc);
+   blah->oldproc = WinSubclassWindow(tmp, _dw_entryproc);
    WinSetWindowPtr(tmp, QWP_USER, blah);
    return tmp;
 }
@@ -7017,7 +7017,7 @@ HWND API dw_scrollbar_new(int vertical, ULONG id)
                      0,0,2000,1000,
                      NULLHANDLE,
                      HWND_TOP,
-                     id ? id : _GlobalID(),
+                     id ? id : _dw_global_id(),
                      NULL,
                      NULL);
 }
@@ -7038,10 +7038,10 @@ HWND API dw_percent_new(ULONG id)
                         0,0,2000,1000,
                         NULLHANDLE,
                         HWND_TOP,
-                        id ? id : _GlobalID(),
+                        id ? id : _dw_global_id(),
                         NULL,
                         NULL);
-   blah->oldproc = WinSubclassWindow(tmp, _percentproc);
+   blah->oldproc = WinSubclassWindow(tmp, _dw_percentproc);
    WinSetWindowPtr(tmp, QWP_USER, blah);
    dw_window_disable(tmp);
    return tmp;
@@ -7066,7 +7066,7 @@ HWND API dw_checkbox_new(const char *text, ULONG id)
                         id,
                         NULL,
                         NULL);
-   blah->oldproc = WinSubclassWindow(tmp, _BtProc);
+   blah->oldproc = WinSubclassWindow(tmp, _dw_buttonproc);
    WinSetWindowPtr(tmp, QWP_USER, blah);
    dw_window_set_font(tmp, DefaultFont);
    dw_window_set_color(tmp, DW_CLR_BLACK, DW_RGB_TRANSPARENT);
@@ -7090,10 +7090,10 @@ HWND API dw_listbox_new(ULONG id, int multi)
                         0,0,2000,1000,
                         NULLHANDLE,
                         HWND_TOP,
-                        id ? id : _GlobalID(),
+                        id ? id : _dw_global_id(),
                         NULL,
                         NULL);
-   blah->oldproc = WinSubclassWindow(tmp, _entryproc);
+   blah->oldproc = WinSubclassWindow(tmp, _dw_entryproc);
    WinSetWindowPtr(tmp, QWP_USER, blah);
    dw_window_set_font(tmp, DefaultFont);
    dw_window_set_color(tmp, DW_CLR_BLACK, DW_CLR_WHITE);
@@ -7210,7 +7210,7 @@ static int _To24Bit(GBM *gbm, GBMRGB *gbmrgb, BYTE **ppbData)
 /* Internal function to load a bitmap from a file and return handles
  * to the bitmap, presentation space etc.
  */
-int _load_bitmap_file(char *file, HWND handle, HBITMAP *hbm, HDC *hdc, HPS *hps, unsigned long *width, unsigned long *height, int *depth, unsigned long backrgb)
+int _dw_load_bitmap_file(char *file, HWND handle, HBITMAP *hbm, HDC *hdc, HPS *hps, unsigned long *width, unsigned long *height, int *depth, unsigned long backrgb)
 {
     PBITMAPINFOHEADER2 pBitmapInfoHeader;
     /* pointer to the first byte of bitmap data  */
@@ -7476,7 +7476,7 @@ void _dw_window_set_bitmap(HWND handle, HBITMAP hbm, HDC hdc, HPS hps, unsigned 
            pixmap->hps = hps;
            pixmap->width = width;
            pixmap->height = height;
-           disabled = _create_disabled(handle, pixmap);
+           disabled = _dw_create_disabled(handle, pixmap);
 
            dw_window_set_data(handle, "_dw_hpixmap", DW_POINTER(pixmap));
            dw_window_set_data(handle, "_dw_hpixmap_disabled", DW_POINTER(disabled));
@@ -7489,14 +7489,14 @@ void _dw_window_set_bitmap(HWND handle, HBITMAP hbm, HDC hdc, HPS hps, unsigned 
 
    /* If we changed the bitmap... */
    {
-      Item *item = _box_item(handle);
+      Item *item = _dw_box_item(handle);
 
       /* Check to see if any of the sizes need to be recalculated */
       if(item && (item->origwidth == -1 || item->origheight == -1))
       {
-         _control_size(handle, item->origwidth == -1 ? &item->width : NULL, item->origheight == -1 ? &item->height : NULL);
+         _dw_control_size(handle, item->origwidth == -1 ? &item->width : NULL, item->origheight == -1 ? &item->height : NULL);
          /* Queue a redraw on the top-level window */
-         _dw_redraw(_toplevel_window(handle), TRUE);
+         _dw_redraw(_dw_toplevel_window(handle), TRUE);
       }
    }
 }
@@ -7521,7 +7521,7 @@ void API dw_window_set_bitmap(HWND handle, unsigned long id, const char *filenam
    int depth = 0;
 
    /* Destroy any old bitmap data */
-   _free_bitmap(handle);
+   _dw_free_bitmap(handle);
 
    /* If id is non-zero use the resource */
    if ( id )
@@ -7556,7 +7556,7 @@ void API dw_window_set_bitmap(HWND handle, unsigned long id, const char *filenam
                  strcpy(file, filename);
                  strcat(file, image_exts[z]);
                  if(access(file, 04) == 0 &&
-                    _load_bitmap_file(file, handle, &hbm, &hdc, &hps, &width, &height, &depth, DW_CLR_DEFAULT))
+                    _dw_load_bitmap_file(file, handle, &hbm, &hdc, &hps, &width, &height, &depth, DW_CLR_DEFAULT))
                      break;
              }
          }
@@ -7569,7 +7569,7 @@ void API dw_window_set_bitmap(HWND handle, unsigned long id, const char *filenam
             if(stricmp(file + len - 4, ".ico") == 0)
                icon = WinLoadFileIcon((PSZ)file, FALSE);
             else
-               _load_bitmap_file(file, handle, &hbm, &hdc, &hps, &width, &height, &depth, DW_CLR_DEFAULT);
+               _dw_load_bitmap_file(file, handle, &hbm, &hdc, &hps, &width, &height, &depth, DW_CLR_DEFAULT);
          }
       }
 
@@ -7610,7 +7610,7 @@ void API dw_window_set_bitmap_from_data(HWND handle, unsigned long id, const cha
    int depth;
 
    /* Destroy any old bitmap data */
-   _free_bitmap(handle);
+   _dw_free_bitmap(handle);
 
    if ( data )
    {
@@ -7622,7 +7622,7 @@ void API dw_window_set_bitmap_from_data(HWND handle, unsigned long id, const cha
          {
             fwrite( data, 1, len, fp );
             fclose( fp );
-            if(!_load_bitmap_file(file, handle, &hbm, &hdc, &hps, &width, &height, &depth, DW_CLR_DEFAULT))
+            if(!_dw_load_bitmap_file(file, handle, &hbm, &hdc, &hps, &width, &height, &depth, DW_CLR_DEFAULT))
             {
                /* can't use ICO ? */
                unlink( file );
@@ -7669,14 +7669,14 @@ void API dw_window_set_text(HWND handle, const char *text)
    WinSetWindowText(entryfield ? entryfield : handle, (PSZ)text);
    /* If we changed the text... */
    {
-      Item *item = _box_item(handle);
+      Item *item = _dw_box_item(handle);
 
       /* Check to see if any of the sizes need to be recalculated */
       if(item && (item->origwidth == -1 || item->origheight == -1))
       {
          int newwidth, newheight;
 
-         _control_size(handle, &newwidth, &newheight);
+         _dw_control_size(handle, &newwidth, &newheight);
 
          /* Only update the item and redraw the window if it changed */
          if((item->origwidth == -1 && item->width != newwidth) ||
@@ -7687,7 +7687,7 @@ void API dw_window_set_text(HWND handle, const char *text)
             if(item->origheight == -1)
                item->height = newheight;
             /* Queue a redraw on the top-level window */
-            _dw_redraw(_toplevel_window(handle), TRUE);
+            _dw_redraw(_dw_toplevel_window(handle), TRUE);
          }
       }
    }
@@ -7771,11 +7771,11 @@ void API dw_window_disable(HWND handle)
       case 10:
       case 32:
       case 7:
-         hwnd = _find_entryfield(handle);
+         hwnd = _dw_find_entryfield(handle);
          _dw_window_set_color(hwnd ? hwnd : handle, DW_CLR_BLACK, DW_CLR_PALEGRAY);
-         dw_signal_connect(hwnd ? hwnd : handle, DW_SIGNAL_KEY_PRESS, DW_SIGNAL_FUNC(_null_key), (void *)100);
+         dw_signal_connect(hwnd ? hwnd : handle, DW_SIGNAL_KEY_PRESS, DW_SIGNAL_FUNC(_dw_null_key), (void *)100);
             if(val == 2)
-            dw_signal_connect(handle, DW_SIGNAL_BUTTON_PRESS, DW_SIGNAL_FUNC(_null_key), (void *)100);
+            dw_signal_connect(handle, DW_SIGNAL_BUTTON_PRESS, DW_SIGNAL_FUNC(_dw_null_key), (void *)100);
          if(hwnd)
             dw_window_set_data(hwnd, "_dw_disabled", (void *)1);
          return;
@@ -7786,8 +7786,8 @@ void API dw_window_disable(HWND handle)
             WinInvalidateRect(handle, NULL, FALSE);
          else
             _dw_window_set_color(handle, DW_CLR_DARKGRAY, DW_CLR_PALEGRAY);
-         dw_signal_connect(handle, DW_SIGNAL_KEY_PRESS, DW_SIGNAL_FUNC(_null_key), (void *)100);
-         dw_signal_connect(handle, DW_SIGNAL_BUTTON_PRESS, DW_SIGNAL_FUNC(_null_key), (void *)100);
+         dw_signal_connect(handle, DW_SIGNAL_KEY_PRESS, DW_SIGNAL_FUNC(_dw_null_key), (void *)100);
+         dw_signal_connect(handle, DW_SIGNAL_BUTTON_PRESS, DW_SIGNAL_FUNC(_dw_null_key), (void *)100);
          return;
       }
    }
@@ -7803,7 +7803,7 @@ void API dw_window_enable(HWND handle)
 {
    ULONG fore = (ULONG)dw_window_get_data(handle, "_dw_fore");
    ULONG back = (ULONG)dw_window_get_data(handle, "_dw_back");
-   HWND hwnd = _find_entryfield(handle);
+   HWND hwnd = _dw_find_entryfield(handle);
 
    if(handle < 65536)
    {
@@ -7947,7 +7947,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
 
       /* If either of the parameters are -1 ... calculate the size */
       if(width == -1 || height == -1)
-         _control_size(item, width == -1 ? &tmpitem[index].width : NULL, height == -1 ? &tmpitem[index].height : NULL);
+         _dw_control_size(item, width == -1 ? &tmpitem[index].width : NULL, height == -1 ? &tmpitem[index].height : NULL);
 
       thisbox->items = tmpitem;
 
@@ -7964,9 +7964,9 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
       if(strncmp(tmpbuf, "#6", 3)!=0 && /*strncmp(tmpbuf, "#32", 4)!=0 &&*/ strncmp(tmpbuf, "#2", 3)!=0)
           WinSetOwner(item, box);
       WinSetParent(frame ? frame : item, box, FALSE);
-      _handle_transparent(box);
+      _dw_handle_transparent(box);
       /* Queue a redraw on the top-level window */
-      _dw_redraw(_toplevel_window(box), TRUE);
+      _dw_redraw(_dw_toplevel_window(box), TRUE);
    }
 }
 
@@ -8032,7 +8032,7 @@ int API dw_box_unpack(HWND handle)
          if(handle)
             WinSetParent(handle, HWND_OBJECT, FALSE);
          /* Queue a redraw on the top-level window */
-         _dw_redraw(_toplevel_window(parent), TRUE);
+         _dw_redraw(_dw_toplevel_window(parent), TRUE);
          return DW_ERROR_NONE;
       }
    }
@@ -8085,7 +8085,7 @@ HWND API dw_box_unpack_at_index(HWND box, int index)
       if(handle)
          WinSetParent(handle, HWND_OBJECT, FALSE);
       /* Queue a redraw on the top-level window */
-      _dw_redraw(_toplevel_window(box), TRUE);
+      _dw_redraw(_dw_toplevel_window(box), TRUE);
       return handle;
    }
    return 0;
@@ -8158,7 +8158,7 @@ void _get_window_for_size(HWND handle, unsigned long *width, unsigned long *heig
       RECTL rect = { 0 };
 
       /* Calculate space requirements */
-      _resize_box(thisbox, &depth, *width, *height, 1);
+      _dw_resize_box(thisbox, &depth, *width, *height, 1);
 
       rect.xRight = thisbox->minwidth;
       rect.yTop = thisbox->minheight;
@@ -8225,7 +8225,7 @@ void API dw_window_get_preferred_size(HWND handle, int *width, int *height)
             int depth = 0;
 
             /* Calculate space requirements */
-            _resize_box(thisbox, &depth, 0, 0, 1);
+            _dw_resize_box(thisbox, &depth, 0, 0, 1);
 
             /* Return what was requested */
             if(width) *width = thisbox->minwidth;
@@ -8234,7 +8234,7 @@ void API dw_window_get_preferred_size(HWND handle, int *width, int *height)
       }
    }
    else
-      _control_size(handle, width, height);
+      _dw_control_size(handle, width, height);
 }
 
 /*
@@ -8279,7 +8279,7 @@ void API dw_window_set_gravity(HWND handle, int horz, int vert)
 }
 
 /* Convert the coordinates based on gravity */
-void _handle_gravity(HWND handle, long *x, long *y, unsigned long width, unsigned long height)
+void _dw_handle_gravity(HWND handle, long *x, long *y, unsigned long width, unsigned long height)
 {
    int horz = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_grav_horz"));
    int vert = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_grav_vert"));
@@ -8347,7 +8347,7 @@ void API dw_window_set_pos(HWND handle, LONG x, LONG y)
       dw_window_set_size(handle, 0, 0);
       dw_window_get_pos_size(handle, NULL, NULL, &width, &height);
    }
-   _handle_gravity(handle, &x, &y, width, height);
+   _dw_handle_gravity(handle, &x, &y, width, height);
    WinSetWindowPos(handle, NULLHANDLE, x, y, 0, 0, SWP_MOVE);
 }
 
@@ -8366,7 +8366,7 @@ void API dw_window_set_pos_size(HWND handle, LONG x, LONG y, ULONG width, ULONG 
    if ( width < 1 || height < 1 )
       _get_window_for_size(handle, &width, &height);
 
-   _handle_gravity(handle, &x, &y, width, height);
+   _dw_handle_gravity(handle, &x, &y, width, height);
    /* Finally set the size */
    WinSetWindowPos(handle, NULLHANDLE, x, y, width, height, SWP_MOVE | SWP_SIZE);
 }
@@ -8387,7 +8387,7 @@ void API dw_window_get_pos_size(HWND handle, LONG *x, LONG *y, ULONG *width, ULO
    if(x)
       *x = swp.x;
    if(y)
-      *y = _get_frame_height(handle) - (swp.y + swp.cy);
+      *y = _dw_get_frame_height(handle) - (swp.y + swp.cy);
    if(width)
       *width = swp.cx;
    if(height)
@@ -8513,7 +8513,7 @@ void API dw_notebook_pack(HWND handle, ULONG pageid, HWND page)
    HWND tmpbox = dw_box_new(DW_VERT, 0);
 
    dw_box_pack_start(tmpbox, page, 0, 0, TRUE, TRUE, 0);
-   WinSubclassWindow(tmpbox, _wndproc);
+   WinSubclassWindow(tmpbox, _dw_wndproc);
    WinSendMsg(handle, BKM_SETPAGEWINDOWHWND,
             MPFROMLONG(pageid),  MPFROMHWND(tmpbox));
 }
@@ -8676,7 +8676,7 @@ void API dw_listbox_select(HWND handle, int index, int state)
 
    /* If we are setting a combobox call the event handler manually */
    if(strncmp(tmpbuf, "#6", 3)==0)
-      _run_event(handle, WM_CONTROL, MPFROM2SHORT(0, LN_SELECT), (MPARAM)handle);
+      _dw_run_event(handle, WM_CONTROL, MPFROM2SHORT(0, LN_SELECT), (MPARAM)handle);
 }
 
 /*
@@ -8922,7 +8922,7 @@ void API dw_mle_thaw(HWND handle)
    WinSendMsg(handle, MLM_ENABLEREFRESH, 0, 0);
 }
 
-/* Internal version that can be called from _percentthread */
+/* Internal version that can be called from _dw_percent_thread */
 void _dw_percent_set_pos(HWND handle, unsigned int position)
 {
    int range = _dw_percent_get_range(handle);
@@ -8940,7 +8940,7 @@ void _dw_percent_set_pos(HWND handle, unsigned int position)
 }
 
 /* Move the percentage bar backwards to simulate indeterminate */
-void _percentthread(void *data)
+void _dw_percent_thread(void *data)
 {
    HWND percent = (HWND)data;
 
@@ -8981,7 +8981,7 @@ void API dw_percent_set_pos(HWND handle, unsigned int position)
        {
            /* So we fake it with a thread */
            dw_window_set_data(handle, "_dw_ind", (void *)1);
-           _beginthread(_percentthread, NULL, 100, (void *)handle);
+           _beginthread(_dw_percent_thread, NULL, 100, (void *)handle);
        }
    }
    else
@@ -9290,7 +9290,7 @@ void * API dw_tree_item_get_data(HWND DW_UNUSED(handle), HTREEITEM item)
  *       handle: Handle to the tree window (widget) to be selected.
  *       item: Handle to the item to be selected.
  */
-void API dw_tree_item_select(HWND handle, HTREEITEM item)
+void API dw_tree_dw_item_select(HWND handle, HTREEITEM item)
 {
    PRECORDCORE pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)0L, MPFROM2SHORT(CMA_FIRST, CMA_ITEMORDER));
 
@@ -9360,11 +9360,11 @@ void API dw_tree_item_delete(HWND handle, HTREEITEM item)
 }
 
 /* Some OS/2 specific container structs */
-typedef struct _containerinfo {
+typedef struct _dwcontainerinfo {
    int count;
    void *data;
    HWND handle;
-} ContainerInfo;
+} DWContainerInfo;
 
 /*
  * Sets up the container columns.
@@ -9525,7 +9525,7 @@ HICN API dw_icon_load(unsigned long module, unsigned long id)
 
 #if 0
 /* Internal function to create pointer/icon masks */
-void _create_mask(HPIXMAP src, HPIXMAP mask, unsigned long backrgb)
+void _dw_create_mask(HPIXMAP src, HPIXMAP mask, unsigned long backrgb)
 {
     LONG maskcolor = (DW_RED_VALUE(backrgb) << 16) | (DW_GREEN_VALUE(backrgb) << 8) | DW_BLUE_VALUE(backrgb);
     int x, y;
@@ -9551,7 +9551,7 @@ void _create_mask(HPIXMAP src, HPIXMAP mask, unsigned long backrgb)
 #endif
 
 /* Internal function to create an icon from an existing pixmap */
-HICN _create_icon(HPIXMAP src, unsigned long backrgb)
+HICN _dw_create_icon(HPIXMAP src, unsigned long backrgb)
 {
     HPIXMAP pntr = dw_pixmap_new(hwndApp, WinQuerySysValue(HWND_DESKTOP, SV_CXICON), WinQuerySysValue(HWND_DESKTOP, SV_CYICON), src->depth);
     HPIXMAP mask = dw_pixmap_new(hwndApp, pntr->width, pntr->height*2, 1);
@@ -9572,8 +9572,8 @@ HICN _create_icon(HPIXMAP src, unsigned long backrgb)
     /* If we have a background color... create masks */
     if(backrgb & DW_RGB_COLOR)
     {
-        _create_mask(pntr, mask, backrgb);
-        _create_mask(minipntr, minimask, backrgb);
+        _dw_create_mask(pntr, mask, backrgb);
+        _dw_create_mask(minipntr, minimask, backrgb);
     }
 #endif
     _foreground = oldcol;
@@ -9630,15 +9630,15 @@ HICN API dw_icon_load_from_file(const char *filename)
            strcpy(file, filename);
            strcat(file, image_exts[z]);
            if(access(file, 04) == 0 &&
-              _load_bitmap_file(file, hwndApp, &src->hbm, &src->hdc, &src->hps, &src->width, &src->height, &src->depth, defcol))
+              _dw_load_bitmap_file(file, hwndApp, &src->hbm, &src->hdc, &src->hps, &src->width, &src->height, &src->depth, defcol))
            {
-               icon = _create_icon(src, defcol);
+               icon = _dw_create_icon(src, defcol);
                break;
            }
        }
    }
-   else if(_load_bitmap_file(file, hwndApp, &src->hbm, &src->hdc, &src->hps, &src->width, &src->height, &src->depth, defcol))
-       icon = _create_icon(src, defcol);
+   else if(_dw_load_bitmap_file(file, hwndApp, &src->hbm, &src->hdc, &src->hps, &src->width, &src->height, &src->depth, defcol))
+       icon = _dw_create_icon(src, defcol);
    /* Free temporary resources if in use */
    if(icon)
    {
@@ -9704,7 +9704,7 @@ void * API dw_container_alloc(HWND handle, int rowcount)
    ULONG *flags = wd ? wd->data : 0;
    int z, size = 0, totalsize, count = 0;
    PRECORDCORE temp;
-   ContainerInfo *ci;
+   DWContainerInfo *ci;
    void *blah = NULL;
 
    if(!flags || rowcount < 1)
@@ -9743,7 +9743,7 @@ void * API dw_container_alloc(HWND handle, int rowcount)
       temp = temp->preccNextRecord;
    }
 
-   ci = malloc(sizeof(struct _containerinfo));
+   ci = malloc(sizeof(struct _dwcontainerinfo));
 
    ci->count = rowcount;
    ci->data = blah;
@@ -9892,7 +9892,7 @@ void _dw_container_free_strings(HWND handle, PRECORDCORE temp)
  */
 void API dw_container_set_item(HWND handle, void *pointer, int column, int row, void *data)
 {
-   ContainerInfo *ci = (ContainerInfo *)pointer;
+   DWContainerInfo *ci = (DWContainerInfo *)pointer;
 
    if(!ci)
       return;
@@ -10058,7 +10058,7 @@ void API dw_container_set_column_width(HWND DW_UNUSED(handle), int DW_UNUSED(col
  */
 void API dw_container_set_row_title(void *pointer, int row, const char *title)
 {
-   ContainerInfo *ci = (ContainerInfo *)pointer;
+   DWContainerInfo *ci = DWContainerInfo *)pointer;
    PRECORDCORE temp;
    int z, currentcount;
    CNRINFO cnr;
@@ -10123,7 +10123,7 @@ void API dw_container_change_row_title(HWND handle, int row, const char *title)
  */
 void API dw_container_set_row_data(void *pointer, int row, void *data)
 {
-   ContainerInfo *ci = (ContainerInfo *)pointer;
+   DWContainerInfo *ci = (DWContainerInfo *)pointer;
    PRECORDCORE temp;
    int z, currentcount;
    CNRINFO cnr;
@@ -10201,7 +10201,7 @@ PRECORDCORE _dw_container_start(HWND handle, unsigned long flags)
 void API dw_container_insert(HWND handle, void *pointer, int rowcount)
 {
    RECORDINSERT recin;
-   ContainerInfo *ci = (ContainerInfo *)pointer;
+   DWContainerInfo *ci = (DWContainerInfo *)pointer;
    PRECORDCORE pCore;
 
    if(!ci)
@@ -10225,7 +10225,7 @@ void API dw_container_insert(HWND handle, void *pointer, int rowcount)
        pre.pRecord = pCore;
        pre.fEmphasisMask = CRA_CURSORED;
        pre.hwndCnr = handle;
-       _run_event(handle, WM_CONTROL, MPFROM2SHORT(0, CN_EMPHASIS), (MPARAM)&pre);
+       _dw_run_event(handle, WM_CONTROL, MPFROM2SHORT(0, CN_EMPHASIS), (MPARAM)&pre);
        pre.pRecord->flRecordAttr |= CRA_CURSORED;
    }
 }
@@ -10242,7 +10242,7 @@ void API dw_container_clear(HWND handle, int redraw)
    int container = (int)dw_window_get_data(handle, "_dw_container");
 
    if(hwndEmph == handle)
-      _clear_emphasis();
+      _dw_clear_emphasis();
 
    pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)0L, MPFROM2SHORT(CMA_FIRST, CMA_ITEMORDER));
 
@@ -10763,7 +10763,7 @@ unsigned long API dw_color_choose(unsigned long value)
    return (unsigned long)dw_dialog_wait(dwwait);
 }
 
-HPS _set_hps(HPS hps)
+HPS _dw_set_hps(HPS hps)
 {
    LONG alTable[2];
 
@@ -10779,11 +10779,11 @@ HPS _set_hps(HPS hps)
    if(_foreground & DW_RGB_COLOR)
       GpiSetColor(hps, 16);
    else
-      GpiSetColor(hps, _internal_color(_foreground));
+      GpiSetColor(hps, _dw_internal_color(_foreground));
    if(_background & DW_RGB_COLOR)
       GpiSetBackColor(hps, 17);
    else
-      GpiSetBackColor(hps, _internal_color(_background));
+      GpiSetBackColor(hps, _dw_internal_color(_background));
    return hps;
 }
 
@@ -10791,7 +10791,7 @@ HPS _set_colors(HWND handle)
 {
    HPS hps = WinGetPS(handle);
 
-   _set_hps(hps);
+   _dw_set_hps(hps);
    return hps;
 }
 
@@ -10811,11 +10811,11 @@ void API dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
    if(handle)
    {
       hps = _set_colors(handle);
-      height = _get_height(handle);
+      height = _dw_get_height(handle);
    }
    else if(pixmap)
    {
-      hps = _set_hps(pixmap->hps);
+      hps = _dw_set_hps(pixmap->hps);
       height = pixmap->height;
    }
    else
@@ -10847,11 +10847,11 @@ void API dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y
    if(handle)
    {
       hps = _set_colors(handle);
-      height = _get_height(handle);
+      height = _dw_get_height(handle);
    }
    else if(pixmap)
    {
-      hps = _set_hps(pixmap->hps);
+      hps = _dw_set_hps(pixmap->hps);
       height = pixmap->height;
    }
    else
@@ -10870,7 +10870,7 @@ void API dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y
 }
 
 
-void _CopyFontSettings(HPS hpsSrc, HPS hpsDst)
+void _dw_copy_font_settings(HPS hpsSrc, HPS hpsDst)
 {
    FONTMETRICS fm;
    FATTRS fat;
@@ -10914,17 +10914,17 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, const char *tex
     if(handle)
     {
         hps = _set_colors(handle);
-        height = _get_height(handle);
-        _GetPPFont(handle, fontname);
+        height = _dw_get_height(handle);
+        _dw_get_pp_font(handle, fontname);
     }
     else if(pixmap)
     {
         HPS pixmaphps = WinGetPS(pixmap->font ? pixmap->font : pixmap->handle);
 
-        hps = _set_hps(pixmap->hps);
+        hps = _dw_set_hps(pixmap->hps);
         height = pixmap->height;
-        _GetPPFont(pixmap->font ? pixmap->font : pixmap->handle, fontname);
-        _CopyFontSettings(pixmaphps, hps);
+        _dw_get_pp_font(pixmap->font ? pixmap->font : pixmap->handle, fontname);
+        _dw_copy_font_settings(pixmaphps, hps);
         WinReleasePS(pixmaphps);
     }
     else
@@ -10946,7 +10946,7 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, const char *tex
     if(_background == DW_CLR_DEFAULT)
         WinDrawText(hps, -1, (PCH)text, &rcl, DT_TEXTATTRS, DT_TEXTATTRS, DT_VCENTER | DT_LEFT | DT_TEXTATTRS);
     else
-        WinDrawText(hps, -1, (PCH)text, &rcl, _internal_color(_foreground), _internal_color(_background), DT_VCENTER | DT_LEFT | DT_ERASERECT);
+        WinDrawText(hps, -1, (PCH)text, &rcl, _dw_internal_color(_foreground), _dw_internal_color(_background), DT_VCENTER | DT_LEFT | DT_ERASERECT);
 
     if(handle)
         WinReleasePS(hps);
@@ -10973,8 +10973,8 @@ void API dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, const char *text,
    {
       HPS pixmaphps = WinGetPS(pixmap->font ? pixmap->font : pixmap->handle);
 
-      hps = _set_hps(pixmap->hps);
-      _CopyFontSettings(pixmaphps, hps);
+      hps = _dw_set_hps(pixmap->hps);
+      _dw_copy_font_settings(pixmaphps, hps);
       WinReleasePS(pixmaphps);
    }
    else
@@ -11013,11 +11013,11 @@ void API dw_draw_polygon( HWND handle, HPIXMAP pixmap, int flags, int npoints, i
    if(handle)
    {
       hps = _set_colors(handle);
-      thisheight = _get_height(handle);
+      thisheight = _dw_get_height(handle);
    }
    else if(pixmap)
    {
-      hps = _set_hps(pixmap->hps);
+      hps = _dw_set_hps(pixmap->hps);
       thisheight = pixmap->height;
    }
    else
@@ -11077,11 +11077,11 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int 
    if(handle)
    {
       hps = _set_colors(handle);
-      thisheight = _get_height(handle);
+      thisheight = _dw_get_height(handle);
    }
    else if(pixmap)
    {
-      hps = _set_hps(pixmap->hps);
+      hps = _dw_set_hps(pixmap->hps);
       thisheight = pixmap->height;
    }
    else
@@ -11128,11 +11128,11 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
    if(handle)
    {
       hps = _set_colors(handle);
-      thisheight = _get_height(handle);
+      thisheight = _dw_get_height(handle);
    }
    else if(pixmap)
    {
-      hps = _set_hps(pixmap->hps);
+      hps = _dw_set_hps(pixmap->hps);
       thisheight = pixmap->height;
    }
    else
@@ -11285,7 +11285,7 @@ HPIXMAP API dw_pixmap_new_from_file(HWND handle, const char *filename)
            strcpy(file, filename);
            strcat(file, image_exts[z]);
            if(access(file, 04) == 0 &&
-              _load_bitmap_file(file, handle, &pixmap->hbm, &pixmap->hdc, &pixmap->hps, &pixmap->width, &pixmap->height, &pixmap->depth, DW_CLR_DEFAULT))
+              _dw_load_bitmap_file(file, handle, &pixmap->hbm, &pixmap->hdc, &pixmap->hps, &pixmap->width, &pixmap->height, &pixmap->depth, DW_CLR_DEFAULT))
                break;
        }
    }
@@ -11331,7 +11331,7 @@ HPIXMAP API dw_pixmap_new_from_data(HWND handle, const char *data, int len)
       {
          fwrite( data, 1, len, fp );
          fclose( fp );
-         if(!_load_bitmap_file(file, handle, &pixmap->hbm, &pixmap->hdc, &pixmap->hps, &pixmap->width, &pixmap->height, &pixmap->depth, DW_CLR_DEFAULT))
+         if(!_dw_load_bitmap_file(file, handle, &pixmap->hbm, &pixmap->hdc, &pixmap->hps, &pixmap->width, &pixmap->height, &pixmap->depth, DW_CLR_DEFAULT))
          {
             /* can't use ICO ? */
             unlink( file );
@@ -11360,7 +11360,7 @@ void API dw_pixmap_set_transparent_color( HPIXMAP pixmap, ULONG color )
 {
    if ( pixmap )
    {
-      pixmap->transcolor = _internal_color(color);
+      pixmap->transcolor = _dw_internal_color(color);
    }
 }
 
@@ -11499,7 +11499,7 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
    if(dest)
    {
       hpsdest = WinGetPS(dest);
-      dheight = _get_height(dest);
+      dheight = _dw_get_height(dest);
    }
    else if(destp)
    {
@@ -11512,7 +11512,7 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
    if(src)
    {
       hpssrc = WinGetPS(src);
-      sheight = _get_height(src);
+      sheight = _dw_get_height(src);
    }
    else if(srcp)
    {
@@ -11565,7 +11565,7 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
 }
 
 /* Run DosBeep() in a separate thread so it doesn't block */
-void _beepthread(void *data)
+void _dw_beep_thread(void *data)
 {
    int *info = (int *)data;
 
@@ -11591,7 +11591,7 @@ void API dw_beep(int freq, int dur)
       info[0] = freq;
       info[1] = dur;
 
-      _beginthread(_beepthread, NULL, 100, (void *)info);
+      _beginthread(_dw_beep_thread, NULL, 100, (void *)info);
    }
 }
 
@@ -12177,7 +12177,7 @@ void API dw_splitbar_set(HWND handle, float percent)
 
    dw_window_get_pos_size(handle, NULL, NULL, &width, &height);
 
-   _handle_splitbar_resize(handle, percent, type, width, height);
+   _dw_handle_splitbar_resize(handle, percent, type, width, height);
 }
 
 /*
@@ -12233,7 +12233,7 @@ static ULONG _ParseBuildLevel (char* pchBuffer, ULONG ulSize) {
    return (0);
 }
 
-ULONG _GetSystemBuildLevel(void) {
+ULONG _dw_get_system_build_level(void) {
    /* The build level info is normally available in the end of the OS2KRNL file. However, this is not the case in some beta versions of OS/2.
     * We first try to find the info in the 256 last bytes of the file. If that fails, we load the entire file and search it completely.
     */
@@ -12319,7 +12319,7 @@ void API dw_window_default(HWND window, HWND defaultitem)
  *         window: Window (widget) to look for the ENTER press.
  *         next: Window (widget) to move to next (or click)
  */
-void API dw_window_click_default(HWND window, HWND next)
+void API dw_window_dw_click_default(HWND window, HWND next)
 {
    WindowData *blah = (WindowData *)WinQueryWindowPtr(window, QWP_USER);
 
@@ -12346,7 +12346,7 @@ char * API dw_clipboard_get_text(void)
 
 #ifdef UNICODE
     if(!Unicode || !(unistr = (UniChar *)WinQueryClipbrdData(dwhab, Unicode)) ||
-       !(retbuf = _WideToUTF8(unistr)))
+       !(retbuf = _dw_WideToUTF8(unistr)))
 #endif
     {
         ULONG fmtInfo;
@@ -12396,7 +12396,7 @@ void API dw_clipboard_set_text(const char *str, int len)
         src = calloc(len + 1, 1);
 
         memcpy(src, str, len);
-        unistr = _UTF8toWide((char *)src);
+        unistr = _dw_UTF8toWide((char *)src);
         free(src);
 
         if(unistr)
@@ -12470,7 +12470,7 @@ void API dw_environment_query(DWEnv *env)
    env->MajorVersion = 2;
    env->MinorVersion = 0;
 
-   Build = _GetSystemBuildLevel();
+   Build = _dw_get_system_build_level();
    env->MinorBuild =  Build & 0xFFFF;
    env->MajorBuild =  Build >> 16;
 
@@ -12499,7 +12499,7 @@ void API dw_environment_query(DWEnv *env)
 }
 
 /* The next few functions are support functions for the OS/2 folder browser */
-void _populate_directory(HWND tree, HTREEITEM parent, char *path)
+void _dw_populate_directory(HWND tree, HTREEITEM parent, char *path)
 {
    FILEFINDBUF3 ffbuf;
    HTREEITEM item;
@@ -12529,7 +12529,7 @@ void _populate_directory(HWND tree, HTREEITEM parent, char *path)
    }
 }
 
-void API _populate_tree_thread(void *data)
+void API _dw_populate_tree_thread(void *data)
 {
    HWND window = (HWND)data, tree = (HWND)dw_window_get_data(window, "_dw_tree");
    HMTX mtx = (HMTX)dw_window_get_data(window, "_dw_mutex");
@@ -12595,7 +12595,7 @@ int DWSIGNAL _dw_cancel_func(HWND window, void *data)
    return FALSE;
 }
 
-char *_tree_folder(HWND tree, HTREEITEM item)
+char *_dw_tree_folder(HWND tree, HTREEITEM item)
 {
    char *folder=strdup("");
    HTREEITEM parent = item;
@@ -12621,7 +12621,7 @@ char *_tree_folder(HWND tree, HTREEITEM item)
    return folder;
 }
 
-int DWSIGNAL _item_select(HWND window, HTREEITEM item, char *text, void *data, void *itemdata)
+int DWSIGNAL _dw_item_select(HWND window, HTREEITEM item, char *text, void *data, void *itemdata)
 {
    DWDialog *dwwait = (DWDialog *)data;
    char *treedata = (char *)dw_window_get_data((HWND)dwwait->data, "_dw_tree_selected");
@@ -12630,7 +12630,7 @@ int DWSIGNAL _item_select(HWND window, HTREEITEM item, char *text, void *data, v
    if(treedata)
       free(treedata);
 
-   treedata = _tree_folder(window, item);
+   treedata = _dw_tree_folder(window, item);
    dw_window_set_data((HWND)dwwait->data, "_dw_tree_selected", (void *)treedata);
 
    return FALSE;
@@ -12643,7 +12643,7 @@ int DWSIGNAL _tree_expand(HWND window, HTREEITEM item, void *data)
    data = data;
    if(tempitem)
    {
-      char *folder = _tree_folder(window, item);
+      char *folder = _dw_tree_folder(window, item);
 
       dw_tree_item_set_data(window, item, 0);
       dw_tree_item_delete(window, tempitem);
@@ -12651,7 +12651,7 @@ int DWSIGNAL _tree_expand(HWND window, HTREEITEM item, void *data)
       if(*folder)
       {
          strcat(folder, "*");
-         _populate_directory(window, item, folder);
+         _dw_populate_directory(window, item, folder);
       }
       free(folder);
    }
@@ -12697,7 +12697,7 @@ char * API dw_file_browse(const char *title, const char *defpath, const char *ex
 
       dwwait = dw_dialog_new((void *)window);
 
-      dw_signal_connect(tree, DW_SIGNAL_ITEM_SELECT, DW_SIGNAL_FUNC(_item_select), (void *)dwwait);
+      dw_signal_connect(tree, DW_SIGNAL_ITEM_SELECT, DW_SIGNAL_FUNC(_dw_item_select), (void *)dwwait);
       dw_signal_connect(tree, DW_SIGNAL_TREE_EXPAND, DW_SIGNAL_FUNC(_tree_expand), (void *)dwwait);
 
       button = dw_button_new("Ok", 1001L);
@@ -12712,7 +12712,7 @@ char * API dw_file_browse(const char *title, const char *defpath, const char *ex
       dw_window_set_size(window, 225, 300);
       dw_window_show(window);
 
-      dw_thread_new((void *)_populate_tree_thread, (void *)window, 0xff);
+      dw_thread_new((void *)_dw_populate_tree_thread, (void *)window, 0xff);
       return (char *)dw_dialog_wait(dwwait);
    }
    else
@@ -12785,7 +12785,7 @@ char * API dw_file_browse(const char *title, const char *defpath, const char *ex
 }
 
 /* Internal function to set drive and directory */
-int _SetPath(char *path)
+int _dw_set_path(char *path)
 {
 #ifndef __WATCOMC__
    if(strlen(path)   > 2)
@@ -12834,7 +12834,7 @@ int API dw_browse(const char *url)
                     (PSZ)"DefaultWorkingDir", NULL, (PSZ)browser, 1024);
 
    if(browser[0])
-      _SetPath(browser);
+      _dw_set_path(browser);
 
    PrfQueryProfileString(HINI_USERPROFILE, (PSZ)"WPURLDEFAULTSETTINGS",
                     (PSZ)"DefaultBrowserExe", NULL, (PSZ)browser, 1024);
@@ -12871,7 +12871,7 @@ int API dw_browse(const char *url)
 
    if(olddir)
    {
-      _SetPath(olddir);
+      _dw_set_path(olddir);
       free(olddir);
    }
    if(newurl)
@@ -13010,7 +13010,7 @@ int DWSIGNAL _dw_printer_ok_func(HWND window, void *data)
 }
 
 /* Borrowed functions which should probably be rewritten */
-BOOL _ExtractLogAddress(char * LogAddress, char * DetailStr)
+BOOL _dw_extract_log_address(char * LogAddress, char * DetailStr)
 {
     char *p;
 
@@ -13022,7 +13022,7 @@ BOOL _ExtractLogAddress(char * LogAddress, char * DetailStr)
     return TRUE;
 }
 
-BOOL _ExtractDriverName(char * DriverName, char * DetailStr)
+BOOL _dw_extract_driver_name(char * DriverName, char * DetailStr)
 {
     char *p;
 
@@ -13207,8 +13207,8 @@ HPRINT API dw_print_new(const char *jobname, unsigned long flags, unsigned int p
 
         /* Get the printer information string */
         cb = PrfQueryProfileString(HINI_PROFILE, (PSZ)"PM_SPOOLER_PRINTER", (PSZ)print->printername, (PSZ)"", PrintDetails, 256);
-        _ExtractLogAddress(LogAddress, PrintDetails);
-        _ExtractDriverName(DriverName, PrintDetails);
+        _dw_extract_log_address(LogAddress, PrintDetails);
+        _dw_extract_driver_name(DriverName, PrintDetails);
         dop.pszDriverName = (PSZ)DriverName;
         dop.pszLogAddress = (PSZ)LogAddress;
         dop.pdriv = NULL;
@@ -13356,14 +13356,14 @@ int API dw_app_id_set(const char * DW_UNUSED(appid), const char * DW_UNUSED(appn
  */
 void API dw_window_function(HWND handle, void *function, void *data)
 {
-   WinSendMsg(_toplevel_window(handle), WM_USER, (MPARAM)function, (MPARAM)data);
+   WinSendMsg(_dw_toplevel_window(handle), WM_USER, (MPARAM)function, (MPARAM)data);
 }
 
 /* Functions for managing the user data lists that are associated with
  * a given window handle.  Used in dw_window_set_data() and
  * dw_window_get_data().
  */
-UserData *_find_userdata(UserData **root, const char *varname)
+UserData *_dw_find_userdata(UserData **root, const char *varname)
 {
    UserData *tmp = *root;
 
@@ -13376,9 +13376,9 @@ UserData *_find_userdata(UserData **root, const char *varname)
    return NULL;
 }
 
-int _new_userdata(UserData **root, const char *varname, void *data)
+int _dw_new_userdata(UserData **root, const char *varname, void *data)
 {
-   UserData *new = _find_userdata(root, varname);
+   UserData *new = _dw_find_userdata(root, varname);
 
    if(new)
    {
@@ -13414,7 +13414,7 @@ int _new_userdata(UserData **root, const char *varname, void *data)
    return FALSE;
 }
 
-int _remove_userdata(UserData **root, const char *varname, int all)
+int _dw_remove_userdata(UserData **root, const char *varname, int all)
 {
    UserData *prev = NULL, *tmp = *root;
 
@@ -13472,13 +13472,13 @@ void API dw_window_set_data(HWND window, const char *dataname, void *data)
    }
 
    if(data)
-      _new_userdata(&(blah->root), dataname, data);
+      _dw_new_userdata(&(blah->root), dataname, data);
    else
    {
       if(dataname)
-         _remove_userdata(&(blah->root), dataname, FALSE);
+         _dw_remove_userdata(&(blah->root), dataname, FALSE);
       else
-         _remove_userdata(&(blah->root), NULL, TRUE);
+         _dw_remove_userdata(&(blah->root), NULL, TRUE);
    }
 }
 
@@ -13495,7 +13495,7 @@ void * API dw_window_get_data(HWND window, const char *dataname)
 
    if(blah && blah->root && dataname)
    {
-      UserData *ud = _find_userdata(&(blah->root), dataname);
+      UserData *ud = _dw_find_userdata(&(blah->root), dataname);
       if(ud)
          return ud->data;
    }
@@ -13537,7 +13537,7 @@ HTIMER API dw_timer_connect(int interval, void *sigfunc, void *data)
 
       if(timerid)
       {
-         _new_signal(WM_TIMER, NULLHANDLE, timerid, sigfunc, NULL, data);
+         _dw_new_signal(WM_TIMER, NULLHANDLE, timerid, sigfunc, NULL, data);
          return timerid;
       }
    }
@@ -13612,7 +13612,7 @@ void API dw_signal_connect_data(HWND window, const char *signame, void *sigfunc,
 
    if(window && signame && sigfunc)
    {
-      if((message = _findsigmessage(signame)) != 0)
+      if((message = _dw_findsigmessage(signame)) != 0)
       {
          /* Handle special case of the menu item */
          if(message == WM_COMMAND && window < 65536)
@@ -13632,7 +13632,7 @@ void API dw_signal_connect_data(HWND window, const char *signame, void *sigfunc,
                window = owner;
             }
          }
-         _new_signal(message, window, id, sigfunc, discfunc, data);
+         _dw_new_signal(message, window, id, sigfunc, discfunc, data);
       }
    }
 }
@@ -13647,7 +13647,7 @@ void API dw_signal_disconnect_by_name(HWND window, const char *signame)
    SignalHandler *prev = NULL, *tmp = Root;
    ULONG message;
 
-   if(!window || !signame || (message = _findsigmessage(signame)) == 0)
+   if(!window || !signame || (message = _dw_findsigmessage(signame)) == 0)
       return;
 
    while(tmp)
@@ -13845,7 +13845,7 @@ void API dw_calendar_get_date( HWND window, unsigned int *year, unsigned int *mo
 wchar_t * API dw_utf8_to_wchar(const char *utf8string)
 {
 #ifdef UNICODE
-    return _UTF8toWide((char *)utf8string);
+    return _dw_UTF8toWide((char *)utf8string);
 #else
     return NULL;
 #endif
@@ -13862,7 +13862,7 @@ wchar_t * API dw_utf8_to_wchar(const char *utf8string)
 char * API dw_wchar_to_utf8(const wchar_t *wstring)
 {
 #ifdef UNICODE
-    return _WideToUTF8((wchar_t *)wstring);
+    return _dw_WideToUTF8((wchar_t *)wstring);
 #else
     return NULL;
 #endif
