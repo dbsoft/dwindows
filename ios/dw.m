@@ -313,25 +313,25 @@ typedef struct
 #define SIGNALMAX 19
 
 static DWSignalList DWSignalTranslate[SIGNALMAX] = {
-    { 1,    DW_SIGNAL_CONFIGURE },
-    { 2,    DW_SIGNAL_KEY_PRESS },
-    { 3,    DW_SIGNAL_BUTTON_PRESS },
-    { 4,    DW_SIGNAL_BUTTON_RELEASE },
-    { 5,    DW_SIGNAL_MOTION_NOTIFY },
-    { 6,    DW_SIGNAL_DELETE },
-    { 7,    DW_SIGNAL_EXPOSE },
-    { 8,    DW_SIGNAL_CLICKED },
-    { 9,    DW_SIGNAL_ITEM_ENTER },
-    { 10,   DW_SIGNAL_ITEM_CONTEXT },
-    { 11,   DW_SIGNAL_LIST_SELECT },
-    { 12,   DW_SIGNAL_ITEM_SELECT },
-    { 13,   DW_SIGNAL_SET_FOCUS },
-    { 14,   DW_SIGNAL_VALUE_CHANGED },
-    { 15,   DW_SIGNAL_SWITCH_PAGE },
-    { 16,   DW_SIGNAL_TREE_EXPAND },
-    { 17,   DW_SIGNAL_COLUMN_CLICK },
-    { 18,   DW_SIGNAL_HTML_RESULT },
-    { 19,   DW_SIGNAL_HTML_CHANGED }
+    { _DW_EVENT_CONFIGURE,       DW_SIGNAL_CONFIGURE },
+    { _DW_EVENT_KEY_PRESS,       DW_SIGNAL_KEY_PRESS },
+    { _DW_EVENT_BUTTON_PRESS,    DW_SIGNAL_BUTTON_PRESS },
+    { _DW_EVENT_BUTTON_RELEASE,  DW_SIGNAL_BUTTON_RELEASE },
+    { _DW_EVENT_MOTION_NOTIFY,   DW_SIGNAL_MOTION_NOTIFY },
+    { _DW_EVENT_DELETE,          DW_SIGNAL_DELETE },
+    { _DW_EVENT_EXPOSE,          DW_SIGNAL_EXPOSE },
+    { _DW_EVENT_CLICKED,         DW_SIGNAL_CLICKED },
+    { _DW_EVENT_ITEM_ENTER,      DW_SIGNAL_ITEM_ENTER },
+    { _DW_EVENT_ITEM_CONTEXT,    DW_SIGNAL_ITEM_CONTEXT },
+    { _DW_EVENT_LIST_SELECT,     DW_SIGNAL_LIST_SELECT },
+    { _DW_EVENT_ITEM_SELECT,     DW_SIGNAL_ITEM_SELECT },
+    { _DW_EVENT_SET_FOCUS,       DW_SIGNAL_SET_FOCUS },
+    { _DW_EVENT_VALUE_CHANGED,   DW_SIGNAL_VALUE_CHANGED },
+    { _DW_EVENT_SWITCH_PAGE,     DW_SIGNAL_SWITCH_PAGE },
+    { _DW_EVENT_TREE_EXPAND,     DW_SIGNAL_TREE_EXPAND },
+    { _DW_EVENT_COLUMN_CLICK,    DW_SIGNAL_COLUMN_CLICK },
+    { _DW_EVENT_HTML_RESULT,     DW_SIGNAL_HTML_RESULT },
+    { _DW_EVENT_HTML_CHANGED,    DW_SIGNAL_HTML_CHANGED }
 };
 
 int _dw_event_handler1(id object, id event, int message)
@@ -601,7 +601,7 @@ int _dw_event_handler(id object, id event, int message)
 @end
 
 @implementation DWTimerHandler
--(void)runTimer:(id)sender { _dw_event_handler(sender, nil, 0); }
+-(void)runTimer:(id)sender { _dw_event_handler(sender, nil, _DW_EVENT_TIMER); }
 @end
 
 @interface DWAppDel : UIResponder <UIApplicationDelegate> { }
@@ -613,7 +613,7 @@ int _dw_event_handler(id object, id event, int message)
 -(void)applicationWillTerminate:(UIApplication *)application
 {
     /* On iOS we can't prevent temrination, but send the notificatoin anyway */
-    _dw_event_handler(application, nil, 6);
+    _dw_event_handler(application, nil, _DW_EVENT_DELETE);
 }
 -(BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary<UIApplicationLaunchOptionsKey, id> *)launchOptions
 {
@@ -747,7 +747,7 @@ API_AVAILABLE(ios(13.0))
 -(Box *)box { return box; }
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
--(void)keyDown:(UIKey *)key  API_AVAILABLE(ios(13.4)){ _dw_event_handler(self, key, 2); }
+-(void)keyDown:(UIKey *)key  API_AVAILABLE(ios(13.4)){ _dw_event_handler(self, key, _DW_EVENT_KEY_PRESS); }
 @end
 
 @interface DWWindow : UIWindow
@@ -775,7 +775,7 @@ API_AVAILABLE(ios(13.0))
    int rcode = -1;
    if([theEvent type] == UIEventTypePresses)
    {
-      rcode = _dw_event_handler(self, theEvent, 2);
+      rcode = _dw_event_handler(self, theEvent, _DW_EVENT_KEY_PRESS);
    }
    if ( rcode != TRUE )
       [super sendEvent:theEvent];
@@ -872,7 +872,7 @@ API_AVAILABLE(ios(13.0))
     return cachedImage;
 }
 -(void)drawRect:(CGRect)rect {
-    _dw_event_handler(self, nil, 7);
+    _dw_event_handler(self, nil, _DW_EVENT_EXPOSE);
     if(cachedImage)
     {
         [[cachedImage image] drawInRect:self.bounds];
@@ -880,20 +880,20 @@ API_AVAILABLE(ios(13.0))
         [self setNeedsDisplay];
     }
 }
--(void)keyDown:(UIKey *)key  API_AVAILABLE(ios(13.4)){ _dw_event_handler(self, key, 2); }
+-(void)keyDown:(UIKey *)key  API_AVAILABLE(ios(13.4)){ _dw_event_handler(self, key, _DW_EVENT_KEY_PRESS); }
 -(void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event
 {
-    _dw_event_handler(self, event, 3);
+    _dw_event_handler(self, event, _DW_EVENT_BUTTON_PRESS);
     [super touchesBegan:touches withEvent:event];
 }
 -(void)touchesEnded:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event
 {
-    _dw_event_handler(self, event, 4);
+    _dw_event_handler(self, event, _DW_EVENT_BUTTON_RELEASE);
     [super touchesEnded:touches withEvent:event];
 }
 -(void)touchesMoved:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event
 {
-    _dw_event_handler(self, event, 5);
+    _dw_event_handler(self, event, _DW_EVENT_MOTION_NOTIFY);
     [super touchesMoved:touches withEvent:event];
 }
 -(UIContextMenuConfiguration *)contextMenuInteraction:(UIContextMenuInteraction *)interaction configurationForMenuAtLocation:(CGPoint)location
@@ -902,7 +902,7 @@ API_AVAILABLE(ios(13.0))
     UIContextMenuConfiguration *config = nil;
 
     _dw_event_point = location;
-    _dw_event_handler(self, nil, 3);
+    _dw_event_handler(self, nil, _DW_EVENT_BUTTON_PRESS);
 
     if(window && [window popupMenu])
     {
@@ -1039,7 +1039,7 @@ API_AVAILABLE(ios(13.0))
 -(void)uselessThread:(id)sender { /* Thread only to initialize threading */ }
 -(void)menuHandler:(id)param
 {
-    _dw_event_handler(param, nil, 8);
+    _dw_event_handler(param, nil, _DW_EVENT_CLICKED);
 }
 -(void)callBack:(NSPointerArray *)params
 {
@@ -1318,22 +1318,22 @@ BOOL _dw_is_dark(void)
 -(void)webView:(WKWebView *)webView didCommitNavigation:(WKNavigation *)navigation
 {
     void *params[2] = { DW_INT_TO_POINTER(DW_HTML_CHANGE_STARTED), [[self URL] absoluteString] };
-    _dw_event_handler(self, (id)params, 19);
+    _dw_event_handler(self, (id)params, _DW_EVENT_HTML_CHANGED);
 }
 -(void)webView:(WKWebView *)webView didFinishNavigation:(WKNavigation *)navigation
 {
     void *params[2] = { DW_INT_TO_POINTER(DW_HTML_CHANGE_COMPLETE), [[self URL] absoluteString] };
-    _dw_event_handler(self, (id)params, 19);
+    _dw_event_handler(self, (id)params, _DW_EVENT_HTML_CHANGED);
 }
 -(void)webView:(WKWebView *)webView didStartProvisionalNavigation:(WKNavigation *)navigation
 {
     void *params[2] = { DW_INT_TO_POINTER(DW_HTML_CHANGE_LOADING), [[self URL] absoluteString] };
-    _dw_event_handler(self, (id)params, 19);
+    _dw_event_handler(self, (id)params, _DW_EVENT_HTML_CHANGED);
 }
 -(void)webView:(WKWebView *)webView didReceiveServerRedirectForProvisionalNavigation:(WKNavigation *)navigation
 {
     void *params[2] = { DW_INT_TO_POINTER(DW_HTML_CHANGE_REDIRECT), [[self URL] absoluteString] };
-    _dw_event_handler(self, (id)params, 19);
+    _dw_event_handler(self, (id)params, _DW_EVENT_HTML_CHANGED);
 }
 -(void)dealloc { UserData *root = userdata; _dw_remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
@@ -1352,7 +1352,7 @@ BOOL _dw_is_dark(void)
 @implementation DWView
 -(BOOL)windowShouldClose:(id)sender
 {
-    if(_dw_event_handler(sender, nil, 6) > 0)
+    if(_dw_event_handler(sender, nil, _DW_EVENT_DELETE) > 0)
         return NO;
     return YES;
 }
@@ -1372,7 +1372,7 @@ BOOL _dw_is_dark(void)
     if(oldsize.width != size.width || oldsize.height != size.height)
     {
         _dw_do_resize(box, size.width, size.height);
-        _dw_event_handler([self window], nil, 1);
+        _dw_event_handler([self window], nil, _DW_EVENT_CONFIGURE);
         oldsize.width = size.width;
         oldsize.height = size.height;
         _dw_handle_resize_events(box);
@@ -1391,7 +1391,7 @@ BOOL _dw_is_dark(void)
 }
 -(void)windowDidBecomeMain:(id)sender
 {
-    _dw_event_handler([self window], nil, 13);
+    _dw_event_handler([self window], nil, _DW_EVENT_SET_FOCUS);
 }
 -(void)menuHandler:(id)sender
 {
@@ -1494,7 +1494,7 @@ BOOL _dw_is_dark(void)
     else if(type == _DW_BUTTON_TYPE_RADIO)
         [self setState:TRUE];
 
-    _dw_event_handler(self, nil, 8);
+    _dw_event_handler(self, nil, _DW_EVENT_CLICKED);
 
     /* If it is a radio button, uncheck all the other radio buttons in the box */
     if(type == _DW_BUTTON_TYPE_RADIO)
@@ -1944,7 +1944,7 @@ BOOL _dw_is_dark(void)
             _dw_do_resize(box, frame.size.width, frame.size.height);
             _dw_handle_resize_events(box);
         }
-        _dw_event_handler(self, DW_INT_TO_POINTER(intpageid), 15);
+        _dw_event_handler(self, DW_INT_TO_POINTER(intpageid), _DW_EVENT_SWITCH_PAGE);
     }
 }
 -(void)dealloc {
@@ -2030,7 +2030,7 @@ BOOL _dw_is_dark(void)
 -(BOOL)vertical { return vertical; }
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
--(void)sliderChanged:(id)sender { int intVal = (int)[self value]; _dw_event_handler(self, DW_INT_TO_POINTER(intVal), 14); }
+-(void)sliderChanged:(id)sender { int intVal = (int)[self value]; _dw_event_handler(self, DW_INT_TO_POINTER(intVal), _DW_EVENT_VALUE_CHANGED); }
 -(void)dealloc { UserData *root = userdata; _dw_remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
@@ -2168,7 +2168,7 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
     params[3] = DW_INT_TO_POINTER((int)point.y);
 
     _dw_event_point = point;
-    _dw_event_handler(self, (id)params, 10);
+    _dw_event_handler(self, (id)params, _DW_EVENT_ITEM_CONTEXT);
 
     if(window && [window popupMenu])
     {
@@ -2438,11 +2438,11 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
         
         /* Handler for container class... check for double tap */
         if(lastClickRow == indexPath.row && now - lastClick < 0.3)
-            _dw_event_handler(self, (id)params, 9);
+            _dw_event_handler(self, (id)params, _DW_EVENT_ITEM_ENTER);
         else
-            _dw_event_handler(self, (id)params, 12);
+            _dw_event_handler(self, (id)params, _DW_EVENT_ITEM_SELECT);
         /* Handler for listbox class */
-        _dw_event_handler(self, DW_INT_TO_POINTER((int)indexPath.row), 11);
+        _dw_event_handler(self, DW_INT_TO_POINTER((int)indexPath.row), _DW_EVENT_LIST_SELECT);
         /* Update lastClick for double tap check */
         lastClick = now;
         lastClickRow = indexPath.row;
@@ -2450,7 +2450,7 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
     else /* Otherwise treat it as doubleClicked: */
     {
         /* Handler for container class */
-        _dw_event_handler(self, (id)params, 9);
+        _dw_event_handler(self, (id)params, _DW_EVENT_ITEM_ENTER);
    }
 }
 -(void)tableView:(UITableView *)tableView didDeselectRowAtIndexPath:(NSIndexPath *)indexPath
@@ -2541,12 +2541,12 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
     long val = [[textfield text] intValue];
     [stepper setValue:(float)val];
     [textfield setText:[NSString stringWithFormat:@"%d", (int)[stepper value]]];
-    _dw_event_handler(self, DW_INT_TO_POINTER((int)[stepper value]), 14);
+    _dw_event_handler(self, DW_INT_TO_POINTER((int)[stepper value]), _DW_EVENT_VALUE_CHANGED);
 }
 -(void)stepperChanged:(UIStepper*)theStepper
 {
     [textfield setText:[NSString stringWithFormat:@"%d", (int)[theStepper value]]];
-    _dw_event_handler(self, DW_INT_TO_POINTER((int)[stepper value]), 14);
+    _dw_event_handler(self, DW_INT_TO_POINTER((int)[stepper value]), _DW_EVENT_VALUE_CHANGED);
 }
 -(void)setClickDefault:(id)input { clickDefault = input; }
 -(void)dealloc { UserData *root = userdata; _dw_remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
@@ -2582,7 +2582,7 @@ API_AVAILABLE(ios(10.0))
     else if ([response.actionIdentifier isEqualToString:UNNotificationDefaultActionIdentifier])
     {
         /* The user launched the app. */
-        _dw_event_handler(notification, nil, 8);
+        _dw_event_handler(notification, nil, _DW_EVENT_CLICKED);
         dw_signal_disconnect_by_window(notification);
     }
     completionHandler();
@@ -2653,7 +2653,7 @@ API_AVAILABLE(ios(10.0))
     selectedIndex = (int)row;
     [self setText:[dataArray objectAtIndex:row]];
     [self sendActionsForControlEvents:UIControlEventValueChanged];
-    _dw_event_handler(self, DW_INT_TO_POINTER(selectedIndex), 11);
+    _dw_event_handler(self, DW_INT_TO_POINTER(selectedIndex), _DW_EVENT_LIST_SELECT);
 }
 -(NSInteger)pickerView:(UIPickerView *)pickerView numberOfRowsInComponent:(NSInteger)component { return [dataArray count]; }
 -(NSString *)pickerView:(UIPickerView *)pickerView titleForRow:(NSInteger)row forComponent:(NSInteger)component
@@ -2821,7 +2821,7 @@ void _dw_handle_resize_events(Box *thisbox)
                     if(newsize.width > 0 && newsize.height > 0)
                     {
                         [render setSize:newsize];
-                        _dw_event_handler(handle, nil, 1);
+                        _dw_event_handler(handle, nil, _DW_EVENT_CONFIGURE);
                     }
                 }
             }
@@ -7554,7 +7554,7 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, script, const char *, scriptdata, void 
     [html evaluateJavaScript:[NSString stringWithUTF8String:script] completionHandler:^(NSString *result, NSError *error)
     {
         void *params[2] = { result, scriptdata };
-        _dw_event_handler(html, (id)params, 18);
+        _dw_event_handler(html, (id)params, _DW_EVENT_HTML_RESULT);
     }];
     DW_LOCAL_POOL_OUT;
     DW_FUNCTION_RETURN_THIS(retval);
