@@ -3231,7 +3231,7 @@ MRESULT EXPENTRY _dw_run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
                            {
                               NOTIFYRECORDEMPHASIS pre;
 
-                              dw_tree_dw_item_select(tmp->window, (HTREEITEM)mp2);
+                              dw_tree_item_select(tmp->window, (HTREEITEM)mp2);
                               pre.pRecord = mp2;
                               pre.fEmphasisMask = CRA_CURSORED;
                               pre.hwndCnr = tmp->window;
@@ -9290,7 +9290,7 @@ void * API dw_tree_item_get_data(HWND DW_UNUSED(handle), HTREEITEM item)
  *       handle: Handle to the tree window (widget) to be selected.
  *       item: Handle to the item to be selected.
  */
-void API dw_tree_dw_item_select(HWND handle, HTREEITEM item)
+void API dw_tree_item_select(HWND handle, HTREEITEM item)
 {
    PRECORDCORE pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)0L, MPFROM2SHORT(CMA_FIRST, CMA_ITEMORDER));
 
@@ -10058,7 +10058,7 @@ void API dw_container_set_column_width(HWND DW_UNUSED(handle), int DW_UNUSED(col
  */
 void API dw_container_set_row_title(void *pointer, int row, const char *title)
 {
-   DWContainerInfo *ci = DWContainerInfo *)pointer;
+   DWContainerInfo *ci = (DWContainerInfo *)pointer;
    PRECORDCORE temp;
    int z, currentcount;
    CNRINFO cnr;
@@ -12319,7 +12319,7 @@ void API dw_window_default(HWND window, HWND defaultitem)
  *         window: Window (widget) to look for the ENTER press.
  *         next: Window (widget) to move to next (or click)
  */
-void API dw_window_dw_click_default(HWND window, HWND next)
+void API dw_window_click_default(HWND window, HWND next)
 {
    WindowData *blah = (WindowData *)WinQueryWindowPtr(window, QWP_USER);
 
