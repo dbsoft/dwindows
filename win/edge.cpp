@@ -19,13 +19,13 @@ using namespace Microsoft::WRL;
 extern "C" {
 
 	/* Import the character conversion functions from dw.c */
-	LPWSTR _myUTF8toWide(const char* utf8string, void* outbuf);
-	char* _myWideToUTF8(LPCWSTR widestring, void* outbuf);
-	#define UTF8toWide(a) _myUTF8toWide(a, a ? _alloca(MultiByteToWideChar(CP_UTF8, 0, a, -1, NULL, 0) * sizeof(WCHAR)) : NULL)
-	#define WideToUTF8(a) _myWideToUTF8(a, a ? _alloca(WideCharToMultiByte(CP_UTF8, 0, a, -1, NULL, 0, NULL, NULL)) : NULL)
-	LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2);
-	void _DWCreateJunction(LPWSTR source, LPWSTR target);
-	LPWSTR _DWGetEdgeStablePath(void);
+	LPWSTR _dw_UTF8toWide(const char* utf8string, void* outbuf);
+	char* _dw_WideToUTF8(LPCWSTR widestring, void* outbuf);
+	#define UTF8toWide(a) _dw_UTF8toWide(a, a ? _alloca(MultiByteToWideChar(CP_UTF8, 0, a, -1, NULL, 0) * sizeof(WCHAR)) : NULL)
+	#define WideToUTF8(a) _dw_WideToUTF8(a, a ? _alloca(WideCharToMultiByte(CP_UTF8, 0, a, -1, NULL, 0, NULL, NULL)) : NULL)
+	LRESULT CALLBACK _dw_wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2);
+	void _dw_create_junction(LPWSTR source, LPWSTR target);
+	LPWSTR _dw_get_edge_stable_path(void);
 }
 
 class EdgeBrowser
@@ -116,7 +116,7 @@ LRESULT CALLBACK EdgeBrowser::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
 									LPWSTR uri;
 									sender->get_Source(&uri);
 
-									_wndproc(hWnd, WM_USER + 101, (WPARAM)DW_INT_TO_POINTER(DW_HTML_CHANGE_STARTED),
+									_dw_wndproc(hWnd, WM_USER + 101, (WPARAM)DW_INT_TO_POINTER(DW_HTML_CHANGE_STARTED),
 										!wcscmp(uri, L"about:blank") ? (LPARAM)"" : (LPARAM)WideToUTF8((LPWSTR)uri));
 
 									return S_OK;
@@ -131,7 +131,7 @@ LRESULT CALLBACK EdgeBrowser::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
 									LPWSTR uri;
 									sender->get_Source(&uri);
 
-									_wndproc(hWnd, WM_USER + 101, (WPARAM)DW_INT_TO_POINTER(DW_HTML_CHANGE_REDIRECT),
+									_dw_wndproc(hWnd, WM_USER + 101, (WPARAM)DW_INT_TO_POINTER(DW_HTML_CHANGE_REDIRECT),
 										!wcscmp(uri, L"about:blank") ? (LPARAM)"" : (LPARAM)WideToUTF8((LPWSTR)uri));
 
 									return S_OK;
@@ -146,7 +146,7 @@ LRESULT CALLBACK EdgeBrowser::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
 									LPWSTR uri;
 									sender->get_Source(&uri);
 
-									_wndproc(hWnd, WM_USER + 101, (WPARAM)DW_INT_TO_POINTER(DW_HTML_CHANGE_LOADING),
+									_dw_wndproc(hWnd, WM_USER + 101, (WPARAM)DW_INT_TO_POINTER(DW_HTML_CHANGE_LOADING),
 										!wcscmp(uri, L"about:blank") ? (LPARAM)"" : (LPARAM)WideToUTF8((LPWSTR)uri));
 
 									return S_OK;
@@ -161,7 +161,7 @@ LRESULT CALLBACK EdgeBrowser::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
 									LPWSTR uri;
 									sender->get_Source(&uri);
 
-									_wndproc(hWnd, WM_USER + 101, (WPARAM)DW_INT_TO_POINTER(DW_HTML_CHANGE_COMPLETE),
+									_dw_wndproc(hWnd, WM_USER + 101, (WPARAM)DW_INT_TO_POINTER(DW_HTML_CHANGE_COMPLETE),
 										!wcscmp(uri, L"about:blank") ? (LPARAM)"" : (LPARAM)WideToUTF8((LPWSTR)uri));
 
 									return S_OK;
@@ -255,7 +255,7 @@ BOOL EdgeBrowser::Detect(LPWSTR AppID)
 		wcscat(edgepath, L"EdgeStable");
 
 		// Create the NTFS junction to get around Microsoft's path blacklist
-		_DWCreateJunction(_DWGetEdgeStablePath(), edgepath);
+		_dw_create_junction(_dw_get_edge_stable_path(), edgepath);
 
 		CreateCoreWebView2EnvironmentWithOptions(edgepath, tempdir, nullptr,
 			Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
@@ -360,7 +360,7 @@ int EdgeWebView::JavascriptRun(const char* script, void* scriptdata)
 						scriptresult++;
 					}
 					void *params[2] = { (void *)scriptresult, DW_INT_TO_POINTER((error == S_OK ? DW_ERROR_NONE : DW_ERROR_UNKNOWN)) };
-					_wndproc(thishwnd, WM_USER + 100, (WPARAM)params, (LPARAM)scriptdata);
+					_dw_wndproc(thishwnd, WM_USER + 100, (WPARAM)params, (LPARAM)scriptdata);
 					return S_OK;
 				}).Get());
 	return DW_ERROR_NONE;
@@ -385,7 +385,7 @@ extern "C" {
 	// Create a junction to Edge Stable current version so we can load it...
 	// For now we are using CreateProcess() to execute the mklink command...
 	// May switch to using C code  but that seems to be overly complicated
-	void _DWCreateJunction(LPWSTR source, LPWSTR target)
+	void _dw_create_junction(LPWSTR source, LPWSTR target)
 	{
 		// Command line must be at least 2 MAX_PATHs and "cmd /c mklink /J "<path1>" "<path2>"" (22) and a NULL
 		WCHAR cmdLine[(MAX_PATH*2)+23] = L"cmd /c mklink /J \"";
@@ -418,7 +418,7 @@ extern "C" {
 	}
 
 	// Return the path the the current Edge Stable version
-	LPWSTR _DWGetEdgeStablePath(void)
+	LPWSTR _dw_get_edge_stable_path(void)
 	{
 		HKEY hKey;
 		WCHAR szBuffer[100] = {0};
@@ -552,7 +552,7 @@ extern "C" {
 	 * Our message handler for our window to host the browser.
 	 */
 
-	LRESULT CALLBACK _edgeWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+	LRESULT CALLBACK _dw_edgewndproc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
 		if (DW_EDGE)
 			return DW_EDGE->WndProc(hWnd, uMsg, wParam, lParam);

@@ -32,12 +32,12 @@ the same level of OLE in-place activation.
 #include "dw.h"
 
 /* Import the character conversion functions from dw.c */
-LPWSTR _myUTF8toWide(const char *utf8string, void *outbuf);
-char *_myWideToUTF8(LPCWSTR widestring, void *outbuf);
-#define UTF8toWide(a) _myUTF8toWide(a, a ? _alloca(MultiByteToWideChar(CP_UTF8, 0, a, -1, NULL, 0) * sizeof(WCHAR)) : NULL)
-#define WideToUTF8(a) _myWideToUTF8(a, a ? _alloca(WideCharToMultiByte(CP_UTF8, 0, a, -1, NULL, 0, NULL, NULL)) : NULL)
-LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2);
-BOOL CALLBACK _free_window_memory(HWND handle, LPARAM lParam);
+LPWSTR _dw_UTF8toWide(const char *utf8string, void *outbuf);
+char *_dw_WideToUTF8(LPCWSTR widestring, void *outbuf);
+#define UTF8toWide(a) _dw_UTF8toWide(a, a ? _alloca(MultiByteToWideChar(CP_UTF8, 0, a, -1, NULL, 0) * sizeof(WCHAR)) : NULL)
+#define WideToUTF8(a) _dw_WideToUTF8(a, a ? _alloca(WideCharToMultiByte(CP_UTF8, 0, a, -1, NULL, 0, NULL, NULL)) : NULL)
+LRESULT CALLBACK _dw_wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2);
+BOOL CALLBACK _dw_free_window_memory(HWND handle, LPARAM lParam);
 
 // This is used by DisplayHTMLStr(). It can be global because we never change it.
 static const SAFEARRAYBOUND ArrayBound = {1, 0};
@@ -1173,7 +1173,7 @@ static HRESULT STDMETHODCALLTYPE DWebBrowserEvent2_Invoke(DWEventHandler *this, 
 			hwnd = (HWND)DW_UINT_TO_POINTER(vWindow.ullVal);
 			SysFreeString(bstrProp);
 			/* Send the event for signal handling */
-			_wndproc(hwnd, WM_USER+101, (WPARAM)DW_INT_TO_POINTER(DW_HTML_CHANGE_STARTED), (LPARAM)WideToUTF8((LPWSTR)pszURL));
+			_dw_wndproc(hwnd, WM_USER+101, (WPARAM)DW_INT_TO_POINTER(DW_HTML_CHANGE_STARTED), (LPARAM)WideToUTF8((LPWSTR)pszURL));
 
 			// Make sure you don't accidently cancel the navigation.
 			*V_BOOLREF(&pDispParams->rgvarg[0]) = VARIANT_FALSE;
@@ -1194,7 +1194,7 @@ static HRESULT STDMETHODCALLTYPE DWebBrowserEvent2_Invoke(DWEventHandler *this, 
 			SysFreeString(bstrProp);
 			pwb->lpVtbl->get_LocationURL(pwb, &locationURL);
 			/* Send the event for signal handling */
-			_wndproc(hwnd, WM_USER+101, (WPARAM)DW_INT_TO_POINTER(DW_HTML_CHANGE_COMPLETE), (LPARAM)WideToUTF8((LPWSTR)locationURL));
+			_dw_wndproc(hwnd, WM_USER+101, (WPARAM)DW_INT_TO_POINTER(DW_HTML_CHANGE_COMPLETE), (LPARAM)WideToUTF8((LPWSTR)locationURL));
 			break;
 		}
 		default:
@@ -1619,7 +1619,7 @@ int _dw_html_javascript_run(HWND hwnd, const char *script, void *scriptdata)
 					params[0] = (void*)(result.vt == VT_BSTR ? WideToUTF8(result.bstrVal) : NULL);
 					params[1] = DW_INT_TO_POINTER((SUCCEEDED(hr) ? DW_ERROR_NONE : DW_ERROR_UNKNOWN));
 					/* Pass the result back for event handling */
-					_wndproc(hwnd, WM_USER+100, (WPARAM)params, (LPARAM)scriptdata);
+					_dw_wndproc(hwnd, WM_USER+100, (WPARAM)params, (LPARAM)scriptdata);
 					VariantClear(&result);
 					SysFreeString(myscript);
 					retval = DW_ERROR_NONE;
@@ -1924,7 +1924,7 @@ long _EmbedBrowserObject(HWND hwnd)
  * Our message handler for our window to host the browser.
  */
 
-LRESULT CALLBACK _browserWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+LRESULT CALLBACK _dw_browserwndproc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	switch (uMsg)
 	{
@@ -1951,7 +1951,7 @@ LRESULT CALLBACK _browserWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM 
 		{
 			// Detach the browser object from this window, and free resources.
 			_UnEmbedBrowserObject(hwnd);
-			_free_window_memory(hwnd, 0);
+			_dw_free_window_memory(hwnd, 0);
 			return(TRUE);
 		}
 	}

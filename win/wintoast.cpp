@@ -6,7 +6,7 @@
 using namespace WinToastLib;
 
 extern "C" {
-   LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2);
+   LRESULT CALLBACK _dw_wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2);
 }
 
 class DWHandler : public IWinToastHandler {
@@ -15,14 +15,14 @@ public:
 
     void toastActivated() const {
         // The user clicked in this toast
-        _wndproc((HWND)templ, WM_USER+102, 0, 0);
+        _dw_wndproc((HWND)templ, WM_USER+102, 0, 0);
         dw_signal_disconnect_by_window((HWND)templ);
         delete templ;
     }
 
     void toastActivated(int actionIndex) const {
         // The user clicked on action
-        _wndproc((HWND)templ, WM_USER+102, 0, 0);
+        _dw_wndproc((HWND)templ, WM_USER+102, 0, 0);
         dw_signal_disconnect_by_window((HWND)templ);
         delete templ;
     }
