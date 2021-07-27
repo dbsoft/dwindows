@@ -297,38 +297,38 @@ static char _dw_app_name[_DW_APP_ID_SIZE+1]= {0};
 int main(int argc, char *argv[]);
 
 #define ICON_INDEX_LIMIT 200
-HICON lookup[200];
-HIMAGELIST hSmall  = 0, hLarge = 0;
+HICON _dw_icon_lookup[200];
+HIMAGELIST _dw_image_list_small  = 0, _dw_image_list_large = 0;
 
 /* Special flag used for internal tracking */
 #define DW_CFA_RESERVED (1 << 30)
 
-DWORD _foreground;
-DWORD _background;
-DWORD _hPen;
-DWORD _hBrush;
+DWORD _dw_foreground;
+DWORD _dw_background;
+DWORD _dw_hpen;
+DWORD _dw_hbrush;
 #ifdef GDIPLUS
-DWORD _gpPen;
-DWORD _gpBrush;
+DWORD _dw_gppen;
+DWORD _dw_gpbrush;
 #endif
 
-BYTE _red[] = {   0x00, 0xbb, 0x00, 0xaa, 0x00, 0xbb, 0x00, 0xaa, 0x77,
+BYTE _dw_red[] = {   0x00, 0xbb, 0x00, 0xaa, 0x00, 0xbb, 0x00, 0xaa, 0x77,
            0xff, 0x00, 0xee, 0x00, 0xff, 0x00, 0xff, 0xaa, 0x00 };
-BYTE _green[] = { 0x00, 0x00, 0xbb, 0xaa, 0x00, 0x00, 0xbb, 0xaa, 0x77,
+BYTE _dw_green[] = { 0x00, 0x00, 0xbb, 0xaa, 0x00, 0x00, 0xbb, 0xaa, 0x77,
            0x00, 0xff, 0xee, 0x00, 0x00, 0xee, 0xff, 0xaa, 0x00 };
-BYTE _blue[] = {  0x00, 0x00, 0x00, 0x00, 0xcc, 0xbb, 0xbb, 0xaa, 0x77,
+BYTE _dw_blue[] = {  0x00, 0x00, 0x00, 0x00, 0xcc, 0xbb, 0xbb, 0xaa, 0x77,
             0x00, 0x00, 0x00, 0xff, 0xff, 0xee, 0xff, 0xaa, 0x00};
 
-HBRUSH _colors[18];
+HBRUSH _dw_colors[18];
 
-HFONT _DefaultFont = NULL;
+HFONT _DWDefaultFont = NULL;
 
 #if (defined(BUILD_DLL) || defined(BUILD_HTML))
-LRESULT CALLBACK _browserWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+LRESULT CALLBACK _dw_browserwndproc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 #ifdef BUILD_EDGE
 BOOL _dw_edge_detect(LPWSTR AppID);
 BOOL _DW_EDGE_DETECTED = FALSE;
-LRESULT CALLBACK _edgeWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+LRESULT CALLBACK _dw_edgewndproc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 #endif
 #endif
 #ifdef BUILD_TOAST
@@ -337,13 +337,13 @@ void *_dw_notification_new(LPWSTR title, LPWSTR image, LPWSTR description);
 int _dw_notification_send(void *notification);
 BOOL _dw_toast_is_compatible(void);
 #endif 
-LRESULT CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2);
-void _resize_notebook_page(HWND handle, int pageid);
-void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y);
-int _lookup_icon(HWND handle, HICON hicon, int type);
-HFONT _acquire_font(HWND handle, const char *fontname);
-void _click_default(HWND handle);
-void _do_resize(Box *thisbox, int x, int y, int xborder, int yborder);
+LRESULT CALLBACK _dw_colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2);
+void _dw_resize_notebook_page(HWND handle, int pageid);
+void _dw_handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y);
+int _dw_lookup_icon(HWND handle, HICON hicon, int type);
+HFONT _dw_acquire_font(HWND handle, const char *fontname);
+void _dw_click_default(HWND handle);
+void _dw_do_resize(Box *thisbox, int x, int y, int xborder, int yborder);
 
 /* Internal function to queue a window redraw */
 void _dw_redraw(HWND window, int skip)
@@ -380,14 +380,14 @@ typedef struct
    ULONG message;
    char name[30];
 
-} SignalList;
+} DWSignalList;
 
 static int in_checkbox_handler = 0;
 
-/* List of signals and their equivilent Win32 message */
+/* List of signals and their equivalent Win32 message */
 #define SIGNALMAX 19
 
-SignalList SignalTranslate[SIGNALMAX] = {
+DWSignalList DWSignalTranslate[SIGNALMAX] = {
    { WM_SIZE,         DW_SIGNAL_CONFIGURE },
    { WM_CHAR,         DW_SIGNAL_KEY_PRESS },
    { WM_LBUTTONDOWN,  DW_SIGNAL_BUTTON_PRESS },
@@ -508,8 +508,8 @@ char ** API _dw_convertargs(int *count, char *start, HINSTANCE hInstance)
 
 #ifdef UNICODE
 /* Macro and internal function to convert UTF8 to Unicode wide characters */
-#define UTF8toWide(a) _myUTF8toWide(a, a ? _alloca(MultiByteToWideChar(CP_UTF8, 0, a, -1, NULL, 0) * sizeof(WCHAR)) : NULL)
-LPWSTR _myUTF8toWide(const char *utf8string, void *outbuf)
+#define UTF8toWide(a) _dw_UTF8toWide(a, a ? _alloca(MultiByteToWideChar(CP_UTF8, 0, a, -1, NULL, 0) * sizeof(WCHAR)) : NULL)
+LPWSTR _dw_UTF8toWide(const char *utf8string, void *outbuf)
 {
    LPWSTR retbuf = outbuf;
 
@@ -517,8 +517,8 @@ LPWSTR _myUTF8toWide(const char *utf8string, void *outbuf)
       MultiByteToWideChar(CP_UTF8, 0, utf8string, -1, retbuf, MultiByteToWideChar(CP_UTF8, 0, utf8string, -1, NULL, 0) * sizeof(WCHAR));
    return retbuf;
 }
-#define WideToUTF8(a) _myWideToUTF8(a, a ? _alloca(WideCharToMultiByte(CP_UTF8, 0, a, -1, NULL, 0, NULL, NULL)) : NULL)
-char *_myWideToUTF8(LPCWSTR widestring, void *outbuf)
+#define WideToUTF8(a) _dw_WideToUTF8(a, a ? _alloca(WideCharToMultiByte(CP_UTF8, 0, a, -1, NULL, 0, NULL, NULL)) : NULL)
+char *_dw_WideToUTF8(LPCWSTR widestring, void *outbuf)
 {
    char *retbuf = outbuf;
 
@@ -531,7 +531,7 @@ char *_myWideToUTF8(LPCWSTR widestring, void *outbuf)
 #define WideToUTF8(a) a
 #endif
 
-DWORD GetDllVersion(LPCTSTR lpszDllName)
+DWORD _dw_get_dll_version(LPCTSTR lpszDllName)
 {
 
    HINSTANCE hinstDll;
@@ -578,7 +578,7 @@ DWORD GetDllVersion(LPCTSTR lpszDllName)
  * Not sure if we should include all these or not... maybe we should add TIFF and GIF?
  */
 #define NUM_EXTS 8
-char *image_exts[NUM_EXTS] =
+char *image_exts[NUM_EXTS+1] =
 {
    "",
    ".png",
@@ -587,7 +587,8 @@ char *image_exts[NUM_EXTS] =
    ".jpg",
    ".jpeg",
    ".tiff",
-   ".bmp"
+   ".bmp",
+   NULL
 };
 
 /* Section for loading files of types besides BMP and ICO and return HBITMAP or HICON */
@@ -768,7 +769,7 @@ BOOL (WINAPI * _IsDarkModeAllowedForWindow)(HWND) = NULL;
 BOOL (WINAPI * _ShouldSystemUseDarkMode)(VOID) = NULL;
 BOOL (WINAPI* _SetWindowCompositionAttribute)(HWND, _WINDOWCOMPOSITIONATTRIBDATA *) = NULL;
 
-BOOL _DW_IsHighContrast(VOID)
+BOOL _dw_is_high_contrast(VOID)
 {
    HIGHCONTRASTW highContrast = { sizeof(highContrast) };
    if(SystemParametersInfoW(SPI_GETHIGHCONTRAST, sizeof(highContrast), &highContrast, FALSE))
@@ -777,11 +778,11 @@ BOOL _DW_IsHighContrast(VOID)
 }
 
 /* Our own ShouldAppsUseDarkMode() that handles the forced option */
-BOOL _DW_ShouldAppsUseDarkMode(void)
+BOOL _dw_should_apps_use_dark_mode(void)
 {
     if(_DW_DARK_MODE_ALLOWED == DW_DARK_MODE_FORCED)
         return TRUE;
-    return (_ShouldAppsUseDarkMode() && !_DW_IsHighContrast());
+    return (_ShouldAppsUseDarkMode() && !_dw_is_high_contrast());
 }
 
 void _dw_init_dark_mode(void)
@@ -815,7 +816,7 @@ void _dw_init_dark_mode(void)
          else
             _SetPreferredAppMode(_AllowDark);
          _RefreshImmersiveColorPolicyState();
-         _DW_DARK_MODE_ENABLED = _DW_ShouldAppsUseDarkMode();
+         _DW_DARK_MODE_ENABLED = _dw_should_apps_use_dark_mode();
       }
    }
 }
@@ -831,7 +832,7 @@ MARGINS _dw_rect_to_margins(RECT rect)
    return none;
 }
 
-BOOL _DW_CanThemeWindow(HWND window)
+BOOL _dw_can_theme_window(HWND window)
 {
    TCHAR tmpbuf[100] = {0};
    LONG_PTR style = GetWindowLongPtr(window, GWL_STYLE);
@@ -858,11 +859,11 @@ BOOL _DW_CanThemeWindow(HWND window)
    return TRUE;
 }
 
-BOOL _DW_AllowDarkModeForWindow(HWND window, BOOL allow)
+BOOL _dw_allow_dark_mode_for_window(HWND window, BOOL allow)
 {
    if(_DW_DARK_MODE_SUPPORTED)
    {
-      if(_DW_CanThemeWindow(window))
+      if(_dw_can_theme_window(window))
       {
          if(_DW_DARK_MODE_ALLOWED > DW_DARK_MODE_BASIC)
          {
@@ -877,7 +878,7 @@ BOOL _DW_AllowDarkModeForWindow(HWND window, BOOL allow)
    return FALSE;
 }
 
-BOOL _DW_IsColorSchemeChangeMessage(LPARAM lParam)
+BOOL _dw_is_color_scheme_change_message(LPARAM lParam)
 {
    BOOL is = FALSE;
    if(lParam && _wcsicmp((LPCWCH)lParam, L"ImmersiveColorSet") == 0)
@@ -889,10 +890,10 @@ BOOL _DW_IsColorSchemeChangeMessage(LPARAM lParam)
    return is;
 }
 
-void _DW_RefreshTitleBarThemeColor(HWND window)
+void _dw_refresh_titlebar_theme_color(HWND window)
 {
    BOOL dark = FALSE;
-   if (_IsDarkModeAllowedForWindow(window) && _DW_ShouldAppsUseDarkMode())
+   if (_IsDarkModeAllowedForWindow(window) && _dw_should_apps_use_dark_mode())
       dark = TRUE;
    if(HIWORD(_dwVersion) < 18362)
       SetProp(window, TEXT("UseImmersiveDarkModeColors"), (HANDLE)DW_INT_TO_POINTER(dark));
@@ -909,7 +910,7 @@ BOOL CALLBACK _dw_set_child_window_theme(HWND window, LPARAM lParam)
 {
    if(_DW_DARK_MODE_SUPPORTED)
    {
-      _DW_AllowDarkModeForWindow(window, _DW_DARK_MODE_ENABLED);
+      _dw_allow_dark_mode_for_window(window, _DW_DARK_MODE_ENABLED);
       SendMessageW(window, WM_THEMECHANGED, 0, 0);
    }
    return TRUE;
@@ -919,7 +920,7 @@ BOOL CALLBACK _dw_set_child_window_theme(HWND window, LPARAM lParam)
 #define RECTHEIGHT(rc)  (rc.bottom - rc.top)
 
 /* Our function to draw the titlebar in dark mode */
-void _DW_DrawDarkModeTitleBar(HWND hWnd, HDC hdc)
+void _dw_draw_dark_mode_titlebar(HWND hWnd, HDC hdc)
 {
    if(_OpenThemeData && _CloseThemeData && _DrawThemeTextEx && _GetThemeSysFont && 
       _GetImmersiveColorFromColorSetEx && _GetImmersiveColorTypeFromName && _GetImmersiveUserColorSetPreference)
@@ -1030,7 +1031,7 @@ void _DW_DrawDarkModeTitleBar(HWND hWnd, HDC hdc)
 /* Special wrappers for GetSysColor*() since they currently don't support
  * dark mode, we will have to return modified colors when dark mode is enabled.
  */
-DWORD _DW_GetSysColor(int nIndex)
+DWORD _dw_get_syscolor(int nIndex)
 {
    DWORD retval = GetSysColor(nIndex);
 #ifdef AEROGLASS
@@ -1054,7 +1055,7 @@ DWORD _DW_GetSysColor(int nIndex)
    return retval;
 }
 
-HBRUSH _DW_GetSysColorBrush(int nIndex)
+HBRUSH _dw_get_syscolor_brush(int nIndex)
 {
    HBRUSH retval = GetSysColorBrush(nIndex);
 #ifdef AEROGLASS
@@ -1072,7 +1073,7 @@ HBRUSH _DW_GetSysColorBrush(int nIndex)
             retval = darkBkColorBrush;
          break;
          case COLOR_WINDOWTEXT:
-            retval = _colors[DW_CLR_WHITE];
+            retval = _dw_colors[DW_CLR_WHITE];
          break;
       }
    }
@@ -1082,7 +1083,7 @@ HBRUSH _DW_GetSysColorBrush(int nIndex)
 
 /* This function adds a signal handler callback into the linked list.
  */
-void _new_signal(ULONG message, HWND window, int id, void *signalfunction, void *discfunc, void *data)
+void _dw_new_signal(ULONG message, HWND window, int id, void *signalfunction, void *discfunc, void *data)
 {
    SignalHandler *new = malloc(sizeof(SignalHandler));
 
@@ -1123,14 +1124,14 @@ void _new_signal(ULONG message, HWND window, int id, void *signalfunction, void 
 }
 
 /* Finds the message number for a given signal name */
-ULONG _findsigmessage(const char *signame)
+ULONG _dw_findsigmessage(const char *signame)
 {
    int z;
 
    for(z=0;z<SIGNALMAX;z++)
    {
-      if(_stricmp(signame, SignalTranslate[z].name) == 0)
-         return SignalTranslate[z].message;
+      if(_stricmp(signame, DWSignalTranslate[z].name) == 0)
+         return DWSignalTranslate[z].message;
    }
    return 0L;
 }
@@ -1150,7 +1151,7 @@ ColorInfo *_dw_window_new_cinfo(HWND handle, BOOL subclass)
    {
       cinfo->back = cinfo->fore = -1;
       if(subclass)
-         cinfo->pOldProc = SubclassWindow(handle, _colorwndproc);
+         cinfo->pOldProc = SubclassWindow(handle, _dw_colorwndproc);
       SetWindowLongPtr(handle, GWLP_USERDATA, (LONG_PTR)cinfo);
    }
    return cinfo;
@@ -1159,7 +1160,7 @@ ColorInfo *_dw_window_new_cinfo(HWND handle, BOOL subclass)
 /* This function removes any handlers on windows and frees
  * the user memory and resources allocated to it.
  */
-BOOL CALLBACK _free_window_memory(HWND handle, LPARAM lParam)
+BOOL CALLBACK _dw_free_window_memory(HWND handle, LPARAM lParam)
 {
    ColorInfo *thiscinfo = _dw_window_get_cinfo(handle);
    HFONT oldfont = (HFONT)SendMessage(handle, WM_GETFONT, 0, 0);
@@ -1250,8 +1251,8 @@ BOOL CALLBACK _free_window_memory(HWND handle, LPARAM lParam)
          {
             if(array[z])
             {
-               _free_window_memory(array[z]->hwnd, 0);
-               EnumChildWindows(array[z]->hwnd, _free_window_memory, 0);
+               _dw_free_window_memory(array[z]->hwnd, 0);
+               EnumChildWindows(array[z]->hwnd, _dw_free_window_memory, 0);
                DestroyWindow(array[z]->hwnd);
                free(array[z]);
             }
@@ -1292,7 +1293,7 @@ BOOL CALLBACK _free_window_memory(HWND handle, LPARAM lParam)
    return TRUE;
 }
 
-void _free_menu_data(HMENU menu)
+void _dw_free_menu_data(HMENU menu)
 {
     int i, count = GetMenuItemCount(menu);
 
@@ -1322,26 +1323,26 @@ void _free_menu_data(HMENU menu)
 
            /* Check any submenus */
            if( mii.hSubMenu )
-              _free_menu_data(mii.hSubMenu);
+              _dw_free_menu_data(mii.hSubMenu);
         }
     }
     dw_signal_disconnect_by_name((HWND)menu, DW_SIGNAL_CLICKED);
 }
 
 /* Convert to our internal color scheme */
-ULONG _internal_color(ULONG color)
+ULONG _dw_internal_color(ULONG color)
 {
    if(color == DW_CLR_DEFAULT)
       return DW_RGB_TRANSPARENT;
    if(color < 18)
-      return DW_RGB(_red[color], _green[color], _blue[color]);
+      return DW_RGB(_dw_red[color], _dw_green[color], _dw_blue[color]);
    return color;
 }
 
 /* This function returns 1 if the window (widget) handle
  * passed to it is a valid window that can gain input focus.
  */
-int _validate_focus(HWND handle)
+int _dw_validate_focus(HWND handle)
 {
    TCHAR tmpbuf[100] = {0};
 
@@ -1374,7 +1375,7 @@ int _validate_focus(HWND handle)
    return 0;
 }
 
-HWND _normalize_handle(HWND handle)
+HWND _dw_normalize_handle(HWND handle)
 {
    TCHAR tmpbuf[100] = {0};
 
@@ -1399,17 +1400,17 @@ HWND _normalize_handle(HWND handle)
 #define _DW_DIRECTION_FORWARD -1
 #define _DW_DIRECTION_BACKWARD 1
 
-int _focus_check_box(Box *box, HWND handle, int start, int direction, HWND defaultitem);
+int _dw_focus_check_box(Box *box, HWND handle, int start, int direction, HWND defaultitem);
 
 /* Internal comparision function */
-int _focus_comp(int direction, int z, int end)
+int _dw_focus_comp(int direction, int z, int end)
 {
    if(direction == _DW_DIRECTION_FORWARD)
       return z > -1;
    return z < end;
 }
 
-int _focus_notebook(HWND hwnd, HWND handle, int start, int direction, HWND defaultitem)
+int _dw_focus_notebook(HWND hwnd, HWND handle, int start, int direction, HWND defaultitem)
 {
    NotebookPage **array = (NotebookPage **)dw_window_get_data(hwnd, "_dw_array");
    int pageid = TabCtrl_GetCurSel(hwnd);
@@ -1422,7 +1423,7 @@ int _focus_notebook(HWND hwnd, HWND handle, int start, int direction, HWND defau
       {
          notebox = (Box *)GetWindowLongPtr(array[pageid]->hwnd, GWLP_USERDATA);
 
-         if(notebox && _focus_check_box(notebox, handle, start == 3 ? 3 : 0, direction, defaultitem))
+         if(notebox && _dw_focus_check_box(notebox, handle, start == 3 ? 3 : 0, direction, defaultitem))
             return 1;
       }
    }
@@ -1430,7 +1431,7 @@ int _focus_notebook(HWND hwnd, HWND handle, int start, int direction, HWND defau
 }
 
 /* Handle box focus traversal in either direction */
-int _focus_check_box(Box *box, HWND handle, int start, int direction, HWND defaultitem)
+int _dw_focus_check_box(Box *box, HWND handle, int start, int direction, HWND defaultitem)
 {
    int z;
    static HWND lasthwnd, firsthwnd;
@@ -1460,21 +1461,21 @@ int _focus_check_box(Box *box, HWND handle, int start, int direction, HWND defau
       firsthwnd = 0;
    }
 
-   for(z=beg;_focus_comp(direction, z, end);z+=direction)
+   for(z=beg;_dw_focus_comp(direction, z, end);z+=direction)
    {
       if(box->items[z].type == TYPEBOX)
       {
          Box *thisbox = (Box *)GetWindowLongPtr(box->items[z].hwnd, GWLP_USERDATA);
 
-         if(thisbox && _focus_check_box(thisbox, handle, start == 3 ? 3 : 0, direction, defaultitem))
+         if(thisbox && _dw_focus_check_box(thisbox, handle, start == 3 ? 3 : 0, direction, defaultitem))
             return 1;
       }
       else
       {
-         int type = _validate_focus(box->items[z].hwnd);
+         int type = _dw_validate_focus(box->items[z].hwnd);
 
          /* Special case notebook, can focus and contains items */
-         if(type == 2 && direction == _DW_DIRECTION_FORWARD && _focus_notebook(box->items[z].hwnd, handle, start, direction, defaultitem))
+         if(type == 2 && direction == _DW_DIRECTION_FORWARD && _dw_focus_notebook(box->items[z].hwnd, handle, start, direction, defaultitem))
             return 1;
          if(box->items[z].hwnd == handle)
          {
@@ -1500,12 +1501,12 @@ int _focus_check_box(Box *box, HWND handle, int start, int direction, HWND defau
             {
                if(!defaultitem || (defaultitem && box->items[z].hwnd == defaultitem))
                {
-                  SetFocus(_normalize_handle(box->items[z].hwnd));
+                  SetFocus(_dw_normalize_handle(box->items[z].hwnd));
                   return 1;
                }
             }
 
-            lasthwnd = _normalize_handle(box->items[z].hwnd);
+            lasthwnd = _dw_normalize_handle(box->items[z].hwnd);
 
             if(!firsthwnd)
                firsthwnd = lasthwnd;
@@ -1526,7 +1527,7 @@ int _focus_check_box(Box *box, HWND handle, int start, int direction, HWND defau
                {
                   Box *splitbox = (Box *)GetWindowLongPtr(mybox, GWLP_USERDATA);
 
-                  if(splitbox && _focus_check_box(splitbox, handle, start == 3 ? 3 : 0, direction, defaultitem))
+                  if(splitbox && _dw_focus_check_box(splitbox, handle, start == 3 ? 3 : 0, direction, defaultitem))
                      return 1;
                }
 
@@ -1537,7 +1538,7 @@ int _focus_check_box(Box *box, HWND handle, int start, int direction, HWND defau
                {
                   Box *splitbox = (Box *)GetWindowLongPtr(mybox, GWLP_USERDATA);
 
-                  if(splitbox && _focus_check_box(splitbox, handle, start == 3 ? 3 : 0, direction, defaultitem))
+                  if(splitbox && _dw_focus_check_box(splitbox, handle, start == 3 ? 3 : 0, direction, defaultitem))
                      return 1;
                }
             }
@@ -1546,12 +1547,12 @@ int _focus_check_box(Box *box, HWND handle, int start, int direction, HWND defau
                 ColorInfo *cinfo = _dw_window_get_cinfo(handle);
                 Box *scrollbox = (Box *)GetWindowLongPtr(cinfo->combo, GWLP_USERDATA);
 
-                if(scrollbox && _focus_check_box(scrollbox, handle, start == 3 ? 3 : 0, direction, defaultitem))
+                if(scrollbox && _dw_focus_check_box(scrollbox, handle, start == 3 ? 3 : 0, direction, defaultitem))
                    return 1;
             }
          }
          /* Special case notebook, can focus and contains items */
-         if(type == 2 && direction == _DW_DIRECTION_BACKWARD && _focus_notebook(box->items[z].hwnd, handle, start, direction, defaultitem))
+         if(type == 2 && direction == _DW_DIRECTION_BACKWARD && _dw_focus_notebook(box->items[z].hwnd, handle, start, direction, defaultitem))
             return 1;
       }
    }
@@ -1561,7 +1562,7 @@ int _focus_check_box(Box *box, HWND handle, int start, int direction, HWND defau
 /* This function finds the first widget in the
  * layout and moves the current focus to it.
  */
-void _initial_focus(HWND handle)
+void _dw_initial_focus(HWND handle)
 {
    Box *thisbox = NULL;
    TCHAR tmpbuf[100] = {0};
@@ -1580,11 +1581,11 @@ void _initial_focus(HWND handle)
 
    if(thisbox)
    {
-      _focus_check_box(thisbox, handle, 3, _DW_DIRECTION_FORWARD, thisbox->defaultitem);
+      _dw_focus_check_box(thisbox, handle, 3, _DW_DIRECTION_FORWARD, thisbox->defaultitem);
    }
 }
 
-HWND _toplevel_window(HWND handle)
+HWND _dw_toplevel_window(HWND handle)
 {
    HWND box, lastbox = GetParent(handle);
 
@@ -1614,7 +1615,7 @@ HWND _toplevel_window(HWND handle)
 /* This function finds the current widget in the
  * layout and moves the current focus to the next item.
  */
-void _shift_focus(HWND handle, int direction)
+void _dw_shift_focus(HWND handle, int direction)
 {
    Box *thisbox;
 
@@ -1629,15 +1630,15 @@ void _shift_focus(HWND handle, int direction)
    thisbox = (Box *)GetWindowLongPtr(lastbox, GWLP_USERDATA);
    if(thisbox)
    {
-      if(_focus_check_box(thisbox, handle, 1, direction, 0)  == 0)
-         _focus_check_box(thisbox, handle, 2, direction, 0);
+      if(_dw_focus_check_box(thisbox, handle, 1, direction, 0)  == 0)
+         _dw_focus_check_box(thisbox, handle, 2, direction, 0);
    }
 }
 
 /* This function calculates how much space the widgets and boxes require
  * and does expansion as necessary.
  */
-static void _resize_box(Box *thisbox, int *depth, int x, int y, int xborder, int yborder, int pass)
+static void _dw_resize_box(Box *thisbox, int *depth, int x, int y, int xborder, int yborder, int pass)
 {
    /* Current item position */
    int z, currentx = thisbox->pad, currenty = thisbox->pad;
@@ -1705,7 +1706,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int xborder, int
                (*depth)++;
 
                /* Save the newly calculated values on the box */
-               _resize_box(tmp, depth, x, y, 0, 0, pass);
+               _dw_resize_box(tmp, depth, x, y, 0, 0, pass);
 
                /* Duplicate the values in the item list for use below */
                thisbox->items[z].width = tmp->minwidth;
@@ -1885,7 +1886,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int xborder, int
 
 
                 /* Get the required space for the box */
-                _resize_box(thisbox, &depth, cx, cy, 0, 0, 1);
+                _dw_resize_box(thisbox, &depth, cx, cy, 0, 0, 1);
 
                 if(cx < thisbox->minwidth)
                 {
@@ -1922,7 +1923,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int xborder, int
                 SetScrollInfo(handle, SB_VERT, &vsi, TRUE);
 
                 /* Layout the content of the scrollbox */
-                _do_resize(thisbox, cx, cy, 0, 0);
+                _dw_do_resize(thisbox, cx, cy, 0, 0);
             }
             else if(_tcsncmp(tmpbuf, SplitbarClassName, _tcslen(SplitbarClassName)+1)==0)
             {
@@ -1934,7 +1935,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int xborder, int
                         width, height, FALSE);
 
                if(percent && width > 0 && height > 0)
-                  _handle_splitbar_resize(handle, *percent, type, width, height);
+                  _dw_handle_splitbar_resize(handle, *percent, type, width, height);
             }
             else if(_tcsnicmp(tmpbuf, STATICCLASSNAME, _tcslen(STATICCLASSNAME)+1)==0)
             {
@@ -1986,7 +1987,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int xborder, int
                      }
                      /* Dive into the box */
                      (*depth)++;
-                     _resize_box(boxinfo, depth, width, height, 0, 0, pass);
+                     _dw_resize_box(boxinfo, depth, width, height, 0, 0, pass);
                      (*depth)--;
                   }
                }
@@ -2027,7 +2028,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int xborder, int
    }
 }
 
-void _do_resize(Box *thisbox, int x, int y, int xborder, int yborder)
+void _dw_do_resize(Box *thisbox, int x, int y, int xborder, int yborder)
 {
    if(x != 0 && y != 0)
    {
@@ -2036,15 +2037,15 @@ void _do_resize(Box *thisbox, int x, int y, int xborder, int yborder)
          int depth = 0;
 
          /* Calculate space requirements */
-         _resize_box(thisbox, &depth, x, y, xborder, yborder, 1);
+         _dw_resize_box(thisbox, &depth, x, y, xborder, yborder, 1);
 
          /* Finally place all the boxes and controls */
-         _resize_box(thisbox, &depth, x, y, xborder, yborder, 2);
+         _dw_resize_box(thisbox, &depth, x, y, xborder, yborder, 2);
       }
    }
 }
 
-int _HandleScroller(HWND handle, int bar, int pos, int which)
+int _dw_handle_scroller(HWND handle, int bar, int pos, int which)
 {
    SCROLLINFO si;
 
@@ -2086,7 +2087,7 @@ int _HandleScroller(HWND handle, int bar, int pos, int which)
    return -1;
 }
 
-HMENU _get_owner(HMENU menu)
+HMENU _dw_get_owner(HMENU menu)
 {
    MENUINFO mi;
 
@@ -2099,12 +2100,12 @@ HMENU _get_owner(HMENU menu)
 }
 
 /* Find the desktop window handle */
-HMENU _menu_owner(HMENU handle)
+HMENU _dw_menu_owner(HMENU handle)
 {
-   HMENU menuowner = 0, lastowner = _get_owner(handle);
+   HMENU menuowner = 0, lastowner = _dw_get_owner(handle);
 
    /* Find the toplevel menu */
-   while((menuowner = _get_owner(lastowner)) != 0)
+   while((menuowner = _dw_get_owner(lastowner)) != 0)
    {
       if(menuowner == (HMENU)1)
          return lastowner;
@@ -2147,7 +2148,7 @@ void _dw_show_margins(HWND handle, MARGINS mar, int line)
 #endif
 
 /* The main window procedure for Dynamic Windows, all the resizing code is done here. */
-LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
+LRESULT CALLBACK _dw_wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 {
    int result = -1, taskbar = FALSE;
    SignalHandler *tmp = Root;
@@ -2242,7 +2243,7 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
    {
       PAINTSTRUCT ps;
       HDC hdc = BeginPaint(hWnd, &ps);
-      _DW_DrawDarkModeTitleBar(hWnd, hdc);
+      _dw_draw_dark_mode_titlebar(hWnd, hdc);
       EndPaint(hWnd, &ps);
    }
 #endif
@@ -2404,7 +2405,7 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                   {
                      int (DWSIGNAL *keypressfunc)(HWND, char, int, int, void *, char *) = tmp->signalfunction;
 
-                     if(hWnd == tmp->window || _toplevel_window(hWnd) == tmp->window)
+                     if(hWnd == tmp->window || _dw_toplevel_window(hWnd) == tmp->window)
                      {
                         int special = 0;
                         char *utf8 = NULL, ch[2] = {0};
@@ -2642,7 +2643,7 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 #endif
                      else if (tmp->id && passthru == tmp->id)
                      {
-                        HMENU hwndmenu = GetMenu(hWnd), menuowner = _menu_owner((HMENU)tmp->window);
+                        HMENU hwndmenu = GetMenu(hWnd), menuowner = _dw_menu_owner((HMENU)tmp->window);
 
                         if (menuowner == hwndmenu || !menuowner)
                         {
@@ -2695,7 +2696,7 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                         if(handle == tmp->window)
                         {
                            int bar = (origmsg == WM_HSCROLL) ? SB_HORZ : SB_VERT;
-                           int value = _HandleScroller(handle, bar, (int)HIWORD(mp1), (int)LOWORD(mp1));
+                           int value = _dw_handle_scroller(handle, bar, (int)HIWORD(mp1), (int)LOWORD(mp1));
 
                            if(value > -1)
                            {
@@ -2792,11 +2793,11 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
       break;
    case WM_SETTINGCHANGE:
    {
-      if(_DW_DARK_MODE_SUPPORTED && _DW_IsColorSchemeChangeMessage(mp2))
+      if(_DW_DARK_MODE_SUPPORTED && _dw_is_color_scheme_change_message(mp2))
       {
-         _DW_DARK_MODE_ENABLED = _DW_ShouldAppsUseDarkMode();
+         _DW_DARK_MODE_ENABLED = _dw_should_apps_use_dark_mode();
 
-         _DW_RefreshTitleBarThemeColor(hWnd);
+         _dw_refresh_titlebar_theme_color(hWnd);
          _dw_set_child_window_theme(hWnd, 0);
          EnumChildWindows(hWnd, _dw_set_child_window_theme, 0);
       }
@@ -2846,7 +2847,7 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                lasthwnd = hWnd;
 
                ShowWindow(mybox->items[0].hwnd, SW_HIDE);
-               _do_resize(mybox, x, y, xborder, yborder);
+               _dw_do_resize(mybox, x, y, xborder, yborder);
                ShowWindow(mybox->items[0].hwnd, SW_SHOW);
                return 0;
             }
@@ -2860,7 +2861,7 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
          windowfunc((void *)mp2);
       break;
    case WM_USER+5:
-      _free_menu_data((HMENU)mp1);
+      _dw_free_menu_data((HMENU)mp1);
       DestroyMenu((HMENU)mp1);
       break;
    case WM_NOTIFY:
@@ -2884,7 +2885,7 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
             if(num > -1 && array && array[num])
                SetParent(array[num]->hwnd, tem->hwndFrom);
 
-            _resize_notebook_page(tem->hwndFrom, num);
+            _dw_resize_notebook_page(tem->hwndFrom, num);
          }
          else if(tem->code == LVN_DELETEITEM)
          {
@@ -2918,7 +2919,7 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 
          if(dw_window_get_data(handle, "_dw_scrollbar"))
          {
-            int value = _HandleScroller(handle, bar, (int)HIWORD(mp1), (int)LOWORD(mp1));
+            int value = _dw_handle_scroller(handle, bar, (int)HIWORD(mp1), (int)LOWORD(mp1));
 
             if(value > -1)
                dw_scrollbar_set_pos(handle, value);
@@ -2930,7 +2931,7 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
             GetClassName( hWnd, tmpbuf, 99 );
             if ( _tcsnicmp(tmpbuf, FRAMECLASSNAME, _tcslen(FRAMECLASSNAME)+1 ) == 0 )
             {
-               _HandleScroller(hWnd, bar, (int)HIWORD(mp1), (int)LOWORD(mp1));
+               _dw_handle_scroller(hWnd, bar, (int)HIWORD(mp1), (int)LOWORD(mp1));
             }
          }
       }
@@ -2949,11 +2950,11 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
          ColorInfo *cinfo = _dw_window_get_cinfo(hWnd);
 
          if(menu || (cinfo && (menu = cinfo->hmenu)))
-            _free_menu_data(menu);
+            _dw_free_menu_data(menu);
 
          /* Free memory before destroying */
-         _free_window_memory(hWnd, 0);
-         EnumChildWindows(hWnd, _free_window_memory, 0);
+         _dw_free_window_memory(hWnd, 0);
+         EnumChildWindows(hWnd, _dw_free_window_memory, 0);
       }
       break;
    case WM_MOUSEMOVE:
@@ -2961,7 +2962,7 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
          HCURSOR cursor;
 
          if((cursor = (HCURSOR)dw_window_get_data(hWnd, "_dw_cursor")) ||
-            (cursor = (HCURSOR)dw_window_get_data(_toplevel_window(hWnd), "_dw_cursor")))
+            (cursor = (HCURSOR)dw_window_get_data(_dw_toplevel_window(hWnd), "_dw_cursor")))
          {
             SetCursor(cursor);
          }
@@ -2974,7 +2975,7 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
    case WM_CTLCOLORMSGBOX:
    case WM_CTLCOLORSCROLLBAR:
    case WM_CTLCOLORDLG:
-      return _colorwndproc(hWnd, msg, mp1, mp2);
+      return _dw_colorwndproc(hWnd, msg, mp1, mp2);
    }
    if(result != -1)
    {
@@ -2986,12 +2987,12 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
    return DefWindowProc(hWnd, msg, mp1, mp2);
 }
 
-VOID CALLBACK _TimerProc(HWND hwnd, UINT msg, UINT_PTR idEvent, DWORD dwTime)
+VOID CALLBACK _dw_timerproc(HWND hwnd, UINT msg, UINT_PTR idEvent, DWORD dwTime)
 {
-   _wndproc(hwnd, msg, (WPARAM)idEvent, 0);
+   _dw_wndproc(hwnd, msg, (WPARAM)idEvent, 0);
 }
 
-LRESULT CALLBACK _framewndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
+LRESULT CALLBACK _dw_framewndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 {
    switch( msg )
    {
@@ -3004,20 +3005,20 @@ LRESULT CALLBACK _framewndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
    case WM_COMMAND:
    case WM_NOTIFY:
    case WM_MOUSEMOVE:
-      _wndproc(hWnd, msg, mp1, mp2);
+      _dw_wndproc(hWnd, msg, mp1, mp2);
       break;
 #ifdef AEROGLASS
    case WM_THEMECHANGED:
       if(_DW_DARK_MODE_ALLOWED > DW_DARK_MODE_BASIC && _DW_DARK_MODE_SUPPORTED)
       {
-         SetClassLongPtr(hWnd, GCLP_HBRBACKGROUND, (LONG_PTR)_DW_GetSysColorBrush(COLOR_3DFACE));
+         SetClassLongPtr(hWnd, GCLP_HBRBACKGROUND, (LONG_PTR)_dw_get_syscolor_brush(COLOR_3DFACE));
          InvalidateRect(hWnd, NULL, TRUE);
       }
       break;
    case WM_ERASEBKGND:
       if(_dw_composition)
       {
-         ColorInfo *cinfo = _dw_window_get_cinfo(_toplevel_window(hWnd));
+         ColorInfo *cinfo = _dw_window_get_cinfo(_dw_toplevel_window(hWnd));
 
          if(cinfo && cinfo->style & DW_FCF_COMPOSITED && !IS_WIN8PLUS)
          {
@@ -3051,9 +3052,9 @@ LRESULT CALLBACK _framewndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                {
                   if(thiscinfo->fore != DW_CLR_DEFAULT)
                   {
-                     SetTextColor((HDC)mp1, RGB(_red[thiscinfo->fore],
-                                          _green[thiscinfo->fore],
-                                          _blue[thiscinfo->fore]));
+                     SetTextColor((HDC)mp1, RGB(_dw_red[thiscinfo->fore],
+                                          _dw_green[thiscinfo->fore],
+                                          _dw_blue[thiscinfo->fore]));
                   }
                }
                else if((thiscinfo->fore & DW_RGB_COLOR) == DW_RGB_COLOR)
@@ -3067,14 +3068,14 @@ LRESULT CALLBACK _framewndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                {
                   if(thiscinfo->back != DW_CLR_DEFAULT)
                   {
-                     SetBkColor((HDC)mp1, RGB(_red[thiscinfo->back],
-                                        _green[thiscinfo->back],
-                                        _blue[thiscinfo->back]));
+                     SetBkColor((HDC)mp1, RGB(_dw_red[thiscinfo->back],
+                                        _dw_green[thiscinfo->back],
+                                        _dw_blue[thiscinfo->back]));
                      if(thiscinfo->hbrush)
                         DeleteObject(thiscinfo->hbrush);
-                     thiscinfo->hbrush = CreateSolidBrush(RGB(_red[thiscinfo->back],
-                                                    _green[thiscinfo->back],
-                                                    _blue[thiscinfo->back]));
+                     thiscinfo->hbrush = CreateSolidBrush(RGB(_dw_red[thiscinfo->back],
+                                                    _dw_green[thiscinfo->back],
+                                                    _dw_blue[thiscinfo->back]));
                      SelectObject(hdcPaint, thiscinfo->hbrush);
                      Rectangle(hdcPaint, ps.rcPaint.left - 1, ps.rcPaint.top - 1, ps.rcPaint.right + 1, ps.rcPaint.bottom + 1);
                      success = TRUE;
@@ -3107,7 +3108,7 @@ LRESULT CALLBACK _framewndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
    return DefWindowProc(hWnd, msg, mp1, mp2);
 }
 
-LRESULT CALLBACK _rendwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
+LRESULT CALLBACK _dw_rendwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 {
    LRESULT rcode = TRUE;
 
@@ -3117,24 +3118,24 @@ LRESULT CALLBACK _rendwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
    case WM_MBUTTONDOWN:
    case WM_RBUTTONDOWN:
       SetFocus(hWnd);
-      rcode = _wndproc(hWnd, msg, mp1, mp2);
+      rcode = _dw_wndproc(hWnd, msg, mp1, mp2);
       break;
    case WM_MOUSEMOVE:
       /* call our standard Windows procedure */
-      rcode = _wndproc(hWnd, msg, mp1, mp2);
+      rcode = _dw_wndproc(hWnd, msg, mp1, mp2);
       break;
    case WM_USER+2:
    case WM_LBUTTONUP:
    case WM_MBUTTONUP:
    case WM_RBUTTONUP:
-      rcode = _wndproc(hWnd, msg, mp1, mp2);
+      rcode = _dw_wndproc(hWnd, msg, mp1, mp2);
       break;
    case WM_PAINT:
    case WM_SIZE:
    case WM_COMMAND:
    case WM_CHAR:
    case WM_KEYDOWN:
-      rcode = _wndproc(hWnd, msg, mp1, mp2);
+      rcode = _dw_wndproc(hWnd, msg, mp1, mp2);
       break;
    default:
       break;
@@ -3150,7 +3151,7 @@ LRESULT CALLBACK _spinnerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
    ColorInfo *cinfo = _dw_window_get_cinfo(hWnd);
 
    if(msg == WM_MOUSEMOVE)
-      _wndproc(hWnd, msg, mp1, mp2);
+      _dw_wndproc(hWnd, msg, mp1, mp2);
 
    if(cinfo)
    {
@@ -3248,7 +3249,7 @@ LRESULT CALLBACK _spinnerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
    return CallWindowProc(cinfo->pOldProc, hWnd, msg, mp1, mp2);
 }
 
-void _click_default(HWND handle)
+void _dw_click_default(HWND handle)
 {
    TCHAR tmpbuf[100] = {0};
 
@@ -3288,7 +3289,7 @@ void _click_default(HWND handle)
 }
 
 /* Subclass function that will handle setting colors on controls */
-LRESULT CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
+LRESULT CALLBACK _dw_colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 {
    ColorInfo *cinfo = _dw_window_get_cinfo(hWnd);
    TCHAR tmpbuf[100] = {0};
@@ -3300,7 +3301,7 @@ LRESULT CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
       cinfo = &(((Box *)cinfo)->cinfo);
 
    if ( msg == WM_MOUSEMOVE || msg == WM_USER+2 )
-      ret = _wndproc(hWnd, msg, mp1, mp2);
+      ret = _dw_wndproc(hWnd, msg, mp1, mp2);
 
    if (cinfo)
    {
@@ -3310,13 +3311,13 @@ LRESULT CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
       {
       case WM_SETFOCUS:
          if(cinfo->combo)
-            ret = _wndproc(cinfo->combo, msg, mp1, mp2);
+            ret = _dw_wndproc(cinfo->combo, msg, mp1, mp2);
          else
-            ret = _wndproc(hWnd, msg, mp1, mp2);
+            ret = _dw_wndproc(hWnd, msg, mp1, mp2);
          break;
       case WM_VSCROLL:
       case WM_HSCROLL:
-            ret = _wndproc(hWnd, msg, mp1, mp2);
+            ret = _dw_wndproc(hWnd, msg, mp1, mp2);
          break;
       case WM_KEYDOWN:
       case WM_KEYUP:
@@ -3361,26 +3362,26 @@ LRESULT CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
          }
          break;
       case WM_CHAR:
-         ret = _wndproc(hWnd, msg, mp1, mp2);
+         ret = _dw_wndproc(hWnd, msg, mp1, mp2);
          if (ret != TRUE && LOWORD(mp1) == '\t')
          {
             if (GetAsyncKeyState(VK_SHIFT) & 0x8000)
             {
                if (cinfo->combo)
-                  _shift_focus(cinfo->combo, _DW_DIRECTION_BACKWARD);
+                  _dw_shift_focus(cinfo->combo, _DW_DIRECTION_BACKWARD);
                else if(cinfo->buddy)
-                  _shift_focus(cinfo->buddy, _DW_DIRECTION_BACKWARD);
+                  _dw_shift_focus(cinfo->buddy, _DW_DIRECTION_BACKWARD);
                else
-                  _shift_focus(hWnd, _DW_DIRECTION_BACKWARD);
+                  _dw_shift_focus(hWnd, _DW_DIRECTION_BACKWARD);
             }
             else
             {
                if (cinfo->combo)
-                  _shift_focus(cinfo->combo, _DW_DIRECTION_FORWARD);
+                  _dw_shift_focus(cinfo->combo, _DW_DIRECTION_FORWARD);
                else if(cinfo->buddy)
-                  _shift_focus(cinfo->buddy, _DW_DIRECTION_FORWARD);
+                  _dw_shift_focus(cinfo->buddy, _DW_DIRECTION_FORWARD);
                else
-                  _shift_focus(hWnd, _DW_DIRECTION_FORWARD);
+                  _dw_shift_focus(hWnd, _DW_DIRECTION_FORWARD);
             }
             return FALSE;
          }
@@ -3389,7 +3390,7 @@ LRESULT CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 
             if ( cinfo->clickdefault )
             {
-               _click_default(cinfo->clickdefault);
+               _dw_click_default(cinfo->clickdefault);
                return (LRESULT)TRUE;
             }
             else
@@ -3398,12 +3399,12 @@ LRESULT CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                 * Find the toplevel window for the current window and check if it
                 * has a default click set
                 */
-               HWND tl = _toplevel_window( hWnd );
+               HWND tl = _dw_toplevel_window( hWnd );
                ColorInfo *mycinfo = _dw_window_get_cinfo(tl);
 
                if(mycinfo && mycinfo->clickdefault)
                {
-                  _click_default(mycinfo->clickdefault);
+                  _dw_click_default(mycinfo->clickdefault);
                   return (LRESULT)TRUE;
                }
             }
@@ -3458,7 +3459,7 @@ LRESULT CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                /* Handle foreground */
                if(thiscinfo->fore != DW_CLR_DEFAULT)
                {
-                  int fore = _internal_color(thiscinfo->fore);
+                  int fore = _dw_internal_color(thiscinfo->fore);
 
                   SetTextColor((HDC)mp1, RGB(DW_RED_VALUE(fore),
                                        DW_GREEN_VALUE(fore),
@@ -3466,7 +3467,7 @@ LRESULT CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                }
 #ifdef AEROGLASS
                else if(thiscinfo->fore == DW_CLR_DEFAULT && _DW_DARK_MODE_ALLOWED > DW_DARK_MODE_BASIC && _DW_DARK_MODE_ENABLED)
-                  SetTextColor((HDC)mp1, _DW_GetSysColor(COLOR_WINDOWTEXT));
+                  SetTextColor((HDC)mp1, _dw_get_syscolor(COLOR_WINDOWTEXT));
 #endif
                /* Handle background */
                if(thiscinfo->back == DW_RGB_TRANSPARENT)
@@ -3478,16 +3479,16 @@ LRESULT CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                }
                if(thisback == DW_CLR_DEFAULT)
                {
-                  HBRUSH hbr = _DW_GetSysColorBrush(COLOR_3DFACE);
+                  HBRUSH hbr = _dw_get_syscolor_brush(COLOR_3DFACE);
 
-                  SetBkColor((HDC)mp1, _DW_GetSysColor(COLOR_3DFACE));
+                  SetBkColor((HDC)mp1, _dw_get_syscolor(COLOR_3DFACE));
 
                   SelectObject((HDC)mp1, hbr);
                   return (LRESULT)(intptr_t)hbr;
                }
                else if(thisback != -1 && thisback != DW_RGB_TRANSPARENT)
                {
-                  int back = _internal_color(thisback);
+                  int back = _dw_internal_color(thisback);
 
                   SetBkColor((HDC)mp1, RGB(DW_RED_VALUE(back),
                                      DW_GREEN_VALUE(back),
@@ -3509,7 +3510,7 @@ LRESULT CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                case WM_CTLCOLORBTN:
                case WM_CTLCOLORDLG:
                   {
-                     ColorInfo *tlcinfo = _dw_window_get_cinfo(_toplevel_window(hWnd));
+                     ColorInfo *tlcinfo = _dw_window_get_cinfo(_dw_toplevel_window(hWnd));
 
                      if((_dw_composition && tlcinfo && (tlcinfo->style & DW_FCF_COMPOSITED)) && !IS_WIN8PLUS &&
                         (!thiscinfo || (thiscinfo && (thiscinfo->back == -1 || thiscinfo->back == DW_RGB_TRANSPARENT))))
@@ -3546,12 +3547,12 @@ LRESULT CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                         thisback = parentcinfo->back;
 
                      if(!thiscinfo || (thiscinfo && (thiscinfo->fore == DW_CLR_DEFAULT || thiscinfo->fore == -1)))
-                        SetTextColor((HDC)mp1, _DW_GetSysColor(COLOR_WINDOWTEXT));
+                        SetTextColor((HDC)mp1, _dw_get_syscolor(COLOR_WINDOWTEXT));
                      if(!thiscinfo || (thiscinfo && (thisback == DW_CLR_DEFAULT || thisback == -1 || thisback == DW_RGB_TRANSPARENT)))
                      {
-                        HBRUSH hbr = _DW_GetSysColorBrush(COLOR_3DFACE);
+                        HBRUSH hbr = _dw_get_syscolor_brush(COLOR_3DFACE);
 
-                        SetBkColor((HDC)mp1, _DW_GetSysColor(COLOR_3DFACE));
+                        SetBkColor((HDC)mp1, _dw_get_syscolor(COLOR_3DFACE));
 
                         SelectObject((HDC)mp1, hbr);
                         return (LRESULT)(intptr_t)hbr;
@@ -3575,7 +3576,7 @@ LRESULT CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 }
 
 /* Window procedure for container/listview */
-LRESULT CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
+LRESULT CALLBACK _dw_containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 {
    ContainerInfo *continfo = (ContainerInfo *)GetWindowLongPtr(hWnd, GWLP_USERDATA);
 
@@ -3584,7 +3585,7 @@ LRESULT CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
    case WM_COMMAND:
    case WM_NOTIFY:
    case WM_MOUSEMOVE:
-      _wndproc(hWnd, msg, mp1, mp2);
+      _dw_wndproc(hWnd, msg, mp1, mp2);
       break;
 #ifdef AEROGLASS
    case WM_THEMECHANGED:
@@ -3592,13 +3593,13 @@ LRESULT CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
       {
          if(!continfo || continfo->cinfo.back == -1 || continfo->cinfo.back == DW_CLR_DEFAULT)
          {
-            COLORREF bk = _DW_GetSysColor(COLOR_WINDOW);
+            COLORREF bk = _dw_get_syscolor(COLOR_WINDOW);
 
             ListView_SetBkColor(hWnd, bk);
             ListView_SetTextBkColor(hWnd, bk);
          }
          if(!continfo || continfo->cinfo.fore == -1 || continfo->cinfo.fore == DW_CLR_DEFAULT)
-            ListView_SetTextColor(hWnd, _DW_GetSysColor(COLOR_WINDOWTEXT));
+            ListView_SetTextColor(hWnd, _dw_get_syscolor(COLOR_WINDOWTEXT));
       }
       break;
 #endif
@@ -3608,7 +3609,7 @@ LRESULT CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
             RECT rectUpd, rectDestin, rectThis, *rect = &rectThis;
             int iItems, iTop, i;
             COLORREF c, odd, even;
-            unsigned long temp = _internal_color(continfo->odd);
+            unsigned long temp = _dw_internal_color(continfo->odd);
 
             /* Create the colors based on the current theme */
             if(continfo->odd == DW_CLR_DEFAULT)
@@ -3622,7 +3623,7 @@ LRESULT CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
             }
             else
                   odd = RGB(DW_RED_VALUE(temp), DW_GREEN_VALUE(temp), DW_BLUE_VALUE(temp));
-            temp = _internal_color(continfo->even);
+            temp = _dw_internal_color(continfo->even);
             if(continfo->even == DW_CLR_DEFAULT)
                even = DW_RGB_TRANSPARENT;
             else
@@ -3669,9 +3670,9 @@ LRESULT CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
          if(LOWORD(mp1) == '\t')
          {
             if(GetAsyncKeyState(VK_SHIFT) & 0x8000)
-               _shift_focus(hWnd, _DW_DIRECTION_BACKWARD);
+               _dw_shift_focus(hWnd, _DW_DIRECTION_BACKWARD);
             else
-               _shift_focus(hWnd, _DW_DIRECTION_FORWARD);
+               _dw_shift_focus(hWnd, _DW_DIRECTION_FORWARD);
             return FALSE;
          }
 
@@ -3762,7 +3763,7 @@ LRESULT CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
    return CallWindowProc(continfo->cinfo.pOldProc, hWnd, msg, mp1, mp2);
 }
 
-LRESULT CALLBACK _simplewndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
+LRESULT CALLBACK _dw_simplewndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 {
    ContainerInfo *cinfo;
    LRESULT ret = -1;
@@ -3772,16 +3773,16 @@ LRESULT CALLBACK _simplewndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
    switch( msg )
    {
    case WM_MOUSEMOVE:
-      ret = _wndproc(hWnd, msg, mp1, mp2);
+      ret = _dw_wndproc(hWnd, msg, mp1, mp2);
       break;
    case WM_CHAR:
-      ret = _wndproc(hWnd, msg, mp1, mp2);
+      ret = _dw_wndproc(hWnd, msg, mp1, mp2);
       if(ret != TRUE && LOWORD(mp1) == '\t')
       {
          if(GetAsyncKeyState(VK_SHIFT) & 0x8000)
-            _shift_focus(hWnd, _DW_DIRECTION_BACKWARD);
+            _dw_shift_focus(hWnd, _DW_DIRECTION_BACKWARD);
          else
-            _shift_focus(hWnd, _DW_DIRECTION_FORWARD);
+            _dw_shift_focus(hWnd, _DW_DIRECTION_FORWARD);
          return FALSE;
       }
       break;
@@ -3806,7 +3807,7 @@ LRESULT CALLBACK _simplewndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 
 
 /* Special WM_NOTIFY handler for Rich Edit controls, to implement the context menu. */
-LRESULT CALLBACK _richeditwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
+LRESULT CALLBACK _dw_richeditwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 {
     switch(msg)
     {    
@@ -3863,12 +3864,12 @@ LRESULT CALLBACK _richeditwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
         }
         break;
     }
-    return _simplewndproc(hWnd, msg, mp1, mp2);
+    return _dw_simplewndproc(hWnd, msg, mp1, mp2);
 }
 #endif
 
 
-LRESULT CALLBACK _treewndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
+LRESULT CALLBACK _dw_treewndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 {
 #ifdef AEROGLASS
    if(msg == WM_THEMECHANGED)
@@ -3878,16 +3879,16 @@ LRESULT CALLBACK _treewndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
          ContainerInfo *continfo = (ContainerInfo *)GetWindowLongPtr(hWnd, GWLP_USERDATA);
 
          if(!continfo || continfo->cinfo.back == -1 || continfo->cinfo.back == DW_CLR_DEFAULT)
-            TreeView_SetBkColor(hWnd, _DW_GetSysColor(COLOR_WINDOW));
+            TreeView_SetBkColor(hWnd, _dw_get_syscolor(COLOR_WINDOW));
          if(!continfo || continfo->cinfo.fore == -1 || continfo->cinfo.fore == DW_CLR_DEFAULT)
-            TreeView_SetTextColor(hWnd, _DW_GetSysColor(COLOR_WINDOWTEXT));
+            TreeView_SetTextColor(hWnd, _dw_get_syscolor(COLOR_WINDOWTEXT));
       }
    }
 #endif
-   return _simplewndproc(hWnd, msg, mp1, mp2);
+   return _dw_simplewndproc(hWnd, msg, mp1, mp2);
 }
 
-void _changebox(Box *thisbox, int percent, int type)
+void _dw_change_box(Box *thisbox, int percent, int type)
 {
    int z;
 
@@ -3896,7 +3897,7 @@ void _changebox(Box *thisbox, int percent, int type)
       if(thisbox->items[z].type == TYPEBOX)
       {
          Box *tmp = (Box*)GetWindowLongPtr(thisbox->items[z].hwnd, GWLP_USERDATA);
-         _changebox(tmp, percent, type);
+         _dw_change_box(tmp, percent, type);
       }
       else
       {
@@ -3914,7 +3915,7 @@ void _changebox(Box *thisbox, int percent, int type)
    }
 }
 
-void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y)
+void _dw_handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y)
 {
    HWND handle1 = (HWND)dw_window_get_data(hwnd, "_dw_topleft");
    HWND handle2 = (HWND)dw_window_get_data(hwnd, "_dw_bottomright");
@@ -3931,14 +3932,14 @@ void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y)
       newx = (int)((float)newx * ratio) - (SPLITBAR_WIDTH/2);
 
       MoveWindow(handle1, 0, 0, newx, y, FALSE);
-      _do_resize(tmp, newx - 1, y - 1, 0, 0);
+      _dw_do_resize(tmp, newx - 1, y - 1, 0, 0);
 
       tmp = (Box *)GetWindowLongPtr(handle2, GWLP_USERDATA);
 
       newx = x - newx - SPLITBAR_WIDTH;
 
       MoveWindow(handle2, x - newx, 0, newx, y, FALSE);
-      _do_resize(tmp, newx - 1, y - 1, 0, 0);
+      _dw_do_resize(tmp, newx - 1, y - 1, 0, 0);
 
       dw_window_set_data(hwnd, "_dw_start", DW_INT_TO_POINTER(newx));
    }
@@ -3951,14 +3952,14 @@ void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y)
       newy = (int)((float)newy * ratio) - (SPLITBAR_WIDTH/2);
 
       MoveWindow(handle2, 0, y - newy, x, newy, FALSE);
-      _do_resize(tmp, x - 1, newy - 1, 0, 0);
+      _dw_do_resize(tmp, x - 1, newy - 1, 0, 0);
 
       tmp = (Box *)GetWindowLongPtr(handle1, GWLP_USERDATA);
 
       newy = y - newy - SPLITBAR_WIDTH;
 
       MoveWindow(handle1, 0, 0, x, newy, FALSE);
-      _do_resize(tmp, x - 1, newy - 1, 0, 0);
+      _dw_do_resize(tmp, x - 1, newy - 1, 0, 0);
 
       dw_window_set_data(hwnd, "_dw_start", DW_INT_TO_POINTER(newy));
    }
@@ -3968,7 +3969,7 @@ void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y)
 }
 
 /* This handles any activity on the scrollbox */
-LRESULT CALLBACK _scrollwndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
+LRESULT CALLBACK _dw_scrollwndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
 {
    switch (msg)
    {
@@ -4036,7 +4037,7 @@ LRESULT CALLBACK _scrollwndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
 }
 
 /* This handles any activity on the splitbars (sizers) */
-LRESULT CALLBACK _splitwndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
+LRESULT CALLBACK _dw_splitwndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
 {
    switch (msg)
    {
@@ -4061,8 +4062,8 @@ LRESULT CALLBACK _splitwndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
          if((hdcPaint = GetDC(hwnd)) != NULL)
          {
             unsigned long cx, cy;
-            HBRUSH oldBrush = SelectObject(hdcPaint, _DW_GetSysColorBrush(COLOR_3DFACE));
-            HPEN oldPen = SelectObject(hdcPaint, CreatePen(PS_SOLID, 1, _DW_GetSysColor(COLOR_3DFACE)));
+            HBRUSH oldBrush = SelectObject(hdcPaint, _dw_get_syscolor_brush(COLOR_3DFACE));
+            HPEN oldPen = SelectObject(hdcPaint, CreatePen(PS_SOLID, 1, _dw_get_syscolor(COLOR_3DFACE)));
 
             dw_window_get_pos_size(hwnd, NULL, NULL, &cx, &cy);
 
@@ -4128,7 +4129,7 @@ LRESULT CALLBACK _splitwndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
                      if(height - SPLITBAR_WIDTH > 1 && start < height - SPLITBAR_WIDTH)
                         *percent = ((float)start / (float)(height - SPLITBAR_WIDTH)) * (float)100.0;
                   }
-                  _handle_splitbar_resize(hwnd, *percent, type, width, height);
+                  _dw_handle_splitbar_resize(hwnd, *percent, type, width, height);
                }
                memcpy(&lastpoint, &point, sizeof(POINT));
             }
@@ -4140,12 +4141,12 @@ LRESULT CALLBACK _splitwndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
 }
 
 /* This handles drawing the status text areas */
-LRESULT CALLBACK _statuswndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
+LRESULT CALLBACK _dw_statuswndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
 {
    switch (msg)
    {
    case WM_MOUSEMOVE:
-      _wndproc(hwnd, msg, mp1, mp2);
+      _dw_wndproc(hwnd, msg, mp1, mp2);
       break;
    case WM_SETTEXT:
       {
@@ -4169,7 +4170,7 @@ LRESULT CALLBACK _statuswndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
          unsigned long cx, cy;
          TCHAR tempbuf[1025] = { 0 };
          ColorInfo *cinfo = _dw_window_get_cinfo(hwnd);
-         HFONT hfont = _acquire_font(hwnd, cinfo ? cinfo->fontname : NULL);
+         HFONT hfont = _dw_acquire_font(hwnd, cinfo ? cinfo->fontname : NULL);
          HFONT oldfont = (HFONT)SendMessage(hwnd, WM_GETFONT, 0, 0);
 
          dw_window_get_pos_size(hwnd, NULL, NULL, &cx, &cy);
@@ -4191,17 +4192,17 @@ LRESULT CALLBACK _statuswndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
             (cinfo && cinfo->fore != -1 && cinfo->fore != DW_CLR_DEFAULT &&
              cinfo->back !=- -1 && cinfo->back != DW_CLR_DEFAULT))
          {
-            ULONG fore = (cinfo && (cinfo->fore != -1 && cinfo->fore != DW_CLR_DEFAULT)) ? _internal_color(cinfo->fore) : DW_RGB_TRANSPARENT;
-            ULONG back = (cinfo && (cinfo->back != -1 && cinfo->back != DW_CLR_DEFAULT)) ? _internal_color(cinfo->back) : DW_RGB_TRANSPARENT;
+            ULONG fore = (cinfo && (cinfo->fore != -1 && cinfo->fore != DW_CLR_DEFAULT)) ? _dw_internal_color(cinfo->fore) : DW_RGB_TRANSPARENT;
+            ULONG back = (cinfo && (cinfo->back != -1 && cinfo->back != DW_CLR_DEFAULT)) ? _dw_internal_color(cinfo->back) : DW_RGB_TRANSPARENT;
             HBRUSH hbrback, hbrfore;
             hbrfore = fore != DW_RGB_TRANSPARENT ? CreateSolidBrush(RGB(DW_RED_VALUE(fore), DW_GREEN_VALUE(fore), DW_BLUE_VALUE(fore))) : NULL;
             hbrback = back != DW_RGB_TRANSPARENT ? CreateSolidBrush(RGB(DW_RED_VALUE(back), DW_GREEN_VALUE(back), DW_BLUE_VALUE(back))) : NULL;
             /* Fill with the background color */
-            FillRect(hdcPaint, &rc, hbrback ? hbrback : _DW_GetSysColorBrush(COLOR_3DFACE));
+            FillRect(hdcPaint, &rc, hbrback ? hbrback : _dw_get_syscolor_brush(COLOR_3DFACE));
             /* Dwaw a border around it */
-            FrameRect(hdcPaint, &rc, hbrfore ? hbrfore : _DW_GetSysColorBrush(COLOR_WINDOWTEXT));
+            FrameRect(hdcPaint, &rc, hbrfore ? hbrfore : _dw_get_syscolor_brush(COLOR_WINDOWTEXT));
             SetRect(&rc, 3, 1, cx -1, cy - 1);
-            SetTextColor(hdcPaint, fore != DW_RGB_TRANSPARENT ? RGB(DW_RED_VALUE(fore), DW_GREEN_VALUE(fore), DW_BLUE_VALUE(fore)) : _DW_GetSysColor(COLOR_WINDOWTEXT));
+            SetTextColor(hdcPaint, fore != DW_RGB_TRANSPARENT ? RGB(DW_RED_VALUE(fore), DW_GREEN_VALUE(fore), DW_BLUE_VALUE(fore)) : _dw_get_syscolor(COLOR_WINDOWTEXT));
             SetBkMode(hdcPaint, TRANSPARENT);
             /* Draw the text in the middle */
             ExtTextOut(hdcPaint, 3, 1, ETO_CLIPPED, &rc, tempbuf, (UINT)_tcslen(tempbuf), NULL);
@@ -4225,7 +4226,7 @@ LRESULT CALLBACK _statuswndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
 
 #ifdef AEROGLASS
 /* Window procedure to handle drawing themed text when in composited mode */
-LRESULT CALLBACK _staticwndproc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
+LRESULT CALLBACK _dw_staticwndproc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
 {
    ColorInfo *parentcinfo, *tlcinfo, *cinfo = _dw_window_get_cinfo(hwnd);
    WNDPROC pOldProc;
@@ -4235,12 +4236,12 @@ LRESULT CALLBACK _staticwndproc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
 
    /* Need the parent to do the check completely */
    parentcinfo = _dw_window_get_cinfo(GetParent(hwnd));
-   tlcinfo = _dw_window_get_cinfo(_toplevel_window(hwnd));
+   tlcinfo = _dw_window_get_cinfo(_dw_toplevel_window(hwnd));
 
    /* If we don't require themed drawing */
    if(((cinfo->back != -1 && cinfo->back != DW_RGB_TRANSPARENT) || (parentcinfo && parentcinfo->back != -1))
        || !_dw_composition || !tlcinfo || !(tlcinfo->style & DW_FCF_COMPOSITED) || IS_WIN8PLUS)
-      return _colorwndproc(hwnd, msg, mp1, mp2);
+      return _dw_colorwndproc(hwnd, msg, mp1, mp2);
 
    pOldProc = cinfo->pOldProc;
 
@@ -4271,7 +4272,7 @@ LRESULT CALLBACK _staticwndproc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
                {
                   LONG_PTR dwStaticStyle = dwStyle & 0x1F;
                   HFONT hFontOld = (HFONT)SendMessage(hwnd, WM_GETFONT, 0, 0);
-                  int iLen = GetWindowTextLength(hwnd), fore = _internal_color(cinfo->fore);
+                  int iLen = GetWindowTextLength(hwnd), fore = _dw_internal_color(cinfo->fore);
                   DTTOPTS DttOpts = { sizeof(DTTOPTS) };
                   static HBRUSH hbrush = 0;
 
@@ -4366,11 +4367,11 @@ LRESULT CALLBACK _staticwndproc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
 }
 #endif
 
-/* Function: _BtProc
+/* Function: _dw_buttonwndproc
  * Abstract: Subclass procedure for buttons
  */
 
-LRESULT CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
+LRESULT CALLBACK _dw_buttonwndproc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
 {
    ColorInfo *cinfo = _dw_window_get_cinfo(hwnd);
    WNDPROC pOldProc;
@@ -4395,9 +4396,9 @@ LRESULT CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
    case WM_CTLCOLORMSGBOX:
    case WM_CTLCOLORSCROLLBAR:
    case WM_CTLCOLORDLG:
-      return _colorwndproc(hwnd, msg, mp1, mp2);
+      return _dw_colorwndproc(hwnd, msg, mp1, mp2);
    case WM_SETFOCUS:
-      _wndproc(hwnd, msg, mp1, mp2);
+      _dw_wndproc(hwnd, msg, mp1, mp2);
       break;
    case WM_LBUTTONUP:
       {
@@ -4460,18 +4461,18 @@ LRESULT CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
          if(LOWORD(mp1) == '\t')
          {
             if(GetAsyncKeyState(VK_SHIFT) & 0x8000)
-               _shift_focus(hwnd, _DW_DIRECTION_BACKWARD);
+               _dw_shift_focus(hwnd, _DW_DIRECTION_BACKWARD);
             else
-               _shift_focus(hwnd, _DW_DIRECTION_FORWARD);
+               _dw_shift_focus(hwnd, _DW_DIRECTION_FORWARD);
             return FALSE;
          }
       }
       break;
    case WM_KEYDOWN:
       if(mp1 == VK_LEFT || mp1 == VK_UP)
-         _shift_focus(hwnd, _DW_DIRECTION_BACKWARD);
+         _dw_shift_focus(hwnd, _DW_DIRECTION_BACKWARD);
       if(mp1 == VK_RIGHT || mp1 == VK_DOWN)
-         _shift_focus(hwnd, _DW_DIRECTION_FORWARD);
+         _dw_shift_focus(hwnd, _DW_DIRECTION_FORWARD);
       break;
    }
 
@@ -4486,7 +4487,7 @@ LRESULT CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
 /* This function recalculates a notebook page for example
  * during switching of notebook pages.
  */
-void _resize_notebook_page(HWND handle, int pageid)
+void _dw_resize_notebook_page(HWND handle, int pageid)
 {
    RECT rect;
    NotebookPage **array = (NotebookPage **)dw_window_get_data(handle, "_dw_array");
@@ -4502,7 +4503,7 @@ void _resize_notebook_page(HWND handle, int pageid)
       if(box && box->count)
       {
          ShowWindow(box->items[0].hwnd, SW_HIDE);
-         _do_resize(box, rect.right - rect.left, rect.bottom - rect.top, 0, 0);
+         _dw_do_resize(box, rect.right - rect.left, rect.bottom - rect.top, 0, 0);
          ShowWindow(box->items[0].hwnd, SW_SHOW);
       }
 
@@ -4510,7 +4511,7 @@ void _resize_notebook_page(HWND handle, int pageid)
    }
 }
 
-void _create_tooltip(HWND handle, const char *text)
+void _dw_create_tooltip(HWND handle, const char *text)
 {
     TOOLINFO ti = { 0 };
 
@@ -4643,13 +4644,13 @@ int API dw_init(int newthread, int argc, char *argv[])
       GetCurrentDirectoryA(MAX_PATH, _dw_exec_dir);
 
    /* Initialize our thread local storage */
-   _foreground = TlsAlloc();
-   _background = TlsAlloc();
-   _hPen = TlsAlloc();
-   _hBrush = TlsAlloc();
+   _dw_foreground = TlsAlloc();
+   _dw_background = TlsAlloc();
+   _dw_hpen = TlsAlloc();
+   _dw_hbrush = TlsAlloc();
 #ifdef GDIPLUS
-   _gpPen = TlsAlloc();
-   _gpBrush = TlsAlloc();
+   _dw_gppen = TlsAlloc();
+   _dw_gpbrush = TlsAlloc();
 #endif
 
    icc.dwSize = sizeof(INITCOMMONCONTROLSEX);
@@ -4657,11 +4658,11 @@ int API dw_init(int newthread, int argc, char *argv[])
 
    InitCommonControlsEx(&icc);
 
-   memset(lookup, 0, sizeof(HICON) * ICON_INDEX_LIMIT);
+   memset(_dw_icon_lookup, 0, sizeof(HICON) * ICON_INDEX_LIMIT);
 
    /* We need the version to check capability like up-down controls */
    _dwVersion = GetVersion();
-   _dwComctlVer = GetDllVersion(TEXT("comctl32.dll"));
+   _dwComctlVer = _dw_get_dll_version(TEXT("comctl32.dll"));
 
    /* We need to initialize dark mode, and thus the aero/theme subsystems before registering our window classes */
    if((huxtheme = LoadLibrary(TEXT("uxtheme"))))
@@ -4698,7 +4699,7 @@ int API dw_init(int newthread, int argc, char *argv[])
    /* Register the generic Dynamic Windows class */
    memset(&wc, 0, sizeof(WNDCLASS));
    wc.style = CS_DBLCLKS;
-   wc.lpfnWndProc = (WNDPROC)_wndproc;
+   wc.lpfnWndProc = (WNDPROC)_dw_wndproc;
    wc.cbClsExtra = 0;
    wc.cbWndExtra = 32;
    wc.hbrBackground = NULL;
@@ -4710,7 +4711,7 @@ int API dw_init(int newthread, int argc, char *argv[])
    /* Register the splitbar control */
    memset(&wc, 0, sizeof(WNDCLASS));
    wc.style = CS_DBLCLKS | CS_HREDRAW | CS_VREDRAW;
-   wc.lpfnWndProc = (WNDPROC)_splitwndproc;
+   wc.lpfnWndProc = (WNDPROC)_dw_splitwndproc;
    wc.cbClsExtra = 0;
    wc.cbWndExtra = 0;
    wc.hbrBackground = NULL;
@@ -4722,7 +4723,7 @@ int API dw_init(int newthread, int argc, char *argv[])
    /* Register the scroller control */
    memset(&wc, 0, sizeof(WNDCLASS));
    wc.style = CS_DBLCLKS;
-   wc.lpfnWndProc = (WNDPROC)_scrollwndproc;
+   wc.lpfnWndProc = (WNDPROC)_dw_scrollwndproc;
    wc.cbClsExtra = 0;
    wc.cbWndExtra = 32;
    wc.hbrBackground = NULL;
@@ -4734,10 +4735,10 @@ int API dw_init(int newthread, int argc, char *argv[])
    /* Register a frame control like on OS/2 */
    memset(&wc, 0, sizeof(WNDCLASS));
    wc.style = CS_DBLCLKS;
-   wc.lpfnWndProc = (WNDPROC)_framewndproc;
+   wc.lpfnWndProc = (WNDPROC)_dw_framewndproc;
    wc.cbClsExtra = 0;
    wc.cbWndExtra = 32;
-   wc.hbrBackground = (HBRUSH)_DW_GetSysColorBrush(COLOR_3DFACE);
+   wc.hbrBackground = (HBRUSH)_dw_get_syscolor_brush(COLOR_3DFACE);
    wc.hCursor = LoadCursor(NULL, IDC_ARROW);
    wc.lpszMenuName = NULL;
    wc.lpszClassName = FRAMECLASSNAME;
@@ -4747,7 +4748,7 @@ int API dw_init(int newthread, int argc, char *argv[])
    /* Register a status bar control */
    memset(&wc, 0, sizeof(WNDCLASS));
    wc.style = CS_DBLCLKS;
-   wc.lpfnWndProc = (WNDPROC)_statuswndproc;
+   wc.lpfnWndProc = (WNDPROC)_dw_statuswndproc;
    wc.cbClsExtra = 0;
    wc.cbWndExtra = 32;
    wc.hbrBackground = NULL;
@@ -4759,7 +4760,7 @@ int API dw_init(int newthread, int argc, char *argv[])
 
    /* Create a set of brushes using the default OS/2 and DOS colors */
    for(z=0;z<18;z++)
-      _colors[z] = CreateSolidBrush(RGB(_red[z],_green[z],_blue[z]));
+      _dw_colors[z] = CreateSolidBrush(RGB(_dw_red[z],_dw_green[z],_dw_blue[z]));
 
    /* Register an Object Windows class like OS/2 and Win2k+
     * so similar functionality can be used on earlier releases
@@ -4767,7 +4768,7 @@ int API dw_init(int newthread, int argc, char *argv[])
     */
    memset(&wc, 0, sizeof(WNDCLASS));
    wc.style = 0;
-   wc.lpfnWndProc = (WNDPROC)_wndproc;
+   wc.lpfnWndProc = (WNDPROC)_dw_wndproc;
    wc.cbClsExtra = 0;
    wc.cbWndExtra = 0;
    wc.hbrBackground = NULL;
@@ -4818,13 +4819,13 @@ int API dw_init(int newthread, int argc, char *argv[])
    /* Check if Microsoft Edge (Chromium) is installed */
    if ((_DW_EDGE_DETECTED = _dw_edge_detect(UTF8toWide(_dw_app_id))))
    {
-      wc.lpfnWndProc = (WNDPROC)_edgeWindowProc;
+      wc.lpfnWndProc = (WNDPROC)_dw_edgewndproc;
       wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
    }
    else
 #endif
    {
-      wc.lpfnWndProc = (WNDPROC)_browserWindowProc;
+      wc.lpfnWndProc = (WNDPROC)_dw_browserwndproc;
    }
    RegisterClass(&wc);
 #endif
@@ -4905,7 +4906,7 @@ void API dw_main(void)
    while(_dw_main_running && GetMessage(&msg, NULL, 0, 0))
    {
       if(msg.hwnd == NULL && msg.message == WM_TIMER)
-         _wndproc(msg.hwnd, msg.message, msg.wParam, msg.lParam);
+         _dw_wndproc(msg.hwnd, msg.message, msg.wParam, msg.lParam);
       else
       {
          TranslateMessage(&msg);
@@ -4938,7 +4939,7 @@ void API dw_main_sleep(int milliseconds)
       {
          GetMessage(&msg, NULL, 0, 0);
          if(msg.hwnd == NULL && msg.message == WM_TIMER)
-            _wndproc(msg.hwnd, msg.message, msg.wParam, msg.lParam);
+            _dw_wndproc(msg.hwnd, msg.message, msg.wParam, msg.lParam);
          else
          {
             TranslateMessage(&msg);
@@ -4962,7 +4963,7 @@ void API dw_main_iteration(void)
    if(GetMessage(&msg, NULL, 0, 0))
    {
       if(msg.hwnd == NULL && msg.message == WM_TIMER)
-         _wndproc(msg.hwnd, msg.message, msg.wParam, msg.lParam);
+         _dw_wndproc(msg.hwnd, msg.message, msg.wParam, msg.lParam);
       else
       {
          TranslateMessage(&msg);
@@ -5032,7 +5033,7 @@ void * API dw_dialog_wait(DWDialog *dialog)
    while (GetMessage(&msg,NULL,0,0))
    {
       if(msg.hwnd == NULL && msg.message == WM_TIMER)
-         _wndproc(msg.hwnd, msg.message, msg.wParam, msg.lParam);
+         _dw_wndproc(msg.hwnd, msg.message, msg.wParam, msg.lParam);
       else
       {
          TranslateMessage(&msg);
@@ -5141,7 +5142,7 @@ int API dw_window_show(HWND handle)
       _dw_set_child_window_theme(handle, 0);
       EnumChildWindows(handle, _dw_set_child_window_theme, 0);
       if(GetParent(handle) == HWND_DESKTOP)
-         _DW_RefreshTitleBarThemeColor(handle);
+         _dw_refresh_titlebar_theme_color(handle);
    }
 #endif
 
@@ -5153,7 +5154,7 @@ int API dw_window_show(HWND handle)
 
    rc = ShowWindow(handle, SW_SHOW);
    SetFocus(handle);
-   _initial_focus(handle);
+   _dw_initial_focus(handle);
    return rc;
 }
 
@@ -5195,14 +5196,14 @@ int API dw_window_destroy(HWND handle)
    menu = GetMenu(handle);
 
    if(menu)
-      _free_menu_data(menu);
+      _dw_free_menu_data(menu);
 
    /* If it is a desktop window let WM_DESTROY handle it */
    if(parent != HWND_DESKTOP)
    {
       dw_box_unpack(handle);
-      _free_window_memory(handle, 0);
-      EnumChildWindows(handle, _free_window_memory, 0);
+      _dw_free_window_memory(handle, 0);
+      EnumChildWindows(handle, _dw_free_window_memory, 0);
    }
    return DestroyWindow(handle);
 }
@@ -5223,7 +5224,7 @@ void API dw_window_redraw(HWND handle)
       GetClientRect(handle, &rect);
 
       ShowWindow(istoplevel ? mybox->items[0].hwnd : handle, SW_HIDE);
-      _do_resize(mybox, rect.right - rect.left, rect.bottom - rect.top, 0, 0);
+      _dw_do_resize(mybox, rect.right - rect.left, rect.bottom - rect.top, 0, 0);
       ShowWindow(istoplevel ? mybox->items[0].hwnd : handle, SW_SHOW);
    }
 }
@@ -5278,7 +5279,7 @@ LOGFONT _get_logfont(HDC hdc, const char *fontname)
 /* Create a duplicate of an existing font handle
  * that is safe to call DeleteObject() on.
  */
-HFONT _DupFontHandle(HFONT hfont)
+HFONT _dw_dup_font_handle(HFONT hfont)
 {
     LOGFONT lf = {0};
     return GetObject(hfont, sizeof(lf), &lf) ? CreateFontIndirect(&lf) : NULL;
@@ -5287,7 +5288,7 @@ HFONT _DupFontHandle(HFONT hfont)
 /* Create a font handle from specified font name..
  * or return a handle to the default font.
  */
-HFONT _acquire_font2(HDC hdc, const char *fontname)
+HFONT _dw_acquire_font2(HDC hdc, const char *fontname)
 {
    HFONT hfont = 0;
 
@@ -5296,8 +5297,8 @@ HFONT _acquire_font2(HDC hdc, const char *fontname)
       LOGFONT lf = _get_logfont(hdc, fontname);
       hfont = CreateFontIndirect(&lf);
    }
-   if(!hfont && _DefaultFont)
-      hfont = _DupFontHandle(_DefaultFont);
+   if(!hfont && _DWDefaultFont)
+      hfont = _dw_dup_font_handle(_DWDefaultFont);
    if(!hfont)
       hfont = GetStockObject(DEFAULT_GUI_FONT);
    return hfont;
@@ -5306,10 +5307,10 @@ HFONT _acquire_font2(HDC hdc, const char *fontname)
 /* Create a font handle from specified font name..
  * or return a handle to the default font.
  */
-HFONT _acquire_font(HWND handle, const char *fontname)
+HFONT _dw_acquire_font(HWND handle, const char *fontname)
 {
    HDC hdc = GetDC(handle);
-   HFONT hfont = _acquire_font2(hdc, fontname);
+   HFONT hfont = _dw_acquire_font2(hdc, fontname);
    ReleaseDC(handle, hdc);
    return hfont;
 }
@@ -5321,9 +5322,9 @@ HFONT _acquire_font(HWND handle, const char *fontname)
  */
 void API dw_font_set_default(const char *fontname)
 {
-    HFONT oldfont = _DefaultFont;
+    HFONT oldfont = _DWDefaultFont;
 
-    _DefaultFont = _acquire_font(HWND_DESKTOP, fontname);
+    _DWDefaultFont = _dw_acquire_font(HWND_DESKTOP, fontname);
     if(oldfont)
     {
         DeleteObject(oldfont);
@@ -5333,7 +5334,7 @@ void API dw_font_set_default(const char *fontname)
 /* Internal function to return a pointer to an item struct
  * with information about the packing information regarding object.
  */
-Item *_box_item(HWND handle)
+Item *_dw_box_item(HWND handle)
 {
    HWND parent = GetParent(handle);
    Box *thisbox = (Box *)GetWindowLongPtr(parent, GWLP_USERDATA);
@@ -5367,7 +5368,7 @@ Item *_box_item(HWND handle)
  * Ranged: 100x14 or 14x100 for vertical.
  * Buttons/Bitmaps: Size of text or image and border.
  */
-void _control_size(HWND handle, int *width, int *height)
+void _dw_control_size(HWND handle, int *width, int *height)
 {
    int thiswidth = 1, thisheight = 1, extrawidth = 0, extraheight = 0;
    TCHAR tmpbuf[100] = {0};
@@ -5726,7 +5727,7 @@ int API dw_window_set_font(HWND handle, const char *fontname)
     {
         /* This needs to be after we get the correct handle */
         oldfont = (HFONT)SendMessage(handle, WM_GETFONT, 0, 0);
-        hfont = _acquire_font(handle, fontname);
+        hfont = _dw_acquire_font(handle, fontname);
     }
 
     if(fontname)
@@ -5745,7 +5746,7 @@ int API dw_window_set_font(HWND handle, const char *fontname)
     /* If we changed the font... */
     if(hfont)
     {
-       Item *item = _box_item(handle);
+       Item *item = _dw_box_item(handle);
 
        SendMessage(handle, WM_SETFONT, (WPARAM)hfont, (LPARAM)TRUE);
        if(oldfont)
@@ -5754,9 +5755,9 @@ int API dw_window_set_font(HWND handle, const char *fontname)
        /* Check to see if any of the sizes need to be recalculated */
        if(item && (item->origwidth == -1 || item->origheight == -1))
        {
-          _control_size(handle, item->origwidth == -1 ? &item->width : NULL, item->origheight == -1 ? &item->height : NULL);
+          _dw_control_size(handle, item->origwidth == -1 ? &item->width : NULL, item->origheight == -1 ? &item->height : NULL);
           /* Queue a redraw on the top-level window */
-         _dw_redraw(_toplevel_window(handle), TRUE);
+         _dw_redraw(_dw_toplevel_window(handle), TRUE);
        }
        return DW_ERROR_NONE;
     }
@@ -5870,8 +5871,8 @@ int API dw_window_set_color(HWND handle, ULONG fore, ULONG back)
 
    if(_tcsnicmp(tmpbuf, WC_LISTVIEW, _tcslen(WC_LISTVIEW))==0)
    {
-      cinfo->fore = fore = _internal_color(fore);
-      cinfo->back = back = _internal_color(back);
+      cinfo->fore = fore = _dw_internal_color(fore);
+      cinfo->back = back = _dw_internal_color(back);
 
       ListView_SetTextColor(handle, RGB(DW_RED_VALUE(fore),
                                 DW_GREEN_VALUE(fore),
@@ -5899,8 +5900,8 @@ int API dw_window_set_color(HWND handle, ULONG fore, ULONG back)
    else if (_tcsnicmp(tmpbuf, RICHEDIT_CLASS, _tcslen(RICHEDIT_CLASS)+1) == 0 ||
             _tcsnicmp(tmpbuf, MSFTEDIT_CLASS, _tcslen(MSFTEDIT_CLASS)+1) == 0)
    {
-        ULONG _fore = _internal_color(fore);
-        ULONG _back = _internal_color(back);
+        ULONG _fore = _dw_internal_color(fore);
+        ULONG _back = _dw_internal_color(back);
         CHARFORMAT2 cf;
 
         SendMessage(handle, EM_GETCHARFORMAT, SCF_DEFAULT, (LPARAM)&cf);
@@ -6083,7 +6084,7 @@ HWND API dw_box_new(int type, int pad)
                       _DWInstance,
                       NULL);
 
-   newbox->cinfo.pOldProc = SubclassWindow(hwndframe, _colorwndproc);
+   newbox->cinfo.pOldProc = SubclassWindow(hwndframe, _dw_colorwndproc);
    newbox->cinfo.fore = newbox->cinfo.back = -1;
 
    SetWindowLongPtr(hwndframe, GWLP_USERDATA, (LONG_PTR)newbox);
@@ -6216,7 +6217,7 @@ HWND API dw_groupbox_new(int type, int pad, const char *title)
       _SetWindowTheme(newbox->grouphwnd, L"", L"");
 
    SetWindowLongPtr(hwndframe, GWLP_USERDATA, (LONG_PTR)newbox);
-   newbox->cinfo.pOldProc = SubclassWindow(hwndframe, _colorwndproc);
+   newbox->cinfo.pOldProc = SubclassWindow(hwndframe, _dw_colorwndproc);
    dw_window_set_font(hwndframe, DefaultFont);
    return hwndframe;
 }
@@ -6408,7 +6409,7 @@ HWND API dw_notebook_new(ULONG id, int top)
                   _DWInstance,
                   NULL);
    if((cinfo = _dw_window_new_cinfo(tmp, FALSE)))
-      cinfo->pOldProc = SubclassWindow(tmp, _simplewndproc);
+      cinfo->pOldProc = SubclassWindow(tmp, _dw_simplewndproc);
    dw_window_set_data(tmp, "_dw_array", (void *)array);
    dw_window_set_font(tmp, DefaultFont);
    return tmp;
@@ -6489,7 +6490,7 @@ void API dw_menu_destroy(HMENUI *menu)
 }
 
 /* Internal function to make sure menu ID isn't in use */
-int _menuid_allocated(int id)
+int _dw_menuid_allocated(int id)
 {
    SignalHandler *tmp = Root;
 
@@ -6585,7 +6586,7 @@ HWND API dw_menu_append_item(HMENUI menux, const char *title, ULONG id, ULONG fl
             if(menuid > 60000)
                menuid = 30000;
          }
-         while(_menuid_allocated(menuid));
+         while(_dw_menuid_allocated(menuid));
          id = menuid;
       }
       mii.fType = MFT_STRING;
@@ -6881,7 +6882,7 @@ HWND API dw_container_new(ULONG id, int multi)
       return NULL;
    }
 
-   cinfo->cinfo.pOldProc = SubclassWindow(tmp, _containerwndproc);
+   cinfo->cinfo.pOldProc = SubclassWindow(tmp, _dw_containerwndproc);
    cinfo->cinfo.fore = cinfo->cinfo.back = -1;
    cinfo->odd = cinfo->even = DW_RGB_TRANSPARENT;
 
@@ -6924,7 +6925,7 @@ HWND API dw_tree_new(ULONG id)
       return NULL;
    }
 
-   cinfo->cinfo.pOldProc = SubclassWindow(tmp, _treewndproc);
+   cinfo->cinfo.pOldProc = SubclassWindow(tmp, _dw_treewndproc);
    cinfo->cinfo.fore = cinfo->cinfo.back = -1;
    cinfo->odd = cinfo->even = DW_RGB_TRANSPARENT;
 
@@ -6983,7 +6984,7 @@ HWND API dw_text_new(const char *text, ULONG id)
    ColorInfo *cinfo = _dw_window_new_cinfo(tmp, FALSE);
 
    if(cinfo)
-      cinfo->pOldProc = SubclassWindow(tmp, _staticwndproc);
+      cinfo->pOldProc = SubclassWindow(tmp, _dw_staticwndproc);
 #endif
    dw_window_set_font(tmp, DefaultFont);
    dw_window_set_color(tmp, DW_CLR_DEFAULT, DW_RGB_TRANSPARENT);
@@ -7043,10 +7044,10 @@ HWND API dw_mle_new(ULONG id)
 
 #ifdef RICHEDIT
    if(_DW_MLE_RICH_EDIT == DW_FEATURE_ENABLED && (hrichedit || hmsftedit))
-      cinfo->cinfo.pOldProc = SubclassWindow(tmp, _richeditwndproc);
+      cinfo->cinfo.pOldProc = SubclassWindow(tmp, _dw_richeditwndproc);
    else
 #endif
-   cinfo->cinfo.pOldProc = SubclassWindow(tmp, _simplewndproc);
+   cinfo->cinfo.pOldProc = SubclassWindow(tmp, _dw_simplewndproc);
    cinfo->cinfo.fore = cinfo->cinfo.back = -1;
    cinfo->odd = cinfo->even = DW_RGB_TRANSPARENT;
 
@@ -7105,14 +7106,14 @@ HWND API dw_entryfield_password_new(const char *text, ULONG id)
    return tmp;
 }
 
-BOOL CALLBACK _subclass_child(HWND handle, LPARAM lp)
+BOOL CALLBACK _dw_subclass_child(HWND handle, LPARAM lp)
 {
    ColorInfo *cinfo = (ColorInfo *)lp;
 
    if(cinfo)
    {
       cinfo->buddy = handle;
-      cinfo->pOldProc = SubclassWindow(handle, _colorwndproc);
+      cinfo->pOldProc = SubclassWindow(handle, _dw_colorwndproc);
       SetWindowLongPtr(handle, GWLP_USERDATA, (LONG_PTR)cinfo);
    }
    return FALSE;
@@ -7151,7 +7152,7 @@ HWND API dw_combobox_new(const char *text, ULONG id)
    cinfo2->fore = cinfo->fore = -1;
    cinfo2->back = cinfo->back = -1;
    cinfo2->combo = cinfo->combo = tmp;
-   EnumChildWindows(tmp, _subclass_child, (LPARAM)cinfo2);
+   EnumChildWindows(tmp, _dw_subclass_child, (LPARAM)cinfo2);
    cinfo->buddy = cinfo2->buddy;
 
    SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
@@ -7180,7 +7181,7 @@ HWND API dw_button_new(const char *text, ULONG id)
    ColorInfo *cinfo;
 
    if((cinfo = _dw_window_new_cinfo(tmp, FALSE)))
-      cinfo->pOldProc = SubclassWindow(tmp, _BtProc);
+      cinfo->pOldProc = SubclassWindow(tmp, _dw_buttonwndproc);
 
    dw_window_set_font(tmp, DefaultFont);
    return tmp;
@@ -7188,7 +7189,7 @@ HWND API dw_button_new(const char *text, ULONG id)
 
 #ifdef TOOLBAR
 /* Internal function to create a grayscale bitmap from a color one */
-void _to_grayscale(HBITMAP hbm, int width, int height)
+void _dw_to_grayscale(HBITMAP hbm, int width, int height)
 {
    HDC hdc = CreateCompatibleDC(NULL);
    if (hdc)
@@ -7213,7 +7214,7 @@ void _to_grayscale(HBITMAP hbm, int width, int height)
 }
 
 /* Internal function to create a toolbar based button */
-HWND _create_toolbar(const char *text, ULONG id, HICON icon, HBITMAP hbitmap)
+HWND _dw_create_toolbar(const char *text, ULONG id, HICON icon, HBITMAP hbitmap)
 {
    HWND tmp;
    HIMAGELIST imlist, dimlist;
@@ -7229,7 +7230,7 @@ HWND _create_toolbar(const char *text, ULONG id, HICON icon, HBITMAP hbitmap)
       imlist = ImageList_Create(bmi.bmWidth, bmi.bmHeight, ILC_COLOR32, 1, 0);
       ImageList_Add(imlist, hbitmap, NULL);
       dimlist = ImageList_Create(bmi.bmWidth, bmi.bmHeight, ILC_COLOR32, 1, 0);
-      _to_grayscale(hbitmap, bmi.bmWidth, bmi.bmHeight);
+      _dw_to_grayscale(hbitmap, bmi.bmWidth, bmi.bmHeight);
       ImageList_Add(dimlist, hbitmap, NULL);
       DeleteObject(hbitmap);
    }
@@ -7242,7 +7243,7 @@ HWND _create_toolbar(const char *text, ULONG id, HICON icon, HBITMAP hbitmap)
       imlist = ImageList_Create(bmi.bmWidth, bmi.bmHeight, ILC_COLOR32 | ILC_MASK, 1, 0);
       ImageList_AddIcon(imlist, icon);
       dimlist = ImageList_Create(bmi.bmWidth, bmi.bmHeight, ILC_COLOR32 | ILC_MASK, 1, 0);
-      _to_grayscale(iconinfo.hbmColor, bmi.bmWidth, bmi.bmHeight);
+      _dw_to_grayscale(iconinfo.hbmColor, bmi.bmWidth, bmi.bmHeight);
       ImageList_Add(dimlist, iconinfo.hbmColor, iconinfo.hbmMask);
       DeleteObject(iconinfo.hbmColor);
       DeleteObject(iconinfo.hbmMask);
@@ -7267,7 +7268,7 @@ HWND _create_toolbar(const char *text, ULONG id, HICON icon, HBITMAP hbitmap)
    SendMessage(tmp, TB_SETDISABLEDIMAGELIST, 0, (LPARAM)dimlist);
    SendMessage(tmp, TB_ADDBUTTONS, 1, (LPARAM) &tbButtons);
 
-   _create_tooltip(tmp, text);
+   _dw_create_tooltip(tmp, text);
    return tmp;
 }
 #endif
@@ -7286,10 +7287,10 @@ HWND API dw_bitmapbutton_new(const char *text, ULONG id)
    HWND tmp;
 
 #ifdef TOOLBAR
-   if((tmp = _create_toolbar(text, id, icon, hbitmap)))
+   if((tmp = _dw_create_toolbar(text, id, icon, hbitmap)))
    {
       if((cinfo = _dw_window_new_cinfo(tmp, FALSE)))
-         cinfo->pOldProc = SubclassWindow(tmp, _simplewndproc);
+         cinfo->pOldProc = SubclassWindow(tmp, _dw_simplewndproc);
       return tmp;
    }
 #endif
@@ -7306,9 +7307,9 @@ HWND API dw_bitmapbutton_new(const char *text, ULONG id)
                   NULL);
 
    if((cinfo = _dw_window_new_cinfo(tmp, FALSE)))
-      cinfo->pOldProc = SubclassWindow(tmp, _BtProc);
+      cinfo->pOldProc = SubclassWindow(tmp, _dw_buttonwndproc);
 
-   _create_tooltip(tmp, text);
+   _dw_create_tooltip(tmp, text);
 
    if(icon)
       SendMessage(tmp, BM_SETIMAGE, (WPARAM)IMAGE_ICON, (LPARAM)icon);
@@ -7347,10 +7348,10 @@ HWND API dw_bitmapbutton_new_from_file(const char *text, unsigned long id, const
 #endif
 
 #ifdef TOOLBAR
-   if((tmp = _create_toolbar(text, id, hicon, hbitmap)))
+   if((tmp = _dw_create_toolbar(text, id, hicon, hbitmap)))
    {
       if((cinfo = _dw_window_new_cinfo(tmp, FALSE)))
-         cinfo->pOldProc = SubclassWindow(tmp, _simplewndproc);
+         cinfo->pOldProc = SubclassWindow(tmp, _dw_simplewndproc);
       return tmp;
    }
 #endif
@@ -7364,9 +7365,9 @@ HWND API dw_bitmapbutton_new_from_file(const char *text, unsigned long id, const
                        NULL);
 
    if((cinfo = _dw_window_new_cinfo(tmp, FALSE)))
-      cinfo->pOldProc = SubclassWindow(tmp, _BtProc);
+      cinfo->pOldProc = SubclassWindow(tmp, _dw_buttonwndproc);
 
-   _create_tooltip(tmp, text);
+   _dw_create_tooltip(tmp, text);
 
    if (hicon)
       SendMessage(tmp, BM_SETIMAGE,(WPARAM)IMAGE_ICON,(LPARAM)hicon);
@@ -7428,10 +7429,10 @@ HWND API dw_bitmapbutton_new_from_data(const char *text, unsigned long id, const
    }
 
 #ifdef TOOLBAR
-   if((tmp = _create_toolbar(text, id, hicon, hbitmap)))
+   if((tmp = _dw_create_toolbar(text, id, hicon, hbitmap)))
    {
       if((cinfo = _dw_window_new_cinfo(tmp, FALSE)))
-         cinfo->pOldProc = SubclassWindow(tmp, _simplewndproc);
+         cinfo->pOldProc = SubclassWindow(tmp, _dw_simplewndproc);
       return tmp;
    }
 #endif
@@ -7447,9 +7448,9 @@ HWND API dw_bitmapbutton_new_from_data(const char *text, unsigned long id, const
                        NULL );
 
    if((cinfo = _dw_window_new_cinfo(tmp, FALSE)))
-      cinfo->pOldProc = SubclassWindow( tmp, _BtProc );
+      cinfo->pOldProc = SubclassWindow( tmp, _dw_buttonwndproc );
 
-   _create_tooltip(tmp, text);
+   _dw_create_tooltip(tmp, text);
 
    if(hicon)
       SendMessage(tmp, BM_SETIMAGE, (WPARAM)IMAGE_ICON, (LPARAM)hicon);
@@ -7535,7 +7536,7 @@ HWND API dw_radiobutton_new(const char *text, ULONG id)
       _SetWindowTheme(tmp, L"", L"");
 
    if((cinfo = _dw_window_new_cinfo(tmp, FALSE)))
-      cinfo->pOldProc = SubclassWindow(tmp, _BtProc);
+      cinfo->pOldProc = SubclassWindow(tmp, _dw_buttonwndproc);
    dw_window_set_font(tmp, DefaultFont);
    dw_window_set_color(tmp, DW_CLR_DEFAULT, DW_RGB_TRANSPARENT);
    return tmp;
@@ -7631,7 +7632,7 @@ HWND API dw_checkbox_new(const char *text, ULONG id)
       _SetWindowTheme(tmp, L"", L"");
 
    if((cinfo = _dw_window_new_cinfo(tmp, FALSE)))
-      cinfo->pOldProc = SubclassWindow(tmp, _BtProc);
+      cinfo->pOldProc = SubclassWindow(tmp, _dw_buttonwndproc);
    dw_window_set_data(tmp, "_dw_checkbox", DW_INT_TO_POINTER(1));
    dw_window_set_font(tmp, DefaultFont);
    dw_window_set_color(tmp, DW_CLR_DEFAULT, DW_RGB_TRANSPARENT);
@@ -7668,7 +7669,7 @@ HWND API dw_listbox_new(ULONG id, int multi)
 
    cinfo->cinfo.fore = cinfo->cinfo.back = -1;
    cinfo->odd = cinfo->even = DW_RGB_TRANSPARENT;
-   cinfo->cinfo.pOldProc = SubclassWindow(tmp, _containerwndproc);
+   cinfo->cinfo.pOldProc = SubclassWindow(tmp, _dw_containerwndproc);
 
    SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
    dw_window_set_font(tmp, DefaultFont);
@@ -7723,7 +7724,7 @@ void _dw_window_set_bitmap(HWND handle, HICON icon, HBITMAP hbitmap)
       {
          GetObject(hbitmap, sizeof(BITMAP), &bmi);
          ImageList_Replace(imlist, 0, hbitmap, NULL);
-         _to_grayscale(hbitmap, bmi.bmWidth, bmi.bmHeight);
+         _dw_to_grayscale(hbitmap, bmi.bmWidth, bmi.bmHeight);
          ImageList_Replace(dimlist, 0, hbitmap, NULL);
          DeleteObject(hbitmap);
       }
@@ -7734,7 +7735,7 @@ void _dw_window_set_bitmap(HWND handle, HICON icon, HBITMAP hbitmap)
          GetIconInfo(icon, &iconinfo);
          GetObject(iconinfo.hbmColor, sizeof(BITMAP), &bmi);
          ImageList_ReplaceIcon(imlist, 0, icon);
-         _to_grayscale(iconinfo.hbmColor, bmi.bmWidth, bmi.bmHeight);
+         _dw_to_grayscale(iconinfo.hbmColor, bmi.bmWidth, bmi.bmHeight);
          ImageList_Replace(dimlist, 0, iconinfo.hbmColor, iconinfo.hbmMask);
          DeleteObject(iconinfo.hbmColor);
          DeleteObject(iconinfo.hbmMask);
@@ -7759,14 +7760,14 @@ void _dw_window_set_bitmap(HWND handle, HICON icon, HBITMAP hbitmap)
 
    /* If we changed the bitmap... */
    {
-      Item *item = _box_item(handle);
+      Item *item = _dw_box_item(handle);
 
       /* Check to see if any of the sizes need to be recalculated */
       if(item && (item->origwidth == -1 || item->origheight == -1))
       {
-         _control_size(handle, item->origwidth == -1 ? &item->width : NULL, item->origheight == -1 ? &item->height : NULL);
+         _dw_control_size(handle, item->origwidth == -1 ? &item->width : NULL, item->origheight == -1 ? &item->height : NULL);
          /* Queue a redraw on the top-level window */
-         _dw_redraw(_toplevel_window(handle), TRUE);
+         _dw_redraw(_dw_toplevel_window(handle), TRUE);
       }
    }
 }
@@ -7895,14 +7896,14 @@ void API dw_window_set_text(HWND handle, const char *text)
    }
    /* If we changed the text... */
    {
-      Item *item = _box_item(handle);
+      Item *item = _dw_box_item(handle);
 
       /* Check to see if any of the sizes need to be recalculated */
       if(item && (item->origwidth == -1 || item->origheight == -1))
       {
          int newwidth, newheight;
 
-         _control_size(handle, &newwidth, &newheight);
+         _dw_control_size(handle, &newwidth, &newheight);
 
          /* Only update the item and redraw the window if it changed */
          if((item->origwidth == -1 && item->width != newwidth) ||
@@ -7913,7 +7914,7 @@ void API dw_window_set_text(HWND handle, const char *text)
             if(item->origheight == -1)
                item->height = newheight;
             /* Queue a redraw on the top-level window */
-            _dw_redraw(_toplevel_window(handle), TRUE);
+            _dw_redraw(_dw_toplevel_window(handle), TRUE);
          }
       }
    }
@@ -7930,8 +7931,8 @@ void API dw_window_set_tooltip(HWND handle, const char *bubbletext)
     ColorInfo *cinfo = _dw_window_get_cinfo(handle);
 
     if(cinfo && cinfo->buddy)
-        _create_tooltip(cinfo->buddy, bubbletext);
-    _create_tooltip(handle, bubbletext);
+        _dw_create_tooltip(cinfo->buddy, bubbletext);
+    _dw_create_tooltip(handle, bubbletext);
 }
 
 /*
@@ -8022,7 +8023,7 @@ void API dw_window_enable(HWND handle)
 
 static HWND _dw_wfid_hwnd = NULL;
 
-BOOL CALLBACK _wfid(HWND handle, LPARAM lParam)
+BOOL CALLBACK _dw_wfid(HWND handle, LPARAM lParam)
 {
    if(GetWindowLong(handle, GWL_ID) == lParam)
    {
@@ -8041,7 +8042,7 @@ BOOL CALLBACK _wfid(HWND handle, LPARAM lParam)
 HWND API dw_window_from_id(HWND handle, int id)
 {
    _dw_wfid_hwnd = NULL;
-   EnumChildWindows(handle, _wfid, (LPARAM)id);
+   EnumChildWindows(handle, _dw_wfid, (LPARAM)id);
     return _dw_wfid_hwnd;
 }
 
@@ -8137,7 +8138,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
 
       /* If either of the parameters are -1 ... calculate the size */
       if(width == -1 || height == -1)
-         _control_size(item, width == -1 ? &tmpitem[index].width : NULL, height == -1 ? &tmpitem[index].height : NULL);
+         _dw_control_size(item, width == -1 ? &tmpitem[index].width : NULL, height == -1 ? &tmpitem[index].height : NULL);
 
       thisbox->items = tmpitem;
 
@@ -8147,7 +8148,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
       thisbox->count++;
 
 #ifdef AEROGLASS
-      _DW_AllowDarkModeForWindow(item, _DW_DARK_MODE_ENABLED);
+      _dw_allow_dark_mode_for_window(item, _DW_DARK_MODE_ENABLED);
 #endif
       SetParent(item, box);
       if(_tcsnicmp(tmpbuf, UPDOWN_CLASS, _tcslen(UPDOWN_CLASS)+1)==0)
@@ -8165,7 +8166,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
       else if(_tcsnicmp(tmpbuf, TOOLBARCLASSNAME, _tcslen(TOOLBARCLASSNAME)+1) == 0)
       {
 #ifdef AEROGLASS	
-         if(!(_dw_composition && (GetWindowLongPtr(_toplevel_window(box), GWL_EXSTYLE) & WS_EX_LAYERED)))
+         if(!(_dw_composition && (GetWindowLongPtr(_dw_toplevel_window(box), GWL_EXSTYLE) & WS_EX_LAYERED)))
 #endif
          {
             /* Enable double buffering if our window isn't composited */
@@ -8176,7 +8177,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
       }
 #endif
       /* Queue a redraw on the top-level window */
-      _dw_redraw(_toplevel_window(box), TRUE);
+      _dw_redraw(_dw_toplevel_window(box), TRUE);
    }
 }
 
@@ -8240,7 +8241,7 @@ int API dw_box_unpack(HWND handle)
 
          SetParent(handle, DW_HWND_OBJECT);
          /* Queue a redraw on the top-level window */
-         _dw_redraw(_toplevel_window(parent), TRUE);
+         _dw_redraw(_dw_toplevel_window(parent), TRUE);
          return DW_ERROR_NONE;
       }
    }
@@ -8293,7 +8294,7 @@ HWND API dw_box_unpack_at_index(HWND box, int index)
       if(handle)
          SetParent(handle, DW_HWND_OBJECT);
       /* Queue a redraw on the top-level window */
-      _dw_redraw(_toplevel_window(box), TRUE);
+      _dw_redraw(_dw_toplevel_window(box), TRUE);
       return handle;
    }
    return 0;
@@ -8355,7 +8356,7 @@ void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, 
  * The following is an attempt to dynamically size a window based on the size of its
  * children before realization. Only applicable when width or height is less than one.
  */
-void _get_window_for_size(HWND handle, unsigned long *width, unsigned long *height)
+void _dw_get_window_for_size(HWND handle, unsigned long *width, unsigned long *height)
 {
    Box *thisbox = (Box *)GetWindowLongPtr(handle, GWLP_USERDATA);
 
@@ -8368,7 +8369,7 @@ void _get_window_for_size(HWND handle, unsigned long *width, unsigned long *heig
       RECT rc = { 0 } ;
 
       /* Calculate space requirements */
-      _resize_box(thisbox, &depth, *width, *height, 0, 0, 1);
+      _dw_resize_box(thisbox, &depth, *width, *height, 0, 0, 1);
 
       rc.right = thisbox->minwidth;
       rc.bottom = thisbox->minheight;
@@ -8392,7 +8393,7 @@ void API dw_window_set_size(HWND handle, ULONG width, ULONG height)
 {
    /* Attempt to auto-size */
    if ( width < 1 || height < 1 )
-      _get_window_for_size(handle, &width, &height);
+      _dw_get_window_for_size(handle, &width, &height);
 
    /* Finally set the size */
    SetWindowPos(handle, (HWND)NULL, 0, 0, width, height, SWP_NOZORDER | SWP_NOMOVE);
@@ -8416,7 +8417,7 @@ void API dw_window_get_preferred_size(HWND handle, int *width, int *height)
       unsigned long thiswidth = 0, thisheight = 0;
 
       /* Get the size with the border */
-      _get_window_for_size(handle, &thiswidth, &thisheight);
+      _dw_get_window_for_size(handle, &thiswidth, &thisheight);
 
       /* Return what was requested */
       if(width) *width = (int)thiswidth;
@@ -8431,7 +8432,7 @@ void API dw_window_get_preferred_size(HWND handle, int *width, int *height)
          int depth = 0;
 
          /* Calculate space requirements */
-         _resize_box(thisbox, &depth, 0, 0, 0, 0, 1);
+         _dw_resize_box(thisbox, &depth, 0, 0, 0, 0, 1);
 
          /* Return what was requested */
          if(width) *width = thisbox->minwidth;
@@ -8439,7 +8440,7 @@ void API dw_window_get_preferred_size(HWND handle, int *width, int *height)
       }
    }
    else
-      _control_size(handle, width, height);
+      _dw_control_size(handle, width, height);
 }
 
 /*
@@ -8486,7 +8487,7 @@ void API dw_window_set_gravity(HWND handle, int horz, int vert)
 }
 
 /* Convert the coordinates based on gravity */
-void _handle_gravity(HWND handle, long *x, long *y, unsigned long width, unsigned long height)
+void _dw_handle_gravity(HWND handle, long *x, long *y, unsigned long width, unsigned long height)
 {
    int horz = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_grav_horz"));
    int vert = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_grav_vert"));
@@ -8560,7 +8561,7 @@ void API dw_window_set_pos(HWND handle, long x, long y)
       dw_window_set_size(handle, 0, 0);
 
    dw_window_get_pos_size(handle, NULL, NULL, &width, &height);
-   _handle_gravity(handle, &x, &y, width, height);
+   _dw_handle_gravity(handle, &x, &y, width, height);
    SetWindowPos(handle, (HWND)NULL, x, y, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
 }
 
@@ -8577,9 +8578,9 @@ void API dw_window_set_pos_size(HWND handle, long x, long y, ULONG width, ULONG 
 {
    /* Attempt to auto-size */
    if ( width < 1 || height < 1 )
-      _get_window_for_size(handle, &width, &height);
+      _dw_get_window_for_size(handle, &width, &height);
 
-   _handle_gravity(handle, &x, &y, width, height);
+   _dw_handle_gravity(handle, &x, &y, width, height);
    /* Finally set the size */
    SetWindowPos(handle, (HWND)NULL, x, y, width, height, SWP_NOZORDER | SWP_NOACTIVATE);
 }
@@ -8754,7 +8755,7 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
 }
 
 /* Finds the physical ID from the reference ID */
-int _findnotebookid(NotebookPage **array, int pageid)
+int _dw_findnotebookid(NotebookPage **array, int pageid)
 {
    int z;
 
@@ -8783,7 +8784,7 @@ unsigned long API dw_notebook_page_new(HWND handle, ULONG flags, int front)
 
       for(z=0;z<256;z++)
       {
-         if(_findnotebookid(array, z) == -1)
+         if(_dw_findnotebookid(array, z) == -1)
          {
             refid = z;
             break;
@@ -8826,14 +8827,14 @@ void API dw_notebook_page_set_text(HWND handle, ULONG pageidx, const char *text)
    if(!array)
       return;
 
-   pageid = _findnotebookid(array, pageidx);
+   pageid = _dw_findnotebookid(array, pageidx);
 
    if(pageid > -1 && array[pageid])
    {
       array[pageid]->item.mask = TCIF_TEXT;
       array[pageid]->item.pszText = UTF8toWide(text);
       TabCtrl_SetItem(handle, pageid, &(array[pageid]->item));
-      _resize_notebook_page(handle, pageid);
+      _dw_resize_notebook_page(handle, pageid);
    }
 }
 
@@ -8863,7 +8864,7 @@ void API dw_notebook_pack(HWND handle, ULONG pageidx, HWND page)
    if(!array)
       return;
 
-   pageid = _findnotebookid(array, pageidx);
+   pageid = _dw_findnotebookid(array, pageidx);
 
    if(pageid > -1 && array[pageid])
    {
@@ -8877,7 +8878,7 @@ void API dw_notebook_pack(HWND handle, ULONG pageidx, HWND page)
       {
          ShowWindow(tmpbox, SW_HIDE);
          SetParent(tmpbox, handle);
-         _resize_notebook_page(handle, pageid);
+         _dw_resize_notebook_page(handle, pageid);
       }
    }
 }
@@ -8897,7 +8898,7 @@ void API dw_notebook_page_destroy(HWND handle, unsigned int pageidx)
    if(!array)
       return;
 
-   pageid = _findnotebookid(array, pageidx);
+   pageid = _dw_findnotebookid(array, pageidx);
 
    if(pageid < 0)
       return;
@@ -8928,7 +8929,7 @@ void API dw_notebook_page_destroy(HWND handle, unsigned int pageidx)
    if(newid > -1)
    {
       SetParent(array[newid]->hwnd, handle);
-      _resize_notebook_page(handle, newid);
+      _dw_resize_notebook_page(handle, newid);
       dw_notebook_page_set(handle, array[newid]->realid);
    }
    if(pagehwnd)
@@ -8964,7 +8965,7 @@ void API dw_notebook_page_set(HWND handle, unsigned int pageidx)
    if(!array)
       return;
 
-   pageid = _findnotebookid(array, pageidx);
+   pageid = _dw_findnotebookid(array, pageidx);
 
    if(pageid > -1 && pageid < 256)
    {
@@ -8976,7 +8977,7 @@ void API dw_notebook_page_set(HWND handle, unsigned int pageidx)
       TabCtrl_SetCurSel(handle, pageid);
 
       SetParent(array[pageid]->hwnd, handle);
-      _resize_notebook_page(handle, pageid);
+      _dw_resize_notebook_page(handle, pageid);
    }
 }
 
@@ -9232,7 +9233,7 @@ void API dw_listbox_select(HWND handle, int index, int state)
       SendMessage(handle, LB_SETCURSEL, (WPARAM)index, 0);
       SendMessage(handle, LB_SETSEL, (WPARAM)state, (LPARAM)index);
    }
-   _wndproc(handle, WM_COMMAND, (WPARAM)(LBN_SELCHANGE << 16), (LPARAM)handle);
+   _dw_wndproc(handle, WM_COMMAND, (WPARAM)(LBN_SELCHANGE << 16), (LPARAM)handle);
 }
 
 /*
@@ -9724,7 +9725,7 @@ int API dw_checkbox_get(HWND handle)
 }
 
 /* This function unchecks all radiobuttons on a box */
-BOOL CALLBACK _uncheck_radios(HWND handle, LPARAM lParam)
+BOOL CALLBACK _dw_uncheck_radios(HWND handle, LPARAM lParam)
 {
    TCHAR tmpbuf[100] = {0};
 
@@ -9750,7 +9751,7 @@ void API dw_checkbox_set(HWND handle, int value)
       HWND parent = GetParent(handle);
 
       if(parent)
-         EnumChildWindows(parent, _uncheck_radios, 0);
+         EnumChildWindows(parent, _dw_uncheck_radios, 0);
    }
    SendMessage(handle, BM_SETCHECK, (WPARAM)value, 0);
 }
@@ -9775,7 +9776,7 @@ HTREEITEM API dw_tree_insert_after(HWND handle, HTREEITEM item, const char *titl
    tvi.pszText = UTF8toWide(title);
    tvi.lParam = (LPARAM)itemdata;
    tvi.cchTextMax = (int)_tcslen(tvi.pszText);
-   tvi.iSelectedImage = tvi.iImage = _lookup_icon(handle, (HICON)icon, 1);
+   tvi.iSelectedImage = tvi.iImage = _dw_lookup_icon(handle, (HICON)icon, 1);
 
    tvins.item = tvi;
    tvins.hParent = parent;
@@ -9805,7 +9806,7 @@ HTREEITEM API dw_tree_insert(HWND handle, const char *title, HICN icon, HTREEITE
    tvi.pszText = UTF8toWide(title);
    tvi.lParam = (LPARAM)itemdata;
    tvi.cchTextMax = (int)_tcslen(tvi.pszText);
-   tvi.iSelectedImage = tvi.iImage = _lookup_icon(handle, (HICON)icon, 1);
+   tvi.iSelectedImage = tvi.iImage = _dw_lookup_icon(handle, (HICON)icon, 1);
 
    tvins.item = tvi;
    tvins.hParent = parent;
@@ -9836,7 +9837,7 @@ void API dw_tree_item_change(HWND handle, HTREEITEM item, const char *title, HIC
       tvi.mask = TVIF_TEXT | TVIF_IMAGE | TVIF_SELECTEDIMAGE;
       tvi.pszText = UTF8toWide(title);
       tvi.cchTextMax = (int)_tcslen(tvi.pszText);
-      tvi.iSelectedImage = tvi.iImage = _lookup_icon(handle, (HICON)icon, 1);
+      tvi.iSelectedImage = tvi.iImage = _dw_lookup_icon(handle, (HICON)icon, 1);
       tvi.hItem = (HTREEITEM)item;
 
       TreeView_SetItem(handle, &tvi);
@@ -10196,7 +10197,7 @@ void * API dw_container_alloc(HWND handle, int rowcount)
 /* Finds a icon in the table, otherwise it adds it to the table
  * and returns the index in the table.
  */
-int _lookup_icon(HWND handle, HICON hicon, int type)
+int _dw_lookup_icon(HWND handle, HICON hicon, int type)
 {
    int z;
    static HWND lasthwnd = NULL;
@@ -10205,43 +10206,43 @@ int _lookup_icon(HWND handle, HICON hicon, int type)
    if(!hicon)
       return -1;
 
-   if(!hSmall || !hLarge)
+   if(!_dw_image_list_small || !_dw_image_list_large)
    {
-      hSmall = ImageList_Create(16, 16, ILC_COLOR16 | ILC_MASK, ICON_INDEX_LIMIT, 0);
-      hLarge = ImageList_Create(32, 32, ILC_COLOR16 | ILC_MASK, ICON_INDEX_LIMIT, 0);
+      _dw_image_list_small = ImageList_Create(16, 16, ILC_COLOR16 | ILC_MASK, ICON_INDEX_LIMIT, 0);
+      _dw_image_list_large = ImageList_Create(32, 32, ILC_COLOR16 | ILC_MASK, ICON_INDEX_LIMIT, 0);
    }
    for(z=0;z<ICON_INDEX_LIMIT;z++)
    {
-      if(!lookup[z])
+      if(!_dw_icon_lookup[z])
       {
-         lookup[z] = hicon;
-         ImageList_AddIcon(hSmall, hicon);
-         ImageList_AddIcon(hLarge, hicon);
+         _dw_icon_lookup[z] = hicon;
+         ImageList_AddIcon(_dw_image_list_small, hicon);
+         ImageList_AddIcon(_dw_image_list_large, hicon);
          if(type)
          {
-            TreeView_SetImageList(handle, hSmall, TVSIL_NORMAL);
+            TreeView_SetImageList(handle, _dw_image_list_small, TVSIL_NORMAL);
          }
          else
          {
-            ListView_SetImageList(handle, hSmall, LVSIL_SMALL);
-            ListView_SetImageList(handle, hLarge, LVSIL_NORMAL);
+            ListView_SetImageList(handle, _dw_image_list_small, LVSIL_SMALL);
+            ListView_SetImageList(handle, _dw_image_list_large, LVSIL_NORMAL);
          }
          lasthwnd = handle;
          return z;
       }
 
-      if(hicon == lookup[z])
+      if(hicon == _dw_icon_lookup[z])
       {
          if(lasthwnd != handle)
          {
             if(type)
             {
-               TreeView_SetImageList(handle, hSmall, TVSIL_NORMAL);
+               TreeView_SetImageList(handle, _dw_image_list_small, TVSIL_NORMAL);
             }
             else
             {
-               ListView_SetImageList(handle, hSmall, LVSIL_SMALL);
-               ListView_SetImageList(handle, hLarge, LVSIL_NORMAL);
+               ListView_SetImageList(handle, _dw_image_list_small, LVSIL_SMALL);
+               ListView_SetImageList(handle, _dw_image_list_large, LVSIL_NORMAL);
             }
             lasthwnd = handle;
          }
@@ -10275,7 +10276,7 @@ void API dw_filesystem_set_file(HWND handle, void *pointer, int row, const char 
    lvi.mask = LVIF_DI_SETITEM | LVIF_IMAGE | LVIF_TEXT;
    lvi.pszText = UTF8toWide(filename);
    lvi.cchTextMax = (int)_tcslen(lvi.pszText);
-   lvi.iImage = _lookup_icon(handle, (HICON)icon, 0);
+   lvi.iImage = _dw_lookup_icon(handle, (HICON)icon, 0);
 
    ListView_SetItem(handle, &lvi);
 }
@@ -10336,7 +10337,7 @@ void API dw_container_set_item(HWND handle, void *pointer, int column, int row, 
       {
          HICON hicon = *((HICON *)data);
 
-         lvi.iImage = _lookup_icon(handle, hicon, 0);
+         lvi.iImage = _dw_lookup_icon(handle, hicon, 0);
       }
       else
          lvi.iImage = -1;
@@ -11052,7 +11053,7 @@ HWND API dw_render_new(unsigned long id)
    newbox->type = 0;
    newbox->count = 0;
    newbox->grouphwnd = (HWND)NULL;
-   newbox->cinfo.pOldProc = SubclassWindow(tmp, _rendwndproc);
+   newbox->cinfo.pOldProc = SubclassWindow(tmp, _dw_rendwndproc);
    newbox->cinfo.fore = newbox->cinfo.back = -1;
    SetWindowLongPtr( tmp, GWLP_USERDATA, (LONG_PTR)newbox );
    return tmp;
@@ -11076,31 +11077,31 @@ void API dw_render_redraw(HWND handle)
  */
 void API dw_color_foreground_set(unsigned long value)
 {
-   HPEN hPen = TlsGetValue(_hPen);
-   HBRUSH hBrush = TlsGetValue(_hBrush);
+   HPEN hPen = TlsGetValue(_dw_hpen);
+   HBRUSH hBrush = TlsGetValue(_dw_hbrush);
    COLORREF foreground;
 #ifdef GDIPLUS
-   GpBrush *brush = TlsGetValue(_gpBrush);
-   GpPen *pen = TlsGetValue(_gpPen);
+   GpBrush *brush = TlsGetValue(_dw_gpbrush);
+   GpPen *pen = TlsGetValue(_dw_gppen);
    ARGB gpfore;
 #endif
 
-   value = _internal_color(value);
+   value = _dw_internal_color(value);
    foreground = RGB(DW_RED_VALUE(value), DW_GREEN_VALUE(value), DW_BLUE_VALUE(value));
 #ifdef GDIPLUS
    gpfore = MAKEARGB(255, DW_RED_VALUE(value), DW_GREEN_VALUE(value), DW_BLUE_VALUE(value));
 
    GdipDeletePen(pen);
    GdipCreatePen1(gpfore, 1.0, UnitPixel, &pen);
-   TlsSetValue(_gpPen, (LPVOID)pen);
+   TlsSetValue(_dw_gppen, (LPVOID)pen);
    GdipSetSolidFillColor(brush, gpfore);
 #endif
 
    DeleteObject(hPen);
    DeleteObject(hBrush);
-   TlsSetValue(_foreground, (LPVOID)(uintptr_t)foreground);
-   TlsSetValue(_hPen, CreatePen(PS_SOLID, 1, foreground));
-   TlsSetValue(_hBrush, CreateSolidBrush(foreground));
+   TlsSetValue(_dw_foreground, (LPVOID)(uintptr_t)foreground);
+   TlsSetValue(_dw_hpen, CreatePen(PS_SOLID, 1, foreground));
+   TlsSetValue(_dw_hbrush, CreateSolidBrush(foreground));
 }
 
 /* Sets the current background drawing color.
@@ -11113,13 +11114,13 @@ void API dw_color_background_set(unsigned long value)
 {
    COLORREF background;
 
-   value = _internal_color(value);
+   value = _dw_internal_color(value);
    background = RGB(DW_RED_VALUE(value), DW_GREEN_VALUE(value), DW_BLUE_VALUE(value));
 
    if(value == DW_RGB_TRANSPARENT)
-      TlsSetValue(_background, (LPVOID)DW_RGB_TRANSPARENT);
+      TlsSetValue(_dw_background, (LPVOID)DW_RGB_TRANSPARENT);
    else
-      TlsSetValue(_background, (LPVOID)(uintptr_t)background);
+      TlsSetValue(_dw_background, (LPVOID)(uintptr_t)background);
 }
 
 /* Allows the user to choose a color using the system's color chooser dialog.
@@ -11134,7 +11135,7 @@ unsigned long API dw_color_choose(unsigned long value)
    unsigned long newcolor;
    COLORREF acrCustClr[16] = {0};
 
-   value = _internal_color(value);
+   value = _dw_internal_color(value);
    if(value == DW_RGB_TRANSPARENT)
       newcolor = DW_RGB_TRANSPARENT;
    else
@@ -11174,7 +11175,7 @@ void API dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
    else
       return;
 
-   SetPixel(hdcPaint, x, y, (COLORREF)TlsGetValue(_foreground));
+   SetPixel(hdcPaint, x, y, (COLORREF)TlsGetValue(_dw_foreground));
    if(!pixmap)
       ReleaseDC(handle, hdcPaint);
 #endif
@@ -11193,7 +11194,7 @@ void API dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y
 {
 #ifdef GDIPLUS
    GpGraphics *graphics = NULL;
-   GpPen *pen = TlsGetValue(_gpPen);
+   GpPen *pen = TlsGetValue(_dw_gppen);
 
    if(handle)
       GdipCreateFromHWND(handle, &graphics);
@@ -11216,14 +11217,14 @@ void API dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y
    else
       return;
 
-   oldPen = SelectObject(hdcPaint, TlsGetValue(_hPen));
+   oldPen = SelectObject(hdcPaint, TlsGetValue(_dw_hpen));
    MoveToEx(hdcPaint, x1, y1, NULL);
    LineTo(hdcPaint, x2, y2);
    SelectObject(hdcPaint, oldPen);
    /* For some reason Win98 (at least) fails
     * to draw the last pixel.  So I do it myself.
     */
-   SetPixel(hdcPaint, x2, y2, (COLORREF)TlsGetValue(_foreground));
+   SetPixel(hdcPaint, x2, y2, (COLORREF)TlsGetValue(_dw_foreground));
    if(!pixmap)
       ReleaseDC(handle, hdcPaint);
 #endif
@@ -11298,13 +11299,13 @@ void API dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, in
       {
          if(flags & DW_DRAW_FILL)
          {
-            GpBrush *brush = TlsGetValue(_gpBrush);
+            GpBrush *brush = TlsGetValue(_dw_gpbrush);
 
             GdipFillPolygon2I(graphics, brush, points, npoints);
          }
          else
          {
-            GpPen *pen = TlsGetValue(_gpPen);
+            GpPen *pen = TlsGetValue(_dw_gppen);
 
             GdipDrawPolygonI(graphics, pen, points, npoints);
          }
@@ -11324,8 +11325,8 @@ void API dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, in
 
       if((points = _makePoints(&npoints, x, y)))
       {
-         HBRUSH oldBrush = SelectObject( hdcPaint, TlsGetValue(_hBrush) );
-         HPEN oldPen = SelectObject( hdcPaint, TlsGetValue(_hPen) );
+         HBRUSH oldBrush = SelectObject( hdcPaint, TlsGetValue(_dw_hbrush) );
+         HPEN oldPen = SelectObject( hdcPaint, TlsGetValue(_dw_hpen) );
 
          if ( flags & DW_DRAW_FILL )
             Polygon( hdcPaint, points, npoints );
@@ -11372,13 +11373,13 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int 
 
    if(flags & DW_DRAW_FILL)
    {
-      GpBrush *brush = TlsGetValue(_gpBrush);
+      GpBrush *brush = TlsGetValue(_dw_gpbrush);
 
       GdipFillRectangleI(graphics, brush, x, y, width, height);
    }
    else
    {
-      GpPen *pen = TlsGetValue(_gpPen);
+      GpPen *pen = TlsGetValue(_dw_gppen);
 
       GdipDrawRectangleI(graphics, pen, x, y, width, height);
    }
@@ -11396,9 +11397,9 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int 
 
    SetRect(&Rect, x, y, x + width , y + height );
    if(flags & DW_DRAW_FILL)
-      FillRect(hdcPaint, &Rect, TlsGetValue(_hBrush));
+      FillRect(hdcPaint, &Rect, TlsGetValue(_dw_hbrush));
    else
-      FrameRect(hdcPaint, &Rect, TlsGetValue(_hBrush));
+      FrameRect(hdcPaint, &Rect, TlsGetValue(_dw_hbrush));
    if(!pixmap)
       ReleaseDC(handle, hdcPaint);
 #endif
@@ -11421,7 +11422,7 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
 {
 #ifdef GDIPLUS
    GpGraphics *graphics = NULL;
-   GpPen *pen = TlsGetValue(_gpPen);
+   GpPen *pen = TlsGetValue(_dw_gppen);
 
    if(handle)
       GdipCreateFromHWND(handle, &graphics);
@@ -11438,7 +11439,7 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
    {
       if(flags & DW_DRAW_FILL)
       {
-         GpBrush *brush = TlsGetValue(_gpBrush);
+         GpBrush *brush = TlsGetValue(_dw_gpbrush);
 
          GdipFillEllipseI(graphics, brush, x1 < x2 ? x1 : x2, y1 < y2 ? y1 : y2, abs(x1-x2), abs(y1-y2));
       }
@@ -11480,10 +11481,10 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
       return;
 
    if(flags & DW_DRAW_FILL)
-      oldBrush = SelectObject( hdcPaint, TlsGetValue(_hBrush) );
+      oldBrush = SelectObject( hdcPaint, TlsGetValue(_dw_hbrush) );
    else
       oldBrush = SelectObject( hdcPaint, GetStockObject(HOLLOW_BRUSH) );
-   oldPen = SelectObject( hdcPaint, TlsGetValue(_hPen) );
+   oldPen = SelectObject( hdcPaint, TlsGetValue(_dw_hpen) );
    if(flags & DW_DRAW_FULL)
       Ellipse(hdcPaint, x1, y1, x2, y2);
    else
@@ -11500,7 +11501,7 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
 /* Internal function to increase or decrease coordinates/sizes
  * by the difference of the screen DPI (96) and the context DPI.
  */
-void _convert_dpi(HDC hdc, int *x, int *y, int mult)
+void _dw_convert_dpi(HDC hdc, int *x, int *y, int mult)
 {
    int ratiox = (int)GetDeviceCaps(hdc, LOGPIXELSX)/96;
    int ratioy = (int)GetDeviceCaps(hdc, LOGPIXELSY)/96;
@@ -11557,14 +11558,14 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, const char *tex
 
    if(cinfo)
    {
-      hFont = _acquire_font(handle, cinfo->fontname);
+      hFont = _dw_acquire_font(handle, cinfo->fontname);
       mustdelete = 1;
    }
 
-   background = (COLORREF)(uintptr_t)TlsGetValue(_background);
+   background = (COLORREF)(uintptr_t)TlsGetValue(_dw_background);
    if(hFont)
       oldFont = SelectObject(hdc, hFont);
-   SetTextColor(hdc, (COLORREF)(uintptr_t)TlsGetValue(_foreground));
+   SetTextColor(hdc, (COLORREF)(uintptr_t)TlsGetValue(_dw_foreground));
    if(background == DW_RGB_TRANSPARENT)
       SetBkMode(hdc, TRANSPARENT);
    else
@@ -11573,7 +11574,7 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, const char *tex
       SetBkColor(hdc, background);
    }
 #ifdef GDIPLUS
-   _convert_dpi(hdc, &x, &y, TRUE);
+   _dw_convert_dpi(hdc, &x, &y, TRUE);
 #endif
    TextOut(hdc, x, y, wtext, (int)_tcslen(wtext));
    if(oldFont)
@@ -11622,7 +11623,7 @@ void API dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, const char *text,
 
       if(cinfo)
       {
-         hFont = _acquire_font(handle, cinfo->fontname);
+         hFont = _dw_acquire_font(handle, cinfo->fontname);
          mustdelete = 1;
       }
    }
@@ -11637,7 +11638,7 @@ void API dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, const char *text,
       *height = sz.cy;
 
 #ifdef GDIPLUS
-   _convert_dpi(hdc, width, height, FALSE);
+   _dw_convert_dpi(hdc, width, height, FALSE);
 #endif
 
    SelectObject(hdc, oldFont);
@@ -11693,7 +11694,7 @@ HPIXMAP API dw_pixmap_new(HWND handle, unsigned long width, unsigned long height
  * apparently we can't check the depth once loaded...
  * since it seems to normalize it to our screen depth.
  */
-unsigned long _read_bitmap_header(char *file)
+unsigned long _dw_read_bitmap_header(char *file)
 {
     BITMAPFILEHEADER header;
     BITMAPINFO *info;
@@ -11781,7 +11782,7 @@ HPIXMAP API dw_pixmap_new_from_file(HWND handle, const char *filename)
    }
 
    pixmap->hbm = (HBITMAP)LoadImage(NULL, UTF8toWide(file), IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
-   pixmap->depth = _read_bitmap_header(file);
+   pixmap->depth = _dw_read_bitmap_header(file);
 #endif
 
    pixmap->handle = handle;
@@ -11843,7 +11844,7 @@ HPIXMAP API dw_pixmap_new_from_data(HWND handle, const char *data, int len)
          pixmap->hbm = _dw_load_bitmap(file, NULL);
 #else
          pixmap->hbm = (HBITMAP)LoadImage( NULL, UTF8toWide(file), IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE );
-         pixmap->depth = _read_bitmap_header(file);
+         pixmap->depth = _dw_read_bitmap_header(file);
 #endif
       }
       else
@@ -11885,7 +11886,7 @@ void API dw_pixmap_set_transparent_color( HPIXMAP pixmap, ULONG color )
 {
    if ( pixmap && pixmap->depth < 32)
    {
-      pixmap->transcolor = _internal_color(color);
+      pixmap->transcolor = _dw_internal_color(color);
    }
 }
 
@@ -11939,7 +11940,7 @@ int API dw_pixmap_set_font(HPIXMAP pixmap, const char *fontname)
 {
     if(pixmap)
     {
-        HFONT hfont = _acquire_font2(pixmap->hdc, fontname);
+        HFONT hfont = _dw_acquire_font2(pixmap->hdc, fontname);
 
         if(hfont)
         {
@@ -12041,10 +12042,10 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
 
 #ifdef GDIPLUS
    /* Do conversion on all the coordinates */
-   _convert_dpi(hdcdest, &xdest, &ydest, TRUE);
-   _convert_dpi(hdcdest, &width, &height, TRUE);
-   _convert_dpi(hdcsrc, &xsrc, &ysrc, TRUE);
-   _convert_dpi(hdcsrc, &swidth, &sheight, TRUE);
+   _dw_convert_dpi(hdcdest, &xdest, &ydest, TRUE);
+   _dw_convert_dpi(hdcdest, &width, &height, TRUE);
+   _dw_convert_dpi(hdcsrc, &xsrc, &ysrc, TRUE);
+   _dw_convert_dpi(hdcsrc, &swidth, &sheight, TRUE);
 #endif
 
    /* If it is a 32bpp bitmap (with alpha) use AlphaBlend unless it fails */
@@ -12074,7 +12075,7 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
 }
 
 /* Run Beep() in a separate thread so it doesn't block */
-void _beepthread(void *data)
+void _dw_beep_thread(void *data)
 {
    int *info = (int *)data;
 
@@ -12100,7 +12101,7 @@ void API dw_beep(int freq, int dur)
       info[0] = freq;
       info[1] = dur;
 
-      _beginthread(_beepthread, 100, (void *)info);
+      _beginthread(_dw_beep_thread, 100, (void *)info);
    }
 }
 
@@ -12451,14 +12452,14 @@ void API _dw_init_thread(void)
     GpPen *pen;
 
     GdipCreatePen1(gpfore, 1.0, UnitPixel, &pen);
-    TlsSetValue(_gpPen, (LPVOID)pen);
+    TlsSetValue(_dw_gppen, (LPVOID)pen);
     GdipCreateSolidFill(gpfore, &brush);
-    TlsSetValue(_gpBrush, brush);
+    TlsSetValue(_dw_gpbrush, brush);
 #endif
-    TlsSetValue(_foreground, DW_UINT_TO_POINTER(foreground));
-    TlsSetValue(_background, DW_UINT_TO_POINTER(background));
-    TlsSetValue(_hPen, CreatePen(PS_SOLID, 1, foreground));
-    TlsSetValue(_hBrush, CreateSolidBrush(foreground));
+    TlsSetValue(_dw_foreground, DW_UINT_TO_POINTER(foreground));
+    TlsSetValue(_dw_background, DW_UINT_TO_POINTER(background));
+    TlsSetValue(_dw_hpen, CreatePen(PS_SOLID, 1, foreground));
+    TlsSetValue(_dw_hbrush, CreateSolidBrush(foreground));
 }
 
 /*
@@ -12476,14 +12477,14 @@ void API _dw_deinit_thread(void)
    GpPen *pen;
 #endif
 
-   if((hPen = TlsGetValue(_hPen)))
+   if((hPen = TlsGetValue(_dw_hpen)))
        DeleteObject(hPen);
-   if((hBrush = TlsGetValue(_hBrush)))
+   if((hBrush = TlsGetValue(_dw_hbrush)))
        DeleteObject(hBrush);
 #ifdef GDIPLUS
-   if((brush = TlsGetValue(_gpBrush)))
+   if((brush = TlsGetValue(_dw_gpbrush)))
       GdipDeleteBrush(brush);
-   if((pen = TlsGetValue(_gpPen)))
+   if((pen = TlsGetValue(_dw_gppen)))
       GdipDeletePen(pen);
 #endif
 }
@@ -12631,7 +12632,7 @@ void API dw_splitbar_set(HWND handle, float percent)
    dw_window_get_pos_size(handle, NULL, NULL, &width, &height);
 
    if(width > 0 && height > 0)
-      _handle_splitbar_resize(handle, percent, type, width, height);
+      _dw_handle_splitbar_resize(handle, percent, type, width, height);
 }
 
 /*
@@ -12982,7 +12983,7 @@ void API dw_environment_query(DWEnv *env)
 }
 
 /* Helper to make sure all /s are \s */
-void _to_dos(TCHAR *dst, TCHAR *src)
+void _dw_to_dos(TCHAR *dst, TCHAR *src)
 {
    int x = 0;
 
@@ -13098,7 +13099,7 @@ char * API dw_file_browse(const char *title, const char *defpath, const char *ex
       if(att != INVALID_FILE_ATTRIBUTES && (att & FILE_ATTRIBUTE_DIRECTORY))
         of.lpstrInitialDir = dpath;
       else if(defpath)
-        _to_dos(filenamebuf, dpath);
+        _dw_to_dos(filenamebuf, dpath);
       of.lpstrFile = filenamebuf;
       of.lpstrFilter = filterbuf;
       of.nFilterIndex = 1;
@@ -13281,7 +13282,7 @@ int API dw_print_run(HPRINT print, unsigned long flags)
 
 #ifdef GDIPLUS
    /* Convert the size based on the DPI */
-   _convert_dpi(pixmap->hdc, &width, &height, FALSE);
+   _dw_convert_dpi(pixmap->hdc, &width, &height, FALSE);
 #endif
 
     pixmap->width = width;
@@ -13399,14 +13400,14 @@ int API dw_app_id_set(const char *appid, const char *appname)
  */
 void API dw_window_function(HWND handle, void *function, void *data)
 {
-   SendMessage(_toplevel_window(handle), WM_USER, (WPARAM)function, (LPARAM)data);
+   SendMessage(_dw_toplevel_window(handle), WM_USER, (WPARAM)function, (LPARAM)data);
 }
 
 /* Functions for managing the user data lists that are associated with
  * a given window handle.  Used in dw_window_set_data() and
  * dw_window_get_data().
  */
-UserData *_find_userdata(UserData **root, const char *varname)
+UserData *_dw_find_userdata(UserData **root, const char *varname)
 {
    UserData *tmp = *root;
 
@@ -13419,9 +13420,9 @@ UserData *_find_userdata(UserData **root, const char *varname)
    return NULL;
 }
 
-int _new_userdata(UserData **root, const char *varname, void *data)
+int _dw_new_userdata(UserData **root, const char *varname, void *data)
 {
-   UserData *new = _find_userdata(root, varname);
+   UserData *new = _dw_find_userdata(root, varname);
 
    if(new)
    {
@@ -13457,7 +13458,7 @@ int _new_userdata(UserData **root, const char *varname, void *data)
    return FALSE;
 }
 
-int _remove_userdata(UserData **root, const char *varname, int all)
+int _dw_remove_userdata(UserData **root, const char *varname, int all)
 {
    UserData *prev = NULL, *tmp = *root;
 
@@ -13516,13 +13517,13 @@ void API dw_window_set_data(HWND window, const char *dataname, void *data)
    if(cinfo)
    {
       if(data)
-         _new_userdata(&(cinfo->root), dataname, data);
+         _dw_new_userdata(&(cinfo->root), dataname, data);
       else
       {
          if(dataname)
-            _remove_userdata(&(cinfo->root), dataname, FALSE);
+            _dw_remove_userdata(&(cinfo->root), dataname, FALSE);
          else
-            _remove_userdata(&(cinfo->root), NULL, TRUE);
+            _dw_remove_userdata(&(cinfo->root), NULL, TRUE);
       }
    }
 }
@@ -13540,7 +13541,7 @@ void * API dw_window_get_data(HWND window, const char *dataname)
 
    if(cinfo && cinfo->root && dataname)
    {
-      UserData *ud = _find_userdata(&(cinfo->root), dataname);
+      UserData *ud = _dw_find_userdata(&(cinfo->root), dataname);
       if(ud)
          return ud->data;
    }
@@ -13581,11 +13582,11 @@ HTIMER API dw_timer_connect(int interval, void *sigfunc, void *data)
       /* Warning: This seems to return UINT_PTR on some systems...
        * which may exceed the storage of int that our API uses.
        */
-      int timerid = (int)SetTimer(NULL, 0, interval, _TimerProc);
+      int timerid = (int)SetTimer(NULL, 0, interval, _dw_timerproc);
 
       if(timerid)
       {
-         _new_signal(WM_TIMER, NULL, timerid, sigfunc, NULL, data);
+         _dw_new_signal(WM_TIMER, NULL, timerid, sigfunc, NULL, data);
          return timerid;
       }
    }
@@ -13661,9 +13662,9 @@ void API dw_signal_connect_data(HWND window, const char *signame, void *sigfunc,
    if (window && signame && sigfunc)
    {
       if (_stricmp(signame, DW_SIGNAL_SET_FOCUS) == 0)
-         window = _normalize_handle(window);
+         window = _dw_normalize_handle(window);
 
-      if ((message = _findsigmessage(signame)) != 0)
+      if ((message = _dw_findsigmessage(signame)) != 0)
       {
          /* Handle special case of the menu item */
          if (message == WM_COMMAND && window < (HWND)65536)
@@ -13683,7 +13684,7 @@ void API dw_signal_connect_data(HWND window, const char *signame, void *sigfunc,
                window = owner;
             }
          }
-         _new_signal(message, window, id, sigfunc, discfunc, data);
+         _dw_new_signal(message, window, id, sigfunc, discfunc, data);
       }
    }
 }
@@ -13698,7 +13699,7 @@ void API dw_signal_disconnect_by_name(HWND window, const char *signame)
    SignalHandler *prev = NULL, *tmp = Root;
    ULONG message;
 
-   if(!window || !signame || (message = _findsigmessage(signame)) == 0)
+   if(!window || !signame || (message = _dw_findsigmessage(signame)) == 0)
       return;
 
    while(tmp)
@@ -13827,7 +13828,7 @@ void API dw_signal_disconnect_by_data(HWND window, void *data)
 wchar_t * API dw_utf8_to_wchar(const char *utf8string)
 {
  #ifdef UNICODE
-    return _myUTF8toWide(utf8string, malloc(MultiByteToWideChar(CP_UTF8, 0, utf8string, -1, NULL, 0) * sizeof(WCHAR)));
+    return _dw_UTF8toWide(utf8string, malloc(MultiByteToWideChar(CP_UTF8, 0, utf8string, -1, NULL, 0) * sizeof(WCHAR)));
 #else
     return NULL;
 #endif
@@ -13844,7 +13845,7 @@ wchar_t * API dw_utf8_to_wchar(const char *utf8string)
 char * API dw_wchar_to_utf8(const wchar_t *wstring)
 {
 #ifdef UNICODE
-    return _myWideToUTF8(wstring, malloc(WideCharToMultiByte(CP_UTF8, 0, wstring, -1, NULL, 0, NULL, NULL)));
+    return _dw_WideToUTF8(wstring, malloc(WideCharToMultiByte(CP_UTF8, 0, wstring, -1, NULL, 0, NULL, NULL)));
 #else
     return NULL;
 #endif

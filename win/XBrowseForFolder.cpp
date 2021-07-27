@@ -216,11 +216,11 @@ extern "C" {
 /* Include necessary variables and prototypes from dw.c */
 extern int _DW_DARK_MODE_SUPPORTED;
 extern int _DW_DARK_MODE_ENABLED;
-extern BOOL (WINAPI * _DW_ShouldAppsUseDarkMode)(VOID);
+extern BOOL (WINAPI * _dw_should_apps_use_dark_mode)(VOID);
 
-BOOL _DW_IsHighContrast(VOID);
-BOOL _DW_IsColorSchemeChangeMessage(LPARAM lParam);
-void _DW_RefreshTitleBarThemeColor(HWND window);
+BOOL _dw_is_high_contrast(VOID);
+BOOL _dw_is_color_scheme_change_message(LPARAM lParam);
+void _dw_refresh_titlebar_theme_color(HWND window);
 BOOL CALLBACK _dw_set_child_window_theme(HWND window, LPARAM lParam);
 }
 #endif
@@ -239,11 +239,11 @@ static int CALLBACK BrowseCallbackProc(HWND hWnd,		// Window handle to the brows
 #ifdef AEROGLASS
 		case WM_SETTINGCHANGE:
 		{
-			if(_DW_DARK_MODE_SUPPORTED && _DW_IsColorSchemeChangeMessage(lpData))
+			if(_DW_DARK_MODE_SUPPORTED && _dw_is_color_scheme_change_message(lpData))
 			{
-				_DW_DARK_MODE_ENABLED = _DW_ShouldAppsUseDarkMode() && !_DW_IsHighContrast();
+				_DW_DARK_MODE_ENABLED = _dw_should_apps_use_dark_mode() && !_dw_is_high_contrast();
 
-				_DW_RefreshTitleBarThemeColor(hWnd);
+				_dw_refresh_titlebar_theme_color(hWnd);
 				_dw_set_child_window_theme(hWnd, 0);
 				EnumChildWindows(hWnd, _dw_set_child_window_theme, 0);
 			}
@@ -281,7 +281,7 @@ static int CALLBACK BrowseCallbackProc(HWND hWnd,		// Window handle to the brows
 			{
 				_dw_set_child_window_theme(hWnd, 0);
 				EnumChildWindows(hWnd, _dw_set_child_window_theme, 0);
-				_DW_RefreshTitleBarThemeColor(hWnd);
+				_dw_refresh_titlebar_theme_color(hWnd);
 			}
 #endif
 			SizeBrowseDialog(hWnd, fp);
