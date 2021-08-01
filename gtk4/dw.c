@@ -518,10 +518,10 @@ static void _dw_msleep(long period)
 }
 
 /* Finds the translation function for a given signal name */
-static SignalList _dw_findsignal(const char *signame)
+static DWSignalList _dw_findsignal(const char *signame)
 {
    int z=0;
-   static SignalList empty = {0};
+   static DWSignalList empty = {0};
 
    while(DWSignalTranslate[z].func)
    {
@@ -10915,7 +10915,7 @@ GObject *_dw_html_setup(struct _dw_signal_list *signal, GObject *object, void *s
  */
 void API dw_signal_connect_data(HWND window, const char *signame, void *sigfunc, void *discfunc, void *data)
 {
-   SignalList signal = _dw_findsignal(signame);
+   DWSignalList signal = _dw_findsignal(signame);
    
    if(signal.func)
    {
@@ -10961,7 +10961,7 @@ void API dw_signal_connect_data(HWND window, const char *signame, void *sigfunc,
 void API dw_signal_disconnect_by_name(HWND window, const char *signame)
 {
    int z, count;
-   SignalList signal;
+   DWSignalList signal;
    void **params = alloca(sizeof(void *) * 3);
 
    params[2] = _dw_find_signal_window(window, signame);
