@@ -312,7 +312,7 @@ static void gtk_mdi_init(GtkMdi *mdi);
 
 static void gtk_mdi_realize(GtkWidget *widget);
 static void gtk_mdi_size_request(GtkWidget *widget, GtkRequisition *requisition);
-static void gtk_mdi_dw_size_allocate(GtkWidget *widget, GtkAllocation *allocation);
+static void gtk_mdi_size_allocate(GtkWidget *widget, GtkAllocation *allocation);
 static gint gtk_mdi_expose(GtkWidget *widget, GdkEventExpose *event);
 
 /* Callbacks */
@@ -382,7 +382,7 @@ static void gtk_mdi_class_init(GtkMdiClass *class)
    widget_class->realize = gtk_mdi_realize;
    widget_class->expose_event = gtk_mdi_expose;
    widget_class->size_request = gtk_mdi_size_request;
-   widget_class->size_allocate = gtk_mdi_dw_size_allocate;
+   widget_class->size_allocate = gtk_mdi_size_allocate;
 
    container_class->add = gtk_mdi_add;
    container_class->remove = gtk_mdi_remove_true;
@@ -753,7 +753,7 @@ static void gtk_mdi_size_request (GtkWidget *widget, GtkRequisition *requisition
    }
 }
 
-static void gtk_mdi_dw_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
+static void gtk_mdi_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 {
    GtkMdi *mdi;
    GtkMdiChild *child;
@@ -829,7 +829,7 @@ static void gtk_mdi_dw_size_allocate(GtkWidget *widget, GtkAllocation *allocatio
                break;
             }
          }
-         gtk_widget_dw_size_allocate (child->widget, &child_allocation);
+         gtk_widget_size_allocate (child->widget, &child_allocation);
       }
    }
 }
