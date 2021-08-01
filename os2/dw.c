@@ -6293,7 +6293,7 @@ void API dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
 {
    if(menu)
    {
-      popup = parent;
+      _dw_popup = parent;
       dw_window_set_data(*menu, "_dw_popup", DW_INT_TO_POINTER(1));
       WinPopupMenu(HWND_DESKTOP, parent, *menu, x, dw_screen_height() - y, 0, PU_KEYBOARD | PU_MOUSEBUTTON1 | PU_VCONSTRAIN | PU_HCONSTRAIN);
       *menu = 0;
@@ -6722,7 +6722,7 @@ HPIXMAP _dw_create_disabled(HWND handle, HPIXMAP pixmap)
 
     dw_pixmap_bitblt(0, disabled, 0, 0, pixmap->width, pixmap->height, 0, pixmap, 0, 0);
 
-    dw_color_dw_foreground_set(DW_CLR_PALEGRAY);
+    dw_color_foreground_set(DW_CLR_PALEGRAY);
     lim = pixmap->width/2;
     for(j=0;j<pixmap->height;j++)
     {
@@ -9565,7 +9565,7 @@ HICN _dw_create_icon(HPIXMAP src, unsigned long backrgb)
     dw_pixmap_stretch_bitblt(0, minipntr, 0, 0, minipntr->width, minipntr->height, 0, src, 0, 0, src->width, src->height);
 
     /* Create the masks, all in black */
-    dw_color_dw_foreground_set(DW_CLR_BLACK);
+    dw_color_foreground_set(DW_CLR_BLACK);
     dw_draw_rect(0, mask, DW_DRAW_FILL, 0, 0, mask->width, mask->height);
     dw_draw_rect(0, minimask, DW_DRAW_FILL, 0, 0, minimask->width, minimask->height);
 #if 0
@@ -10621,7 +10621,7 @@ HWND API dw_render_new(unsigned long id)
  *       green: green value.
  *       blue: blue value.
  */
-void API dw_color_dw_foreground_set(unsigned long value)
+void API dw_color_foreground_set(unsigned long value)
 {
    _dw_foreground = value;
 }
@@ -10632,7 +10632,7 @@ void API dw_color_dw_foreground_set(unsigned long value)
  *       green: green value.
  *       blue: blue value.
  */
-void API dw_color_dw_background_set(unsigned long value)
+void API dw_color_background_set(unsigned long value)
 {
    _dw_background = value;
 }
