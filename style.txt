@@ -1,0 +1,90 @@
+=== Code Style and Design ===
+
+--- Design Principles --- 
+
+To explain the existing style and where we are going it makes sense to explain the history of Dynamic Windows.  There are several design principles that Dynamic Windows adheres to:
+
+1) Compatibility, Portability
+
+C was chosen as the API because essentially every platform has a C compiler.  Even when the internals are written in another language, like C++, Objective-C or Kotlin/Java, the exported API is portable C that can be used on all the platforms.
+
+2) Light-weight
+
+C is also one of the most light weight languages making it a good choice here too.  We leverage the native APIs on the platform to reduce the Dynamic Windows footprint.  Only implementing our own widgets or functionality when the target platform has no native support.
+
+3) Native 
+
+While the C API hides all the internals for a platform from the developer behind typedefs and API calls, the native system functionality is just below the surface.  Platform specific #ifdefs can allow you to use native system calls to augment Dynamic Windows functionality.  
+
+This was a bit more simple in the past when all the system APIs were in C, but it is still possible with systems like Mac and iOS where the internals are in Objective-C, an intermediary source file may be necessary to call native code.
+
+4) Easily embeddable
+
+The core Dynamic Windows functionality should be encapsulated into a single file when possible.  The idea is that including Dynamic Windows in a project should be as simple as adding the dw.h header and the target platform core source file into your project.
+
+5) Simplicity
+
+It should be fairly simple to write a modern and functional interface even when using a fairly low level language such as C.  We accomplish this by encapsulating the complexity in the library behind a simple API.  Using the box packing, signal handling and object data functionality that are the center pieces of the API.
+
+--- History ---
+
+These principles were critical in the first Dynamic Window use case, it was used to write a graphical self-installer for OS/2 (and later, Windows and Unix).  The executable header needed to be compact, and able to function with a minimal system install.  Later scripting support was added using the built-in system scripting language REXX, which was also ported to the other platforms using Mark Hessling's Regina REXX interpreter. 
+
+Dynamic Windows was then built as a Dynamic Link Library or Shared Object to be used in more standard applications, including my HandyFTP application which was originally written with the Cell Toolkit on OS/2, the graphical versions of the BitchX IRC client and various other private applications. 
+
+In those early days not much thought was given to namespace pollution, or consistency for the internals, as long as the public APIs were exported and things compiled and worked things were good.  As time marched on, code was acquired from other sources or contributed by people to the project and the internal naming got more and more random. 
+
+At some point I became aware that on Linux, shared libraries basically exported all symbols by default, when I ran into an odd symbol conflict issue in an application I was working on.  When built as DLLs on OS/2 and Windows this was not really an issue, since exports at the time were explicit in the export definition file.  The experience on Linux however, made me think about the naming of global functions and variables, which caused me to start adding an underscore _ to any internal functions in an attempt to avoid conflicts. I did this on all platforms, since one of the design principles was embedding and in that use case even OS/2 and Windows can have name conflicts.
+
+When I came back from a break from working on Dynamic Windows, I started using _dw_ as the prefix to my internal functions, since while I have never actually run into an issue with an underscored function or variable colliding, it is possible that another library could be using underscores to do the same thing that we were.  Therefore for visual consistency and as an added layer of protection the _dw_ prefix seemed like a good idea. 
+
+During the 3.2 release cycle I have been effectively writing 3 new platforms simultaneously, one from scratch (Android) and two based on existing code (iOS based on Mac and GTK4 based on GTK3 and Mac).  I began thinking about making things work and look the same on all the platforms.  I tried to keep them all functioning similarly and in essentially the same style when possible, which is great for these new platforms but it caused them to diverge from the existing platforms.  So I decided to go back and start updating the old existing platforms with the style choices I made with these new platforms, and it became obvious I should document and have discussions with users about these changes.
+
+--- Style in the 3.2 Release ---
+
+- Public -
+
+These functions, types and constants are part of the portable C API, usable by everyone on any platform.
+
+Function prefix: dw_ (lowercase)
+Handle type prefix: H  (uppercase)
+Structure prefix: DW (mixedcase)
+Constant prefix: DW_ (uppercase)
+
+- Internal -
+
+These functions, variables and constants are used only inside Dynamic Windows, or the platform they are defined in.
+
+Funtion prefix: _dw_ (lowercase)
+Variable prefix: _dw_ (lowercase)
+Constant prefix: _DW_ (uppercase)
+
+- Native -
+
+These non-C classes (Objective-C or C++) or variables are platform specific and can be used inside a platform #ifdef
+
+Class prefix: DW (mixedcase)
+Variable prefix: DW (mixedcase)
+
+There are at least two functions that are sort of exceptions to this, _dw_init_thread() and _dw_deinit_thread() are two internal functions that are exported for use in language bindings such as Google's Go.  Plus at the time of this writing I have not finished the code audit, so there may be some that have not been changed yet to match this scheme or due to possible compatibility problems. 
+
+Also the Kotlin code for Android does not follow this naming system, but to access the Kotlin APIs you need to call it via JNI, so there are no namespace issues.  However it may make sense to have non-C code style guidelines added to this document at a later date.
+
+--- 3.2 Release C Coding Style Guidelines ---
+
+Due to the base API being in C, it brings lots of compatibility but also many pitfalls.  Writing applications in C brings memory handling and variable management pitfalls.
+
+We have tried to handle these issues by providing access to the C memory and string functions when including dw.h and providing a virtual method of storing data on window/widget handles with the dw_window_get_data() and dw_window_set_data() APIs.  This allows you to avoid creating global variables, and instead save data on the window handles, along with macros for converting types such as: DW_POINTER_TO_INT() and DW_INT_TO_POINTER(). 
+
+Ideally globals should only be used for data that is truly global, settings and such.   Windows and other handles should be context specific, created in dwmain() and then destroyed when leaving dw_main().  Any window specific data should be saved on the window handle with dw_window_set_data() then accessed with dw_window_get_data() in the callbacks using the window handles passed.
+
+The dwtest application should be updated in the future to adhere to these guidelines, but since it was originally written ages ago it is not an example of a modern Dynamic Windows application.  Dynamic Windows Interface Builder should be looked at for modern Dynamic Windows coding style.
+
+--- Contributing ---
+
+This is a preliminary document subject to change, if you have any input on this document, such as suggestions or criticisms, I am posting it on the DBSoft forums and you can comment on it there:
+
+https://dbsoft.org/forum/forumdisplay.php?fid=3
+
+Thanks for reading!
+Brian
