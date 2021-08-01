@@ -341,7 +341,7 @@ gboolean _##func(void **_args) {
  * 77 = 119 = 0.4667
  * 00 = 0   = 0.0000
  */
-GdkRGBA _colors[] =
+GdkRGBA _dw_colors[] =
 {
    { 0.0000, 0.0000, 0.0000, 1.0 },   /* 0  black */
    { 0.7333, 0.0000, 0.0000, 1.0 },   /* 1  red */
@@ -439,7 +439,7 @@ typedef struct _dw_signal_list
    char gname[30];
    GObject *(*setup)(struct _dw_signal_list *, GObject *, void *, void *, void *);
 
-} SignalList;
+} DWSignalList;
 
 /* Signal setup function prototypes */
 GObject *_dw_key_setup(struct _dw_signal_list *signal, GObject *object, void *sigfunc, void *discfunc, void *data);
@@ -462,10 +462,10 @@ typedef struct
    gint cid;
    void *intfunc;
 
-} SignalHandler;
+} DWSignalHandler;
 
 /* A list of signal forwarders, to account for paramater differences. */
-static SignalList SignalTranslate[] = {
+static DWSignalList DWSignalTranslate[] = {
    { _dw_configure_event,         DW_SIGNAL_CONFIGURE,      "resize",            NULL },
    { _dw_key_press_event,         DW_SIGNAL_KEY_PRESS,      "key-pressed",       _dw_key_setup },
    { _dw_button_press_event,      DW_SIGNAL_BUTTON_PRESS,   "pressed",           _dw_mouse_setup },
@@ -523,18 +523,18 @@ static SignalList _dw_findsignal(const char *signame)
    int z=0;
    static SignalList empty = {0};
 
-   while(SignalTranslate[z].func)
+   while(DWSignalTranslate[z].func)
    {
-      if(strcasecmp(signame, SignalTranslate[z].name) == 0)
-         return SignalTranslate[z];
+      if(strcasecmp(signame, DWSignalTranslate[z].name) == 0)
+         return DWSignalTranslate[z];
       z++;
    }
    return empty;
 }
 
-static SignalHandler _dw_get_signal_handler(gpointer data)
+static DWSignalHandler _dw_get_signal_handler(gpointer data)
 {
-   SignalHandler sh = {0};
+   DWSignalHandler sh = {0};
 
    if(data)
    {
@@ -620,7 +620,7 @@ static void _dw_html_result_event(GObject *object, GAsyncResult *result, gpointe
     _dw_thread = (pthread_t)-1;
     if(handlerdata)
     {
-        SignalHandler work;
+        DWSignalHandler work;
         void *params[3] = { GINT_TO_POINTER(handlerdata-1), 0, object };
 
         work = _dw_get_signal_handler(params);
@@ -664,7 +664,7 @@ static void _dw_html_result_event(GObject *object, GAsyncResult *result, gpointe
 
 static void _dw_html_changed_event(WebKitWebView  *web_view, WebKitLoadEvent load_event, gpointer data)
 {
-    SignalHandler work = _dw_get_signal_handler(data);
+    DWSignalHandler work = _dw_get_signal_handler(data);
     char *location = (char *)webkit_web_view_get_uri(web_view);
     int status = 0;
 
@@ -693,7 +693,7 @@ static void _dw_html_changed_event(WebKitWebView  *web_view, WebKitLoadEvent loa
 
 static void _dw_set_focus_event(GObject *window, GParamSpec *pspec, gpointer data)
 {
-   SignalHandler work = _dw_get_signal_handler(data);
+   DWSignalHandler work = _dw_get_signal_handler(data);
    gboolean active;
    
    g_object_get(window, "is-active", &active, NULL);
@@ -708,7 +708,7 @@ static void _dw_set_focus_event(GObject *window, GParamSpec *pspec, gpointer dat
 
 static gint _dw_button_press_event(GtkGestureSingle *gesture, int n_press, double x, double y, gpointer data)
 {
-   SignalHandler work = _dw_get_signal_handler(data);
+   DWSignalHandler work = _dw_get_signal_handler(data);
    int retval = FALSE;
 
    if(work.window)
@@ -728,7 +728,7 @@ static gint _dw_button_press_event(GtkGestureSingle *gesture, int n_press, doubl
 
 static gint _dw_button_release_event(GtkGestureSingle *gesture, int n_press, double x, double y, gpointer data)
 {
-   SignalHandler work = _dw_get_signal_handler(data);
+   DWSignalHandler work = _dw_get_signal_handler(data);
    int retval = FALSE;
 
    if(work.window)
@@ -748,7 +748,7 @@ static gint _dw_button_release_event(GtkGestureSingle *gesture, int n_press, dou
 
 static gint _dw_motion_notify_event(GtkEventControllerMotion *controller, double x, double y, gpointer data)
 {
-   SignalHandler work = _dw_get_signal_handler(data);
+   DWSignalHandler work = _dw_get_signal_handler(data);
    int retval = FALSE;
 
    if(work.window)
@@ -772,7 +772,7 @@ static gint _dw_motion_notify_event(GtkEventControllerMotion *controller, double
 
 static gboolean _dw_delete_event(GtkWidget *window, gpointer data)
 {
-   SignalHandler work = _dw_get_signal_handler(data);
+   DWSignalHandler work = _dw_get_signal_handler(data);
    int retval = FALSE;
 
    if(work.window)
@@ -786,7 +786,7 @@ static gboolean _dw_delete_event(GtkWidget *window, gpointer data)
 
 static gint _dw_key_press_event(GtkEventControllerKey *controller, guint keyval, guint keycode, GdkModifierType state, gpointer data)
 {
-   SignalHandler work = _dw_get_signal_handler(data);
+   DWSignalHandler work = _dw_get_signal_handler(data);
    int retval = FALSE;
 
    if(work.window)
@@ -805,7 +805,7 @@ static gint _dw_key_press_event(GtkEventControllerKey *controller, guint keyval,
 
 static gint _dw_generic_event(GtkWidget *widget, gpointer data)
 {
-   SignalHandler work = _dw_get_signal_handler(data);
+   DWSignalHandler work = _dw_get_signal_handler(data);
    int retval = FALSE;
 
    if(work.window)
@@ -819,7 +819,7 @@ static gint _dw_generic_event(GtkWidget *widget, gpointer data)
 
 static gint _dw_configure_event(GtkWidget *widget, int width, int height, gpointer data)
 {
-   SignalHandler work = _dw_get_signal_handler(data);
+   DWSignalHandler work = _dw_get_signal_handler(data);
    int retval = FALSE;
 
    if(work.window)
@@ -893,7 +893,7 @@ static gint _dw_expose_event(GtkWidget *widget, cairo_t *cr, int width, int heig
 
 static gint _dw_combobox_select_event(GtkWidget *widget, gpointer data)
 {
-   SignalHandler work = _dw_get_signal_handler(data);
+   DWSignalHandler work = _dw_get_signal_handler(data);
    int retval = FALSE;
 
    if(g_object_get_data(G_OBJECT(widget), "_dw_recursing"))
@@ -939,7 +939,7 @@ static gint _dw_combobox_select_event(GtkWidget *widget, gpointer data)
 
 static gint _dw_tree_context_event(GtkGestureSingle *gesture, int n_press, double x, double y, gpointer data)
 {
-   SignalHandler work = _dw_get_signal_handler(data);
+   DWSignalHandler work = _dw_get_signal_handler(data);
    int retval = FALSE;
 
    if(work.window)
@@ -1014,7 +1014,7 @@ static gint _dw_tree_select_event(GtkTreeSelection *sel, gpointer data)
 
    if(widget)
    {
-      SignalHandler work = _dw_get_signal_handler(data);
+      DWSignalHandler work = _dw_get_signal_handler(data);
 
       if(work.window)
       {
@@ -1106,7 +1106,7 @@ static gint _dw_tree_select_event(GtkTreeSelection *sel, gpointer data)
 
 static gint _dw_tree_expand_event(GtkTreeView *widget, GtkTreeIter *iter, GtkTreePath *path, gpointer data)
 {
-   SignalHandler work = _dw_get_signal_handler(data);
+   DWSignalHandler work = _dw_get_signal_handler(data);
    int retval = FALSE;
 
    if(work.window)
@@ -1119,7 +1119,7 @@ static gint _dw_tree_expand_event(GtkTreeView *widget, GtkTreeIter *iter, GtkTre
 
 static gint _dw_container_enter_event(GtkEventController *controller, guint keyval, guint keycode, GdkModifierType state, gpointer data)
 {
-   SignalHandler work = _dw_get_signal_handler(data);
+   DWSignalHandler work = _dw_get_signal_handler(data);
    int retval = FALSE;
 
    if(work.window && GTK_IS_WIDGET(work.window))
@@ -1194,7 +1194,7 @@ int _dw_get_logical_page(HWND handle, unsigned long pageid)
 
 static gint _dw_switch_page_event(GtkNotebook *notebook, GtkWidget *page, guint page_num, gpointer data)
 {
-   SignalHandler work = _dw_get_signal_handler(data);
+   DWSignalHandler work = _dw_get_signal_handler(data);
    int retval = FALSE;
 
    if(work.window)
@@ -1217,7 +1217,7 @@ static gint _dw_column_click_event(GtkWidget *widget, gpointer data)
 
       if(handlerdata)
       {
-         SignalHandler work;
+         DWSignalHandler work;
 
          params[0] = GINT_TO_POINTER(handlerdata-1);
          work = _dw_get_signal_handler(params);
@@ -1264,7 +1264,7 @@ static gint _dw_value_changed_event(GtkWidget *widget, gpointer data)
 
    if(slider || spinbutton || scrollbar)
    {
-      SignalHandler work = _dw_get_signal_handler(data);
+      DWSignalHandler work = _dw_get_signal_handler(data);
 
       if (work.window)
       {
@@ -1355,7 +1355,7 @@ static void _dw_notification_handler(GSimpleAction *action, GVariant *param, gpo
 /* Handle menu click callbacks */
 static void _dw_menu_handler(GSimpleAction *action, GVariant *param, gpointer data)
 {
-   SignalHandler work = _dw_get_signal_handler(data);
+   DWSignalHandler work = _dw_get_signal_handler(data);
    GVariant *action_state = g_action_get_state(G_ACTION(action));
    
    /* Handle toggling checkable menu items automatically, before the callback */
@@ -2309,7 +2309,7 @@ static int _dw_set_color(HWND handle, unsigned long fore, unsigned long back)
       forecolor.blue = (gdouble)DW_BLUE_VALUE(fore) / 255.0;
    }
    else if(fore != DW_CLR_DEFAULT)
-      forecolor = _colors[fore];
+      forecolor = _dw_colors[fore];
 
    _dw_override_color(handle, "color", fore != DW_CLR_DEFAULT ? &forecolor : NULL);
 
@@ -2321,7 +2321,7 @@ static int _dw_set_color(HWND handle, unsigned long fore, unsigned long back)
       backcolor.blue = (gdouble)DW_BLUE_VALUE(back) / 255.0;
    }
    else if(back != DW_CLR_DEFAULT)
-      backcolor = _colors[back];
+      backcolor = _dw_colors[back];
 
    _dw_override_color(handle, "background-color", back != DW_CLR_DEFAULT ? &backcolor : NULL);
 
@@ -6418,8 +6418,8 @@ static GdkRGBA _dw_internal_color(unsigned long value)
       return color;
    }
    if (value < 16)
-      return _colors[value];
-   return _colors[0];
+      return _dw_colors[value];
+   return _dw_colors[0];
 }
 
 /* Sets the current foreground drawing color.
@@ -10735,7 +10735,7 @@ static void _dw_signal_disconnect(gpointer data, GClosure *closure)
 
       if(discfunc)
       {
-         SignalHandler work = _dw_get_signal_handler(data);
+         DWSignalHandler work = _dw_get_signal_handler(data);
 
          if(work.window)
          {
@@ -10972,7 +10972,7 @@ void API dw_signal_disconnect_by_name(HWND window, const char *signame)
    {
       for(z=0;z<count;z++)
       {
-         SignalHandler sh;
+         DWSignalHandler sh;
 
          params[0] = GINT_TO_POINTER(z);
          sh = _dw_get_signal_handler(params);
@@ -11017,7 +11017,7 @@ void API dw_signal_disconnect_by_data(HWND window, void *data)
 
    for(z=0;z<count;z++)
    {
-      SignalHandler sh;
+      DWSignalHandler sh;
 
       params[0] = GINT_TO_POINTER(z);
       sh = _dw_get_signal_handler(params);

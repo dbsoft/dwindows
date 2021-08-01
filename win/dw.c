@@ -361,9 +361,9 @@ void _dw_redraw(HWND window, int skip)
     }
 }
 
-typedef struct _sighandler
+typedef struct _dwsighandler
 {
-   struct _sighandler   *next;
+   struct _dwsighandler   *next;
    ULONG message;
    HWND window;
    int id;
@@ -371,9 +371,9 @@ typedef struct _sighandler
    void *discfunction;
    void *data;
 
-} SignalHandler;
+} DWSignalHandler;
 
-SignalHandler *Root = NULL;
+DWSignalHandler *Root = NULL;
 
 typedef struct
 {
@@ -1085,7 +1085,7 @@ HBRUSH _dw_get_syscolor_brush(int nIndex)
  */
 void _dw_new_signal(ULONG message, HWND window, int id, void *signalfunction, void *discfunc, void *data)
 {
-   SignalHandler *new = malloc(sizeof(SignalHandler));
+   DWSignalHandler *new = malloc(sizeof(DWSignalHandler));
 
    new->message = message;
    new->window = window;
@@ -1101,7 +1101,7 @@ void _dw_new_signal(ULONG message, HWND window, int id, void *signalfunction, vo
    }
    else
    {
-      SignalHandler *prev = NULL, *tmp = Root;
+      DWSignalHandler *prev = NULL, *tmp = Root;
       while(tmp)
       {
          if(tmp->message == message &&
@@ -2151,7 +2151,7 @@ void _dw_show_margins(HWND handle, MARGINS mar, int line)
 LRESULT CALLBACK _dw_wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 {
    int result = -1, taskbar = FALSE;
-   SignalHandler *tmp = Root;
+   DWSignalHandler *tmp = Root;
    void (DWSIGNAL *windowfunc)(PVOID);
    ULONG origmsg = msg;
 
@@ -3265,7 +3265,7 @@ void _dw_click_default(HWND handle)
       )
    {
       /* Generate click on default item */
-      SignalHandler *tmp = Root;
+      DWSignalHandler *tmp = Root;
 
       /* Find any callbacks for this function */
       while (tmp)
@@ -3693,7 +3693,7 @@ LRESULT CALLBACK _dw_containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp
          }
 
          {
-            SignalHandler *tmp = Root;
+            DWSignalHandler *tmp = Root;
 
             while(tmp)
             {
@@ -3712,7 +3712,7 @@ LRESULT CALLBACK _dw_containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp
       break;
    case WM_CONTEXTMENU:
       {
-         SignalHandler *tmp = Root;
+         DWSignalHandler *tmp = Root;
          void **params = NULL;
          while(tmp)
          {
@@ -4402,7 +4402,7 @@ LRESULT CALLBACK _dw_buttonwndproc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
       break;
    case WM_LBUTTONUP:
       {
-         SignalHandler *tmp = Root;
+         DWSignalHandler *tmp = Root;
 
          /* Find any callbacks for this function */
          while(tmp)
@@ -4438,7 +4438,7 @@ LRESULT CALLBACK _dw_buttonwndproc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
           */
          if(LOWORD(mp1) == '\r' || LOWORD(mp1) == ' ')
          {
-            SignalHandler *tmp = Root;
+            DWSignalHandler *tmp = Root;
 
             /* Find any callbacks for this function */
             while(tmp)
@@ -6492,7 +6492,7 @@ void API dw_menu_destroy(HMENUI *menu)
 /* Internal function to make sure menu ID isn't in use */
 int _dw_menuid_allocated(int id)
 {
-   SignalHandler *tmp = Root;
+   DWSignalHandler *tmp = Root;
 
    while(tmp)
    {
@@ -13600,7 +13600,7 @@ HTIMER API dw_timer_connect(int interval, void *sigfunc, void *data)
  */
 void API dw_timer_disconnect(HTIMER id)
 {
-   SignalHandler *prev = NULL, *tmp = Root;
+   DWSignalHandler *prev = NULL, *tmp = Root;
 
    /* 0 is an invalid timer ID */
    if(!id)
@@ -13696,7 +13696,7 @@ void API dw_signal_connect_data(HWND window, const char *signame, void *sigfunc,
  */
 void API dw_signal_disconnect_by_name(HWND window, const char *signame)
 {
-   SignalHandler *prev = NULL, *tmp = Root;
+   DWSignalHandler *prev = NULL, *tmp = Root;
    ULONG message;
 
    if(!window || !signame || (message = _dw_findsigmessage(signame)) == 0)
@@ -13741,7 +13741,7 @@ void API dw_signal_disconnect_by_name(HWND window, const char *signame)
  */
 void API dw_signal_disconnect_by_window(HWND window)
 {
-   SignalHandler *prev = NULL, *tmp = Root;
+   DWSignalHandler *prev = NULL, *tmp = Root;
 
    while(tmp)
    {
@@ -13783,7 +13783,7 @@ void API dw_signal_disconnect_by_window(HWND window)
  */
 void API dw_signal_disconnect_by_data(HWND window, void *data)
 {
-   SignalHandler *prev = NULL, *tmp = Root;
+   DWSignalHandler *prev = NULL, *tmp = Root;
 
    while(tmp)
    {
