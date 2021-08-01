@@ -199,9 +199,9 @@ Java_org_dbsoft_dwindows_DWindows_dwindowsInit(JNIEnv* env, jobject obj, jstring
     dw_thread_new((void *) _dw_main_launch, arg, 0);
 }
 
-typedef struct _sighandler
+typedef struct _dwsighandler
 {
-    struct _sighandler   *next;
+    struct _dwsighandler   *next;
     ULONG message;
     HWND window;
     int id;
@@ -209,13 +209,13 @@ typedef struct _sighandler
     void *discfunction;
     void *data;
 
-} SignalHandler;
+} DWSignalHandler;
 
-static SignalHandler *DWRoot = nullptr;
+static DWSignalHandler *DWRoot = nullptr;
 
-SignalHandler *_dw_get_handler(HWND window, int messageid)
+DWSignalHandler *_dw_get_handler(HWND window, int messageid)
 {
-    SignalHandler *tmp = DWRoot;
+    DWSignalHandler *tmp = DWRoot;
     JNIEnv *env;
 
     if((env = (JNIEnv *)pthread_getspecific(_dw_env_key))) {
@@ -266,7 +266,7 @@ static DWSignalList DWSignalTranslate[SIGNALMAX] = {
 
 int _dw_event_handler2(void **params)
 {
-    SignalHandler *handler = (SignalHandler *)params[9];
+    DWSignalHandler *handler = (DWSignalHandler *)params[9];
     int message = DW_POINTER_TO_INT(params[8]);
     int retval = -1;
 
@@ -461,7 +461,7 @@ int _dw_event_handler2(void **params)
 }
 
 int _dw_event_handler(jobject object, void **params) {
-    SignalHandler *handler = _dw_get_handler(object, DW_POINTER_TO_INT(params[8]));
+    DWSignalHandler *handler = _dw_get_handler(object, DW_POINTER_TO_INT(params[8]));
 
     if (handler)
     {
@@ -661,7 +661,7 @@ Java_org_dbsoft_dwindows_DWMenu_eventHandlerSimple(JNIEnv* env, jobject obj, job
  */
 void _dw_new_signal(ULONG message, HWND window, int msgid, void *signalfunction, void *discfunc, void *data)
 {
-    SignalHandler *newsig = (SignalHandler *)malloc(sizeof(SignalHandler));
+    DWSignalHandler *newsig = (DWSignalHandler *)malloc(sizeof(DWSignalHandler));
 
     newsig->message = message;
     newsig->window = window;
@@ -675,7 +675,7 @@ void _dw_new_signal(ULONG message, HWND window, int msgid, void *signalfunction,
         DWRoot = newsig;
     else
     {
-        SignalHandler *prev = nullptr, *tmp = DWRoot;
+        DWSignalHandler *prev = nullptr, *tmp = DWRoot;
         while(tmp)
         {
             if(tmp->message == message &&
@@ -5913,7 +5913,7 @@ void API dw_signal_connect_data(HWND window, const char *signame, void *sigfunc,
  */
 void API dw_signal_disconnect_by_name(HWND window, const char *signame)
 {
-    SignalHandler *prev = nullptr, *tmp = DWRoot;
+    DWSignalHandler *prev = nullptr, *tmp = DWRoot;
     ULONG message;
 
     if(!window || !signame || (message = _dw_findsigmessage(signame)) == 0)
@@ -5958,7 +5958,7 @@ void API dw_signal_disconnect_by_name(HWND window, const char *signame)
  */
 void API dw_signal_disconnect_by_window(HWND window)
 {
-    SignalHandler *prev = nullptr, *tmp = DWRoot;
+    DWSignalHandler *prev = nullptr, *tmp = DWRoot;
 
     while(tmp)
     {
@@ -6000,7 +6000,7 @@ void API dw_signal_disconnect_by_window(HWND window)
  */
 void API dw_signal_disconnect_by_data(HWND window, void *data)
 {
-    SignalHandler *prev = nullptr, *tmp = DWRoot;
+    DWSignalHandler *prev = nullptr, *tmp = DWRoot;
 
     while(tmp)
     {

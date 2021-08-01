@@ -469,9 +469,9 @@ void _dw_init_colors(void)
     pthread_setspecific(_dw_bg_color_key, NULL);
 }
 
-typedef struct _sighandler
+typedef struct _dwsighandler
 {
-    struct _sighandler   *next;
+    struct _dwsighandler   *next;
     ULONG message;
     HWND window;
     int id;
@@ -479,9 +479,9 @@ typedef struct _sighandler
     void *discfunction;
     void *data;
 
-} SignalHandler;
+} DWSignalHandler;
 
-static SignalHandler *DWRoot = NULL;
+static DWSignalHandler *DWRoot = NULL;
 
 /* Some internal prototypes */
 static void _dw_do_resize(Box *thisbox, int x, int y);
@@ -507,9 +507,9 @@ void _dw_redraw(id window, int skip)
     }
 }
 
-SignalHandler *_dw_get_handler(HWND window, int messageid)
+DWSignalHandler *_dw_get_handler(HWND window, int messageid)
 {
-    SignalHandler *tmp = DWRoot;
+    DWSignalHandler *tmp = DWRoot;
 
     /* Find any callbacks for this function */
     while(tmp)
@@ -557,7 +557,7 @@ static DWSignalList DWSignalTranslate[SIGNALMAX] = {
 
 int _dw_event_handler1(id object, NSEvent *event, int message)
 {
-    SignalHandler *handler = _dw_get_handler(object, message);
+    DWSignalHandler *handler = _dw_get_handler(object, message);
     /* NSLog(@"Event handler - type %d\n", message); */
 
     if(handler)
@@ -3587,7 +3587,7 @@ API_AVAILABLE(macos(10.14))
  */
 void _dw_new_signal(ULONG message, HWND window, int msgid, void *signalfunction, void *discfunc, void *data)
 {
-    SignalHandler *new = malloc(sizeof(SignalHandler));
+    DWSignalHandler *new = malloc(sizeof(DWSignalHandler));
 
     new->message = message;
     new->window = window;
@@ -3601,7 +3601,7 @@ void _dw_new_signal(ULONG message, HWND window, int msgid, void *signalfunction,
         DWRoot = new;
     else
     {
-        SignalHandler *prev = NULL, *tmp = DWRoot;
+        DWSignalHandler *prev = NULL, *tmp = DWRoot;
         while(tmp)
         {
             if(tmp->message == message &&
@@ -11555,7 +11555,7 @@ HTIMER API dw_timer_connect(int interval, void *sigfunc, void *data)
  */
 void API dw_timer_disconnect(HTIMER timerid)
 {
-    SignalHandler *prev = NULL, *tmp = DWRoot;
+    DWSignalHandler *prev = NULL, *tmp = DWRoot;
     NSTimer *thistimer;
 
     /* 0 is an invalid timer ID */
@@ -11640,7 +11640,7 @@ void API dw_signal_connect_data(HWND window, const char *signame, void *sigfunc,
  */
 void API dw_signal_disconnect_by_name(HWND window, const char *signame)
 {
-    SignalHandler *prev = NULL, *tmp = DWRoot;
+    DWSignalHandler *prev = NULL, *tmp = DWRoot;
     ULONG message;
 
     if(!window || !signame || (message = _dw_findsigmessage(signame)) == 0)
@@ -11685,7 +11685,7 @@ void API dw_signal_disconnect_by_name(HWND window, const char *signame)
  */
 void API dw_signal_disconnect_by_window(HWND window)
 {
-    SignalHandler *prev = NULL, *tmp = DWRoot;
+    DWSignalHandler *prev = NULL, *tmp = DWRoot;
 
     while(tmp)
     {
@@ -11727,7 +11727,7 @@ void API dw_signal_disconnect_by_window(HWND window)
  */
 void API dw_signal_disconnect_by_data(HWND window, void *data)
 {
-    SignalHandler *prev = NULL, *tmp = DWRoot;
+    DWSignalHandler *prev = NULL, *tmp = DWRoot;
 
     while(tmp)
     {
