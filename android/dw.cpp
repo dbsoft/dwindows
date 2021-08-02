@@ -41,7 +41,7 @@ extern "C" {
  * we can launch a new thread to handle the event.
  * #define _DW_EVENT_THREADING
  */
-#define _DW_EVENT_THREADING
+/* #define _DW_EVENT_THREADING */
 #define DW_CLASS_NAME "org/dbsoft/dwindows/DWindows"
 
 /* Dynamic Windows internal variables */
@@ -460,26 +460,121 @@ int _dw_event_handler2(void **params)
     return retval;
 }
 
-int _dw_event_handler(jobject object, void **params) {
+/* If we aren't using threading, we create a queue of events...
+ * the oldest event indexed by _dw_event_head, the newest by
+ * _dw_event_tail.
+ */
+#ifndef _DW_EVENT_THREADING
+#define _DW_EVENT_QUEUE_LENGTH 10
+void *_dw_event_queue[_DW_EVENT_QUEUE_LENGTH][_DW_EVENT_PARAM_SIZE];
+int _dw_event_head = -1, _dw_event_tail = -1, _dw_main_active = TRUE;
+HMTX _dw_event_mutex = nullptr;
+DWTID _dw_main_thread = -1;
+
+/* Add a new event to the queue if there is space.
+ * This will be handled in the thread running dw_main()
+ */
+int _dw_queue_event(void **params)
+{
+    int newtail = _dw_event_tail + 1;
+    int retval = FALSE;
+
+    /* Initialize the mutex if necessary... return on failure. */
+    if(!_dw_event_mutex && !(_dw_event_mutex = dw_mutex_new()))
+        return retval;
+    /* Protect the queue in a mutex... hold for as short as possible */
+    dw_mutex_lock(_dw_event_mutex);
+    /* If we are at the end of the queue, loop back to the start. */
+    if(newtail >= _DW_EVENT_QUEUE_LENGTH)
+        newtail = 0;
+    /* If the new tail will be at the head, the event queue
+     * if full... drop the event.
+     */
+    if(newtail != _dw_event_head)
+    {
+        /* If the queue was empty, head and tail will be the same. */
+        if (_dw_event_head == -1)
+            _dw_event_head = newtail;
+        /* Copy the new event from the stack into the event queue. */
+        memcpy(&_dw_event_queue[newtail], params, _DW_EVENT_PARAM_SIZE * sizeof(void *));
+        /* Update the tail index */
+        _dw_event_tail = newtail;
+        /* Successfully queued event */
+        retval = TRUE;
+    }
+    dw_mutex_unlock(_dw_event_mutex);
+    return retval;
+}
+
+/* If there is an event waiting, pop it off the queue,
+ * advance the head and return TRUE.
+ * If there are no events waiting return FALSE
+ */
+int _dw_dequeue_event(void **params)
+{
+    int retval = FALSE;
+
+    /* Initialize the mutex if necessary... return FALSE on failure. */
+    if(!_dw_event_mutex && !(_dw_event_mutex = dw_mutex_new()))
+        return retval;
+    dw_mutex_lock(_dw_event_mutex);
+    if(_dw_event_head != -1)
+    {
+        /* Copy the params out of the queue so it can be filled in by new events */
+        memcpy(params, &_dw_event_queue[_dw_event_head], _DW_EVENT_PARAM_SIZE * sizeof(void *));
+
+        /* If the head is the same as the tail...
+         * there was only one event... so set the
+         * head and tail to -1 to indicate empty.
+         */
+        if(_dw_event_head == _dw_event_tail)
+            _dw_event_head = _dw_event_tail = -1;
+        else
+        {
+            /* Advance the head */
+            _dw_event_head++;
+
+            /* If we are at the end of the queue, loop back to the start. */
+            if(_dw_event_head >= _DW_EVENT_QUEUE_LENGTH)
+                _dw_event_head = 0;
+        }
+        /* Successfully dequeued event */
+        retval = TRUE;
+        /* Notify dw_main() that there is an event to handle */
+        dw_event_post(_dw_main_event);
+    }
+    dw_mutex_unlock(_dw_event_mutex);
+    return retval;
+}
+#endif
+
+int _dw_event_handler(jobject object, void **params)
+{
     DWSignalHandler *handler = _dw_get_handler(object, DW_POINTER_TO_INT(params[8]));
 
     if (handler)
     {
         params[9] = (void *)handler;
 
-#ifdef _DW_EVENT_THREADING
-        /* We can't launch a thread for draw events it won't work */
+        /* We have to handle draw events in the main thread...
+         * If it isn't a draw event, either queue the event
+         * or launch a new thread to handle it.
+         */
         if(DW_POINTER_TO_INT(params[8]) != 7)
         {
+#ifdef _DW_EVENT_THREADING
             /* Make a copy of the params so it isn't allocated from the stack */
             void *newparams = calloc(_DW_EVENT_PARAM_SIZE, sizeof(void *));
 
             memcpy(newparams, params, _DW_EVENT_PARAM_SIZE * sizeof(void *));
             dw_thread_new((void *) _dw_event_handler2, newparams, 0);
+#else
+            /* Push the new event onto the queue if it fits */
+            _dw_queue_event(params);
+#endif
         }
         else
-#endif
-        return _dw_event_handler2(params);
+            return _dw_event_handler2(params);
 
     }
     return 0;
@@ -509,7 +604,8 @@ Java_org_dbsoft_dwindows_DWindows_eventHandler(JNIEnv* env, jobject obj, jobject
 
 /* A more simple method for quicker calls */
 JNIEXPORT void JNICALL
-Java_org_dbsoft_dwindows_DWindows_eventHandlerSimple(JNIEnv* env, jobject obj, jobject obj1, jint message) {
+Java_org_dbsoft_dwindows_DWindows_eventHandlerSimple(JNIEnv* env, jobject obj, jobject obj1, jint message)
+{
     void *params[_DW_EVENT_PARAM_SIZE] = { nullptr };
 
     params[8] = DW_INT_TO_POINTER(message);
@@ -518,7 +614,8 @@ Java_org_dbsoft_dwindows_DWindows_eventHandlerSimple(JNIEnv* env, jobject obj, j
 
 /* Handler for notebook page changes */
 JNIEXPORT void JNICALL
-Java_org_dbsoft_dwindows_DWindows_eventHandlerNotebook(JNIEnv* env, jobject obj, jobject obj1, jint message, jlong pageID) {
+Java_org_dbsoft_dwindows_DWindows_eventHandlerNotebook(JNIEnv* env, jobject obj, jobject obj1, jint message, jlong pageID)
+{
     void *params[_DW_EVENT_PARAM_SIZE] = { nullptr };
 
     params[3] = DW_INT_TO_POINTER(pageID);
@@ -783,11 +880,37 @@ void API dw_main(void)
         _dw_jni_check_exception(env);
     }
 
+#ifdef _DW_EVENT_THREADING
     /* We don't actually run a loop here,
      * we launched a new thread to run the loop there.
      * Just wait for dw_main_quit() on the DWMainEvent.
      */
     dw_event_wait(_dw_main_event, DW_TIMEOUT_INFINITE);
+#else
+
+    /* Save our thread ID, so we know if we should handle
+     * events in callback dw_main_sleep/iteration() calls.
+     */
+    _dw_main_thread = dw_thread_id();
+
+    do
+    {
+        void *params[_DW_EVENT_PARAM_SIZE];
+
+        dw_event_reset(_dw_main_event);
+
+        /* Dequeue and handle any pending events */
+        while(_dw_dequeue_event(params))
+            _dw_event_handler2(params);
+
+        /* Wait for something to wake us up,
+         * either a posted event, or dw_main_quit()
+         */
+        dw_event_wait(_dw_main_event, 100);
+
+    } while(_dw_main_active);
+    _dw_main_thread = -1;
+#endif
 }
 
 /*
@@ -795,6 +918,9 @@ void API dw_main(void)
  */
 void API dw_main_quit(void)
 {
+#ifndef _DW_EVENT_THREADING
+    _dw_main_active = FALSE;
+#endif
     dw_event_post(_dw_main_event);
 }
 
@@ -807,6 +933,39 @@ void API dw_main_sleep(int milliseconds)
 {
     JNIEnv *env;
 
+#ifndef _DW_EVENT_THREADING
+    /* If we are in an event callback from dw_main() ...
+     * we need to continue handling events from the UI.
+     */
+    if(_dw_main_thread == dw_thread_id())
+    {
+        struct timeval tv, start;
+        /* The time left to wait from the start */
+        int difference = milliseconds;
+
+        gettimeofday(&start, NULL);
+
+        do
+        {
+            void *params[_DW_EVENT_PARAM_SIZE];
+
+            dw_event_reset(_dw_main_event);
+
+            /* Dequeue and handle any pending events */
+            while(_dw_dequeue_event(params))
+                _dw_event_handler2(params);
+
+            /* Wait for something to wake us up,
+             * either a posted event, or dw_main_quit()
+             */
+            dw_event_wait(_dw_main_event, difference);
+
+            gettimeofday(&tv, NULL);
+
+        } while(_dw_main_active && (difference = ((tv.tv_sec - start.tv_sec)*1000) + ((tv.tv_usec - start.tv_usec)/1000)) <= milliseconds);
+    }
+    else
+#endif
     if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
         // First get the class that contains the method you need to call
@@ -825,6 +984,17 @@ void API dw_main_sleep(int milliseconds)
  */
 void API dw_main_iteration(void)
 {
+#ifndef _DW_EVENT_THREADING
+    if(_dw_main_thread == dw_thread_id())
+    {
+        void *params[_DW_EVENT_PARAM_SIZE];
+
+        /* Dequeue a single pending event */
+        if (_dw_dequeue_event(params))
+            _dw_event_handler2(params);
+    }
+    else
+#endif
     /* If we sleep for 0 milliseconds... we will drop out
      * of the loop at the first idle moment
      */
