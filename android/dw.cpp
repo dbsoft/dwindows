@@ -482,8 +482,11 @@ int _dw_queue_event(void **params)
     /* Initialize the mutex if necessary... return on failure. */
     if(!_dw_event_mutex && !(_dw_event_mutex = dw_mutex_new()))
         return retval;
+
     /* Protect the queue in a mutex... hold for as short as possible */
-    dw_mutex_lock(_dw_event_mutex);
+    while(dw_mutex_trylock(_dw_event_mutex) != DW_ERROR_NONE)
+        sched_yield();
+
     /* If we are at the end of the queue, loop back to the start. */
     if(newtail >= _DW_EVENT_QUEUE_LENGTH)
         newtail = 0;
