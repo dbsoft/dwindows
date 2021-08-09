@@ -8,6 +8,8 @@
 /* iOS and Android currently don't use autoconf */
 #if !defined(__IOS__) && !defined(__ANDROID__)
 #include "dwconfig.h"
+#else
+#define HAVE_DIRENT_H 1
 #endif
 
 /* Attempt to include 64 bit file functions on various unix flavors */
