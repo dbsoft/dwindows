@@ -55,7 +55,7 @@ Constant prefix: DW_ (uppercase)
 
 These functions, variables and constants are used only inside Dynamic Windows, or the platform they are defined in.
 
-Funtion prefix: _dw_ (lowercase)
+Function prefix: _dw_ (lowercase)
 Variable prefix: _dw_ (lowercase)
 Constant prefix: _DW_ (uppercase)
 

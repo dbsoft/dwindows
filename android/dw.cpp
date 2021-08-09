@@ -7057,6 +7057,13 @@ int API dw_init(int newthread, int argc, char *argv[])
         /* Generate an Application ID based on the PID if all else fails. */
         snprintf(_dw_app_id, _DW_APP_ID_SIZE, "%s.pid.%d", DW_APP_DOMAIN_DEFAULT, getpid());
     }
+    if(!_dw_app_name[0])
+    {
+        const char *name = getprogname();
+
+        if(name)
+            strncpy(_dw_app_name, name, _DW_APP_ID_SIZE);
+    }
 
     if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
