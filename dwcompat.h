@@ -10,6 +10,7 @@
 #include "dwconfig.h"
 #else
 #define HAVE_DIRENT_H 1
+#define HAVE_PIPE 1
 #endif
 
 /* Attempt to include 64 bit file functions on various unix flavors */
