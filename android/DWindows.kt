@@ -767,7 +767,7 @@ class DWindows : AppCompatActivity() {
     var darkMode: Int = -1
     var lastClickView: View? = null
     private var paint = Paint()
-    private var bgcolor: Int = 0
+    private var bgcolor: Int? = null
     private var menuBar: DWMenu? = null
     private var defaultItem: View? = null
     private var fileURI: Uri? = null
@@ -3140,21 +3140,23 @@ class DWindows : AppCompatActivity() {
                 colorsSet(fgColor, bgColor)
                 // Save the old color for later...
                 val rect = Rect()
-                val oldcolor = paint.color
-                // Prepare to draw the background rect
-                paint.color = bgcolor
                 paint.flags = 0
                 paint.style = Paint.Style.FILL_AND_STROKE
                 paint.textAlign = Paint.Align.LEFT
                 paint.getTextBounds(text, 0, text.length, rect)
                 val textheight = rect.bottom - rect.top
-                rect.top += y + textheight
-                rect.bottom += y + textheight
-                rect.left += x
-                rect.right += x
-                canvas.drawRect(rect, paint)
-                // Restore the color and prepare to draw text
-                paint.color = oldcolor
+                if(bgcolor != null) {
+                    val oldcolor = paint.color
+                    // Prepare to draw the background rect
+                    paint.color = bgcolor as Int
+                    rect.top += y + textheight
+                    rect.bottom += y + textheight
+                    rect.left += x
+                    rect.right += x
+                    canvas.drawRect(rect, paint)
+                    // Restore the color and prepare to draw text
+                    paint.color = oldcolor
+                }
                 paint.style = Paint.Style.STROKE
                 canvas.drawText(text, x.toFloat(), y.toFloat() + textheight.toFloat(), paint)
             }
@@ -3298,7 +3300,11 @@ class DWindows : AppCompatActivity() {
     {
         waitOnUiThread {
             paint.color = colorFromDW(fgColor)
-            this.bgcolor = colorFromDW(bgColor)
+            if(bgColor != -1L) {
+                this.bgcolor = colorFromDW(bgColor)
+            } else {
+                this.bgcolor = null
+            }
         }
     }
 
@@ -3476,7 +3482,7 @@ class DWindows : AppCompatActivity() {
         if(Looper.getMainLooper() == Looper.myLooper()) {
             val starttime = System.currentTimeMillis()
 
-            // Waiting for Idle to make sure Toast gets rendered.
+            // Waiting for Idle to check for sleep expiration
             Looper.myQueue().addIdleHandler(object : MessageQueue.IdleHandler {
                 var thrown: Boolean = false
 
