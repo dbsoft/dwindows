@@ -178,7 +178,7 @@ Java_org_dbsoft_dwindows_DWindows_dwindowsInit(JNIEnv* env, jobject obj, jstring
         pthread_key_create(&_dw_fgcolor_key, nullptr);
         pthread_setspecific(_dw_fgcolor_key, nullptr);
         pthread_key_create(&_dw_bgcolor_key, nullptr);
-        pthread_setspecific(_dw_bgcolor_key, nullptr);
+        pthread_setspecific(_dw_bgcolor_key, (void *)DW_RGB_TRANSPARENT);
 
         /* Create the dwmain event */
         _dw_main_event = dw_event_new();
@@ -841,6 +841,10 @@ jlong _dw_get_color(unsigned long thiscolor)
     else if(thiscolor < 17)
     {
         return _dw_colors[thiscolor];
+    }
+    else if(thiscolor == DW_RGB_TRANSPARENT)
+    {
+        return -1;
     }
     return 0;
 }
@@ -2849,7 +2853,7 @@ void API dw_render_redraw(HWND handle)
  */
 void API dw_color_foreground_set(unsigned long value)
 {
-    pthread_setspecific(_dw_fgcolor_key, (void *)_dw_get_color(value));
+    pthread_setspecific(_dw_fgcolor_key, (void *)value);
 }
 
 /* Sets the current background drawing color.
@@ -2860,7 +2864,7 @@ void API dw_color_foreground_set(unsigned long value)
  */
 void API dw_color_background_set(unsigned long value)
 {
-    pthread_setspecific(_dw_bgcolor_key, (void *)_dw_get_color(value));
+    pthread_setspecific(_dw_bgcolor_key, (void *)value);
 }
 
 /* Allows the user to choose a color using the system's color chooser dialog.
@@ -2887,8 +2891,8 @@ void API dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
 
     if((handle || pixmap) && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
-        jlong fgcolor = (jlong)pthread_getspecific(_dw_fgcolor_key);
-        jlong bgcolor = (jlong)pthread_getspecific(_dw_bgcolor_key);
+        jlong fgcolor = _dw_get_color((unsigned long)pthread_getspecific(_dw_fgcolor_key));
+        jlong bgcolor = _dw_get_color((unsigned long)pthread_getspecific(_dw_bgcolor_key));
 
         // First get the class that contains the method you need to call
         jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
@@ -2916,8 +2920,8 @@ void API dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y
 
     if((handle || pixmap) && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
-        jlong fgcolor = (jlong)pthread_getspecific(_dw_fgcolor_key);
-        jlong bgcolor = (jlong)pthread_getspecific(_dw_bgcolor_key);
+        jlong fgcolor = _dw_get_color((unsigned long)pthread_getspecific(_dw_fgcolor_key));
+        jlong bgcolor = _dw_get_color((unsigned long)pthread_getspecific(_dw_bgcolor_key));
 
         // First get the class that contains the method you need to call
         jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
@@ -2944,8 +2948,8 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, const char *tex
 
     if((handle || pixmap) && text && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
-        jlong fgcolor = (jlong)pthread_getspecific(_dw_fgcolor_key);
-        jlong bgcolor = (jlong)pthread_getspecific(_dw_bgcolor_key);
+        jlong fgcolor = _dw_get_color((unsigned long)pthread_getspecific(_dw_fgcolor_key));
+        jlong bgcolor = _dw_get_color((unsigned long)pthread_getspecific(_dw_bgcolor_key));
 
         // Construct the string
         jstring jstr = env->NewStringUTF(text);
@@ -3016,8 +3020,8 @@ void API dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, in
 
         if(jx && jy)
         {
-            jlong fgcolor = (jlong)pthread_getspecific(_dw_fgcolor_key);
-            jlong bgcolor = (jlong)pthread_getspecific(_dw_bgcolor_key);
+            jlong fgcolor = _dw_get_color((unsigned long)pthread_getspecific(_dw_fgcolor_key));
+            jlong bgcolor = _dw_get_color((unsigned long)pthread_getspecific(_dw_bgcolor_key));
 
             // Construct the integer arrays
             env->SetIntArrayRegion(jx, 0, npoints, x);
@@ -3050,8 +3054,8 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int 
 
     if((handle || pixmap) && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
-        jlong fgcolor = (jlong)pthread_getspecific(_dw_fgcolor_key);
-        jlong bgcolor = (jlong)pthread_getspecific(_dw_bgcolor_key);
+        jlong fgcolor = _dw_get_color((unsigned long)pthread_getspecific(_dw_fgcolor_key));
+        jlong bgcolor = _dw_get_color((unsigned long)pthread_getspecific(_dw_bgcolor_key));
 
         // First get the class that contains the method you need to call
         jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
@@ -3083,8 +3087,8 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
 
     if((handle || pixmap) && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
-        jlong fgcolor = (jlong)pthread_getspecific(_dw_fgcolor_key);
-        jlong bgcolor = (jlong)pthread_getspecific(_dw_bgcolor_key);
+        jlong fgcolor = _dw_get_color((unsigned long)pthread_getspecific(_dw_fgcolor_key));
+        jlong bgcolor = _dw_get_color((unsigned long)pthread_getspecific(_dw_bgcolor_key));
 
         // First get the class that contains the method you need to call
         jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
@@ -6857,7 +6861,7 @@ void API _dw_init_thread(void)
     _dw_jvm->AttachCurrentThread(&env, nullptr);
     pthread_setspecific(_dw_env_key, env);
     pthread_setspecific(_dw_fgcolor_key, nullptr);
-    pthread_setspecific(_dw_bgcolor_key, nullptr);
+    pthread_setspecific(_dw_bgcolor_key, (void *)DW_RGB_TRANSPARENT);
 }
 
 /*
