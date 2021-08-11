@@ -9825,10 +9825,7 @@ void dw_mutex_lock(HMTX mutex)
         while(pthread_mutex_trylock(mutex) != 0)
         {
             /* Process any pending events */
-            while(_dw_main_iteration([NSDate dateWithTimeIntervalSinceNow:0.01]))
-            {
-                /* Just loop */
-            }
+            _dw_main_iteration([NSDate dateWithTimeIntervalSinceNow:0.01]);
         }
     }
     else
