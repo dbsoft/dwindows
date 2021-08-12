@@ -239,6 +239,7 @@ static char _dw_bundle_path[PATH_MAX+1] = { 0 };
 static char _dw_app_id[_DW_APP_ID_SIZE+1]= {0};
 static int _dw_dark_mode_state = DW_FEATURE_UNSUPPORTED;
 static CGPoint _dw_event_point = {0};
+static NSMutableArray *_dw_toplevel_windows;
 
 /* Create a default colors for a thread */
 void _dw_init_colors(void)
@@ -790,6 +791,11 @@ API_AVAILABLE(ios(13.0))
 -(void)setPopupMenu:(DWMenu *)input { [popupmenu release]; popupmenu = input; [popupmenu retain]; }
 -(DWMenu *)menu { return windowmenu; }
 -(DWMenu *)popupMenu { return popupmenu; }
+-(void)closeWindow:(id)sender
+{
+    if(_dw_event_handler(self, nil, _DW_EVENT_DELETE) < 1)
+        dw_window_destroy(self);
+}
 -(void)dealloc
 {
     if(windowmenu)
@@ -1343,19 +1349,12 @@ BOOL _dw_is_dark(void)
 {
     CGSize oldsize;
 }
--(BOOL)windowShouldClose:(id)sender;
 -(void)windowDidBecomeMain:(id)sender;
 -(void)menuHandler:(id)sender;
 -(UIResponder *)nextResponder;
 @end
 
 @implementation DWView
--(BOOL)windowShouldClose:(id)sender
-{
-    if(_dw_event_handler(sender, nil, _DW_EVENT_DELETE) > 0)
-        return NO;
-    return YES;
-}
 -(void)willMoveToSuperview:(UIView *)newSuperview
 {
     if(newSuperview)
@@ -8064,6 +8063,7 @@ DW_FUNCTION_RESTORE_PARAM3(DW_UNUSED(hwndOwner), HWND, title, char *, flStyle, U
     [window setRootViewController:[[DWViewController alloc] init]];
     [window setBackgroundColor:[UIColor systemBackgroundColor]];
     [[[window rootViewController] view] addSubview:view];
+    [_dw_toplevel_windows addObject:window];
 
     /* Handle style flags... There is no visible frame...
      * On iOS 13 and higher if a titlebar is requested create a navigation bar.
@@ -8077,6 +8077,18 @@ DW_FUNCTION_RESTORE_PARAM3(DW_UNUSED(hwndOwner), HWND, title, char *, flStyle, U
             UINavigationBar* navbar = [[UINavigationBar alloc] initWithFrame:CGRectMake(0, sbheight, screenrect.size.width, 40)];
             UINavigationItem* navItem = [[UINavigationItem alloc] initWithTitle:nstitle];
 
+            /* We maintain a list of top-level windows...
+             * If there is more than one window, add a Back button that will close it.
+             */
+            if([_dw_toplevel_windows count] > 1)
+            {
+                UIBarButtonItem *back = [[UIBarButtonItem alloc] initWithTitle:@"Back"
+                                                                         style:UIBarButtonItemStylePlain
+                                                                        target:window
+                                                                        action:@selector(closeWindow:)];
+
+                navItem.backBarButtonItem = back;
+            }
             [navbar setItems:@[navItem]];
             [[[window rootViewController] view] addSubview:navbar];
         }
@@ -8525,9 +8537,11 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
     int retval = 0;
 
     /* Handle destroying a top-level window */
-    if([ object isKindOfClass:[ UIWindow class ] ])
+    if([object isKindOfClass:[UIWindow class]])
     {
         DWWindow *window = handle;
+        [_dw_toplevel_windows removeObject:window];
+        [window removeFromSuperview];
         [window release];
     }
     /* Handle removing menu items from menus */
@@ -10541,6 +10555,7 @@ int API dw_init(int newthread, int argc, char *argv[])
     _dw_app_init();
     pthread_key_create(&_dw_pool_key, NULL);
     NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+    _dw_toplevel_windows = [[NSMutableArray new] retain];
     pthread_setspecific(_dw_pool_key, pool);
     pthread_key_create(&_dw_fg_color_key, NULL);
     pthread_key_create(&_dw_bg_color_key, NULL);
