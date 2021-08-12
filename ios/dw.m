@@ -8087,7 +8087,7 @@ DW_FUNCTION_RESTORE_PARAM3(DW_UNUSED(hwndOwner), HWND, title, char *, flStyle, U
                                                                         target:window
                                                                         action:@selector(closeWindow:)];
 
-                navItem.backBarButtonItem = back;
+                navItem.leftBarButtonItem = back;
             }
             [navbar setItems:@[navItem]];
             [[[window rootViewController] view] addSubview:navbar];
@@ -8541,6 +8541,7 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
     {
         DWWindow *window = handle;
         [_dw_toplevel_windows removeObject:window];
+        [window setHidden:YES];
         [window removeFromSuperview];
         [window release];
     }
