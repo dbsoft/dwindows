@@ -947,9 +947,11 @@ class DWindows : AppCompatActivity() {
                         enabled = true
                     }
                     menuitem.enabled = enabled
-                    runOnUiThread {
-                        menuitem.menuitem!!.isEnabled = enabled
-                        invalidateOptionsMenu()
+                    if(menuitem.menuitem != null) {
+                        runOnUiThread {
+                            menuitem.menuitem!!.isEnabled = enabled
+                            invalidateOptionsMenu()
+                        }
                     }
                 }
 
@@ -962,9 +964,11 @@ class DWindows : AppCompatActivity() {
                         checked = true
                     }
                     menuitem.checked = checked
-                    runOnUiThread {
-                        menuitem.menuitem!!.isChecked = checked
-                        invalidateOptionsMenu()
+                    if(menuitem.menuitem != null) {
+                        runOnUiThread {
+                            menuitem.menuitem!!.isChecked = checked
+                            invalidateOptionsMenu()
+                        }
                     }
                 }
             }
