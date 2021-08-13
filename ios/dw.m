@@ -6948,44 +6948,52 @@ HWND API dw_mdi_new(unsigned long cid)
  * Returns:
  *       A handle to a splitbar window or NULL on failure.
  */
-DW_FUNCTION_DEFINITION(dw_splitbar_new, HWND, DW_UNUSED(int type), HWND topleft, HWND bottomright, unsigned long cid)
+DW_FUNCTION_DEFINITION(dw_splitbar_new, HWND, int type, HWND topleft, HWND bottomright, unsigned long cid)
 DW_FUNCTION_ADD_PARAM4(type, topleft, bottomright, cid)
 DW_FUNCTION_RETURN(dw_splitbar_new, HWND)
-DW_FUNCTION_RESTORE_PARAM4(DW_UNUSED(type), int, topleft, HWND, bottomright, HWND, cid, unsigned long)
+DW_FUNCTION_RESTORE_PARAM4(type, int, topleft, HWND, bottomright, HWND, cid, unsigned long)
 {
     DW_FUNCTION_INIT;
+#ifdef _DW_USE_SPLITBAR
     id tmpbox = dw_box_new(DW_VERT, 0);
     DWSplitBar *split = [[DWSplitBar alloc] init];
     UIViewController *vc = [[[UIViewController alloc] init] retain];
     [split setDelegate:split];
     dw_box_pack_start(tmpbox, topleft, 0, 0, TRUE, TRUE, 0);
-    [vc setView:tmpbox];
     if (@available(iOS 14.0, *)) {
         [split setViewController:vc forColumn:UISplitViewControllerColumnPrimary];
     } else {
         [split addChildViewController:vc];
     }
+    [[vc view] addSubview:tmpbox];
     [tmpbox autorelease];
     tmpbox = dw_box_new(DW_VERT, 0);
     dw_box_pack_start(tmpbox, bottomright, 0, 0, TRUE, TRUE, 0);
     vc = [[UIViewController alloc] init];
-    [vc setView:tmpbox];
     if (@available(iOS 14.0, *)) {
         [split setViewController:vc forColumn:UISplitViewControllerColumnSecondary];
     } else {
         [split addChildViewController:vc];
     }
+    [[vc view] addSubview:tmpbox];
     [tmpbox autorelease];
     [vc autorelease];
-#if 0 /* TODO: All iOS splitbars are vertical */
-    [split setVertical:(type == DW_VERT ? YES : NO)];
-#endif
+    /* TODO: All iOS splitbars are vertical
+     * [split setVertical:(type == DW_VERT ? YES : NO)];
+     */
     /* Set the default percent to 50% split */
     [split setPercent:50.0];
     [split setTag:cid];
+#else
+    id split = dw_box_new(type, 0);
+    dw_box_pack_start(split, topleft, 0, 0, TRUE, TRUE, 0);
+    dw_box_pack_start(split, bottomright, 0, 0, TRUE, TRUE, 0);
+    [split setTag:cid];
+#endif
     DW_FUNCTION_RETURN_THIS(split);
 }
 
+#ifdef _DW_USE_SPLITBAR
 /*
  * Sets the position of a splitbar (pecentage).
  * Parameters:
@@ -7002,11 +7010,10 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, percent, float)
     CGSize size = [split preferredContentSize];
     float pos;
     /* Calculate the position based on the size */
-#if 0 /* TODO: iOS split views are always vertical */
+    /* TODO: iOS split views are always vertical
     if(![split isVertical])
         pos = size.height * (percent / 100.0);
-    else
-#endif
+    else */
         pos = size.width * (percent / 100.0);
     if(pos > 0)
     {
@@ -7046,6 +7053,27 @@ float API dw_splitbar_get(HWND handle)
     }
     return retval;
 }
+#else
+/*
+ * Sets the position of a splitbar (pecentage).
+ * Parameters:
+ *       handle: The handle to the splitbar returned by dw_splitbar_new().
+ *       percent: The position of the splitbar.
+ */
+void API dw_splitbar_set(HWND handle, float percent)
+{
+}
+
+/*
+ * Gets the position of a splitbar (pecentage).
+ * Parameters:
+ *       handle: The handle to the splitbar returned by dw_splitbar_new().
+ */
+float API dw_splitbar_get(HWND handle)
+{
+    return 50.0;
+}
+#endif
 
 /* Internal function to convert fontname to UIFont */
 UIFont *_dw_font_by_name(const char *fontname)
