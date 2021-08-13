@@ -9,6 +9,7 @@ import android.app.NotificationManager
 import android.content.*
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
+import android.content.res.Resources
 import android.database.Cursor
 import android.graphics.*
 import android.graphics.drawable.BitmapDrawable
@@ -2853,7 +2854,10 @@ class DWindows : AppCompatActivity() {
 
         waitOnUiThread {
             if(resID != 0) {
-                icon = ResourcesCompat.getDrawable(resources, resID, null)
+                try {
+                    icon = ResourcesCompat.getDrawable(resources, resID, null)
+                } catch(e: Resources.NotFoundException) {
+                }
             } else if(filename != null) {
                 val exts = arrayOf("", ".png", ".webp", ".jpg", ".jpeg", ".gif")
 
@@ -2867,7 +2871,6 @@ class DWindows : AppCompatActivity() {
                     if(icon != null) {
                         break
                     }
-
                 }
             } else if(data != null) {
                 icon = BitmapDrawable(resources, BitmapFactory.decodeByteArray(data, 0, length))
