@@ -8540,10 +8540,14 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
     if([object isKindOfClass:[UIWindow class]])
     {
         DWWindow *window = handle;
-        [_dw_toplevel_windows removeObject:window];
         [window setHidden:YES];
-        [window removeFromSuperview];
-        [window release];
+        [_dw_toplevel_windows removeObject:window];
+        [[[window rootViewController] view] removeFromSuperview];
+        [window setRootViewController:nil];
+        /* Releasing the window is causing crashes....
+         * TODO: Figure out if this is needed... or why it is crashing.
+         * [window release];
+         */
     }
     /* Handle removing menu items from menus */
     else if([object isMemberOfClass:[DWMenuItem class]])
