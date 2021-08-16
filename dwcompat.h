@@ -11,6 +11,7 @@
 #else
 #define HAVE_DIRENT_H 1
 #define HAVE_PIPE 1
+#define HAVE_VSNPRINTF 1
 #endif
 
 /* Attempt to include 64 bit file functions on various unix flavors */
