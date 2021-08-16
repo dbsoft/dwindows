@@ -79,23 +79,6 @@ char * API vargs(char *buf, int len, char *format, ...)
 	return buf;
 }
 
-/* Get around getmntinfo() not being thread safe */
-#if defined(__FreeBSD__) || defined(__MAC__) || defined(__IOS__)
-int _getmntinfo_r(struct statfs **mntbufp, int flags)
-{
-	static HMTX mutex = 0;
-	int result;
-
-	if(!mutex)
-		mutex = dw_mutex_new();
-
-	dw_mutex_lock(mutex);
-	result = getmntinfo(mntbufp, flags);
-	dw_mutex_unlock(mutex);
-	return result;
-}
-#endif
-
 #ifdef __MINGW32__
 double API drivefree(int drive)
 #else
@@ -128,16 +111,20 @@ long double API drivefree(int drive)
 
 	return (long double)((double)spc*(double)bps*(double)fc);
 #elif defined(__FreeBSD__) || defined(__MAC__) || defined(__IOS__)
-	struct statfs *fsp = NULL;
-	int entries, index = 1;
+	int entries = getfsstat(NULL, 0, MNT_NOWAIT), index = 1;
 
-	entries = _getmntinfo_r(&fsp, MNT_NOWAIT);
-
-	for (; entries-- > 0; fsp++)
+	if(entries > 0)
 	{
-		if(index == drive)
-			return (long double)((double)fsp->f_bsize * (double)fsp->f_bavail);
-		index++;
+		struct statfs *fsp = alloca(sizeof(struct statfs) * entries);
+
+		entries = getfsstat(fsp, sizeof(struct statfs) * entries, MNT_NOWAIT);
+
+		for(; entries-- > 0; fsp++)
+		{
+			if(index == drive)
+				return (long double)((double)fsp->f_bsize * (double)fsp->f_bavail);
+			index++;
+		}
 	}
 	return 0;
 #elif defined(__sun__)
@@ -164,7 +151,7 @@ long double API drivefree(int drive)
 				fclose(fp);
 				return size;
 			}
-			index++;          
+			index++;
 		}
 		fclose(fp);
 	}
@@ -194,7 +181,7 @@ long double API drivefree(int drive)
 				endmntent(fp);
 				return size;
 			}
-			index++;          
+			index++;
 		}
 		endmntent(fp);
 	}
@@ -236,16 +223,20 @@ long double API drivesize(int drive)
 
 	return (long double)((double)spc*(double)bps*(double)tc);
 #elif defined(__FreeBSD__) || defined(__MAC__) || defined(__IOS__)
-	struct statfs *fsp = NULL;
-	int entries, index = 1;
+	int entries = getfsstat(NULL, 0, MNT_NOWAIT), index = 1;
 
-	entries = _getmntinfo_r(&fsp, MNT_NOWAIT);
-
-	for (; entries-- > 0; fsp++)
+	if(entries > 0)
 	{
-		if(index == drive)
-			return (long double)((double)fsp->f_bsize * (double)fsp->f_blocks);
-		index++;
+		struct statfs *fsp = alloca(sizeof(struct statfs) * entries);
+
+		entries = getfsstat(fsp, sizeof(struct statfs) * entries, MNT_NOWAIT);
+		
+		for(; entries-- > 0; fsp++)
+		{
+			if(index == drive)
+				return (long double)((double)fsp->f_bsize * (double)fsp->f_blocks);
+			index++;
+		}
 	}
 	return 0;
 #elif defined(__sun__)
@@ -336,16 +327,20 @@ int API isdrive(int drive)
 	if(GetVolumeInformation(buffer, volname, 100, &spc, &bps, &fc, NULL, 0) != 0)
 		return 1;
 #elif defined(__FreeBSD__) || defined(__MAC__) || defined(__IOS__)
-	struct statfs *fsp = NULL;
-	int entries, index = 1;
+	int entries = getfsstat(NULL, 0, MNT_NOWAIT), index = 1;
 
-	entries = _getmntinfo_r(&fsp, MNT_NOWAIT);
-
-	for (; entries-- > 0; fsp++)
+	if(entries > 0)
 	{
-		if(index == drive && fsp->f_blocks)
-			return 1;
-		index++;
+		struct statfs *fsp = alloca(sizeof(struct statfs) * entries);
+
+		entries = getfsstat(fsp, sizeof(struct statfs) * entries, MNT_NOWAIT);
+
+		for (; entries-- > 0; fsp++)
+		{
+			if(index == drive && fsp->f_blocks)
+				return 1;
+			index++;
+		}
 	}
 #elif defined(__sun__)
 	FILE *fp = fopen("/etc/mnttab", "r");
@@ -367,7 +362,7 @@ int API isdrive(int drive)
 				}
 				return 0;
 			}
-			index++;          
+			index++;
 		}
 		fclose(fp);
 	}
@@ -394,7 +389,7 @@ int API isdrive(int drive)
 				}
 				return 0;
 			}
-			index++;          
+			index++;
 		}
 		endmntent(fp);
 	}
@@ -406,18 +401,22 @@ void API getfsname(int drive, char *buf, int len)
 {
 #if defined(__UNIX__) || defined(__MAC__) || defined(__IOS__) || defined(__ANDROID__)
 #if defined(__FreeBSD__) || defined(__MAC__) || defined(__IOS__)
-	struct statfs *fsp = NULL;
-	int entries, index = 1;
+	int entries = getfsstat(NULL, 0, MNT_NOWAIT), index = 1;
 
-	strncpy(buf, "Unknown", len);
-
-	entries = _getmntinfo_r(&fsp, MNT_NOWAIT);
-
-	for (; entries-- > 0; fsp++)
+	if(entries > 0)
 	{
-		if(index == drive)
-			strncpy(buf, fsp->f_mntonname, len);
-		index++;
+		struct statfs *fsp = alloca(sizeof(struct statfs) * entries);
+
+		entries = getfsstat(fsp, sizeof(struct statfs) * entries, MNT_NOWAIT);
+		
+		strncpy(buf, "Unknown", len);
+
+		for(; entries-- > 0; fsp++)
+		{
+			if(index == drive)
+				strncpy(buf, fsp->f_mntonname, len);
+			index++;
+		}
 	}
 #elif defined(__sun__)
 	FILE *fp = fopen("/etc/mnttab", "r");
