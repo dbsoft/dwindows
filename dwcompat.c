@@ -22,7 +22,7 @@
 #include <sys/param.h>
 #include <sys/mount.h>
 #include <sys/statvfs.h>
-#else
+#elif defined(__linux__)
 #include <mntent.h>
 #include <sys/vfs.h>
 #endif
@@ -169,7 +169,7 @@ long double API drivefree(int drive)
 		fclose(fp);
 	}
 	return 0;
-#elif !defined(__ANDROID__)
+#elif defined(__linux__)
 	FILE *fp = setmntent(MOUNTED, "r");
 	struct mntent mnt;
 	struct statfs sfs;
@@ -277,7 +277,7 @@ long double API drivesize(int drive)
 		fclose(fp);
 	}
 	return 0;
-#elif !defined(__ANDROID__)
+#elif defined(__linux__)
 	FILE *fp = setmntent(MOUNTED, "r");
 	struct mntent mnt;
 	char buffer[1024];
@@ -327,7 +327,6 @@ int API isdrive(int drive)
 	DosError(FERR_ENABLEHARDERR);
 	if (rc == NO_ERROR)
 		return 1;
-
 #elif defined(__WIN32__) || defined(WINNT)
 	char buffer[10] = "C:\\", volname[100];
 	DWORD spc, bps, fc;
@@ -348,7 +347,6 @@ int API isdrive(int drive)
 			return 1;
 		index++;
 	}
-	return 0;
 #elif defined(__sun__)
 	FILE *fp = fopen("/etc/mnttab", "r");
 	struct mnttab mnt;
@@ -373,7 +371,7 @@ int API isdrive(int drive)
 		}
 		fclose(fp);
 	}
-#elif !defined(__ANDROID__)
+#elif defined(__linux__)
 	FILE *fp = setmntent(MOUNTED, "r");
 	struct mntent mnt;
 	char buffer[1024];
@@ -406,7 +404,7 @@ int API isdrive(int drive)
 
 void API getfsname(int drive, char *buf, int len)
 {
-#if defined(__UNIX__) || defined(__MAC__) || defined(__IOS__)
+#if defined(__UNIX__) || defined(__MAC__) || defined(__IOS__) || defined(__ANDROID__)
 #if defined(__FreeBSD__) || defined(__MAC__) || defined(__IOS__)
 	struct statfs *fsp = NULL;
 	int entries, index = 1;
@@ -438,7 +436,7 @@ void API getfsname(int drive, char *buf, int len)
 		}
 		fclose(fp);
 	}
-#else
+#elif defined(__linux__)
 	FILE *fp = setmntent(MOUNTED, "r");
 	struct mntent mnt;
 	char buffer[1024];
@@ -703,7 +701,7 @@ int API setpath(char *path)
 static int locale_number = -1, locale_count = 0;
 static char **locale_text = NULL;
 
-void _compat_free_locale(void)
+void _dwcompat_free_locale(void)
 {
 	if(locale_text)
 	{
@@ -719,7 +717,7 @@ void _compat_free_locale(void)
 	}
 }
 
-int _stripcrlf(char *buf)
+int _dwcompat_stripcrlf(char *buf)
 {
 	int z, len = (int)strlen(buf);
 
@@ -743,7 +741,7 @@ int API locale_init(char *filename, int my_locale)
 	static char text[1025];
 	int count = 0;
 
-	_compat_free_locale();
+	_dwcompat_free_locale();
 
 	if(fp)
 	{
@@ -755,7 +753,7 @@ int API locale_init(char *filename, int my_locale)
 
 			while(!feof(fp))
 			{
-				if(fgets(text, 1024, fp) && _stripcrlf(text) &&
+				if(fgets(text, 1024, fp) && _dwcompat_stripcrlf(text) &&
 				   strncasecmp(text, "LOCALE=", 7) == 0)
 				{
 					if(current > -1)
