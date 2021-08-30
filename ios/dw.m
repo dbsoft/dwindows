@@ -1963,43 +1963,84 @@ BOOL _dw_is_dark(void)
 @end
 
 /* Subclass for a splitbar type */
-@interface DWSplitBar : UISplitViewController <UISplitViewControllerDelegate>
+@interface DWSplitBar : UIView
 {
     void *userdata;
     float percent;
     NSInteger Tag;
+    id topleft;
+    id bottomright;
+    int splittype;
 }
--(void)splitViewDidResizeSubviews:(NSNotification *)aNotification;
 -(void)setTag:(NSInteger)tag;
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
 -(float)percent;
 -(void)setPercent:(float)input;
+-(id)topLeft;
+-(void)setTopLeft:(id)input;
+-(id)bottomRight;
+-(void)setBottomRight:(id)input;
+-(int)type;
+-(void)setType:(int)input;
+-(void)resize;
 @end
 
 @implementation DWSplitBar
--(void)splitViewDidResizeSubviews:(NSNotification *)aNotification
-{
-    NSArray *views = [self.view subviews];
-    id object;
-
-    for(object in views)
-    {
-        if([object isMemberOfClass:[DWBox class]])
-        {
-            DWBox *view = object;
-            Box *box = [view box];
-            CGSize size = [view frame].size;
-            _dw_do_resize(box, size.width, size.height);
-            _dw_handle_resize_events(box);
-        }
-    }
-}
 -(void)setTag:(NSInteger)tag { Tag = tag; }
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
 -(float)percent { return percent; }
--(void)setPercent:(float)input { percent = input; }
+-(void)setPercent:(float)input { percent = input; [self resize]; }
+-(id)topLeft { return topleft; }
+-(void)setTopLeft:(id)input
+{
+    topleft = input;
+    [self addSubview:topleft];
+    [topleft autorelease];
+}
+-(id)bottomRight { return bottomright; }
+-(void)setBottomRight:(id)input
+{
+    bottomright = input;
+    [self addSubview:bottomright];
+    [bottomright autorelease];
+
+}
+-(int)type { return splittype; }
+-(void)setType:(int)input { splittype = input; }
+-(void)resize
+{
+    CGRect rect = self.frame;
+    CGRect half = rect;
+
+    half.origin.x = half.origin.y = 0;
+    
+    if(splittype == DW_HORZ)
+        half.size.width = (100.0/percent) * rect.size.width;
+    else
+        half.size.height = (100.0/percent) * rect.size.height;
+    if(topleft)
+    {
+        DWBox *view = topleft;
+        Box *box = [view box];
+        [topleft setFrame:half];
+        _dw_do_resize(box, half.size.width, half.size.height);
+        _dw_handle_resize_events(box);
+    }
+    if(splittype == DW_HORZ)
+        half.origin.x = half.size.width;
+    else
+        half.origin.y = half.size.height;
+    if(bottomright)
+    {
+        DWBox *view = bottomright;
+        Box *box = [view box];
+        [bottomright setFrame:half];
+        _dw_do_resize(box, half.size.width, half.size.height);
+        _dw_handle_resize_events(box);
+    }
+}
 -(void)dealloc { UserData *root = userdata; _dw_remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
@@ -3116,14 +3157,7 @@ static void _dw_resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                 else if([handle isMemberOfClass:[DWSplitBar class]])
                 {
                     DWSplitBar *split = (DWSplitBar *)handle;
-                    float percent = [split percent];
-
-                    if(percent > 0 && rect.size.width > 20 && rect.size.height > 20)
-                    {
-                        dw_splitbar_set(handle, percent);
-                        [split setPercent:0];
-                    }
-                    [split splitViewDidResizeSubviews:nil];
+                    [split resize];
                 }
 
                 /* Advance the current position in the box */
@@ -6954,46 +6988,19 @@ DW_FUNCTION_RETURN(dw_splitbar_new, HWND)
 DW_FUNCTION_RESTORE_PARAM4(type, int, topleft, HWND, bottomright, HWND, cid, unsigned long)
 {
     DW_FUNCTION_INIT;
-#ifdef _DW_USE_SPLITBAR
     id tmpbox = dw_box_new(DW_VERT, 0);
     DWSplitBar *split = [[DWSplitBar alloc] init];
-    UIViewController *vc = [[[UIViewController alloc] init] retain];
-    [split setDelegate:split];
     dw_box_pack_start(tmpbox, topleft, 0, 0, TRUE, TRUE, 0);
-    if (@available(iOS 14.0, *)) {
-        [split setViewController:vc forColumn:UISplitViewControllerColumnPrimary];
-    } else {
-        [split addChildViewController:vc];
-    }
-    [[vc view] addSubview:tmpbox];
-    [tmpbox autorelease];
+    [split setTopLeft:tmpbox];
     tmpbox = dw_box_new(DW_VERT, 0);
     dw_box_pack_start(tmpbox, bottomright, 0, 0, TRUE, TRUE, 0);
-    vc = [[UIViewController alloc] init];
-    if (@available(iOS 14.0, *)) {
-        [split setViewController:vc forColumn:UISplitViewControllerColumnSecondary];
-    } else {
-        [split addChildViewController:vc];
-    }
-    [[vc view] addSubview:tmpbox];
-    [tmpbox autorelease];
-    [vc autorelease];
-    /* TODO: All iOS splitbars are vertical
-     * [split setVertical:(type == DW_VERT ? YES : NO)];
-     */
-    /* Set the default percent to 50% split */
+    [split setBottomRight:tmpbox];
     [split setPercent:50.0];
+    [split setType:type];
     [split setTag:cid];
-#else
-    id split = dw_box_new(type, 0);
-    dw_box_pack_start(split, topleft, 0, 0, TRUE, TRUE, 0);
-    dw_box_pack_start(split, bottomright, 0, 0, TRUE, TRUE, 0);
-    [split setTag:cid];
-#endif
     DW_FUNCTION_RETURN_THIS(split);
 }
 
-#ifdef _DW_USE_SPLITBAR
 /*
  * Sets the position of a splitbar (pecentage).
  * Parameters:
@@ -7007,30 +7014,7 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, percent, float)
 {
     DW_FUNCTION_INIT;
     DWSplitBar *split = handle;
-    CGSize size = [split preferredContentSize];
-    float pos;
-    /* Calculate the position based on the size */
-    /* TODO: iOS split views are always vertical
-    if(![split isVertical])
-        pos = size.height * (percent / 100.0);
-    else */
-        pos = size.width * (percent / 100.0);
-    if(pos > 0)
-    {
-        if (@available(iOS 14.0, *)) {
-            [split setPreferredPrimaryColumnWidth:pos];
-        } else {
-            /* TODO: Is this possible on earlier versions? */
-        }
-    }
-    else
-    {
-        /* If we have no size.. wait until the resize
-         * event when we get an actual size to try
-         * to set the splitbar again.
-         */
-        [split setPercent:percent];
-    }
+    [split setPercent:percent];
     DW_FUNCTION_RETURN_NOTHING;
 }
 
@@ -7044,36 +7028,10 @@ float API dw_splitbar_get(HWND handle)
     DWSplitBar *split = handle;
     float retval = 50.0;
 
-    if (@available(iOS 14.0, *)) {
-        float primary = [split primaryColumnWidth];
-        float supplementary = [split supplementaryColumnWidth];
-        retval = (primary / (primary + supplementary)) * 100.0;
-    } else {
-        /* TODO: If possible*/
-    }
+    if(split)
+        retval = [split percent];
     return retval;
 }
-#else
-/*
- * Sets the position of a splitbar (pecentage).
- * Parameters:
- *       handle: The handle to the splitbar returned by dw_splitbar_new().
- *       percent: The position of the splitbar.
- */
-void API dw_splitbar_set(HWND handle, float percent)
-{
-}
-
-/*
- * Gets the position of a splitbar (pecentage).
- * Parameters:
- *       handle: The handle to the splitbar returned by dw_splitbar_new().
- */
-float API dw_splitbar_get(HWND handle)
-{
-    return 50.0;
-}
-#endif
 
 /* Internal function to convert fontname to UIFont */
 UIFont *_dw_font_by_name(const char *fontname)
