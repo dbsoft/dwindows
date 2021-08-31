@@ -4318,8 +4318,8 @@ DW_FUNCTION_RESTORE_PARAM2(DW_UNUSED(text), const char *, cid, ULONG)
     if(image)
     {
         [button setImage:image forState:UIControlStateNormal];
+        [image release];
     }
-    [image release];
     DW_FUNCTION_RETURN_THIS(button);
 }
 
@@ -4351,8 +4351,8 @@ DW_FUNCTION_RESTORE_PARAM3(DW_UNUSED(text), const char *, cid, ULONG, filename, 
     if(image)
     {
         [button setImage:image forState:UIControlStateNormal];
+        [image release];
     }
-    [image release];
     DW_FUNCTION_RETURN_THIS(button);
 }
 
@@ -4376,8 +4376,8 @@ DW_FUNCTION_RESTORE_PARAM4(DW_UNUSED(text), const char *, cid, ULONG, data, cons
     if(image)
     {
         [button setImage:image forState:UIControlStateNormal];
+        [image release];
     }
-    [image release];
     DW_FUNCTION_RETURN_THIS(button);
 }
 
