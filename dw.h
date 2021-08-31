@@ -416,7 +416,7 @@ void _dw_pool_drain(void);
 #define DW_DT_STRIKEOUT          0
 #define DW_DT_TEXTATTRS          0
 #define DW_DT_EXTERNALLEADING    0
-#ifdef __aarch64__
+#if defined(__aarch64__) || defined(__IOS__)
 #define DW_DT_CENTER             1 /* NSTextAlignmentCenter */
 #define DW_DT_RIGHT              2 /* NSTextAlignmentRight */
 #else
