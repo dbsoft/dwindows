@@ -3239,11 +3239,8 @@ void API dw_main_sleep(int milliseconds)
         {
             DWThread = curr;
         }
-       /* Process any pending events */
-        while(_dw_main_iteration(until))
-        {
-            /* Just loop */
-        }
+        /* Process any pending events */
+        _dw_main_iteration(until);
         if(orig == (DWTID)-1)
         {
             DWThread = orig;
