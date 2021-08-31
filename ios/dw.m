@@ -1991,7 +1991,15 @@ BOOL _dw_is_dark(void)
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
 -(float)percent { return percent; }
--(void)setPercent:(float)input { percent = input; [self resize]; }
+-(void)setPercent:(float)input
+{
+    percent = input;
+    if(percent > 100.0)
+        percent = 100.0;
+    else if(percent < 0.0)
+        percent = 0.0;
+    [self resize];
+}
 -(id)topLeft { return topleft; }
 -(void)setTopLeft:(id)input
 {
@@ -2017,9 +2025,9 @@ BOOL _dw_is_dark(void)
     half.origin.x = half.origin.y = 0;
     
     if(splittype == DW_HORZ)
-        half.size.width = (100.0/percent) * rect.size.width;
+        half.size.width = (percent/100.0) * rect.size.width;
     else
-        half.size.height = (100.0/percent) * rect.size.height;
+        half.size.height = (percent/100.0) * rect.size.height;
     if(topleft)
     {
         DWBox *view = topleft;
@@ -2029,9 +2037,15 @@ BOOL _dw_is_dark(void)
         _dw_handle_resize_events(box);
     }
     if(splittype == DW_HORZ)
+    {
         half.origin.x = half.size.width;
+        half.size.width = rect.size.width - half.size.width;
+    }
     else
+    {
         half.origin.y = half.size.height;
+        half.size.height = rect.size.height - half.size.height;
+    }
     if(bottomright)
     {
         DWBox *view = bottomright;
