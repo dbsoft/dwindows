@@ -1993,7 +1993,7 @@ class DWindows : AppCompatActivity() {
 
                 // Place the top/left item
                 if(topleft != null) {
-                    if(topleft.id == 0) {
+                    if(topleft.id < 1) {
                         topleft.id = View.generateViewId()
                     }
                     splitbar!!.addView(topleft)
@@ -2033,7 +2033,7 @@ class DWindows : AppCompatActivity() {
 
                 // Place the bottom/right item
                 if(bottomright != null) {
-                    if (bottomright.id == 0) {
+                    if (bottomright.id < 1) {
                         bottomright.id = View.generateViewId()
                     }
                     splitbar!!.addView(bottomright)
