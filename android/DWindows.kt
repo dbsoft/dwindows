@@ -42,6 +42,8 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.AppCompatEditText
 import androidx.collection.SimpleArrayMap
+import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.constraintlayout.widget.ConstraintSet
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.res.ResourcesCompat
@@ -1972,6 +1974,160 @@ class DWindows : AppCompatActivity() {
                 val tab = tabs.getTabAt(index)
 
                 tabs.selectTab(tab)
+            }
+        }
+    }
+
+    fun splitBarNew(type: Int, topleft: View?, bottomright: View?, cid: Int): ConstraintLayout?
+    {
+        var splitbar: ConstraintLayout? = null
+
+        waitOnUiThread {
+            splitbar = ConstraintLayout(this)
+
+            if(splitbar != null) {
+                val constraintSet = ConstraintSet()
+                constraintSet.clone(splitbar)
+
+                splitbar!!.id = cid
+
+                // Place the top/left item
+                if(topleft != null) {
+                    if(topleft.id == 0) {
+                        topleft.id = View.generateViewId()
+                    }
+                    splitbar!!.addView(topleft)
+                    constraintSet.connect(
+                        topleft.id,
+                        ConstraintLayout.LayoutParams.TOP,
+                        ConstraintLayout.LayoutParams.PARENT_ID,
+                        ConstraintLayout.LayoutParams.TOP
+                    )
+                    constraintSet.connect(
+                        topleft.id,
+                        ConstraintLayout.LayoutParams.LEFT,
+                        ConstraintLayout.LayoutParams.PARENT_ID,
+                        ConstraintLayout.LayoutParams.LEFT
+                    )
+
+                    if (type == 0) {
+                        // Horizontal
+                        constraintSet.connect(
+                            topleft.id,
+                            ConstraintLayout.LayoutParams.BOTTOM,
+                            ConstraintLayout.LayoutParams.PARENT_ID,
+                            ConstraintLayout.LayoutParams.BOTTOM
+                        )
+                        constraintSet.constrainPercentWidth(topleft.id, 0.5F)
+                    } else {
+                        // Vertical
+                        constraintSet.connect(
+                            topleft.id,
+                            ConstraintLayout.LayoutParams.RIGHT,
+                            ConstraintLayout.LayoutParams.PARENT_ID,
+                            ConstraintLayout.LayoutParams.RIGHT
+                        )
+                        constraintSet.constrainPercentHeight(topleft.id, 0.5F)
+                    }
+                }
+
+                // Place the bottom/right item
+                if(bottomright != null) {
+                    if (bottomright.id == 0) {
+                        bottomright.id = View.generateViewId()
+                    }
+                    splitbar!!.addView(bottomright)
+                    constraintSet.connect(
+                        bottomright.id,
+                        ConstraintLayout.LayoutParams.BOTTOM,
+                        ConstraintLayout.LayoutParams.PARENT_ID,
+                        ConstraintLayout.LayoutParams.BOTTOM
+                    )
+                    constraintSet.connect(
+                        bottomright.id,
+                        ConstraintLayout.LayoutParams.RIGHT,
+                        ConstraintLayout.LayoutParams.PARENT_ID,
+                        ConstraintLayout.LayoutParams.RIGHT
+                    )
+
+                    if (type == 0) {
+                        // Horizontal
+                        constraintSet.connect(
+                            bottomright.id,
+                            ConstraintLayout.LayoutParams.TOP,
+                            ConstraintLayout.LayoutParams.PARENT_ID,
+                            ConstraintLayout.LayoutParams.TOP
+                        )
+                        constraintSet.constrainPercentWidth(bottomright.id, 0.5F)
+                    } else {
+                        // Vertical
+                        constraintSet.connect(
+                            bottomright.id,
+                            ConstraintLayout.LayoutParams.LEFT,
+                            ConstraintLayout.LayoutParams.PARENT_ID,
+                            ConstraintLayout.LayoutParams.LEFT
+                        )
+                        constraintSet.constrainPercentHeight(bottomright.id, 0.5F)
+                    }
+                }
+
+                // finally, apply the constraint set to layout
+                constraintSet.applyTo(splitbar)
+            }
+        }
+        return splitbar
+    }
+
+    fun splitBarGet(splitbar: ConstraintLayout): Float {
+        var position: Float = 50.0F
+
+        waitOnUiThread {
+            val topleft: View? = splitbar.getChildAt(0)
+            val bottomright: View? = splitbar.getChildAt(1)
+
+            if(splitbar.width > 0 && splitbar.height > 0) {
+                if (topleft != null) {
+                    if (splitbar.width == topleft.width) {
+                        position = (topleft.height / splitbar.height) * 100.0F
+                    } else {
+                        position = (topleft.width / splitbar.width) * 100.0F
+                    }
+                } else if (bottomright != null) {
+                    if (splitbar.width == bottomright.width) {
+                        position = 100.0F - ((bottomright.height / splitbar.height) * 100.0F)
+                    } else {
+                        position = 100.0F - ((bottomright.width / splitbar.width) * 100.0F)
+                    }
+                }
+            }
+        }
+        return position
+    }
+
+    fun splitBarSet(splitbar: ConstraintLayout, position: Float) {
+        waitOnUiThread {
+            val topleft: View? = splitbar.getChildAt(0)
+            val bottomright: View? = splitbar.getChildAt(1)
+
+            if(splitbar.width > 0 && splitbar.height > 0) {
+                val constraintSet = ConstraintSet()
+                constraintSet.clone(splitbar)
+                if (topleft != null) {
+                    if (splitbar.width == topleft.width) {
+                        constraintSet.constrainPercentHeight(topleft.id, position / 100.0F)
+                    } else {
+                        constraintSet.constrainPercentWidth(topleft.id, position / 100.0F)
+                    }
+                }
+                if (bottomright != null) {
+                    val altper: Float = (100.0F - position) / 100.0F
+                    if (splitbar.width == bottomright.width) {
+                        constraintSet.constrainPercentHeight(bottomright.id, altper)
+                    } else {
+                        constraintSet.constrainPercentWidth(bottomright.id, altper)
+                    }
+                }
+                constraintSet.applyTo(splitbar)
             }
         }
     }
