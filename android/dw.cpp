@@ -4104,6 +4104,19 @@ HWND API dw_mdi_new(unsigned long cid)
  */
 HWND API dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long cid)
 {
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID splitBarNew = env->GetMethodID(clazz, "splitBarNew",
+                                                 "(ILandroid/view/View;Landroid/view/View;I)Landroidx/constraintlayout/widget/ConstraintLayout;");
+        // Call the method on the object
+        jobject result = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, splitBarNew, type, topleft, bottomright, (int)cid), _DW_REFERENCE_WEAK);
+        return result;
+    }
     return nullptr;
 }
 
@@ -4115,6 +4128,20 @@ HWND API dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long
  */
 void API dw_splitbar_set(HWND handle, float percent)
 {
+    JNIEnv *env;
+
+    if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        jfloat position = (jfloat)percent;
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID splitBarSet = env->GetMethodID(clazz, "splitBarSet",
+                                                 "(Landroidx/constraintlayout/widget/ConstraintLayout;F)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, splitBarSet, handle, position);
+        _dw_jni_check_exception(env);
+    }
 }
 
 /*
@@ -4126,7 +4153,22 @@ void API dw_splitbar_set(HWND handle, float percent)
  */
 float API dw_splitbar_get(HWND handle)
 {
-    return 0;
+    JNIEnv *env;
+    float retval = 0;
+
+    if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID splitBarGet = env->GetMethodID(clazz, "splitBarGet",
+                                                 "(Landroidx/constraintlayout/widget/ConstraintLayout;)F");
+        // Call the method on the object
+        retval = (float)env->CallFloatMethod(_dw_obj, splitBarGet, handle);
+        if(_dw_jni_check_exception(env))
+            retval = 0;
+    }
+    return retval;
 }
 
 /*
