@@ -3004,17 +3004,20 @@ class DWindows : AppCompatActivity() {
         }
     }
 
-    fun iconNew(filename: String?, data: ByteArray?, length: Int, resID: Int): Drawable?
+    fun iconNew(file: String?, data: ByteArray?, length: Int, resID: Int): Drawable?
     {
         var icon: Drawable? = null
 
         waitOnUiThread {
-            if(resID != 0) {
-                try {
-                    icon = ResourcesCompat.getDrawable(resources, resID, null)
-                } catch(e: Resources.NotFoundException) {
-                }
-            } else if(filename != null) {
+            var filename: String? = file
+
+            // Handle Dynamic Windows resource IDs
+            if(resID > 0 && resID < 65536) {
+                filename = resID.toString()
+            }
+            // Handle filename or DW resource IDs
+            // these will be located in the assets folder
+            if(filename != null) {
                 val exts = arrayOf("", ".png", ".webp", ".jpg", ".jpeg", ".gif")
 
                 for (ext in exts) {
@@ -3024,10 +3027,17 @@ class DWindows : AppCompatActivity() {
                         icon = Drawable.createFromStream(f, null)
                     } catch (e: IOException) {
                     }
-                    if(icon != null) {
+                    if (icon != null) {
                         break
                     }
                 }
+            // Handle Android resource IDs
+            } else if(resID != 0) {
+                try {
+                    icon = ResourcesCompat.getDrawable(resources, resID, null)
+                } catch (e: Resources.NotFoundException) {
+                }
+            // Handle bitmap data
             } else if(data != null) {
                 icon = BitmapDrawable(resources, BitmapFactory.decodeByteArray(data, 0, length))
             }
