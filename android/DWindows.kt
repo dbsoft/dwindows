@@ -1466,6 +1466,8 @@ class DWindows : AppCompatActivity() {
         waitOnUiThread {
             button = ImageButton(this)
             val dataArrayMap = SimpleArrayMap<String, Long>()
+            val exts = arrayOf("", ".png", ".webp", ".jpg", ".jpeg", ".gif")
+            var filename: String? = null
 
             button!!.tag = dataArrayMap
             button!!.id = resid
@@ -1473,6 +1475,26 @@ class DWindows : AppCompatActivity() {
             button!!.setOnClickListener {
                 lastClickView = button!!
                 eventHandlerSimple(button!!, DWEvent.CLICKED)
+            }
+
+            if(resid > 0 && resid < 65536) {
+                filename = resid.toString()
+            }
+
+            if(filename != null) {
+                for (ext in exts) {
+                    // Try to load the image, and protect against exceptions
+                    try {
+                        val f = this.assets.open(filename + ext)
+                        val b = BitmapFactory.decodeStream(f)
+
+                        if (b != null) {
+                            button!!.setImageBitmap(b)
+                            break
+                        }
+                    } catch (e: IOException) {
+                    }
+                }
             }
         }
         return button
