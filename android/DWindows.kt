@@ -2956,20 +2956,25 @@ class DWindows : AppCompatActivity() {
         return imageview
     }
 
-    fun windowSetBitmap(window: View, resID: Int, filename: String?)
+    fun windowSetBitmap(window: View, resID: Int, file: String?)
     {
         waitOnUiThread {
-            if(resID != 0) {
-                if(window is ImageButton) {
+            var filename: String? = file
+
+            if(resID > 0 && resID < 65536) {
+                filename = resID.toString()
+            } else if(resID != 0) {
+                if (window is ImageButton) {
                     val button = window
 
                     button.setImageResource(resID)
-                } else if(window is ImageView) {
+                } else if (window is ImageView) {
                     val imageview = window
 
                     imageview.setImageResource(resID)
                 }
-            } else if(filename != null) {
+            }
+            if(filename != null) {
                 val exts = arrayOf("", ".png", ".webp", ".jpg", ".jpeg", ".gif")
 
                 for (ext in exts) {
@@ -3067,16 +3072,21 @@ class DWindows : AppCompatActivity() {
         return icon
     }
 
-    fun pixmapNew(width: Int, height: Int, filename: String?, data: ByteArray?, length: Int, resID: Int): Bitmap?
+    fun pixmapNew(width: Int, height: Int, file: String?, data: ByteArray?, length: Int, resID: Int): Bitmap?
     {
         var pixmap: Bitmap? = null
 
         waitOnUiThread {
+            var filename: String? = file
+
             if(width > 0 && height > 0) {
                 pixmap = Bitmap.createBitmap(null, width, height, Bitmap.Config.ARGB_8888)
+            } else if(resID > 0 && resID < 65536) {
+                filename = resID.toString()
             } else if(resID != 0) {
                 pixmap = BitmapFactory.decodeResource(resources, resID)
-            } else if(filename != null) {
+            }
+            if(filename != null) {
                 val exts = arrayOf("", ".png", ".webp", ".jpg", ".jpeg", ".gif")
 
                 for (ext in exts) {
