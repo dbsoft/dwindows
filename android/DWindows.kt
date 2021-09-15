@@ -3015,7 +3015,8 @@ class DWindows : AppCompatActivity() {
 
                     imageview.setImageResource(resID)
                 }
-            } else if(data != null) {
+            }
+            if(data != null) {
                 val b = BitmapFactory.decodeByteArray(data, 0, length)
 
                 if (window is ImageButton) {
@@ -3036,11 +3037,22 @@ class DWindows : AppCompatActivity() {
         var icon: Drawable? = null
 
         waitOnUiThread {
-            var filename: String? = file
+            var filename: String? = null
 
             // Handle Dynamic Windows resource IDs
             if(resID > 0 && resID < 65536) {
                 filename = resID.toString()
+            // Handle Android resource IDs
+            } else if(resID != 0) {
+                try {
+                    icon = ResourcesCompat.getDrawable(resources, resID, null)
+                } catch (e: Resources.NotFoundException) {
+                }
+            // Handle bitmap data
+            } else if(data != null) {
+                icon = BitmapDrawable(resources, BitmapFactory.decodeByteArray(data, 0, length))
+            } else {
+                filename = file
             }
             // Handle filename or DW resource IDs
             // these will be located in the assets folder
@@ -3058,15 +3070,6 @@ class DWindows : AppCompatActivity() {
                         break
                     }
                 }
-            // Handle Android resource IDs
-            } else if(resID != 0) {
-                try {
-                    icon = ResourcesCompat.getDrawable(resources, resID, null)
-                } catch (e: Resources.NotFoundException) {
-                }
-            // Handle bitmap data
-            } else if(data != null) {
-                icon = BitmapDrawable(resources, BitmapFactory.decodeByteArray(data, 0, length))
             }
         }
         return icon
@@ -3077,7 +3080,7 @@ class DWindows : AppCompatActivity() {
         var pixmap: Bitmap? = null
 
         waitOnUiThread {
-            var filename: String? = file
+            var filename: String? = null
 
             if(width > 0 && height > 0) {
                 pixmap = Bitmap.createBitmap(null, width, height, Bitmap.Config.ARGB_8888)
@@ -3085,6 +3088,10 @@ class DWindows : AppCompatActivity() {
                 filename = resID.toString()
             } else if(resID != 0) {
                 pixmap = BitmapFactory.decodeResource(resources, resID)
+            } else if(data != null) {
+                pixmap = BitmapFactory.decodeByteArray(data, 0, length)
+            } else {
+                filename = file
             }
             if(filename != null) {
                 val exts = arrayOf("", ".png", ".webp", ".jpg", ".jpeg", ".gif")
@@ -3100,8 +3107,6 @@ class DWindows : AppCompatActivity() {
                         break
                     }
                 }
-            } else if(data != null) {
-                pixmap = BitmapFactory.decodeByteArray(data, 0, length)
             }
         }
         return pixmap
