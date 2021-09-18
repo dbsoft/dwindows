@@ -2006,12 +2006,18 @@ class DWindows : AppCompatActivity() {
 
         waitOnUiThread {
             splitbar = ConstraintLayout(this)
-
             if(splitbar != null) {
                 val constraintSet = ConstraintSet()
+                val dataArrayMap = SimpleArrayMap<String, Long>()
+
                 constraintSet.clone(splitbar)
 
+                splitbar!!.tag = dataArrayMap
                 splitbar!!.id = cid
+
+                // Add the special data to the array map
+                dataArrayMap.put("_dw_type", type.toLong())
+                dataArrayMap.put("_dw_percent", 50000000L)
 
                 // Place the top/left item
                 if(topleft != null) {
@@ -2104,38 +2110,37 @@ class DWindows : AppCompatActivity() {
         var position: Float = 50.0F
 
         waitOnUiThread {
-            val topleft: View? = splitbar.getChildAt(0)
-            val bottomright: View? = splitbar.getChildAt(1)
+            val dataArrayMap: SimpleArrayMap<String, Long> = splitbar.tag as SimpleArrayMap<String, Long>
+            var percent: Long = 50000000L
 
-            if(splitbar.width > 0 && splitbar.height > 0) {
-                if (topleft != null) {
-                    if (splitbar.width == topleft.width) {
-                        position = (topleft.height / splitbar.height) * 100.0F
-                    } else {
-                        position = (topleft.width / splitbar.width) * 100.0F
-                    }
-                } else if (bottomright != null) {
-                    if (splitbar.width == bottomright.width) {
-                        position = 100.0F - ((bottomright.height / splitbar.height) * 100.0F)
-                    } else {
-                        position = 100.0F - ((bottomright.width / splitbar.width) * 100.0F)
-                    }
-                }
+            if(dataArrayMap.containsKey("_dw_percent")) {
+                percent = dataArrayMap.get("_dw_percent")!!
             }
+
+            position = percent.toFloat() / 1000000.0F
         }
         return position
     }
 
     fun splitBarSet(splitbar: ConstraintLayout, position: Float) {
         waitOnUiThread {
-            val topleft: View? = splitbar.getChildAt(0)
-            val bottomright: View? = splitbar.getChildAt(1)
+            val dataArrayMap: SimpleArrayMap<String, Long> = splitbar.tag as SimpleArrayMap<String, Long>
+            var percent: Float = position * 1000000.0F
 
-            if(splitbar.width > 0 && splitbar.height > 0) {
+            if(percent > 0F) {
+                val topleft: View? = splitbar.getChildAt(0)
+                val bottomright: View? = splitbar.getChildAt(1)
                 val constraintSet = ConstraintSet()
+                var type: Long = 0L
+
+                if (dataArrayMap.containsKey("_dw_type")) {
+                    type = dataArrayMap.get("_dw_type")!!
+                }
+                dataArrayMap.put("_dw_percent", percent.toLong())
+
                 constraintSet.clone(splitbar)
                 if (topleft != null) {
-                    if (splitbar.width == topleft.width) {
+                    if (type == 1L) {
                         constraintSet.constrainPercentHeight(topleft.id, position / 100.0F)
                     } else {
                         constraintSet.constrainPercentWidth(topleft.id, position / 100.0F)
@@ -2143,7 +2148,7 @@ class DWindows : AppCompatActivity() {
                 }
                 if (bottomright != null) {
                     val altper: Float = (100.0F - position) / 100.0F
-                    if (splitbar.width == bottomright.width) {
+                    if (type == 1L) {
                         constraintSet.constrainPercentHeight(bottomright.id, altper)
                     } else {
                         constraintSet.constrainPercentWidth(bottomright.id, altper)
