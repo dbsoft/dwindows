@@ -1058,6 +1058,8 @@ char * API dw_user_dir(void)
 
         if(home)
             strcpy(_dw_user_dir, home);
+        else if(_dw_exec_dir[0])
+            strcpy(_dw_user_dir, _dw_exec_dir);
         else
             strcpy(_dw_user_dir, "/");
     }
