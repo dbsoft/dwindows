@@ -53,10 +53,14 @@ import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayout.OnTabSelectedListener
 import com.google.android.material.tabs.TabLayoutMediator
+import java.io.BufferedInputStream
 import java.io.File
+import java.io.FileOutputStream
 import java.io.IOException
 import java.util.*
 import java.util.concurrent.locks.ReentrantLock
+import java.util.zip.ZipEntry
+import java.util.zip.ZipFile
 
 object DWEvent {
     const val TIMER = 0
@@ -80,6 +84,8 @@ object DWEvent {
     const val HTML_RESULT = 18
     const val HTML_CHANGED = 19
 }
+
+val DWImageExts = arrayOf("", ".png", ".webp", ".jpg", ".jpeg", ".gif")
 
 class DWTabViewPagerAdapter : RecyclerView.Adapter<DWTabViewPagerAdapter.DWEventViewHolder>() {
     val viewList = mutableListOf<LinearLayout>()
@@ -796,6 +802,60 @@ class DWindows : AppCompatActivity() {
           }
     }
 
+    // Returns true if the filename is a resource ID (non-zero number)
+    // with a image file extension in our DWImageExts list
+    private fun isDWResource(filename: String): Boolean {
+        val length = filename.length
+
+        for (ext in DWImageExts) {
+            if (ext.isNotEmpty() && filename.endsWith(ext)) {
+                val filebody: String = filename.substring(7, length - ext.length)
+                if (filebody.toInt() > 0) {
+                    return true
+                }
+            }
+        }
+        return false
+    }
+
+    /**
+     * extracts assets/ in the APK to the application cache directory
+     */
+    private fun extractAssets() {
+        var zipFile: ZipFile? = null
+        val targetDir = cacheDir
+
+        try {
+            zipFile = ZipFile(this.applicationInfo.sourceDir)
+            val e: Enumeration<out ZipEntry?> = zipFile.entries()
+            while (e.hasMoreElements()) {
+                val entry: ZipEntry? = e.nextElement()
+                if (entry == null || entry.isDirectory || !entry.name.startsWith("assets/") ||
+                        isDWResource(entry.name)) {
+                    continue
+                }
+                val targetFile = File(targetDir, entry.name.substring("assets/".length))
+                targetFile.parentFile!!.mkdirs()
+                val tempBuffer = ByteArray(entry.size.toInt())
+                var ais: BufferedInputStream? = null
+                var aos: FileOutputStream? = null
+                try {
+                    ais = BufferedInputStream(zipFile.getInputStream(entry))
+                    aos = FileOutputStream(targetFile)
+                    ais.read(tempBuffer)
+                    aos.write(tempBuffer)
+                } catch (e: IOException) {
+                } finally {
+                    ais?.close()
+                    aos?.close()
+                }
+            }
+        } catch (e: IOException) {
+        } finally {
+            zipFile?.close()
+        }
+    }
+
     // We only want to call this once when the app starts up
     // By default Android will call onCreate for rotation and other
     // changes.  This is incompatible with Dynamic Windows...
@@ -812,10 +872,16 @@ class DWindows : AppCompatActivity() {
         var s = packageName
         val p = m.getPackageInfo(s!!, 0)
         s = p.applicationInfo.dataDir
+        val c = cacheDir.path
+
+        // Extract any non-resource assets to the cache directory
+        // So that our C code can access them as files, like on
+        // other Dynamic Windows platforms
+        extractAssets()
 
         // Initialize the Dynamic Windows code...
         // This will start a new thread that calls the app's dwmain()
-        dwindowsInit(s, this.getPackageName())
+        dwindowsInit(s, c, this.getPackageName())
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
@@ -1466,7 +1532,6 @@ class DWindows : AppCompatActivity() {
         waitOnUiThread {
             button = ImageButton(this)
             val dataArrayMap = SimpleArrayMap<String, Long>()
-            val exts = arrayOf("", ".png", ".webp", ".jpg", ".jpeg", ".gif")
             var filename: String? = null
 
             button!!.tag = dataArrayMap
@@ -1482,7 +1547,7 @@ class DWindows : AppCompatActivity() {
             }
 
             if(filename != null) {
-                for (ext in exts) {
+                for (ext in DWImageExts) {
                     // Try to load the image, and protect against exceptions
                     try {
                         val f = this.assets.open(filename + ext)
@@ -1505,7 +1570,6 @@ class DWindows : AppCompatActivity() {
         waitOnUiThread {
             button = ImageButton(this)
             val dataArrayMap = SimpleArrayMap<String, Long>()
-            val exts = arrayOf("", ".png", ".webp", ".jpg", ".jpeg", ".gif")
 
             button!!.tag = dataArrayMap
             button!!.id = cid
@@ -1514,7 +1578,7 @@ class DWindows : AppCompatActivity() {
                 eventHandlerSimple(button!!, DWEvent.CLICKED)
             }
 
-            for (ext in exts) {
+            for (ext in DWImageExts) {
                 // Try to load the image, and protect against exceptions
                 try {
                     val f = this.assets.open(filename + ext)
@@ -2980,9 +3044,7 @@ class DWindows : AppCompatActivity() {
                 }
             }
             if(filename != null) {
-                val exts = arrayOf("", ".png", ".webp", ".jpg", ".jpeg", ".gif")
-
-                for (ext in exts) {
+                for (ext in DWImageExts) {
                     // Try to load the image, and protect against exceptions
                     try {
                         val f = this.assets.open(filename + ext)
@@ -3062,9 +3124,7 @@ class DWindows : AppCompatActivity() {
             // Handle filename or DW resource IDs
             // these will be located in the assets folder
             if(filename != null) {
-                val exts = arrayOf("", ".png", ".webp", ".jpg", ".jpeg", ".gif")
-
-                for (ext in exts) {
+                for (ext in DWImageExts) {
                     // Try to load the image, and protect against exceptions
                     try {
                         val f = this.assets.open(filename + ext)
@@ -3099,9 +3159,7 @@ class DWindows : AppCompatActivity() {
                 filename = file
             }
             if(filename != null) {
-                val exts = arrayOf("", ".png", ".webp", ".jpg", ".jpeg", ".gif")
-
-                for (ext in exts) {
+                for (ext in DWImageExts) {
                     // Try to load the image, and protect against exceptions
                     try {
                         val f = this.assets.open(filename + ext)
@@ -3984,7 +4042,7 @@ class DWindows : AppCompatActivity() {
      * Native methods that are implemented by the 'dwindows' native library,
      * which is packaged with this application.
      */
-    external fun dwindowsInit(dataDir: String, appid: String)
+    external fun dwindowsInit(dataDir: String, cacheDir: String, appid: String)
     external fun eventHandler(
         obj1: View?,
         obj2: View?,
