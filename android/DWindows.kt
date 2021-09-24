@@ -810,17 +810,18 @@ class DWindows : AppCompatActivity() {
         for (ext in DWImageExts) {
             if (ext.isNotEmpty() && filename.endsWith(ext)) {
                 val filebody: String = filename.substring(7, length - ext.length)
-                if (filebody.toInt() > 0) {
-                    return true
+                try {
+                    if (filebody.toInt() > 0) {
+                        return true
+                    }
+                } catch(e: NumberFormatException) {
                 }
             }
         }
         return false
     }
 
-    /**
-     * extracts assets/ in the APK to the application cache directory
-     */
+    // Extracts assets/ in the APK to the application cache directory
     private fun extractAssets() {
         var zipFile: ZipFile? = null
         val targetDir = cacheDir
