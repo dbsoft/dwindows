@@ -48,6 +48,7 @@ extern "C" {
 static char _dw_app_id[_DW_APP_ID_SIZE+1]= {0};
 static char _dw_app_name[_DW_APP_ID_SIZE+1]= {0};
 static char _dw_exec_dir[MAX_PATH+1] = {0};
+static char _dw_user_dir[MAX_PATH+1] = {0};
 static int _dw_android_api = 0;
 
 static pthread_key_t _dw_env_key;
@@ -162,10 +163,12 @@ void _dw_main_launch(char *arg)
  *      path: The path to the Android app.
  */
 JNIEXPORT void JNICALL
-Java_org_dbsoft_dwindows_DWindows_dwindowsInit(JNIEnv* env, jobject obj, jstring path, jstring appID)
+Java_org_dbsoft_dwindows_DWindows_dwindowsInit(JNIEnv* env, jobject obj, jstring apppath, jstring appcache, jstring appID)
 {
-    char *arg = strdup(env->GetStringUTFChars((jstring)path, nullptr));
+    char *arg = strdup(env->GetStringUTFChars((jstring)apppath, nullptr));
+    const char *cache = env->GetStringUTFChars((jstring)appcache, nullptr);
     const char *appid = env->GetStringUTFChars((jstring)appID, nullptr);
+    char *home = getenv("HOME");
 
     if(!_dw_main_event)
     {
@@ -184,11 +187,18 @@ Java_org_dbsoft_dwindows_DWindows_dwindowsInit(JNIEnv* env, jobject obj, jstring
         _dw_main_event = dw_event_new();
     }
 
-    if(arg)
+    if(cache)
     {
         /* Store the passed in path for dw_app_dir() */
-        strncpy(_dw_exec_dir, arg, MAX_PATH);
+        strncpy(_dw_exec_dir, cache, MAX_PATH);
     }
+    /* Store the best path for dw_user_dir() */
+    if(home)
+        strncpy(_dw_user_dir, home, MAX_PATH);
+    else if(arg)
+        strncpy(_dw_user_dir, arg, MAX_PATH);
+    else
+        strcpy(_dw_user_dir, "/");
     if(appid)
     {
         /* Store our reported Android AppID */
@@ -1050,19 +1060,6 @@ void API dw_free(void *ptr)
  */
 char * API dw_user_dir(void)
 {
-    static char _dw_user_dir[MAX_PATH+1] = {0};
-
-    if(!_dw_user_dir[0])
-    {
-        char *home = getenv("HOME");
-
-        if(home)
-            strcpy(_dw_user_dir, home);
-        else if(_dw_exec_dir[0])
-            strcpy(_dw_user_dir, _dw_exec_dir);
-        else
-            strcpy(_dw_user_dir, "/");
-    }
     return _dw_user_dir;
 }
 
