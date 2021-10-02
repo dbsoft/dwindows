@@ -564,7 +564,8 @@ static void _dw_remove_signal_handler(GtkWidget *widget, int counter)
 
    sprintf(text, "_dw_sigcid%d", counter);
    cid = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(widget), text));
-   g_signal_handler_disconnect(G_OBJECT(widget), cid);
+   if(cid > 0)
+      g_signal_handler_disconnect(G_OBJECT(widget), cid);
    g_object_set_data(G_OBJECT(widget), text, NULL);
    sprintf(text, "_dw_sigwindow%d", counter);
    g_object_set_data(G_OBJECT(widget), text, NULL);
@@ -600,10 +601,15 @@ static int _dw_set_signal_handler(GObject *object, HWND window, void *func, gpoi
 
 static void _dw_set_signal_handler_id(GObject *object, int counter, gint cid)
 {
-   char text[100];
+   if(cid > 0)
+   {
+      char text[100];
 
-   sprintf(text, "_dw_sigcid%d", counter);
-   g_object_set_data(object, text, GINT_TO_POINTER(cid));
+      sprintf(text, "_dw_sigcid%d", counter);
+      g_object_set_data(object, text, GINT_TO_POINTER(cid));
+   }
+   else
+      dw_debug("WARNING: Dynamic Windows failed to connect signal.\n");
 }
 
 #ifdef USE_WEBKIT

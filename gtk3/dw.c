@@ -1166,7 +1166,8 @@ static void _dw_remove_signal_handler(GtkWidget *widget, int counter)
 
    sprintf(text, "_dw_sigcid%d", counter);
    cid = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(widget), text));
-   g_signal_handler_disconnect(G_OBJECT(widget), cid);
+   if(cid > 0)
+      g_signal_handler_disconnect(G_OBJECT(widget), cid);
    g_object_set_data(G_OBJECT(widget), text, NULL);
    sprintf(text, "_dw_sigwindow%d", counter);
    g_object_set_data(G_OBJECT(widget), text, NULL);
@@ -1202,10 +1203,15 @@ static int _dw_set_signal_handler(GtkWidget *widget, HWND window, void *func, gp
 
 static void _dw_set_signal_handler_id(GtkWidget *widget, int counter, gint cid)
 {
-   char text[100];
+   if(cid > 0)
+   {
+      char text[100];
 
-   sprintf(text, "_dw_sigcid%d", counter);
-   g_object_set_data(G_OBJECT(widget), text, GINT_TO_POINTER(cid));
+      sprintf(text, "_dw_sigcid%d", counter);
+      g_object_set_data(G_OBJECT(widget), text, GINT_TO_POINTER(cid));
+   }
+   else
+      dw_debug("WARNING: Dynamic Windows failed to connect signal.\n");
 }
 
 static void _dw_html_result_event(GObject *object, GAsyncResult *result, gpointer script_data)
