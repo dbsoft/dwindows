@@ -428,9 +428,10 @@ static int _dw_snprintf(char *str, size_t size, const char *format, ...)
 #define sockpipe(pipes) oldsockpipe(pipes)
 #endif
 
-/* Ok Windows and OS/2 both seem to be missing this */
+/* Ok Windows and OS/2 both seem to be missing these */
 #if defined(__WIN32__) || defined(__OS2__)
 typedef int socklen_t;
+typedef unsigned long in_addr_t;
 #endif
 
 /* If dwstat didn't otherwise get defined */
