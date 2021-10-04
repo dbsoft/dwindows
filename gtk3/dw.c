@@ -1143,17 +1143,17 @@ static DWSignalHandler _dw_get_signal_handler(gpointer data)
       void **params = (void **)data;
       int counter = GPOINTER_TO_INT(params[0]);
       GtkWidget *widget = (GtkWidget *)params[2];
-      char text[100];
+      char text[101] = {0};
 
-      sprintf(text, "_dw_sigwindow%d", counter);
+      snprintf(text, 100, "_dw_sigwindow%d", counter);
       sh.window = (HWND)g_object_get_data(G_OBJECT(widget), text);
-      sprintf(text, "_dw_sigfunc%d", counter);
+      snprintf(text, 100, "_dw_sigfunc%d", counter);
       sh.func = (void *)g_object_get_data(G_OBJECT(widget), text);
-      sprintf(text, "_dw_intfunc%d", counter);
+      snprintf(text, 100, "_dw_intfunc%d", counter);
       sh.intfunc = (void *)g_object_get_data(G_OBJECT(widget), text);
-      sprintf(text, "_dw_sigdata%d", counter);
+      snprintf(text, 100, "_dw_sigdata%d", counter);
       sh.data = g_object_get_data(G_OBJECT(widget), text);
-      sprintf(text, "_dw_sigcid%d", counter);
+      snprintf(text, 100, "_dw_sigcid%d", counter);
       sh.cid = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(widget), text));
    }
    return sh;
@@ -1161,38 +1161,38 @@ static DWSignalHandler _dw_get_signal_handler(gpointer data)
 
 static void _dw_remove_signal_handler(GtkWidget *widget, int counter)
 {
-   char text[100];
+   char text[101] = {0};
    gint cid;
 
-   sprintf(text, "_dw_sigcid%d", counter);
+   snprintf(text, 100, "_dw_sigcid%d", counter);
    cid = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(widget), text));
    if(cid > 0)
       g_signal_handler_disconnect(G_OBJECT(widget), cid);
    g_object_set_data(G_OBJECT(widget), text, NULL);
-   sprintf(text, "_dw_sigwindow%d", counter);
+   snprintf(text, 100, "_dw_sigwindow%d", counter);
    g_object_set_data(G_OBJECT(widget), text, NULL);
-   sprintf(text, "_dw_sigfunc%d", counter);
+   snprintf(text, 100, "_dw_sigfunc%d", counter);
    g_object_set_data(G_OBJECT(widget), text, NULL);
-   sprintf(text, "_dw_intfunc%d", counter);
+   snprintf(text, 100, "_dw_intfunc%d", counter);
    g_object_set_data(G_OBJECT(widget), text, NULL);
-   sprintf(text, "_dw_sigdata%d", counter);
+   snprintf(text, 100, "_dw_sigdata%d", counter);
    g_object_set_data(G_OBJECT(widget), text, NULL);
 }
 
 static int _dw_set_signal_handler(GtkWidget *widget, HWND window, void *func, gpointer data, void *intfunc, void *discfunc)
 {
    int counter = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(widget), "_dw_sigcounter"));
-   char text[100];
+   char text[101] = {0};
 
-   sprintf(text, "_dw_sigwindow%d", counter);
+   snprintf(text, 100, "_dw_sigwindow%d", counter);
    g_object_set_data(G_OBJECT(widget), text, (gpointer)window);
-   sprintf(text, "_dw_sigfunc%d", counter);
+   snprintf(text, 100, "_dw_sigfunc%d", counter);
    g_object_set_data(G_OBJECT(widget), text, (gpointer)func);
-   sprintf(text, "_dw_intfunc%d", counter);
+   snprintf(text, 100, "_dw_intfunc%d", counter);
    g_object_set_data(G_OBJECT(widget), text, (gpointer)intfunc);
-   sprintf(text, "_dw_discfunc%d", counter);
+   snprintf(text, 100, "_dw_discfunc%d", counter);
    g_object_set_data(G_OBJECT(widget), text, (gpointer)discfunc);
-   sprintf(text, "_dw_sigdata%d", counter);
+   snprintf(text, 100, "_dw_sigdata%d", counter);
    g_object_set_data(G_OBJECT(widget), text, (gpointer)data);
 
    counter++;
@@ -1205,9 +1205,9 @@ static void _dw_set_signal_handler_id(GtkWidget *widget, int counter, gint cid)
 {
    if(cid > 0)
    {
-      char text[100];
+      char text[101] = {0};
 
-      sprintf(text, "_dw_sigcid%d", counter);
+      snprintf(text, 100, "_dw_sigcid%d", counter);
       g_object_set_data(G_OBJECT(widget), text, GINT_TO_POINTER(cid));
    }
    else
