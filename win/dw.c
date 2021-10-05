@@ -12938,6 +12938,8 @@ void API dw_environment_query(DWEnv *env)
 
    if (_dwVersion < 0x80000000)
    {
+      env->MajorBuild = (DWORD)(HIWORD(_dwVersion));
+
       if(env->MajorVersion == 5 && env->MinorVersion == 0)
          strcpy(env->osName, "Windows 2000");
       else if(env->MajorVersion == 5 && env->MinorVersion > 0)
@@ -12949,11 +12951,14 @@ void API dw_environment_query(DWEnv *env)
       else if(env->MajorVersion == 6 && env->MinorVersion > 1)
          strcpy(env->osName, "Windows 8");
       else if(env->MajorVersion == 10)
-         strcpy(env->osName, "Windows 10");
+      {
+         if(env->MajorBuild < 20000)
+            strcpy(env->osName, "Windows 10");
+         else 
+            strcpy(env->osName, "Windows 11");
+      }
       else
          strcpy(env->osName, "Windows NT");
-
-      env->MajorBuild = (DWORD)(HIWORD(_dwVersion));
    }
    else
    {
