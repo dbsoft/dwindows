@@ -768,8 +768,7 @@ class DWContainerAdapter(c: Context) : BaseAdapter()
 }
 
 class DWindows : AppCompatActivity() {
-    var firstWindow: Boolean = true
-    var windowLayout: LinearLayout? = null
+    var windowLayout: ViewPager2? = null
     var threadLock = ReentrantLock()
     var threadCond = threadLock.newCondition()
     var notificationID: Int = 0
@@ -778,10 +777,14 @@ class DWindows : AppCompatActivity() {
     private var paint = Paint()
     private var bgcolor: Int? = null
     private var menuBar: DWMenu? = null
-    private var defaultItem: View? = null
     private var fileURI: Uri? = null
     private var fileLock = ReentrantLock()
     private var fileCond = threadLock.newCondition()
+    // Lists of data for our Windows
+    private var windowTitles = mutableListOf<String?>()
+    private var windowMenuBars = mutableListOf<DWMenu?>()
+    private var windowStyles = mutableListOf<Int>()
+    private var windowDefault = mutableListOf<View?>()
 
     // Our version of runOnUiThread that waits for execution
     fun waitOnUiThread(runnable: Runnable)
@@ -880,6 +883,17 @@ class DWindows : AppCompatActivity() {
         // other Dynamic Windows platforms
         extractAssets()
 
+        // Setup our ViewPager2 as our activty window container
+        windowLayout = ViewPager2(this)
+        windowLayout!!.id = View.generateViewId()
+        windowLayout!!.adapter = DWTabViewPagerAdapter()
+        windowLayout!!.isUserInputEnabled = false
+        windowLayout!!.layoutParams =
+            ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+
         // Initialize the Dynamic Windows code...
         // This will start a new thread that calls the app's dwmain()
         dwindowsInit(s, c, this.getPackageName())
@@ -898,8 +912,10 @@ class DWindows : AppCompatActivity() {
         if(windowLayout != null) {
             val width: Int = windowLayout!!.width
             val height: Int = windowLayout!!.height
+            val adapter: DWTabViewPagerAdapter = windowLayout!!.adapter as DWTabViewPagerAdapter
+            val window = adapter.viewList[windowLayout!!.currentItem]
 
-            eventHandlerInt(windowLayout as View, DWEvent.CONFIGURE, width, height, 0, 0)
+            eventHandlerInt(window, DWEvent.CONFIGURE, width, height, 0, 0)
         }
     }
 
@@ -1046,22 +1062,40 @@ class DWindows : AppCompatActivity() {
     }
 
     fun windowNew(title: String, style: Int): LinearLayout? {
-        if (firstWindow) {
+        var window: LinearLayout? = null
+
+        if(windowLayout != null) {
             waitOnUiThread {
                 val dataArrayMap = SimpleArrayMap<String, Long>()
-                windowLayout = LinearLayout(this)
+                val adapter: DWTabViewPagerAdapter = windowLayout!!.adapter as DWTabViewPagerAdapter
 
-                windowLayout!!.visibility = View.GONE
-                windowLayout!!.tag = dataArrayMap
                 setContentView(windowLayout)
-                this.title = title
-                // For now we just return our DWindows' main activity layout...
-                // in the future, later calls should create new activities
-                firstWindow = false
+
+                window = LinearLayout(this)
+                window!!.visibility = View.GONE
+                window!!.tag = dataArrayMap
+                window!!.layoutParams =
+                    LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.MATCH_PARENT
+                    )
+
+                // Update our window list
+                adapter.viewList.add(window!!)
+                windowTitles.add(title)
+                windowMenuBars.add(null)
+                windowStyles.add(style)
+                windowDefault.add(null)
+
+                // If this is our first/only window...
+                // We can set stuff immediately
+                if (adapter.viewList.count() == 1) {
+                    this.title = title
+                    windowLayout!!.setCurrentItem(0, false)
+                }
             }
-            return windowLayout
         }
-        return null
+        return window
     }
 
     fun windowSetFocus(window: View)
@@ -1073,22 +1107,27 @@ class DWindows : AppCompatActivity() {
 
     fun windowDefault(window: View, default: View)
     {
-        // TODO: Verify this is the correct activity...
-        defaultItem = default
+        if(windowLayout != null) {
+            val adapter: DWTabViewPagerAdapter = windowLayout!!.adapter as DWTabViewPagerAdapter
+            val index = adapter.viewList.indexOf(window)
+
+            if (index != -1) {
+                windowDefault[index] = default
+            }
+        }
     }
 
     fun windowSetStyle(window: View, style: Int, mask: Int)
     {
         waitOnUiThread {
             if (window is TextView && window !is EditText) {
-                val text = window
                 val ourmask = (Gravity.HORIZONTAL_GRAVITY_MASK or Gravity.VERTICAL_GRAVITY_MASK) and mask
 
                 if (ourmask != 0) {
                     // Gravity with the masked parts zeroed out
                     val newgravity = style and ourmask
 
-                    text.gravity = newgravity
+                    window.gravity = newgravity
                 }
             }
         }
@@ -1264,16 +1303,25 @@ class DWindows : AppCompatActivity() {
     }
 
     fun windowSetText(window: View, text: String) {
-        waitOnUiThread {
-            if (window is TextView) {
-                val textview: TextView = window
-                textview.text = text
-            } else if (window is Button) {
-                val button: Button = window
-                button.text = text
-            } else if (window is LinearLayout) {
-                // TODO: Make sure this is actually the top-level layout, not just a box
-                this.title = text
+        if(windowLayout != null) {
+            waitOnUiThread {
+                if (window is TextView) {
+                    val textview: TextView = window
+                    textview.text = text
+                } else if (window is Button) {
+                    val button: Button = window
+                    button.text = text
+                } else if (window is LinearLayout) {
+                    val adapter: DWTabViewPagerAdapter = windowLayout!!.adapter as DWTabViewPagerAdapter
+                    val index = adapter.viewList.indexOf(window)
+
+                    if(index != -1) {
+                        windowTitles[index] = text
+                        if(index == windowLayout!!.currentItem) {
+                            this.title = text
+                        }
+                    }
+                }
             }
         }
     }
@@ -1281,16 +1329,22 @@ class DWindows : AppCompatActivity() {
     fun windowGetText(window: View): String? {
         var text: String? = null
 
-        waitOnUiThread {
-            if (window is TextView) {
-                val textview: TextView = window
-                text = textview.text.toString()
-            } else if (window is Button) {
-                val button: Button = window
-                text = button.text.toString()
-            } else if (window is LinearLayout) {
-                // TODO: Make sure this is actually the top-level layout, not just a box
-                text = this.title.toString()
+        if(windowLayout != null) {
+            waitOnUiThread {
+                if (window is TextView) {
+                    val textview: TextView = window
+                    text = textview.text.toString()
+                } else if (window is Button) {
+                    val button: Button = window
+                    text = button.text.toString()
+                } else if (window is LinearLayout) {
+                    val adapter: DWTabViewPagerAdapter = windowLayout!!.adapter as DWTabViewPagerAdapter
+                    val index = adapter.viewList.indexOf(window)
+
+                    if(index != -1) {
+                        text = windowTitles[index]
+                    }
+                }
             }
         }
         return text
@@ -1298,12 +1352,26 @@ class DWindows : AppCompatActivity() {
 
     fun windowHideShow(window: View, state: Int)
     {
-        waitOnUiThread {
-            if(state == 0) {
-                window.visibility = View.GONE
-            } else {
-                window.visibility = View.VISIBLE
-                defaultItem?.requestFocus()
+        if(windowLayout != null) {
+            waitOnUiThread {
+                val adapter: DWTabViewPagerAdapter = windowLayout!!.adapter as DWTabViewPagerAdapter
+                val index = adapter.viewList.indexOf(window)
+                var defaultItem: View? = null
+
+                if(state == 0) {
+                    window.visibility = View.GONE
+                } else {
+                    window.visibility = View.VISIBLE
+                }
+                if (index != -1) {
+                    defaultItem = windowDefault[index]
+                    if(state != 0) {
+                        windowLayout!!.setCurrentItem(index, true)
+                    }
+                }
+                if(state != 0 && defaultItem != null) {
+                    defaultItem.requestFocus()
+                }
             }
         }
     }
