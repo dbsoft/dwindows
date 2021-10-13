@@ -453,12 +453,21 @@ class DWMenu {
     var children = mutableListOf<DWMenuItem>()
     var id: Int = 0
 
-    fun createMenu(newmenu: Menu?) {
-        if(menu == null) {
-            menu = newmenu
+    fun createMenu(newmenu: Menu?, recreate: Boolean) {
+        var refresh = recreate
+
+        if(newmenu != null) {
+            if(newmenu != menu) {
+                menu = newmenu
+                refresh = true
+            }
         }
         if(menu != null) {
             var group = 0
+
+            if(refresh) {
+                menu!!.clear()
+            }
 
             // Enable group dividers for separators
             MenuCompat.setGroupDividerEnabled(menu, true)
@@ -466,14 +475,14 @@ class DWMenu {
             for (menuitem in children) {
                 // Submenus on Android can't have submenus, so stop at depth 1
                 if (menuitem.submenu != null && menu !is SubMenu) {
-                    if(menuitem.submenuitem == null) {
+                    if(menuitem.submenuitem == null || refresh) {
                         menuitem.submenuitem = menu?.addSubMenu(group, menuitem.id, 0, menuitem.title)
                     }
-                    menuitem.submenu!!.createMenu(menuitem.submenuitem)
+                    menuitem.submenu!!.createMenu(menuitem.submenuitem, refresh)
                 } else if(menuitem.submenu == null) {
                     if(menuitem.title!!.isEmpty()) {
                         group += 1
-                    } else if(menuitem.menuitem == null) {
+                    } else if(menuitem.menuitem == null || refresh) {
                         menuitem.menuitem = menu?.add(group, menuitem.id, 0, menuitem.title)
                         menuitem.menuitem!!.isCheckable = menuitem.check
                         menuitem.menuitem!!.isChecked = menuitem.checked
@@ -776,7 +785,6 @@ class DWindows : AppCompatActivity() {
     var lastClickView: View? = null
     private var paint = Paint()
     private var bgcolor: Int? = null
-    private var menuBar: DWMenu? = null
     private var fileURI: Uri? = null
     private var fileLock = ReentrantLock()
     private var fileCond = threadLock.newCondition()
@@ -920,21 +928,41 @@ class DWindows : AppCompatActivity() {
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
-        if(menuBar == null) {
-            menuBar = DWMenu()
-            menuBar!!.menu = menu
+        if(windowLayout != null) {
+            val index = windowLayout!!.currentItem
+
+            if (windowMenuBars.count() > 0) {
+                var menuBar = windowMenuBars[index]
+
+                if(menuBar == null) {
+                    menuBar = DWMenu()
+                    windowMenuBars[index] = menuBar
+                }
+                menuBar!!.menu = menu
+                return super.onCreateOptionsMenu(menu)
+            }
         }
-        return super.onCreateOptionsMenu(menu)
+        return false
     }
 
     override fun onPrepareOptionsMenu(menu: Menu?): Boolean {
-        if(menuBar != null) {
-            menuBar!!.createMenu(menu)
-        } else {
-            menuBar = DWMenu()
-            menuBar!!.createMenu(menu)
+        if(windowLayout != null) {
+            val index = windowLayout!!.currentItem
+
+            if (windowMenuBars.count() > 0) {
+                var menuBar = windowMenuBars[index]
+
+                if(menuBar != null) {
+                    menuBar!!.createMenu(menu, true)
+                } else {
+                    menuBar = DWMenu()
+                    menuBar!!.createMenu(menu, true)
+                    windowMenuBars[index] = menuBar
+                }
+                return super.onPrepareOptionsMenu(menu)
+            }
         }
-        return super.onPrepareOptionsMenu(menu)
+        return false
     }
 
     // These are the Android calls to actually create the UI...
@@ -957,14 +985,26 @@ class DWindows : AppCompatActivity() {
         runOnUiThread {
             val popup = PopupMenu(this, anchor)
 
-            menu.createMenu(popup.menu)
+            menu.createMenu(popup.menu, false)
             popup.show()
         }
     }
 
     fun menuBarNew(location: View): DWMenu?
     {
-        // TODO: Make sure location is this activity
+        var menuBar: DWMenu? = null
+
+        if(windowLayout != null) {
+            waitOnUiThread {
+                val adapter: DWTabViewPagerAdapter = windowLayout!!.adapter as DWTabViewPagerAdapter
+                val index = adapter.viewList.indexOf(location)
+
+                if (index != -1) {
+                    menuBar = DWMenu()
+                    windowMenuBars[index] = menuBar
+                }
+            }
+        }
         return menuBar
     }
 
@@ -1368,6 +1408,7 @@ class DWindows : AppCompatActivity() {
                     if(state != 0) {
                         windowLayout!!.setCurrentItem(index, true)
                     }
+                    invalidateOptionsMenu()
                 }
                 if(state != 0 && defaultItem != null) {
                     defaultItem.requestFocus()
