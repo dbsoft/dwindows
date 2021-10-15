@@ -91,6 +91,7 @@ class DWTabViewPagerAdapter : RecyclerView.Adapter<DWTabViewPagerAdapter.DWEvent
     val viewList = mutableListOf<LinearLayout>()
     val pageList = mutableListOf<Long>()
     var currentPageID = 0L
+    var recyclerView: RecyclerView? = null
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
             DWEventViewHolder(viewList.get(viewType))
@@ -98,6 +99,9 @@ class DWTabViewPagerAdapter : RecyclerView.Adapter<DWTabViewPagerAdapter.DWEvent
     override fun getItemCount() = viewList.count()
     override fun getItemViewType(position: Int): Int {
         return position
+    }
+    override fun onAttachedToRecyclerView(rv: RecyclerView) {
+        recyclerView = rv
     }
     override fun onBindViewHolder(holder: DWEventViewHolder, position: Int) {
         holder.setIsRecyclable(false)
@@ -1390,29 +1394,48 @@ class DWindows : AppCompatActivity() {
         return text
     }
 
+    private fun windowSwitchWindow(index: Int)
+    {
+        val adapter: DWTabViewPagerAdapter = windowLayout!!.adapter as DWTabViewPagerAdapter
+
+        if (index != -1) {
+            val window = adapter.viewList[index] as View
+
+            // Only allow a window to become active if it is shown
+            if(window.visibility == View.VISIBLE) {
+                // Update the action bar title
+                this.title = windowTitles[index]
+                // Switch the visible view in the pager
+                if(adapter.recyclerView != null) {
+                    adapter.recyclerView!!.scrollToPosition(index)
+                }
+                // This is how I prefered to do it, but it doesn't work...
+                // So using he RecyclerView.scrollToPosition() instead
+                //windowLayout!!.setCurrentItem(index, true)
+
+                // If the new view has a default item, focus it
+                if(windowDefault[index] != null) {
+                    windowDefault[index]?.requestFocus()
+                }
+                // Invalidate the menu, so it gets updated for the new window
+                invalidateOptionsMenu()
+            }
+        }
+    }
+
     fun windowHideShow(window: View, state: Int)
     {
         if(windowLayout != null) {
             waitOnUiThread {
                 val adapter: DWTabViewPagerAdapter = windowLayout!!.adapter as DWTabViewPagerAdapter
                 val index = adapter.viewList.indexOf(window)
-                var defaultItem: View? = null
 
                 if(state == 0) {
                     window.visibility = View.GONE
                 } else {
                     window.visibility = View.VISIBLE
                 }
-                if (index != -1) {
-                    defaultItem = windowDefault[index]
-                    if(state != 0) {
-                        windowLayout!!.setCurrentItem(index, true)
-                    }
-                    invalidateOptionsMenu()
-                }
-                if(state != 0 && defaultItem != null) {
-                    defaultItem.requestFocus()
-                }
+                windowSwitchWindow(index)
             }
         }
     }
