@@ -5501,7 +5501,21 @@ void API dw_font_set_default(const char *fontname)
  */
 int API dw_window_destroy(HWND handle)
 {
-    return DW_ERROR_GENERAL;
+    JNIEnv *env;
+    int retval = DW_ERROR_GENERAL;
+
+    if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID windowDestroy = env->GetMethodID(clazz, "windowDestroy",
+                                                   "(Landroid/view/View;)I");
+        // Call the method on the object
+        retval = env->CallIntMethod(_dw_obj, windowDestroy, handle);
+        _dw_jni_check_exception(env);
+    }
+    return retval;
 }
 
 /*
