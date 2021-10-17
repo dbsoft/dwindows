@@ -1421,8 +1421,8 @@ class DWindows : AppCompatActivity() {
                     adapter.recyclerView!!.scrollToPosition(index)
                 }
                 // This is how I prefered to do it, but it doesn't work...
-                // So using he RecyclerView.scrollToPosition() instead
-                //windowLayout!!.setCurrentItem(index, true)
+                // So using RecyclerView.scrollToPosition() also
+                windowLayout!!.setCurrentItem(index, true)
 
                 // If the new view has a default item, focus it
                 if(windowDefault[index] != null) {
