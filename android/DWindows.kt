@@ -969,6 +969,17 @@ class DWindows : AppCompatActivity() {
         return false
     }
 
+    override fun onBackPressed() {
+        if(windowLayout != null) {
+            val adapter: DWTabViewPagerAdapter = windowLayout!!.adapter as DWTabViewPagerAdapter
+            val index = windowLayout!!.currentItem
+
+            if (index > 0) {
+                windowDestroy(adapter.viewList[index])
+            }
+        }
+    }
+
     // These are the Android calls to actually create the UI...
     // forwarded from the C Dynamic Windows API
     
@@ -1417,6 +1428,12 @@ class DWindows : AppCompatActivity() {
                 if(windowDefault[index] != null) {
                     windowDefault[index]?.requestFocus()
                 }
+                // Add or remove a back button depending on the visible window
+                if(index > 0) {
+                    this.actionBar?.setDisplayHomeAsUpEnabled(true)
+                } else {
+                    this.actionBar?.setDisplayHomeAsUpEnabled(false)
+                }
                 // Invalidate the menu, so it gets updated for the new window
                 invalidateOptionsMenu()
             }
@@ -1438,6 +1455,52 @@ class DWindows : AppCompatActivity() {
                 windowSwitchWindow(index)
             }
         }
+    }
+
+    fun windowDestroy(window: View): Int {
+        var retval: Int = 1 // DW_ERROR_GENERAL
+
+        if(windowLayout != null) {
+            waitOnUiThread {
+                val adapter: DWTabViewPagerAdapter = windowLayout!!.adapter as DWTabViewPagerAdapter
+                val index = adapter.viewList.indexOf(window)
+
+                // We need to have at least 1 window...
+                // so only destroy secondary windows
+                if(index > 0) {
+                    val newindex = index - 1
+                    val newwindow = adapter.viewList[newindex]
+
+                    // Make sure the previous window is visible...
+                    // not sure if we should search the list for a visible
+                    // window or force it visible.  Forcing visible for now.
+                    if(newwindow.visibility != View.VISIBLE) {
+                        newwindow.visibility = View.VISIBLE
+                    }
+                    // Switch to the previous window
+                    windowSwitchWindow(newindex)
+
+                    // Update our window list
+                    adapter.viewList.removeAt(index)
+                    windowTitles.removeAt(index)
+                    windowMenuBars.removeAt(index)
+                    windowStyles.removeAt(index)
+                    windowDefault.removeAt(index)
+
+                    retval = 0 // DW_ERROR_NONE
+                } else {
+                    // If we are removing an individual widget,
+                    // find the parent layout and remove it.
+                    if(window.parent is ViewGroup) {
+                        val group = window.parent as ViewGroup
+
+                        group.removeView(window)
+                        retval = 0 // DW_ERROR_NONE
+                    }
+                }
+            }
+        }
+        return retval
     }
 
     fun clipboardGetText(): String {
