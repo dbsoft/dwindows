@@ -8071,8 +8071,17 @@ DW_FUNCTION_RESTORE_PARAM3(DW_UNUSED(hwndOwner), HWND, title, char *, flStyle, U
         if(flStyle & DW_FCF_TITLEBAR)
         {
             NSInteger sbheight = [[[window windowScene] statusBarManager] statusBarFrame].size.height;
-            UINavigationBar* navbar = [[UINavigationBar alloc] initWithFrame:CGRectMake(0, sbheight, screenrect.size.width, 40)];
+            CGRect navrect = CGRectMake(0, sbheight, screenrect.size.width, 44);
+            UINavigationBar* navbar = [[UINavigationBar alloc] initWithFrame:navrect];
             UINavigationItem* navItem = [[UINavigationItem alloc] initWithTitle:nstitle];
+
+            /* Double check the intrinsic height... */
+            CGSize navdefault = [navbar intrinsicContentSize];
+            if(navdefault.height != navrect.size.height)
+            {
+                navrect.size.height = navdefault.height;
+                navbar.frame = navrect;
+            }
 
             /* We maintain a list of top-level windows...If there is more than one window,
              * and our window has the close button style, add a Back button that will close it.

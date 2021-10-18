@@ -26,12 +26,12 @@ Xcode
 	"Product name" with "dwindows" uncheck "Include Tests"
 9. Delete the created "dwindows.h" and "Move to Trash"
 10. Select "dwindows" folder and File -> Add Files to "Dynamic Windows iOS"...
-	Add "dw.h" and "ios/dw.n" with "Copy items if needed" unchecked.
+	Add "dw.h" and "ios/dw.m" with "Copy items if needed" unchecked.
 11. Repeat steps 8 through 10 with "dwcompat" adding the dwcompat.c and dwcompat.h files.
 12. Highlight the project "Dynamic Windows iOS" in the top left then select the main project.
-	Click "Build Settings" for the entire project and find "Apple Clang – Preprocessing" 
+	Click "Build Settings" for the entire project and find "Apple Clang - Preprocessing" 
 	Double click "Preprocessor Macros" and add "__IOS__" to the list for release and debug.
-13. Set "Objective-C Automatic Reference Counting" to  "No" in "Language – Objective-C"
+13. Set "Objective-C Automatic Reference Counting" to  "No" in "Language - Objective-C"
 14. Edit the "Info.plist" in "dwtest" and remove all the settings below "Bundle version"
 	This is required because Dynamic Windows does not use storyboards.
 	If necessary edit the "dwtest" "Build Settings" and correct the path to "dwtest/Info.plist"
