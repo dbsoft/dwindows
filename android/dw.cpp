@@ -5,7 +5,7 @@
  * (C) 2011-2021 Brian Smith <brian@dbsoft.org>
  * (C) 2011-2021 Mark Hessling <mark@rexx.org>
  *
- * Requires Android API 19 (KitKat) or higher.
+ * Requires Android API 23 (Marshmallow) or higher.
  *
  */
 

@@ -1,0 +1,134 @@
+How to create a Dynamic Windows project for iOS in Xcode and Android in Android Studio.
+
+
+Xcode
+
+=== Dynamic Windows Project Creation ===
+1. File → New → Project…
+2. Select “iOS” then “App” then click “Next”
+3. Fill in the following:
+	“Product Name” with “Dynamic Windows iOS”
+	“Team” select the appropriate team for this project.
+	“Organization Identifier” with “org.dbsoft”
+	“Interface” select “Storyboard”
+	“Language” select “Objective-C”
+	Uncheck “Include Tests” and click “Next”
+4. Choose a location for the project, “Don’t add to any project or workspace”
+5. Rename the “Dynamic Windows iOS” target to “dwtest” and remove the following files:
+	 *.m, *.h, *.storyboard and Assets.xcassets 
+6. Select “dwtest” folder and File → Add Files to “Dynamic Windows iOS”…
+	Select “dwtest.c” from the file dialog with “Copy items if needed” unchecked.
+	“Add to targets” should have “dwtest” checked.
+7. Highlight the project “Dynamic Windows iOS” in the top left then select the target “dwtest”
+	Edit “Bundle Identifier” to be “org.dbsoft.dwindows.dwtest”
+8. Click the target dropdown and click “Add Target”
+	Select “Framework” and click “Next”
+	“Product name” with “dwindows” uncheck “Include Tests”
+9. Delete the created “dwindows.h” and “Move to Trash”
+10. Select “dwindows” folder and File → Add Files to “Dynamic Windows iOS”…
+	Add “dw.h” and “ios/dw.n” with “Copy items if needed” unchecked.
+11. Repeat steps 8 through 10 with “dwcompat” adding the dwcompat.c and dwcompat.h files.
+12. Highlight the project “Dynamic Windows iOS” in the top left then select the main project.
+	Click “Build Settings” for the entire project and find “Apple Clang – Preprocessing” 
+	Double click “Preprocessor Macros” and add “__IOS__” to the list for release and debug.
+13. Set “Objective-C Automatic Reference Counting” to  “No” in “Language – Objective-C”
+14. Edit the “Info.plist” in “dwtest” and remove all the settings below “Bundle version”
+	This is required because Dynamic Windows does not use storyboards.
+	If necessary edit the “dwtest” “Build Settings” and correct the path to “dwtest/Info.plist”
+15. Highlight the project “Dynamic Windows iOS” in the top left then File → New → Group
+	Name the new group “Resources”
+	Copy “mac/file.png” “mac/folder.png” and “image/test.png” into “Resources”
+
+===  Project Creation ===
+1. File → New → Project…
+2. Select “iOS” then “App” then click “Next”
+3. Fill in the following:
+	“Product Name” with your application name.
+	“Team” select the appropriate team for this project.
+	“Organization Identifier” with your identifier
+	“Interface” select “Storyboard”
+	“Language” select “Objective-C”
+	Uncheck “Include Tests” and click “Next”
+4. Choose a location for the project, “Don’t add to any project or workspace”
+5. Make sure you close the “Dynamic Windows iOS” main project before step 6.
+6. Select the project in the top left and File → Add Files to “Project Name”…
+	Find the “Dynamic Windows iOS” project and add it to the application project.
+7. Select the Project folder and File → Add Files to “Project Name”…
+	Add your source files with “Copy items if needed” unchecked. 
+8. Edit the “Info.plist” in the Project and remove all the settings below “Bundle version”
+	This is required because Dynamic Windows does not use storyboards.	
+9. Highlight the Project Name in the top left then File → New → Group
+	Name the new group “Resources”
+10. Place any application resource images in the form “#.png” where # is the resource ID.
+	Any other application files placed here will be accessible via dw_app_dir() at runtime.
+11. Open Assets.xcassets and drag the appropriate icons into the bottom sections.
+12. Select the project in the top left and select the application target from the drop down list.
+	Under “General” find “Frameworks, Libraries and Embedded Content” 
+	Add “dwindows.framework” from the “Dynamic Windows iOS” project.
+	If necessary add “dwcompat.framework” from the Dynamic Windows iOS” project.
+13. Highlight the project name in the top left then select the main project.
+	Click “Info” and set the “iOS Deployment Target” to “13.0”
+14. Click “Build Settings” for the entire project and find “Search Paths” and add the path to
+	dw.h in “Header Search Paths” for Release and Debug (Any Architecture | Any SDK)
+15. Also under “Build Settings” find “Apple Clang – Preprocessing” 
+	Double click “Preprocessor Macros” and add “__IOS__” to the list for release and debug.
+
+
+Android Studio
+
+=== Project Creation ===
+1. File → New → New Project
+2. Select “Phone and Tablet” then “Native C++”  and click “Next”
+3. Fill in the following:
+	“Name” with your own application name
+	“Package name” with “org.dbsoft.dwindows”
+	“Save location” can be the default
+	“Language” select “Kotlin”
+	“Minimum SDK” select “API 23: Android 6.0 (Marshmallow)”
+	click “Next”
+4.  Select “Toolchain Default” and click “Finish”
+
+=== Source File Installation ===
+5. Install “android/DWindows.kt” into “app/src/main/java/org/dbsoft/dwindows”
+	Remove “MainActivity.kt” from app/src/main/java/org/dbsoft/dwindows”
+6. Install “dw.h” and “android/dw.cpp” into “app/src/main/cpp”
+	Remove “native-lib.cpp” from “app/src/main/cpp”
+7. Optionally install “dwcompat.h” and “dwcompat.c” into “app/src/main/cpp”
+8. Install your source files (or our example “dwtest.c”) into “app/src/main/cpp”
+9. Right click “app” in your project and click New → Folder → Assets Folder
+	“Target Source Set” select “main” and click “Finish”
+10. Place any application resource images in the form “#.png” where # is the resource ID.
+	Any other application files placed here will be accessible via dw_app_dir() at runtime.
+
+=== Project Configuration ===
+11. Open “app/manifests/AndroidManifest.xml” and in the “activity” section
+	change “android:name” from “.MainActivity” to “.DWindows”
+12. Recommend adding the following (but depends on the app usage):
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
+            android:screenOrientation="fullSensor"
+            android:persistent="true"
+	android:usesCleartextTraffic="true"
+13: Open “app/src/main/cpp/CMakeLists.txt” and in the add_library() section:
+	Remove “native-lib.cpp” and add “dw.cpp” optionally “dwcompat.c”  and your applications C
+	or C++ source files that you had installed in step 8.
+	Also change “project()” to be your project name.
+14. Open “build.gradle (Module)” in “Gradle Scripts” and change “applicationId” to your App ID.
+
+=== Application Assets ===
+15. Remove all the files under “app/res/mipmap/ic_launcher” and app/res/mipmap/ic_launcher_round” 
+16. Right click “app” and click New → Image Asset
+	“Icon Type” select “Launcher Icons (Legacy Only)”
+	“Name” enter “ic_launcher”
+	“Asset Type” check “Image”
+	“Path” click the folder icon and select the largest launcher image you have.
+	“Shape” select “Square”
+	Click “Next” and then “Finish”
+17. Right click “app” and click New → Image Asset
+	“Icon Type” select “Launcher Icons (Legacy Only)”
+	“Name” enter “ic_launcher_round”
+	“Asset Type” check “Image”
+	“Path” click the folder icon and select the largest launcher image you have.
+	“Shape” select “Circle”
+	Click “Next” and then “Finish”
+
+
