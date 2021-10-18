@@ -812,8 +812,8 @@ typedef struct _hpixmap {
 #define DW_DT_WORDBREAK          0
 #define DW_DT_ERASERECT          0
 
-#define DW_FCF_CLOSEBUTTON       0
-#define DW_FCF_TITLEBAR          0
+#define DW_FCF_CLOSEBUTTON       1
+#define DW_FCF_TITLEBAR          (1 << 1)
 #define DW_FCF_SYSMENU           0
 #define DW_FCF_MENU              0
 #define DW_FCF_SIZEBORDER        0

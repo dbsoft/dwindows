@@ -974,8 +974,10 @@ class DWindows : AppCompatActivity() {
             val adapter: DWTabViewPagerAdapter = windowLayout!!.adapter as DWTabViewPagerAdapter
             val index = windowLayout!!.currentItem
 
-            if (index > 0) {
-                windowDestroy(adapter.viewList[index])
+            // If the current window has a close button...
+            if (index > 0 && (windowStyles[index] and 1) == 1) {
+                // Send the DW_SIGNAL_DELETE to the event handler
+                eventHandlerSimple(adapter.viewList[index], DWEvent.DELETE)
             }
         }
     }
@@ -1147,6 +1149,9 @@ class DWindows : AppCompatActivity() {
                 if (adapter.viewList.count() == 1) {
                     this.title = title
                     windowLayout!!.setCurrentItem(0, false)
+                    if((windowStyles[0] and 2) != 2) {
+                        supportActionBar?.hide()
+                    }
                 }
             }
         }
@@ -1424,12 +1429,18 @@ class DWindows : AppCompatActivity() {
                 // So using RecyclerView.scrollToPosition() also
                 windowLayout!!.setCurrentItem(index, true)
 
+                // Hide or show the actionbar based on the titlebar flag
+                if((windowStyles[index] and 2) == 2) {
+                    supportActionBar?.show()
+                } else {
+                    supportActionBar?.hide()
+                }
                 // If the new view has a default item, focus it
                 if(windowDefault[index] != null) {
                     windowDefault[index]?.requestFocus()
                 }
                 // Add or remove a back button depending on the visible window
-                if(index > 0) {
+                if(index > 0 && (windowStyles[index] and 1) == 1) {
                     this.actionBar?.setDisplayHomeAsUpEnabled(true)
                 } else {
                     this.actionBar?.setDisplayHomeAsUpEnabled(false)

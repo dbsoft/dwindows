@@ -563,7 +563,8 @@ int _dw_dequeue_event(void **params)
 
 int _dw_event_handler(jobject object, void **params)
 {
-    DWSignalHandler *handler = _dw_get_handler(object, DW_POINTER_TO_INT(params[8]));
+    int messageid = DW_POINTER_TO_INT(params[8]);
+    DWSignalHandler *handler = _dw_get_handler(object, messageid);
 
     if (handler)
     {
@@ -573,7 +574,7 @@ int _dw_event_handler(jobject object, void **params)
          * If it isn't a draw event, either queue the event
          * or launch a new thread to handle it.
          */
-        if(DW_POINTER_TO_INT(params[8]) != 7)
+        if(DW_POINTER_TO_INT(params[8]) != _DW_EVENT_EXPOSE)
         {
 #ifdef _DW_EVENT_THREADING
             /* Make a copy of the params so it isn't allocated from the stack */
@@ -589,7 +590,9 @@ int _dw_event_handler(jobject object, void **params)
         else
             return _dw_event_handler2(params);
 
-    }
+    } /* If we don't have a handler, destroy the window */
+    else if(messageid == _DW_EVENT_DELETE)
+        dw_window_destroy(object);
     return 0;
 }
 
