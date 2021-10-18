@@ -13,7 +13,7 @@ Xcode
 	"Interface" select "Storyboard"
 	"Language" select "Objective-C"
 	Uncheck "Include Tests" and click "Next"
-4. Choose a location for the project, "Don’t add to any project or workspace"
+4. Choose a location for the project, "Don't add to any project or workspace"
 5. Rename the "Dynamic Windows iOS" target to "dwtest" and remove the following files:
 	 *.m, *.h, *.storyboard and Assets.xcassets 
 6. Select "dwtest" folder and File -> Add Files to "Dynamic Windows iOS"...
@@ -49,7 +49,7 @@ Xcode
 	"Interface" select "Storyboard"
 	"Language" select "Objective-C"
 	Uncheck "Include Tests" and click "Next"
-4. Choose a location for the project, "Don’t add to any project or workspace"
+4. Choose a location for the project, "Don't add to any project or workspace"
 5. Make sure you close the "Dynamic Windows iOS" main project before step 6.
 6. Select the project in the top left and File -> Add Files to "Project Name"...
 	Find the "Dynamic Windows iOS" project and add it to the application project.

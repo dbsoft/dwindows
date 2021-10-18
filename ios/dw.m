@@ -8074,10 +8074,10 @@ DW_FUNCTION_RESTORE_PARAM3(DW_UNUSED(hwndOwner), HWND, title, char *, flStyle, U
             UINavigationBar* navbar = [[UINavigationBar alloc] initWithFrame:CGRectMake(0, sbheight, screenrect.size.width, 40)];
             UINavigationItem* navItem = [[UINavigationItem alloc] initWithTitle:nstitle];
 
-            /* We maintain a list of top-level windows...
-             * If there is more than one window, add a Back button that will close it.
+            /* We maintain a list of top-level windows...If there is more than one window,
+             * and our window has the close button style, add a Back button that will close it.
              */
-            if([_dw_toplevel_windows count] > 1)
+            if([_dw_toplevel_windows count] > 1 && flStyle & DW_FCF_CLOSEBUTTON)
             {
                 UIBarButtonItem *back = [[UIBarButtonItem alloc] initWithTitle:@"Back"
                                                                          style:UIBarButtonItemStylePlain
