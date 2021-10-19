@@ -44,6 +44,7 @@ import androidx.appcompat.widget.AppCompatEditText
 import androidx.collection.SimpleArrayMap
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.constraintlayout.widget.ConstraintSet
+import androidx.constraintlayout.widget.Placeholder
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.res.ResourcesCompat
@@ -1582,7 +1583,7 @@ class DWindows : AppCompatActivity() {
 
     fun boxPack(
         boxview: View,
-        item: View,
+        packitem: View?,
         index: Int,
         width: Int,
         height: Int,
@@ -1594,6 +1595,13 @@ class DWindows : AppCompatActivity() {
             var w: Int = LinearLayout.LayoutParams.WRAP_CONTENT
             var h: Int = LinearLayout.LayoutParams.WRAP_CONTENT
             var box: LinearLayout? = null
+            var item: View? = packitem
+
+            // We can't pack nothing, so create an empty placeholder to pack
+            if(item == null) {
+                item = Placeholder(this)
+                item.emptyVisibility = View.VISIBLE
+            }
 
             // Handle scrollboxes by pulling the LinearLayout
             // out of the ScrollView to pack into

@@ -1431,7 +1431,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
 {
     JNIEnv *env;
 
-    if(box && item && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    if(box && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
         // First get the class that contains the method you need to call
         jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
