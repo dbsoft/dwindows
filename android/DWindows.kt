@@ -1952,11 +1952,13 @@ class DWindows : AppCompatActivity() {
             mle!!.tag = dataArrayMap
             mle!!.id = cid
             mle!!.isSingleLine = false
+            mle!!.maxLines = Integer.MAX_VALUE
             mle!!.imeOptions = EditorInfo.IME_FLAG_NO_ENTER_ACTION
             mle!!.inputType = (InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE)
             mle!!.isVerticalScrollBarEnabled = true
             mle!!.scrollBarStyle = View.SCROLLBARS_INSIDE_INSET
             mle!!.setHorizontallyScrolling(true)
+            mle!!.isHorizontalScrollBarEnabled = true
             mle!!.gravity = Gravity.TOP or Gravity.LEFT
         }
         return mle
@@ -1967,8 +1969,10 @@ class DWindows : AppCompatActivity() {
         waitOnUiThread {
             if (state != 0) {
                 mle.setHorizontallyScrolling(false)
+                mle.isHorizontalScrollBarEnabled = false
             } else {
                 mle.setHorizontallyScrolling(true)
+                mle.isHorizontalScrollBarEnabled = true
             }
         }
     }
@@ -1976,11 +1980,7 @@ class DWindows : AppCompatActivity() {
     fun mleSetEditable(mle: EditText, state: Int)
     {
         waitOnUiThread {
-            if (state != 0) {
-                mle.inputType = (InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE)
-            } else {
-                mle.inputType = InputType.TYPE_NULL
-            }
+            mle.isFocusable = state != 0
         }
     }
 
