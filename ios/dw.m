@@ -2203,11 +2203,15 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
     {
         if(evencolor)
             [cell setBackgroundColor:evencolor];
+        else
+            [cell setBackgroundColor:[UIColor clearColor]];
     }
     else
     {
         if(oddcolor)
             [cell setBackgroundColor:oddcolor];
+        else
+            [cell setBackgroundColor:[UIColor clearColor]];
     }
 }
 -(UIContextMenuConfiguration *)tableView:(UITableView *)tableView contextMenuConfigurationForRowAtIndexPath:(NSIndexPath *)indexPath point:(CGPoint)point
