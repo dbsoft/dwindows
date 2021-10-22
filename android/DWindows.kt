@@ -250,13 +250,27 @@ class DWComboBox(context: Context) : AppCompatEditText(context), OnTouchListener
 class DWListBox(context: Context) : ListView(context), OnItemClickListener {
     var list = mutableListOf<String>()
     var selected: Int = -1
+    var colorFore: Int? = null
+    var colorBack: Int? = null
 
     init {
         setAdapter(
-            ArrayAdapter(
+            object : ArrayAdapter<String>(
                 context,
                 R.layout.simple_list_item_1, list
-            )
+            ) {
+                override fun getView(pos: Int, view: View?, parent: ViewGroup): View {
+                    val thisview = super.getView(pos, view, parent)
+                    val textview = thisview as TextView
+                    if (colorFore != null) {
+                        textview.setTextColor(colorFore!!)
+                    }
+                    if (colorBack != null) {
+                        textview.setBackgroundColor(colorBack!!)
+                    }
+                    return thisview
+                }
+            }
         )
         onItemClickListener = this
     }
@@ -673,6 +687,8 @@ class DWContainerAdapter(c: Context) : BaseAdapter()
     var simpleMode: Boolean = true
     var oddColor: Int? = null
     var evenColor: Int? = null
+    var foreColor: Int? = null
+    var backColor: Int? = null
     var lastClick: Long = 0
     var lastClickRow: Int = -1
 
@@ -763,6 +779,9 @@ class DWContainerAdapter(c: Context) : BaseAdapter()
                         } else if (content is Int) {
                             textview.text = content.toString()
                         }
+                        if(foreColor != null) {
+                            textview.setTextColor(foreColor!!)
+                        }
                     }
                 }
             }
@@ -771,10 +790,14 @@ class DWContainerAdapter(c: Context) : BaseAdapter()
         if (position % 2 == 0) {
             if(evenColor != null) {
                 rowView.setBackgroundColor(evenColor!!)
+            } else if(backColor != null) {
+                rowView.setBackgroundColor(backColor!!)
             }
         } else {
             if(oddColor != null) {
                 rowView.setBackgroundColor(oddColor!!)
+            } else if(backColor != null) {
+                rowView.setBackgroundColor(backColor!!)
             }
         }
         return rowView
@@ -1359,6 +1382,35 @@ class DWindows : AppCompatActivity() {
                 val box: LinearLayout = window
 
                 box.setBackgroundColor(colorback)
+            } else if(window is DWListBox) {
+                val listbox = window as DWListBox
+
+                // Handle DW_CLR_DEFAULT
+                if(fore == 16) {
+                    val value = TypedValue()
+                    this.theme.resolveAttribute(R.attr.editTextColor, value, true)
+                    colorfore = value.data
+                }
+
+                listbox.colorFore = colorfore
+                listbox.colorBack = colorback
+
+                listbox.setBackgroundColor(colorback)
+            } else if(window is ListView) {
+                val cont = window as ListView
+                val adapter: DWContainerAdapter = cont.adapter as DWContainerAdapter
+
+                // Handle DW_CLR_DEFAULT
+                if(fore == 16) {
+                    val value = TypedValue()
+                    this.theme.resolveAttribute(R.attr.editTextColor, value, true)
+                    colorfore = value.data
+                }
+
+                adapter.foreColor = colorfore
+                adapter.backColor = colorback
+
+                cont.setBackgroundColor(colorback)
             }
         }
     }
