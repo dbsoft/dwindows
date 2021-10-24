@@ -1538,6 +1538,7 @@ BOOL _dw_is_dark(void)
                 imagename = @"checkmark.square";
             else
                 imagename = @"square";
+            [self setContentHorizontalAlignment:UIControlContentHorizontalAlignmentLeft];
         }
         break;
         case _DW_BUTTON_TYPE_RADIO:
@@ -1546,8 +1547,11 @@ BOOL _dw_is_dark(void)
                 imagename = @"largecircle.fill.circle";
             else
                 imagename = @"circle";
+            [self setContentHorizontalAlignment:UIControlContentHorizontalAlignmentLeft];
         }
         break;
+        default:
+            [self setContentHorizontalAlignment:UIControlContentHorizontalAlignmentCenter];
     }
     if(imagename)
     {
