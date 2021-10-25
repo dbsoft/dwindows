@@ -1633,6 +1633,36 @@ class DWindows : AppCompatActivity() {
         return scrollBox
     }
 
+    // Update the layoutParams of a box after a change
+    private fun boxUpdate(box: LinearLayout)
+    {
+        val parent = box.parent
+
+        if(parent is LinearLayout) {
+            val params = box.layoutParams as LinearLayout.LayoutParams
+
+            if(parent.orientation == LinearLayout.VERTICAL) {
+                if(params.height == 0) {
+                    box.measure(0, 0)
+                    val calch = box.measuredHeight
+
+                    if(calch > 0) {
+                        params.weight = calch.toFloat()
+                    }
+                }
+            } else {
+                if(params.width == 0) {
+                    box.measure(0, 0)
+                    val calcw = box.measuredWidth
+
+                    if(calcw > 0) {
+                        params.weight = calcw.toFloat()
+                    }
+                }
+            }
+        }
+    }
+
     fun boxPack(
         boxview: View,
         packitem: View?,
@@ -1672,13 +1702,34 @@ class DWindows : AppCompatActivity() {
 
                 // If it is a box, match parent based on direction
                 if ((item is LinearLayout) || (item is ScrollView)) {
+                    item.measure(0, 0)
                     if (box.orientation == LinearLayout.VERTICAL) {
                         if (hsize != 0) {
                             w = LinearLayout.LayoutParams.MATCH_PARENT
                         }
+                        if (vsize != 0) {
+                            val calch = item.measuredHeight
+
+                            if(calch > 0) {
+                                weight = calch.toFloat()
+                            } else {
+                                weight = 1F
+                            }
+                            h = 0
+                        }
                     } else {
                         if (vsize != 0) {
                             h = LinearLayout.LayoutParams.MATCH_PARENT
+                        }
+                        if (hsize != 0) {
+                            val calcw = item.measuredWidth
+
+                            if(calcw > 0) {
+                                weight = calcw.toFloat()
+                            } else {
+                                weight = 1F
+                            }
+                            w = 0
                         }
                     }
                 // If it isn't a box... set or calculate the size as needed
@@ -1756,6 +1807,7 @@ class DWindows : AppCompatActivity() {
                 }
                 item.layoutParams = params
                 box.addView(item, index)
+                boxUpdate(box)
             }
         }
     }
@@ -1764,6 +1816,7 @@ class DWindows : AppCompatActivity() {
         waitOnUiThread {
             val box: LinearLayout = item.parent as LinearLayout
             box.removeView(item)
+            boxUpdate(box)
         }
     }
 
@@ -1772,8 +1825,8 @@ class DWindows : AppCompatActivity() {
 
         waitOnUiThread {
             item = box.getChildAt(index)
-
             box.removeView(item)
+            boxUpdate(box)
         }
         return item
     }
