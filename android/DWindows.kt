@@ -2172,12 +2172,17 @@ class DWindows : AppCompatActivity() {
                 } while (adapter.currentPageID == 0L || adapter.pageList.contains(adapter.currentPageID))
                 pageID = adapter.currentPageID
                 // Temporarily add a black tab with an empty layout/box
+                val placeholder = LinearLayout(this)
+                placeholder.layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.MATCH_PARENT
+                )
                 if (front != 0) {
-                    adapter.viewList.add(0, LinearLayout(this))
+                    adapter.viewList.add(0, placeholder)
                     adapter.pageList.add(0, pageID)
                     tabs.addTab(tab, 0)
                 } else {
-                    adapter.viewList.add(LinearLayout(this))
+                    adapter.viewList.add(placeholder)
                     adapter.pageList.add(pageID)
                     tabs.addTab(tab)
                 }
