@@ -1469,7 +1469,7 @@ BOOL _dw_is_dark(void)
 {
     void *userdata;
     DWBox *parent;
-    int type, state;
+    int type, checkstate;
 }
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
@@ -1479,7 +1479,7 @@ BOOL _dw_is_dark(void)
 -(int)type;
 -(void)setType:(int)input;
 -(int)state;
--(void)setState:(int)input;
+-(void)setCheckState:(int)input;
 @end
 
 @implementation DWButton
@@ -1489,9 +1489,9 @@ BOOL _dw_is_dark(void)
 {
     /* Toggle the button */
     if(type == _DW_BUTTON_TYPE_CHECK)
-        [self setState:(state ? FALSE : TRUE)];
+        [self setCheckState:(checkstate ? FALSE : TRUE)];
     else if(type == _DW_BUTTON_TYPE_RADIO)
-        [self setState:TRUE];
+        [self setCheckState:TRUE];
 
     _dw_event_handler(self, nil, _DW_EVENT_CLICKED);
 
@@ -1514,7 +1514,7 @@ BOOL _dw_is_dark(void)
 
                     if(button != self && [button type] == _DW_BUTTON_TYPE_RADIO)
                     {
-                        [button setState:FALSE];
+                        [button setCheckState:FALSE];
                     }
                 }
             }
@@ -1524,7 +1524,15 @@ BOOL _dw_is_dark(void)
 -(void)setParent:(DWBox *)input { parent = input; }
 -(DWBox *)parent { return parent; }
 -(int)type { return type; }
--(void)setType:(int)input { type = input; [self updateImage]; }
+-(void)setType:(int)input
+{
+    type = input;
+    if(type == _DW_BUTTON_TYPE_NORMAL)
+        [self setContentHorizontalAlignment:UIControlContentHorizontalAlignmentCenter];
+    else
+        [self setContentHorizontalAlignment:UIControlContentHorizontalAlignmentLeft];
+    [self updateImage];
+}
 -(void)updateImage
 {
     NSString *imagename = nil;
@@ -1534,24 +1542,20 @@ BOOL _dw_is_dark(void)
         case _DW_BUTTON_TYPE_CHECK:
         {
 
-            if(state)
+            if(checkstate)
                 imagename = @"checkmark.square";
             else
                 imagename = @"square";
-            [self setContentHorizontalAlignment:UIControlContentHorizontalAlignmentLeft];
         }
         break;
         case _DW_BUTTON_TYPE_RADIO:
         {
-            if(state)
+            if(checkstate)
                 imagename = @"largecircle.fill.circle";
             else
                 imagename = @"circle";
-            [self setContentHorizontalAlignment:UIControlContentHorizontalAlignmentLeft];
         }
         break;
-        default:
-            [self setContentHorizontalAlignment:UIControlContentHorizontalAlignmentCenter];
     }
     if(imagename)
     {
@@ -1561,8 +1565,8 @@ BOOL _dw_is_dark(void)
         [self setTitleEdgeInsets:UIEdgeInsetsMake(0,size.width,0,0)];
     }
 }
--(int)state { return state; }
--(void)setState:(int)input { state = input; [self updateImage]; }
+-(int)checkState { return checkstate; }
+-(void)setCheckState:(int)input { checkstate = input; [self updateImage]; }
 -(void)dealloc { UserData *root = userdata; _dw_remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
@@ -4667,7 +4671,7 @@ DW_FUNCTION_NO_RETURN(dw_checkbox_set)
 DW_FUNCTION_RESTORE_PARAM2(handle, HWND, value, int)
 {
     DWButton *button = handle;
-    [button setState:value];
+    [button setCheckState:value];
     DW_FUNCTION_RETURN_NOTHING;
 }
 
