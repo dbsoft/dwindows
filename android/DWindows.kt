@@ -1731,12 +1731,14 @@ class DWindows : AppCompatActivity() {
                 // Handle expandable items by giving them a weight...
                 // in the direction of the box.
                 if (box.orientation == LinearLayout.VERTICAL) {
-                    if (vsize != 0) {
+                    if (vsize != 0 && weight > 0F) {
                         params.weight = weight
+                        params.height = 0
                     }
                 } else {
-                    if (hsize != 0) {
+                    if (hsize != 0 && weight > 0F) {
                         params.weight = weight
+                        params.width = 0
                     }
                 }
                 // Gravity needs to match the expandable settings
