@@ -1681,8 +1681,8 @@ class DWindows : AppCompatActivity() {
 
             // We can't pack nothing, so create an empty placeholder to pack
             if(item == null) {
-                item = Placeholder(this)
-                item.emptyVisibility = View.VISIBLE
+                item = View(this)
+                item.visibility = View.VISIBLE
             }
 
             // Handle scrollboxes by pulling the LinearLayout
