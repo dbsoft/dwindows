@@ -949,17 +949,23 @@ class DWindows : AppCompatActivity() {
             val width: Int = windowLayout!!.width
             val height: Int = windowLayout!!.height
             val adapter: DWTabViewPagerAdapter = windowLayout!!.adapter as DWTabViewPagerAdapter
-            val window = adapter.viewList[windowLayout!!.currentItem]
+            val index = windowLayout!!.currentItem
+            val count = adapter.viewList.count()
 
-            eventHandlerInt(window, DWEvent.CONFIGURE, width, height, 0, 0)
+            if(count > 0 && index < count) {
+                val window = adapter.viewList[index]
+
+                eventHandlerInt(window, DWEvent.CONFIGURE, width, height, 0, 0)
+            }
         }
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         if(windowLayout != null) {
             val index = windowLayout!!.currentItem
+            val count = windowMenuBars.count()
 
-            if (windowMenuBars.count() > 0) {
+            if (count > 0 && index < count) {
                 var menuBar = windowMenuBars[index]
 
                 if(menuBar == null) {
@@ -976,8 +982,9 @@ class DWindows : AppCompatActivity() {
     override fun onPrepareOptionsMenu(menu: Menu?): Boolean {
         if(windowLayout != null) {
             val index = windowLayout!!.currentItem
+            val count = windowMenuBars.count()
 
-            if (windowMenuBars.count() > 0) {
+            if (count > 0 && index < count) {
                 var menuBar = windowMenuBars[index]
 
                 if(menuBar != null) {
@@ -997,9 +1004,10 @@ class DWindows : AppCompatActivity() {
         if(windowLayout != null) {
             val adapter: DWTabViewPagerAdapter = windowLayout!!.adapter as DWTabViewPagerAdapter
             val index = windowLayout!!.currentItem
+            val count = windowStyles.count()
 
             // If the current window has a close button...
-            if (index > 0 && (windowStyles[index] and 1) == 1) {
+            if (count > 1 && index > 0 && index < count && (windowStyles[index] and 1) == 1) {
                 // Send the DW_SIGNAL_DELETE to the event handler
                 eventHandlerSimple(adapter.viewList[index], DWEvent.DELETE)
             }
