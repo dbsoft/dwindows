@@ -5809,9 +5809,9 @@ void API dw_window_get_preferred_size(HWND handle, int *width, int *height)
             if(_dw_jni_check_exception(env))
                 dimensions = 0;
             if(width)
-                *width = (int)((dimensions >> 32) & 0xFFFF);
+                *width = (int)(dimensions & 0xFFFF);
             if(height)
-                *height = (int)(dimensions & 0xFFFF);
+                *height = (int)((dimensions >> 32) & 0xFFFF);
         }
         else
         {
