@@ -1241,6 +1241,27 @@ class DWindows : AppCompatActivity() {
         }
     }
 
+    fun windowGetPreferredSize(window: View): Long
+    {
+        var retval: Long = 0
+
+        waitOnUiThread {
+            window.measure(0, 0)
+            val width = window.measuredWidth
+            val height = window.measuredHeight
+            retval = width.toLong() or (height.toLong() shl 32)
+            if(window is SeekBar) {
+                val slider = window as SeekBar
+
+                // If the widget is rotated, swap width and height
+                if(slider.rotation != 270F && slider.rotation != 90F) {
+                    retval = height.toLong() or (width.toLong() shl 32)
+                }
+            }
+        }
+        return retval
+    }
+
     fun windowGetData(window: View, name: String): Long {
         var retval = 0L
 

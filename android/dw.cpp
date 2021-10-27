@@ -5793,6 +5793,34 @@ void API dw_window_set_size(HWND handle, ULONG width, ULONG height)
  */
 void API dw_window_get_preferred_size(HWND handle, int *width, int *height)
 {
+    if(width || height)
+    {
+        JNIEnv *env;
+
+        if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+        {
+            // First get the class that contains the method you need to call
+            jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+            // Get the method that you want to call
+            jmethodID windowGetPreferredSize = env->GetMethodID(clazz, "windowGetPreferredSize",
+                                                                "(Landroid/view/View;)J");
+            // Call the method on the object
+            jlong dimensions = env->CallLongMethod(_dw_obj, windowGetPreferredSize, handle);
+            if(_dw_jni_check_exception(env))
+                dimensions = 0;
+            if(width)
+                *width = (int)((dimensions >> 32) & 0xFFFF);
+            if(height)
+                *height = (int)(dimensions & 0xFFFF);
+        }
+        else
+        {
+            if(width)
+                *width = 0;
+            if(height)
+                *height = 0;
+        }
+    }
 }
 
 /*
