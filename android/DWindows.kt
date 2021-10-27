@@ -1254,7 +1254,7 @@ class DWindows : AppCompatActivity() {
                 val slider = window as SeekBar
 
                 // If the widget is rotated, swap width and height
-                if(slider.rotation != 270F && slider.rotation != 90F) {
+                if(slider.rotation == 270F || slider.rotation == 90F) {
                     retval = height.toLong() or (width.toLong() shl 32)
                 }
             }
