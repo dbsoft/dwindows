@@ -1635,6 +1635,28 @@ class DWindows : AppCompatActivity() {
         return box
     }
 
+    fun groupBoxNew(type: Int, pad: Int, title: String?): LinearLayout? {
+        var box: LinearLayout? = null
+        waitOnUiThread {
+            box = RadioGroup(this)
+            val dataArrayMap = SimpleArrayMap<String, Long>()
+
+            box!!.tag = dataArrayMap
+            box!!.layoutParams =
+                LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+            if (type > 0) {
+                box!!.orientation = LinearLayout.VERTICAL
+            } else {
+                box!!.orientation = LinearLayout.HORIZONTAL
+            }
+            box!!.setPadding(pad, pad, pad, pad)
+        }
+        return box
+    }
+
     fun scrollBoxNew(type: Int, pad: Int) : ScrollView? {
         var scrollBox: ScrollView? = null
 
