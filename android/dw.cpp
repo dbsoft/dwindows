@@ -1370,8 +1370,22 @@ HWND API dw_box_new(int type, int pad)
  */
 HWND API dw_groupbox_new(int type, int pad, const char *title)
 {
-    /* TODO: Just create a normal box for now */
-    return dw_box_new(type, pad);
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // Construct a String
+        jstring jstr = title ? env->NewStringUTF(title) : nullptr;
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID groupBoxNew = env->GetMethodID(clazz, "groupBoxNew",
+                                                 "(IILjava/lang/String;)Landroid/widget/LinearLayout;");
+        // Call the method on the object
+        jobject result = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, groupBoxNew, type, pad, jstr), _DW_REFERENCE_WEAK);
+        return result;
+    }
+    return nullptr;
 }
 
 /*
