@@ -91,6 +91,7 @@ val DWImageExts = arrayOf("", ".png", ".webp", ".jpg", ".jpeg", ".gif")
 class DWTabViewPagerAdapter : RecyclerView.Adapter<DWTabViewPagerAdapter.DWEventViewHolder>() {
     val viewList = mutableListOf<LinearLayout>()
     val pageList = mutableListOf<Long>()
+    val titleList = mutableListOf<String?>()
     var currentPageID = 0L
     var recyclerView: RecyclerView? = null
 
@@ -2219,7 +2220,8 @@ class DWindows : AppCompatActivity() {
             pager.id = View.generateViewId()
             pager.adapter = DWTabViewPagerAdapter()
             TabLayoutMediator(tabs, pager) { tab, position ->
-                // This code never gets called?
+                val adapter = pager.adapter as DWTabViewPagerAdapter
+                tab.text = adapter.titleList[position]
             }.attach()
 
             var params: RelativeLayout.LayoutParams = RelativeLayout.LayoutParams(w, h)
@@ -2290,10 +2292,12 @@ class DWindows : AppCompatActivity() {
                 if (front != 0) {
                     adapter.viewList.add(0, placeholder)
                     adapter.pageList.add(0, pageID)
+                    adapter.titleList.add(0, null)
                     tabs.addTab(tab, 0)
                 } else {
                     adapter.viewList.add(placeholder)
                     adapter.pageList.add(pageID)
+                    adapter.titleList.add(null)
                     tabs.addTab(tab)
                 }
                 adapter.notifyDataSetChanged()
@@ -2338,6 +2342,7 @@ class DWindows : AppCompatActivity() {
                 if (tab != null) {
                     adapter.viewList.removeAt(index)
                     adapter.pageList.removeAt(index)
+                    adapter.titleList.removeAt(index)
                     tabs.removeTab(tab)
                     adapter.notifyDataSetChanged()
                 }
@@ -2366,6 +2371,7 @@ class DWindows : AppCompatActivity() {
 
                 if (tab != null) {
                     tab.text = text
+                    adapter.titleList[index] = text
                 }
 
                 notebookCapsOff(tabs)
