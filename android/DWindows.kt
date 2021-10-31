@@ -811,6 +811,7 @@ class DWindows : AppCompatActivity() {
     var notificationID: Int = 0
     var darkMode: Int = -1
     var lastClickView: View? = null
+    private var appID: String? = null
     private var paint = Paint()
     private var bgcolor: Int? = null
     private var fileURI: Uri? = null
@@ -1909,7 +1910,6 @@ class DWindows : AppCompatActivity() {
 
             button!!.tag = dataArrayMap
             button!!.id = resid
-            button!!.setImageResource(resid)
             button!!.setOnClickListener {
                 lastClickView = button!!
                 eventHandlerSimple(button!!, DWEvent.CLICKED)
@@ -1917,6 +1917,8 @@ class DWindows : AppCompatActivity() {
 
             if(resid > 0 && resid < 65536) {
                 filename = resid.toString()
+            } else {
+                button!!.setImageResource(resid)
             }
 
             if(filename != null) {
@@ -3155,6 +3157,8 @@ class DWindows : AppCompatActivity() {
                 val listbox = window
 
                 listbox.list.add(text)
+                val adapter = listbox.adapter as ArrayAdapter<String>
+                adapter.notifyDataSetChanged()
             }
         }
     }
@@ -3170,6 +3174,8 @@ class DWindows : AppCompatActivity() {
                 val listbox = window
 
                 listbox.list.add(pos, text)
+                val adapter = listbox.adapter as ArrayAdapter<String>
+                adapter.notifyDataSetChanged()
             }
         }
     }
@@ -3185,6 +3191,8 @@ class DWindows : AppCompatActivity() {
                 val listbox = window
 
                 listbox.list.clear()
+                val adapter = listbox.adapter as ArrayAdapter<String>
+                adapter.notifyDataSetChanged()
             }
         }
     }
@@ -3218,8 +3226,11 @@ class DWindows : AppCompatActivity() {
             } else if(window is DWListBox) {
                 val listbox = window
 
-                if(index > -1 && index < listbox.list.count())
+                if(index > -1 && index < listbox.list.count()) {
                     listbox.list[index] = text
+                    val adapter = listbox.adapter as ArrayAdapter<String>
+                    adapter.notifyDataSetChanged()
+                }
             }
         }
     }
@@ -3301,6 +3312,8 @@ class DWindows : AppCompatActivity() {
 
                 if(index < listbox.list.count()) {
                     listbox.list.removeAt(index)
+                    val adapter = listbox.adapter as ArrayAdapter<String>
+                    adapter.notifyDataSetChanged()
                 }
             }
         }
@@ -3991,7 +4004,7 @@ class DWindows : AppCompatActivity() {
 
     fun debugMessage(text: String)
     {
-        Log.d(null, text)
+        Log.d(appID, text)
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -4179,6 +4192,8 @@ class DWindows : AppCompatActivity() {
 
     fun dwInit(appid: String, appname: String): Int
     {
+        appID = appid
+
         waitOnUiThread {
             // Create the notification channel in dw_init()
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
