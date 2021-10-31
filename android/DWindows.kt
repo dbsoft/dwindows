@@ -1186,6 +1186,7 @@ class DWindows : AppCompatActivity() {
                         supportActionBar?.hide()
                     }
                 }
+                adapter.notifyDataSetChanged()
             }
         }
         return window
@@ -1546,6 +1547,7 @@ class DWindows : AppCompatActivity() {
                 } else {
                     window.visibility = View.VISIBLE
                 }
+                adapter.notifyDataSetChanged()
                 windowSwitchWindow(index)
             }
         }
@@ -1581,6 +1583,8 @@ class DWindows : AppCompatActivity() {
                     windowStyles.removeAt(index)
                     windowDefault.removeAt(index)
 
+                    adapter.notifyDataSetChanged()
+                    
                     retval = 0 // DW_ERROR_NONE
                 } else {
                     // If we are removing an individual widget,
@@ -2292,6 +2296,7 @@ class DWindows : AppCompatActivity() {
                     adapter.pageList.add(pageID)
                     tabs.addTab(tab)
                 }
+                adapter.notifyDataSetChanged()
             }
         }
         return pageID
@@ -2334,6 +2339,7 @@ class DWindows : AppCompatActivity() {
                     adapter.viewList.removeAt(index)
                     adapter.pageList.removeAt(index)
                     tabs.removeTab(tab)
+                    adapter.notifyDataSetChanged()
                 }
             }
         }
@@ -2392,6 +2398,7 @@ class DWindows : AppCompatActivity() {
                 )
 
                 adapter.viewList[index] = box
+                adapter.notifyDataSetChanged()
             }
         }
     }
@@ -2437,9 +2444,11 @@ class DWindows : AppCompatActivity() {
             if (pager != null && tabs != null) {
                 val adapter: DWTabViewPagerAdapter = pager.adapter as DWTabViewPagerAdapter
                 val index = adapter.pageList.indexOf(pageID)
-                val tab = tabs.getTabAt(index)
 
-                tabs.selectTab(tab)
+                if (index > -1 && index < adapter.pageList.count()) {
+                    tabs.setScrollPosition(index, 0F, true)
+                    pager.setCurrentItem(index, true)
+                }
             }
         }
     }
