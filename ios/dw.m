@@ -1951,8 +1951,10 @@ BOOL _dw_is_dark(void)
             _dw_do_resize(box, frame.size.width, frame.size.height);
             _dw_handle_resize_events(box);
         }
-        _dw_event_handler(self, DW_INT_TO_POINTER(intpageid), _DW_EVENT_SWITCH_PAGE);
+        _dw_event_handler(self, DW_INT_TO_POINTER([page pageid]), _DW_EVENT_SWITCH_PAGE);
     }
+    else
+        visible = nil;
 }
 -(void)dealloc {
     UserData *root = userdata;
@@ -7937,6 +7939,12 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, pageid, unsigned int)
             [[notebook tabs] removeSegmentAtIndex:index animated:NO];
             [notepage removeFromSuperview];
             [views removeObject:notepage];
+            index--;
+            if(index >= 0 && index < [views count])
+               [[notebook tabs] setSelectedSegmentIndex:index];
+            else if([views count] > 0)
+               [[notebook tabs] setSelectedSegmentIndex:0];
+            [notebook pageChanged:nil];
             [notepage release];
         }
     }
@@ -7990,6 +7998,7 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, pageid, unsigned int)
         if(index != -1)
         {
             [[notebook tabs] setSelectedSegmentIndex:index];
+            [notebook pageChanged:nil];
         }
     }
     DW_FUNCTION_RETURN_NOTHING;
@@ -8008,8 +8017,16 @@ DW_FUNCTION_NO_RETURN(dw_notebook_page_set_text)
 DW_FUNCTION_RESTORE_PARAM3(handle, HWND, pageid, ULONG, text, const char *)
 {
     DWNotebook *notebook = handle;
+    DWNotebookPage *notepage = _dw_notepage_from_id(notebook, pageid);
 
-    [[notebook tabs] setTitle:[NSString stringWithUTF8String:text] forSegmentAtIndex:pageid];
+    if(notepage != nil)
+    {
+        NSMutableArray<DWNotebookPage *> *views = [notebook views];
+        NSUInteger index = [views indexOfObject:notepage];
+
+        if(index != -1)
+            [[notebook tabs] setTitle:[NSString stringWithUTF8String:text] forSegmentAtIndex:index];
+    }
     DW_FUNCTION_RETURN_NOTHING;
 }
 
