@@ -62,6 +62,10 @@ import java.util.*
 import java.util.concurrent.locks.ReentrantLock
 import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
+import android.content.Intent
+
+
+
 
 object DWEvent {
     const val TIMER = 0
@@ -1022,6 +1026,21 @@ class DWindows : AppCompatActivity() {
     fun darkModeDetected(): Int
     {
         return darkMode
+    }
+
+    fun browseURL(url: String): Int {
+        var retval: Int = -1 // DW_ERROR_UNKNOWN
+
+        waitOnUiThread {
+            val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+            try {
+                retval = 0 // DW_ERROR_NONE
+                startActivity(browserIntent)
+            } catch (e: ActivityNotFoundException) {
+                retval = -1 // DW_ERROR_UNKNOWN
+            }
+        }
+       return retval
     }
 
     fun menuPopup(menu: DWMenu, parent: View, x: Int, y: Int)
