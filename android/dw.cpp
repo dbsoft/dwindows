@@ -5884,6 +5884,14 @@ void API dw_window_set_pos_size(HWND handle, LONG x, LONG y, ULONG width, ULONG 
  */
 void API dw_window_get_pos_size(HWND handle, LONG *x, LONG *y, ULONG *width, ULONG *height)
 {
+    if(x)
+        *x = 0;
+    if(y)
+        *y = 0;
+    if(width)
+        *width = 0;
+    if(height)
+        *height = 0;
 }
 
 static jlong _dw_screen_dimensions = 0;
