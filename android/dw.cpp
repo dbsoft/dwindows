@@ -7232,7 +7232,24 @@ int API dw_exec(const char *program, int type, char **params)
  */
 int API dw_browse(const char *url)
 {
-    return DW_ERROR_UNKNOWN;
+    JNIEnv *env;
+    int retval = DW_ERROR_UNKNOWN;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // Construct a string
+        jstring jstr = env->NewStringUTF(url);
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID browseURL = env->GetMethodID(clazz, "browseURL",
+                                               "(Ljava/lang/String;)I");
+        // Call the method on the object
+        retval = env->CallIntMethod(_dw_obj, browseURL, jstr);
+        if(_dw_jni_check_exception(env))
+            retval = DW_ERROR_UNKNOWN;
+    }
+    return retval;
 }
 
 /*
