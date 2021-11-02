@@ -7216,12 +7216,50 @@ void API dw_shutdown(void)
  * Returns:
  *       Process ID on success or DW_ERROR_UNKNOWN (-1) on error.
  */
+#if defined(__ANDROID__) && (__ANDROID_API__+0) < 28
 int API dw_exec(const char *program, int type, char **params)
 {
-    int ret = DW_ERROR_UNKNOWN;
+    int retval = DW_ERROR_UNKNOWN;
 
-    return ret;
+    /* Forking isn't recommended on Android... but it works...
+     * and prior to API 28 it is the only way to launch processes.
+     * Type is ignored, since this can only launch background processes.
+     */
+    if((retval = fork()) == 0)
+    {
+        int i;
+
+        /* Close any forked file descriptors */
+        for(i=3; i<256; i++)
+            close(i);
+        setsid();
+
+        execvp(program, params);
+    }
+    return retval;
 }
+#else
+#include <spawn.h>
+
+int API dw_exec(const char *program, int type, char **params)
+{
+    int retval = DW_ERROR_UNKNOWN;
+    pid_t pid;
+
+    /* API 28 and later has posix_spawn*() so use that instead of
+     * fork/exec, however launched processes are still background
+     * processes so ignore the type parameter.
+     */
+    if(posix_spawnp(&pid, program, NULL, NULL, params, NULL) == 0)
+    {
+        if(pid > 0)
+            retval = pid;
+        else
+            retval = DW_ERROR_NONE;
+    }
+    return retval;
+}
+#endif
 
 /*
  * Loads a web browser pointed at the given URL.
