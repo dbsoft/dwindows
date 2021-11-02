@@ -5221,6 +5221,12 @@ HWND API dw_window_new(HWND hwndOwner, const char *title, ULONG flStyle)
  */
 void API dw_window_function(HWND handle, void *function, void *data)
 {
+    void (* windowfunc)(void *);
+
+    windowfunc = (void (*)(void *))function;
+
+    if(windowfunc)
+        windowfunc(data);
 }
 
 
