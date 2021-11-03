@@ -21,6 +21,7 @@
 #include <sys/time.h>
 #include <sys/stat.h>
 #include <math.h>
+#include <spawn.h>
 
 /* Macros to handle local auto-release pools */
 #define DW_LOCAL_POOL_IN NSAutoreleasePool *localpool = nil; \
@@ -1478,7 +1479,7 @@ BOOL _dw_is_dark(void)
 -(DWBox *)parent;
 -(int)type;
 -(void)setType:(int)input;
--(int)state;
+-(int)checkState;
 -(void)setCheckState:(int)input;
 @end
 
@@ -2718,15 +2719,20 @@ API_AVAILABLE(ios(10.0))
 -(NSInteger)numberOfComponentsInPickerView:(UIPickerView *)pickerView { return 1; }
 -(void)pickerView:(UIPickerView *)pickerView didSelectRow:(NSInteger)row inComponent:(NSInteger)component
 {
-    selectedIndex = (int)row;
-    [self setText:[dataArray objectAtIndex:row]];
-    [self sendActionsForControlEvents:UIControlEventValueChanged];
-    _dw_event_handler(self, DW_INT_TO_POINTER(selectedIndex), _DW_EVENT_LIST_SELECT);
+    if(row > -1 && row < [dataArray count])
+    {
+        selectedIndex = (int)row;
+        [self setText:[dataArray objectAtIndex:row]];
+        [self sendActionsForControlEvents:UIControlEventValueChanged];
+        _dw_event_handler(self, DW_INT_TO_POINTER(selectedIndex), _DW_EVENT_LIST_SELECT);
+    }
 }
 -(NSInteger)pickerView:(UIPickerView *)pickerView numberOfRowsInComponent:(NSInteger)component { return [dataArray count]; }
 -(NSString *)pickerView:(UIPickerView *)pickerView titleForRow:(NSInteger)row forComponent:(NSInteger)component
 {
-    return [dataArray objectAtIndex:row];
+    if(row > -1 && row < [dataArray count])
+        return [dataArray objectAtIndex:row];
+    return nil;
 }
 -(void)doneClicked:(id)sender
 {
@@ -10787,66 +10793,22 @@ DWTID dw_thread_id(void)
  * Returns:
  *       DW_ERROR_UNKNOWN (-1) on error.
  */
-int dw_exec(const char *program, int type, char **params)
+int API dw_exec(const char *program, int type, char **params)
 {
-    int ret = DW_ERROR_UNKNOWN;
+    int retval = DW_ERROR_UNKNOWN;
+    pid_t pid;
 
-#if 0 /* TODO: Figure out how to do this on iOS */
-    if(type == DW_EXEC_GUI)
+    /* Launch the application directly using posix_spawnp()
+     * Might need to use openURLs to open DW_EXEC_GUI.
+     */
+    if(posix_spawnp(&pid, program, NULL, NULL, params, NULL) == 0)
     {
-        NSString *nsprogram = [NSString stringWithUTF8String:program];
-        NSWorkspace *ws = [NSWorkspace sharedWorkspace];
-
-        if(params && params[0] && params[1])
-        {
-            NSURL *url = _dw_url_from_program(nsprogram, ws);
-            NSMutableArray *array = [[NSMutableArray alloc] init];
-            __block DWDialog *dialog = dw_dialog_new(NULL);
-            int z = 1;
-
-            while(params[z])
-            {
-                NSString *thisfile = [NSString stringWithUTF8String:params[z]];
-                NSURL *nsfile = [NSURL fileURLWithPath:thisfile];
-
-                [array addObject:nsfile];
-                z++;
-            }
-
-            [ws openURLs:array withApplicationAtURL:url
-                                      configuration:[NSWorkspaceOpenConfiguration configuration]
-                                  completionHandler:^(NSRunningApplication *app, NSError *error) {
-                int pid = DW_ERROR_UNKNOWN;
-
-                if(error)
-                    NSLog(@"openURLs: %@", [error localizedDescription]);
-                else
-                    pid = [app processIdentifier];
-                dw_dialog_dismiss(dialog, DW_INT_TO_POINTER(pid));
-            }];
-            ret = DW_POINTER_TO_INT(dw_dialog_wait(dialog));
-        }
+        if(pid > 0)
+            retval = pid;
         else
-        {
-            NSURL *url = _dw_url_from_program(nsprogram, ws);
-            __block DWDialog *dialog = dw_dialog_new(NULL);
-
-            [ws openApplicationAtURL:url
-                       configuration:[NSWorkspaceOpenConfiguration configuration]
-                   completionHandler:^(NSRunningApplication *app, NSError *error) {
-                int pid = DW_ERROR_UNKNOWN;
-
-                if(error)
-                    NSLog(@"openApplicationAtURL: %@", [error localizedDescription]);
-                else
-                    pid = [app processIdentifier];
-                dw_dialog_dismiss(dialog, DW_INT_TO_POINTER(pid));
-            }];
-            ret = DW_POINTER_TO_INT(dw_dialog_wait(dialog));
-        }
+            retval = DW_ERROR_NONE;
     }
-#endif
-    return ret;
+    return retval;
 }
 
 /*
