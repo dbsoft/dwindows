@@ -5149,6 +5149,7 @@ DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
 
     size.width = size.height;
     [mle setAutoresizingMask:UIViewAutoresizingFlexibleHeight|UIViewAutoresizingFlexibleWidth];
+    [mle setScrollEnabled:YES];
     [mle setTag:cid];
     [mle autorelease];
     DW_FUNCTION_RETURN_THIS(mle);
@@ -5320,17 +5321,14 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, line, int)
  *          handle: Handle to the MLE.
  *          state: TRUE if it can be edited, FALSE for readonly.
  */
-void API dw_mle_set_editable(HWND handle, int state)
+DW_FUNCTION_DEFINITION(dw_mle_set_editable, void, HWND handle, int state)
+DW_FUNCTION_ADD_PARAM2(handle, state)
+DW_FUNCTION_NO_RETURN(dw_mle_set_editable)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, state, int)
 {
     DWMLE *mle = handle;
-    if(state)
-    {
-        [mle setEditable:YES];
-    }
-    else
-    {
-        [mle setEditable:NO];
-    }
+    [mle setEditable:(state ? YES : NO)];
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -5339,9 +5337,17 @@ void API dw_mle_set_editable(HWND handle, int state)
  *          handle: Handle to the MLE.
  *          state: TRUE if it wraps, FALSE if it doesn't.
  */
-void API dw_mle_set_word_wrap(HWND handle, int state)
+DW_FUNCTION_DEFINITION(dw_mle_set_word_wrap, void, HWND handle, int state)
+DW_FUNCTION_ADD_PARAM2(handle, state)
+DW_FUNCTION_NO_RETURN(dw_mle_set_word_wrap)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, state, int)
 {
-    /* TODO: Figure out how to do this in iOS */
+    DWMLE *mle = handle;
+    NSUInteger mask = state ? 0 :UIViewAutoresizingFlexibleWidth;
+    
+    [mle setAutoresizingMask:UIViewAutoresizingFlexibleHeight|mask];
+    [[mle textContainer] setLineBreakMode:(state ? NSLineBreakByWordWrapping : NSLineBreakByClipping)];
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -5350,9 +5356,15 @@ void API dw_mle_set_word_wrap(HWND handle, int state)
  *          handle: Handle to the MLE.
  *          state: Bitwise combination of DW_MLE_COMPLETE_TEXT/DASH/QUOTE
  */
-void API dw_mle_set_auto_complete(HWND handle, int state)
+DW_FUNCTION_DEFINITION(dw_mle_set_auto_complete, void, HWND handle, int state)
+DW_FUNCTION_ADD_PARAM2(handle, state)
+DW_FUNCTION_NO_RETURN(dw_mle_set_auto_complete)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, state, int)
 {
-    /* TODO: Figure out how to do this in iOS */
+    DWMLE *mle = handle;
+    NSInteger autocorrect = (state & DW_MLE_COMPLETE_TEXT) ? UITextAutocorrectionTypeYes : UITextAutocorrectionTypeNo;
+    [mle setAutocorrectionType:autocorrect];
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
