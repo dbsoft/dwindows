@@ -3193,6 +3193,13 @@ static void _dw_resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                     DWSplitBar *split = (DWSplitBar *)handle;
                     [split resize];
                 }
+                else if([handle isMemberOfClass:[DWMLE class]])
+                {
+                    DWMLE *mle = (DWMLE *)handle;
+
+                    if([[mle textContainer] lineBreakMode] == NSLineBreakByClipping)
+                        [[mle textContainer] setSize:CGRectInfinite.size];
+                }
 
                 /* Advance the current position in the box */
                 if(thisbox->type == DW_HORZ)
@@ -4662,7 +4669,7 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
     DWButton *button = handle;
     int retval = FALSE;
 
-    if([button state])
+    if([button checkState])
         retval = TRUE;
     DW_FUNCTION_RETURN_THIS(retval);
 }
@@ -5343,10 +5350,16 @@ DW_FUNCTION_NO_RETURN(dw_mle_set_word_wrap)
 DW_FUNCTION_RESTORE_PARAM2(handle, HWND, state, int)
 {
     DWMLE *mle = handle;
-    NSUInteger mask = state ? 0 :UIViewAutoresizingFlexibleWidth;
-    
-    [mle setAutoresizingMask:UIViewAutoresizingFlexibleHeight|mask];
+
     [[mle textContainer] setLineBreakMode:(state ? NSLineBreakByWordWrapping : NSLineBreakByClipping)];
+    [[mle textContainer] setWidthTracksTextView:(state ? YES : NO)];
+    if(!state)
+        [[mle textContainer] setSize:CGRectInfinite.size];
+    else
+    {
+        CGSize size = [mle frame].size;
+        [[mle textContainer] setSize:CGSizeMake(size.width, CGRectInfinite.size.height)];
+    }
     DW_FUNCTION_RETURN_NOTHING;
 }
 
