@@ -2717,10 +2717,10 @@ void API dw_mle_set_cursor(HWND handle, int point)
         // First get the class that contains the method you need to call
         jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
         // Get the method that you want to call
-        jmethodID mleSetWordWrap = env->GetMethodID(clazz, "mleSetWordWrap",
+        jmethodID mleSetCursor = env->GetMethodID(clazz, "mleSetCursor",
                                                     "(Landroid/widget/EditText;I)V");
         // Call the method on the object
-        env->CallVoidMethod(_dw_obj, mleSetWordWrap, handle, point);
+        env->CallVoidMethod(_dw_obj, mleSetCursor, handle, point);
         _dw_jni_check_exception(env);
     }
 }
