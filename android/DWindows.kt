@@ -809,6 +809,17 @@ class DWContainerAdapter(c: Context) : BaseAdapter()
     }
 }
 
+private class DWMLE(c: Context): androidx.appcompat.widget.AppCompatEditText(c) {
+    protected override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        if(!isHorizontalScrollBarEnabled) {
+            this.maxWidth = w
+        } else {
+            this.maxWidth = -1
+        }
+        super.onSizeChanged(w, h, oldw, oldh)
+    }
+}
+
 class DWindows : AppCompatActivity() {
     var windowLayout: ViewPager2? = null
     var threadLock = ReentrantLock()
@@ -2132,7 +2143,7 @@ class DWindows : AppCompatActivity() {
         waitOnUiThread {
             val dataArrayMap = SimpleArrayMap<String, Long>()
 
-            mle = EditText(this)
+            mle = DWMLE(this)
             mle!!.tag = dataArrayMap
             mle!!.id = cid
             mle!!.isSingleLine = false
