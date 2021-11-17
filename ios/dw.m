@@ -1804,48 +1804,12 @@ BOOL _dw_is_dark(void)
 -(void)dealloc { UserData *root = userdata; _dw_remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
-@interface DWEntryFieldFormatter : NSFormatter
-{
-    int maxLength;
-}
-- (void)setMaximumLength:(int)len;
-- (int)maximumLength;
-@end
-
-/* This formatter subclass will allow us to limit
- * the text length in an entryfield.
- */
-@implementation DWEntryFieldFormatter
--(id)init
-{
-    self = [super init];
-    maxLength = INT_MAX;
-    return self;
-}
--(void)setMaximumLength:(int)len { maxLength = len; }
--(int)maximumLength { return maxLength; }
--(NSString *)stringForObjectValue:(id)object { return (NSString *)object; }
--(BOOL)getObjectValue:(id *)object forString:(NSString *)string errorDescription:(NSString **)error { *object = string; return YES; }
--(BOOL)isPartialStringValid:(NSString **)partialStringPtr
-       proposedSelectedRange:(NSRangePointer)proposedSelRangePtr
-              originalString:(NSString *)origString
-       originalSelectedRange:(NSRange)origSelRange
-            errorDescription:(NSString **)error
-{
-    if([*partialStringPtr length] > maxLength)
-    {
-        return NO;
-    }
-    return YES;
-}
--(NSAttributedString *)attributedStringForObjectValue:(id)anObject withDefaultAttributes:(NSDictionary *)attributes { return nil; }
-@end
-
 /* Subclass for a entryfield type */
-@interface DWEntryField : UITextField
+@interface DWEntryField : UITextField <UITextFieldDelegate>
 {
     void *userdata;
     id clickDefault;
+    unsigned long limit;
 }
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
@@ -1857,6 +1821,21 @@ BOOL _dw_is_dark(void)
 -(void)setUserdata:(void *)input { userdata = input; }
 -(void)setClickDefault:(id)input { clickDefault = input; }
 -(void)dealloc { UserData *root = userdata; _dw_remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
+-(BOOL)textField:(UITextField *)textField shouldChangeCharactersInRange:(NSRange)range replacementString:(NSString *)string
+{
+    // Prevent crashing undo bug – see note below.
+    if(range.length + range.location > textField.text.length)
+        return NO;
+
+    if(limit > 0)
+    {
+        NSUInteger newLength = [textField.text length] + [string length] - range.length;
+        return newLength <= limit;
+    }
+    return YES;
+}
+-(void)setMaximumLength:(unsigned long)length { limit = length; }
+-(unsigned long)maximumLength { return limit; }
 @end
 
 /* Subclass for a text and status text type */
@@ -4290,6 +4269,7 @@ DW_FUNCTION_RESTORE_PARAM2(text, const char *, cid, ULONG)
     DWEntryField *entry = [[[DWEntryField alloc] init] retain];
     [entry setText:[ NSString stringWithUTF8String:text ]];
     [entry setTag:cid];
+    [entry setDelegate:entry];
     DW_FUNCTION_RETURN_THIS(entry);
 }
 
@@ -4306,6 +4286,7 @@ DW_FUNCTION_RESTORE_PARAM2(text, const char *, cid, ULONG)
 {
     DWEntryField *entry = dw_entryfield_new(text, cid);
     [entry setSecureTextEntry:YES];
+    [entry setDelegate:entry];
     DW_FUNCTION_RETURN_THIS(entry);
 }
 
@@ -4315,15 +4296,15 @@ DW_FUNCTION_RESTORE_PARAM2(text, const char *, cid, ULONG)
  *          handle: Handle to the spinbutton to be set.
  *          limit: Number of characters the entryfield will take.
  */
-void API dw_entryfield_set_limit(HWND handle, ULONG limit)
+DW_FUNCTION_DEFINITION(dw_entryfield_set_limit, void, HWND handle, unsigned long limit)
+DW_FUNCTION_ADD_PARAM2(handle, limit)
+DW_FUNCTION_NO_RETURN(dw_entryfield_set_limit)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, limit, unsigned long)
 {
-#if 0 /* TODO: Implment this via textField:shouldChangeCharactersInRange:replacementString: */
     DWEntryField *entry = handle;
-    DWEntryFieldFormatter *formatter = [[[DWEntryFieldFormatter alloc] init] autorelease];
 
-    [formatter setMaximumLength:(int)limit];
-    [entry setFormatter:formatter];
-#endif
+    [entry setMaximumLength:limit];
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
