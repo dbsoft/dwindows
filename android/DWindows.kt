@@ -2154,8 +2154,8 @@ class DWindows : AppCompatActivity() {
             mle!!.inputType = (inputType or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS)
             mle!!.isVerticalScrollBarEnabled = true
             mle!!.scrollBarStyle = View.SCROLLBARS_INSIDE_INSET
-            mle!!.setHorizontallyScrolling(true)
-            mle!!.isHorizontalScrollBarEnabled = true
+            mle!!.setHorizontallyScrolling(false)
+            mle!!.isHorizontalScrollBarEnabled = false
             mle!!.gravity = Gravity.TOP or Gravity.LEFT
         }
         return mle
