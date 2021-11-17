@@ -809,7 +809,7 @@ class DWContainerAdapter(c: Context) : BaseAdapter()
     }
 }
 
-private class DWMLE(c: Context): androidx.appcompat.widget.AppCompatEditText(c) {
+private class DWMLE(c: Context): AppCompatEditText(c) {
     protected override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         if(!isHorizontalScrollBarEnabled) {
             this.maxWidth = w
@@ -2033,6 +2033,7 @@ class DWindows : AppCompatActivity() {
             entryfield!!.tag = dataArrayMap
             entryfield!!.id = cid
             entryfield!!.isSingleLine = true
+            entryfield!!.inputType = (InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS)
             if (password > 0) {
                 entryfield!!.transformationMethod = PasswordTransformationMethod.getInstance()
             }
@@ -2142,6 +2143,7 @@ class DWindows : AppCompatActivity() {
 
         waitOnUiThread {
             val dataArrayMap = SimpleArrayMap<String, Long>()
+            val inputType = (InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE)
 
             mle = DWMLE(this)
             mle!!.tag = dataArrayMap
@@ -2149,7 +2151,7 @@ class DWindows : AppCompatActivity() {
             mle!!.isSingleLine = false
             mle!!.maxLines = Integer.MAX_VALUE
             mle!!.imeOptions = EditorInfo.IME_FLAG_NO_ENTER_ACTION
-            mle!!.inputType = (InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE)
+            mle!!.inputType = (inputType or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS)
             mle!!.isVerticalScrollBarEnabled = true
             mle!!.scrollBarStyle = View.SCROLLBARS_INSIDE_INSET
             mle!!.setHorizontallyScrolling(true)
@@ -2183,6 +2185,20 @@ class DWindows : AppCompatActivity() {
     {
         waitOnUiThread {
             mle.setSelection(point)
+        }
+    }
+
+    fun mleSetAutoComplete(mle: EditText, state: Int)
+    {
+        waitOnUiThread {
+            val inputType = (InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE)
+
+            // DW_MLE_COMPLETE_TEXT 1
+            if((state and 1) == 1) {
+                mle.inputType = (inputType or InputType.TYPE_TEXT_FLAG_AUTO_CORRECT)
+            } else {
+                mle.inputType = (inputType or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS)
+            }
         }
     }
 
@@ -2782,6 +2798,7 @@ class DWindows : AppCompatActivity() {
             spinbutton = DWSpinButton(this)
             spinbutton!!.tag = dataArrayMap
             spinbutton!!.id = cid
+            spinbutton!!.inputType = (InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS)
             spinbutton!!.setText(text)
             if(newval != null) {
                 spinbutton!!.value = newval
@@ -2839,6 +2856,7 @@ class DWindows : AppCompatActivity() {
             combobox = DWComboBox(this)
             combobox!!.tag = dataArrayMap
             combobox!!.id = cid
+            combobox!!.inputType = (InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS)
             combobox!!.setText(text)
         }
         return combobox
