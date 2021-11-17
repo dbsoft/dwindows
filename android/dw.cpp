@@ -2733,6 +2733,19 @@ void API dw_mle_set_cursor(HWND handle, int point)
  */
 void API dw_mle_set_auto_complete(HWND handle, int state)
 {
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID mleSetAutoComplete = env->GetMethodID(clazz, "mleSetAutoComplete",
+                                                  "(Landroid/widget/EditText;I)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, mleSetAutoComplete, handle, state);
+        _dw_jni_check_exception(env);
+    }
 }
 
 /*
