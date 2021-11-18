@@ -3422,13 +3422,6 @@ int API dw_messagebox(const char *title, int flags, const char *format, ...)
     mtext = [[[NSString alloc] initWithFormat:[NSString stringWithUTF8String:format] arguments:args] autorelease];
     va_end(args);
 
-#if 0 /* TODO: If we want to use this style it requires a rectangle...
-       * However the alert style looks pretty good to me...
-       */
-    if(flags & DW_MB_INFORMATION)
-        mstyle = UIAlertControllerStyleActionSheet;
-#endif
-
     params = [NSMutableArray arrayWithObjects:mtitle, mtext, [NSNumber numberWithInteger:mstyle], button1, button2, button3, nil];
     [DWObj safeCall:@selector(messageBox:) withObject:params];
     iResponse = [[params lastObject] integerValue];
@@ -6900,7 +6893,7 @@ void API dw_taskbar_delete(HWND handle, HICN icon)
 }
 
 /* Internal function to keep HICNs from getting too big */
-void _dw_icon_resize(UIImage *image)
+UIImage *_dw_icon_resize(UIImage *image)
 {
     if(image)
     {
@@ -6911,11 +6904,16 @@ void _dw_icon_resize(UIImage *image)
                 size.width = 24;
             if(size.height > 24)
                 size.height = 24;
-#if 0 /* TODO: UIImage is immutable, duplicate? */
-            [image setSize:size];
-#endif
+            // Pass 0.0 to use the current device's pixel scaling factor (and thus account for Retina resolution).
+            // Pass 1.0 to force exact pixel size.
+            UIGraphicsBeginImageContextWithOptions(size, NO, 0.0);
+            [image drawInRect:CGRectMake(0, 0, size.width, size.height)];
+            UIImage *newImage = UIGraphicsGetImageFromCurrentImageContext();
+            UIGraphicsEndImageContext();
+            return newImage;
         }
     }
+    return image;
 }
 
 /* Internal version that does not resize the image */
@@ -6939,8 +6937,7 @@ HICN _dw_icon_load(unsigned long resid)
 HICN API dw_icon_load(unsigned long module, unsigned long resid)
 {
     UIImage *image = _dw_icon_load(resid);
-    _dw_icon_resize(image);
-    return image;
+    return _dw_icon_resize(image);
 }
 
 /*
@@ -6961,8 +6958,7 @@ HICN API dw_icon_load_from_file(const char *filename)
         nstr = [nstr stringByAppendingString: [NSString stringWithUTF8String:ext]];
         image = [[UIImage alloc] initWithContentsOfFile:nstr];
     }
-    _dw_icon_resize(image);
-    return image;
+    return _dw_icon_resize(image);
 }
 
 /*
@@ -6976,8 +6972,7 @@ HICN API dw_icon_load_from_data(const char *data, int len)
 {
     NSData *thisdata = [NSData dataWithBytes:data length:len];
     UIImage *image = [[UIImage alloc] initWithData:thisdata];
-    _dw_icon_resize(image);
-    return image;
+    return _dw_icon_resize(image);
 }
 
 /*
@@ -8331,12 +8326,8 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, style, ULONG, mask, ULONG)
         UILabel *label = object;
 
         [label setTextAlignment:(style & 0xF)];
-#if 0 /* TODO: Implement vertical centering */
         if(mask & DW_DT_VCENTER)
-        {
-            [cell setVCenter:(style & DW_DT_VCENTER ? YES : NO)];
-        }
-#endif
+            [label setBaselineAdjustment:(style & DW_DT_VCENTER ? UIBaselineAdjustmentAlignCenters : UIBaselineAdjustmentNone)];
         if(mask & DW_DT_WORDBREAK)
         {
             if(style & DW_DT_WORDBREAK)
