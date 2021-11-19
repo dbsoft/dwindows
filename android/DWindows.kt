@@ -1693,7 +1693,7 @@ class DWindows : AppCompatActivity() {
         return box
     }
 
-    fun scrollBoxNew(type: Int, pad: Int) : ScrollView? {
+    fun scrollBoxNew(type: Int, pad: Int): ScrollView? {
         var scrollBox: ScrollView? = null
 
         waitOnUiThread {
@@ -1718,6 +1718,34 @@ class DWindows : AppCompatActivity() {
             scrollBox!!.addView(box)
         }
         return scrollBox
+    }
+
+    fun scrollBoxGetPos(scrollBox: ScrollView, orient: Int): Int {
+        var retval: Int = -1
+
+        waitOnUiThread {
+            // DW_VERT 1
+            if(orient == 1) {
+                retval = scrollBox.scrollY
+            } else {
+                retval = scrollBox.scrollX
+            }
+        }
+        return retval
+    }
+
+    fun scrollBoxGetRange(scrollBox: ScrollView, orient: Int): Int {
+        var retval: Int = -1
+
+        waitOnUiThread {
+            // DW_VERT 1
+            if(orient == 1) {
+                retval = scrollBox.getChildAt(0).height
+            } else {
+                retval = scrollBox.getChildAt(0).width
+            }
+        }
+        return retval
     }
 
     // Update the layoutParams of a box after a change
