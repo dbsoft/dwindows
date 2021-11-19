@@ -64,9 +64,6 @@ import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
 import android.content.Intent
 
-
-
-
 object DWEvent {
     const val TIMER = 0
     const val CONFIGURE = 1
@@ -333,7 +330,7 @@ class DWFileChooser(private val activity: Activity) {
     // filter on file extension
     private var extension: String? = null
     fun setExtension(extension: String?) {
-        this.extension = extension?.toLowerCase(Locale.ROOT)
+        this.extension = extension?.lowercase(Locale.ROOT)
     }
 
     // file selection event handling
@@ -366,7 +363,7 @@ class DWFileChooser(private val activity: Activity) {
                         } else if (extension == null) {
                             true
                         } else {
-                            file.name.toLowerCase(Locale.ROOT).endsWith(extension!!)
+                            file.name.lowercase(Locale.ROOT).endsWith(extension!!)
                         }
                     } else {
                         false
@@ -989,7 +986,7 @@ class DWindows : AppCompatActivity() {
                     menuBar = DWMenu()
                     windowMenuBars[index] = menuBar
                 }
-                menuBar!!.menu = menu
+                menuBar.menu = menu
                 return super.onCreateOptionsMenu(menu)
             }
         }
@@ -1005,10 +1002,10 @@ class DWindows : AppCompatActivity() {
                 var menuBar = windowMenuBars[index]
 
                 if(menuBar != null) {
-                    menuBar!!.createMenu(menu, true)
+                    menuBar.createMenu(menu, true)
                 } else {
                     menuBar = DWMenu()
-                    menuBar!!.createMenu(menu, true)
+                    menuBar.createMenu(menu, true)
                     windowMenuBars[index] = menuBar
                 }
                 return super.onPrepareOptionsMenu(menu)
@@ -2189,6 +2186,15 @@ class DWindows : AppCompatActivity() {
         return mle
     }
 
+    fun mleSetVisible(mle: EditText, line: Int)
+    {
+        waitOnUiThread {
+            val y: Int = mle.layout.getLineTop(line)
+
+            mle.scrollTo(0, y)
+        }
+    }
+
     fun mleSetWordWrap(mle: EditText, state: Int)
     {
         waitOnUiThread {
@@ -2658,7 +2664,7 @@ class DWindows : AppCompatActivity() {
     fun splitBarSet(splitbar: ConstraintLayout, position: Float) {
         waitOnUiThread {
             val dataArrayMap: SimpleArrayMap<String, Long> = splitbar.tag as SimpleArrayMap<String, Long>
-            var percent: Float = position * 1000000.0F
+            val percent: Float = position * 1000000.0F
 
             if(percent > 0F) {
                 val topleft: View? = splitbar.getChildAt(0)
