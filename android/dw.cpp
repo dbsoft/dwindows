@@ -2803,7 +2803,24 @@ void API dw_mle_set_auto_complete(HWND handle, int state)
  */
 int API dw_mle_search(HWND handle, const char *text, int point, unsigned long flags)
 {
-    return DW_ERROR_UNKNOWN;
+    JNIEnv *env;
+    int retval = DW_ERROR_UNKNOWN;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // Construct a String
+        jstring jstr = env->NewStringUTF(text);
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID mleSearch = env->GetMethodID(clazz, "mleSearch",
+                                               "(Landroid/widget/EditText;Ljava/lang/String;II)I");
+        // Call the method on the object
+        retval = env->CallIntMethod(_dw_obj, mleSearch, handle, jstr, point, (jint)flags);
+        if(_dw_jni_check_exception(env))
+            retval = DW_ERROR_UNKNOWN;
+    }
+    return retval;
 }
 
 /*

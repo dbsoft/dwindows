@@ -330,7 +330,7 @@ class DWFileChooser(private val activity: Activity) {
     // filter on file extension
     private var extension: String? = null
     fun setExtension(extension: String?) {
-        this.extension = extension?.lowercase(Locale.ROOT)
+        this.extension = extension?.toLowerCase(Locale.ROOT)
     }
 
     // file selection event handling
@@ -363,7 +363,7 @@ class DWFileChooser(private val activity: Activity) {
                         } else if (extension == null) {
                             true
                         } else {
-                            file.name.lowercase(Locale.ROOT).endsWith(extension!!)
+                            file.name.toLowerCase(Locale.ROOT).endsWith(extension!!)
                         }
                     } else {
                         false
@@ -2234,6 +2234,26 @@ class DWindows : AppCompatActivity() {
                 mle.inputType = (inputType or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS)
             }
         }
+    }
+
+    fun mleSearch(mle: EditText, text: String, point: Int, flags: Int): Int
+    {
+        var retval: Int = -1
+        var ignorecase: Boolean = true
+
+        // DW_MLE_CASESENSITIVE 1
+        if(flags == 1) {
+            ignorecase = false
+        }
+
+        waitOnUiThread {
+            retval = mle.text.indexOf(text, point, ignorecase)
+
+            if(retval > -1) {
+                mle.setSelection(retval, retval + text.length)
+            }
+        }
+        return retval
     }
 
     fun mleClear(mle: EditText)
