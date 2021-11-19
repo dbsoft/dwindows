@@ -1424,7 +1424,22 @@ HWND API dw_scrollbox_new(int type, int pad)
  */
 int API dw_scrollbox_get_pos(HWND handle, int orient)
 {
-    return 0;
+    JNIEnv *env;
+    int retval = DW_ERROR_UNKNOWN;
+
+    if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID scrollBoxGetPos = env->GetMethodID(clazz, "scrollBoxGetPos",
+                                                     "(Landroid/widget/ScrollView;I)I");
+        // Call the method on the object
+        retval = env->CallIntMethod(_dw_obj, scrollBoxGetPos, handle, orient);
+        if(_dw_jni_check_exception(env))
+            retval = DW_ERROR_UNKNOWN;
+    }
+    return retval;
 }
 
 /*
@@ -1437,7 +1452,22 @@ int API dw_scrollbox_get_pos(HWND handle, int orient)
  */
 int API dw_scrollbox_get_range(HWND handle, int orient)
 {
-    return 0;
+    JNIEnv *env;
+    int retval = DW_ERROR_UNKNOWN;
+
+    if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID scrollBoxGetRange = env->GetMethodID(clazz, "scrollBoxGetRange",
+                                                       "(Landroid/widget/ScrollView;I)I");
+        // Call the method on the object
+        retval = env->CallIntMethod(_dw_obj, scrollBoxGetRange, handle, orient);
+        if(_dw_jni_check_exception(env))
+            retval = DW_ERROR_UNKNOWN;
+    }
+    return retval;
 }
 
 /* Internal box packing function called by the other 3 functions */
