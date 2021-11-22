@@ -656,6 +656,26 @@ class DWContainerModel {
         }
     }
 
+    fun positionByTitle(title: String?): Int
+    {
+        for(i in 0 until rowtitle.size) {
+            if(rowtitle[i] != null && rowtitle[i] == title) {
+                return i
+            }
+        }
+        return -1
+    }
+
+    fun positionByData(rdata: Long): Int
+    {
+        for(i in 0 until rowdata.size) {
+            if (rowdata[i] == rdata) {
+                return i
+            }
+        }
+        return -1
+    }
+
     fun addRows(count: Int): Long
     {
         val startRow: Long = numberOfRows().toLong()
@@ -3243,6 +3263,60 @@ class DWindows : AppCompatActivity() {
             val adapter: DWContainerAdapter = cont.adapter as DWContainerAdapter
 
             adapter.model.clear()
+        }
+    }
+
+    fun containerScroll(cont: ListView, direction: Int, rows: Int)
+    {
+        waitOnUiThread {
+            // DW_SCROLL_UP 0
+            if(direction == 0) {
+                cont.smoothScrollByOffset(-rows)
+                // DW_SCROLL_DOWN 1
+            } else if(direction == 1) {
+                cont.smoothScrollByOffset(rows)
+                // DW_SCROLL_TOP 2
+            } else if(direction == 2) {
+                cont.setSelection(0)
+                cont.smoothScrollToPosition(0)
+                // DW_SCROLL_BOTTOM 3
+            } else if(direction == 3) {
+                val adapter: DWContainerAdapter = cont.adapter as DWContainerAdapter
+                val pos = adapter.model.rowdata.size
+
+                if(pos > 0) {
+                    cont.setSelection(pos - 1)
+                    cont.smoothScrollToPosition(pos - 1)
+                }
+            }
+        }
+    }
+
+    fun containerCursor(cont: ListView, title: String?)
+    {
+        waitOnUiThread {
+            val adapter: DWContainerAdapter = cont.adapter as DWContainerAdapter
+            val pos = adapter.model.positionByTitle(title)
+
+            if(pos > -1) {
+                cont.setSelection(pos)
+                cont.smoothScrollToPosition(pos)
+            }
+
+        }
+    }
+
+    fun containerCursorByData(cont: ListView, rdata: Long)
+    {
+        waitOnUiThread {
+            val adapter: DWContainerAdapter = cont.adapter as DWContainerAdapter
+            val pos = adapter.model.positionByData(rdata)
+
+            if(pos > -1) {
+                cont.setSelection(pos)
+                cont.smoothScrollToPosition(pos)
+            }
+
         }
     }
 
