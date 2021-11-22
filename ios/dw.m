@@ -6880,6 +6880,7 @@ void dw_container_optimize(HWND handle)
  */
 void API dw_taskbar_insert(HWND handle, HICN icon, const char *bubbletext)
 {
+    /* Taskbar unsupported on iOS */
 }
 
 /*
@@ -6890,6 +6891,7 @@ void API dw_taskbar_insert(HWND handle, HICN icon, const char *bubbletext)
  */
 void API dw_taskbar_delete(HWND handle, HICN icon)
 {
+    /* Taskbar unsupported on iOS */
 }
 
 /* Internal function to keep HICNs from getting too big */
@@ -7229,9 +7231,9 @@ HPIXMAP API dw_pixmap_new_from_data(HWND handle, const char *data, int len)
  * Note: This does nothing on Mac as transparency
  *       is handled automatically
  */
-void API dw_pixmap_set_transparent_color( HPIXMAP pixmap, ULONG color )
+void API dw_pixmap_set_transparent_color(HPIXMAP pixmap, ULONG color)
 {
-    /* Don't do anything */
+    /* Don't do anything, all images support transparency on iOS */
 }
 
 /*
@@ -8046,7 +8048,7 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, pageid, ULONG, text, const char *)
  */
 void API dw_notebook_page_set_status_text(HWND handle, ULONG pageid, const char *text)
 {
-    /* Note supported here... do nothing */
+    /* Not supported here... do nothing */
 }
 
 /*
@@ -8304,7 +8306,8 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, fore, unsigned long, back, unsigned lon
  */
 int API dw_window_set_border(HWND handle, int border)
 {
-    return 0;
+    /* No overlapping windows on iOS, unsupported */
+    return DW_ERROR_UNKNOWN;
 }
 
 /*
@@ -9000,7 +9003,8 @@ HWND API dw_window_from_id(HWND handle, int cid)
  */
 int API dw_window_minimize(HWND handle)
 {
-    return 0;
+    /* TODO: Not sure if we should do anything here on iOS */
+    return DW_ERROR_GENERAL;
 }
 
 /* Causes entire window to be invalidated and redrawn.
@@ -9022,7 +9026,8 @@ void API dw_window_redraw(HWND handle)
  */
 int API dw_window_raise(HWND handle)
 {
-    return 0;
+    /* TODO: Not sure if we should do anything here on iOS */
+    return DW_ERROR_GENERAL;
 }
 
 /*
@@ -9032,7 +9037,8 @@ int API dw_window_raise(HWND handle)
  */
 int API dw_window_lower(HWND handle)
 {
-    return 0;
+    /* TODO: Not sure if we should do anything here on iOS */
+    return DW_ERROR_GENERAL;
 }
 
 /*
@@ -9115,6 +9121,7 @@ void API dw_window_set_pos(HWND handle, LONG x, LONG y)
  */
 void API dw_window_set_pos_size(HWND handle, LONG x, LONG y, ULONG width, ULONG height)
 {
+    /* iOS windows take up the whole screen */
 }
 
 /*
@@ -10834,6 +10841,7 @@ int dw_browse(const char *url)
  */
 HPRINT API dw_print_new(const char *jobname, unsigned long flags, unsigned int pages, void *drawfunc, void *drawdata)
 {
+    /* TODO: Implement printing on iOS */
     return NULL;
 }
 
@@ -10847,6 +10855,7 @@ HPRINT API dw_print_new(const char *jobname, unsigned long flags, unsigned int p
  */
 int API dw_print_run(HPRINT print, unsigned long flags)
 {
+    /* TODO: Implement printing on iOS */
     return DW_ERROR_UNKNOWN;
 }
 
@@ -10857,6 +10866,7 @@ int API dw_print_run(HPRINT print, unsigned long flags)
  */
 void API dw_print_cancel(HPRINT print)
 {
+    /* TODO: Implement printing on iOS */
 }
 
 /*
