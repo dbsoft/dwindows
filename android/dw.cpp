@@ -2830,6 +2830,7 @@ int API dw_mle_search(HWND handle, const char *text, int point, unsigned long fl
  */
 void API dw_mle_freeze(HWND handle)
 {
+    /* Don't think this is necessary on Android */
 }
 
 /*
@@ -2839,6 +2840,7 @@ void API dw_mle_freeze(HWND handle)
  */
 void API dw_mle_thaw(HWND handle)
 {
+    /* Don't think this is necessary on Android */
 }
 
 HWND _dw_text_new(const char *text, ULONG cid, int status)
@@ -2964,6 +2966,7 @@ void API dw_color_background_set(unsigned long value)
  */
 unsigned long API dw_color_choose(unsigned long value)
 {
+    /* TODO: Implement this */
     return value;
 }
 
@@ -3200,6 +3203,7 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
  */
 HWND API dw_tree_new(ULONG cid)
 {
+    /* TODO: Implement the tree if possible. */
     return nullptr;
 }
 
@@ -3217,6 +3221,7 @@ HWND API dw_tree_new(ULONG cid)
  */
 HTREEITEM API dw_tree_insert_after(HWND handle, HTREEITEM item, const char *title, HICN icon, HTREEITEM parent, void *itemdata)
 {
+    /* TODO: Implement the tree if possible. */
     return nullptr;
 }
 
@@ -3233,6 +3238,7 @@ HTREEITEM API dw_tree_insert_after(HWND handle, HTREEITEM item, const char *titl
  */
 HTREEITEM API dw_tree_insert(HWND handle, const char *title, HICN icon, HTREEITEM parent, void *itemdata)
 {
+    /* TODO: Implement the tree if possible. */
     return nullptr;
 }
 
@@ -3246,6 +3252,7 @@ HTREEITEM API dw_tree_insert(HWND handle, const char *title, HICN icon, HTREEITE
  */
 char * API dw_tree_get_title(HWND handle, HTREEITEM item)
 {
+    /* TODO: Implement the tree if possible. */
     return nullptr;
 }
 
@@ -3259,6 +3266,7 @@ char * API dw_tree_get_title(HWND handle, HTREEITEM item)
  */
 HTREEITEM API dw_tree_get_parent(HWND handle, HTREEITEM item)
 {
+    /* TODO: Implement the tree if possible. */
     return nullptr;
 }
 
@@ -3272,6 +3280,7 @@ HTREEITEM API dw_tree_get_parent(HWND handle, HTREEITEM item)
  */
 void API dw_tree_item_change(HWND handle, HTREEITEM item, const char *title, HICN icon)
 {
+    /* TODO: Implement the tree if possible. */
 }
 
 /*
@@ -3283,6 +3292,7 @@ void API dw_tree_item_change(HWND handle, HTREEITEM item, const char *title, HIC
  */
 void API dw_tree_item_set_data(HWND handle, HTREEITEM item, void *itemdata)
 {
+    /* TODO: Implement the tree if possible. */
 }
 
 /*
@@ -3295,6 +3305,7 @@ void API dw_tree_item_set_data(HWND handle, HTREEITEM item, void *itemdata)
  */
 void * API dw_tree_item_get_data(HWND handle, HTREEITEM item)
 {
+    /* TODO: Implement the tree if possible. */
     return nullptr;
 }
 
@@ -3306,6 +3317,7 @@ void * API dw_tree_item_get_data(HWND handle, HTREEITEM item)
  */
 void API dw_tree_item_select(HWND handle, HTREEITEM item)
 {
+    /* TODO: Implement the tree if possible. */
 }
 
 /*
@@ -3315,6 +3327,7 @@ void API dw_tree_item_select(HWND handle, HTREEITEM item)
  */
 void API dw_tree_clear(HWND handle)
 {
+    /* TODO: Implement the tree if possible. */
 }
 
 /*
@@ -3325,6 +3338,7 @@ void API dw_tree_clear(HWND handle)
  */
 void API dw_tree_item_expand(HWND handle, HTREEITEM item)
 {
+    /* TODO: Implement the tree if possible. */
 }
 
 /*
@@ -3335,6 +3349,7 @@ void API dw_tree_item_expand(HWND handle, HTREEITEM item)
  */
 void API dw_tree_item_collapse(HWND handle, HTREEITEM item)
 {
+    /* TODO: Implement the tree if possible. */
 }
 
 /*
@@ -4095,6 +4110,7 @@ void API dw_container_delete_row_by_data(HWND handle, void *data)
  */
 void API dw_container_optimize(HWND handle)
 {
+    /* Not necessary with no columns */
 }
 
 /*
@@ -4490,6 +4506,7 @@ HPIXMAP API dw_pixmap_new_from_data(HWND handle, const char *data, int len)
  */
 void API dw_pixmap_set_transparent_color( HPIXMAP pixmap, ULONG color )
 {
+    /* Not necessary on Android, all versions support transparency. */
 }
 
 /*
@@ -4878,6 +4895,11 @@ HWND API dw_html_new(unsigned long cid)
  */
 void API dw_pointer_query_pos(long *x, long *y)
 {
+    /* No mouse pointer on Android */
+    if(x)
+        *x = 0;
+    if(y)
+        *y = 0;
 }
 
 /*
@@ -4888,6 +4910,7 @@ void API dw_pointer_query_pos(long *x, long *y)
  */
 void API dw_pointer_set_pos(long x, long y)
 {
+    /* No mouse pointer on Android */
 }
 
 /*
@@ -5352,6 +5375,7 @@ void API dw_window_function(HWND handle, void *function, void *data)
  */
 void API dw_window_set_pointer(HWND handle, int pointertype)
 {
+    /* No mouse pointer on Android */
 }
 
 int _dw_window_hide_show(HWND handle, int state)
@@ -5440,6 +5464,7 @@ int API dw_window_set_color(HWND handle, ULONG fore, ULONG back)
  */
 int API dw_window_set_border(HWND handle, int border)
 {
+    /* No overlapping windows on Android, so no border */
     return DW_ERROR_GENERAL;
 }
 
@@ -5524,6 +5549,7 @@ void API dw_window_default(HWND handle, HWND defaultitem)
  */
 void API dw_window_click_default(HWND handle, HWND next)
 {
+    /* TODO: See if this is possible on Android */
 }
 
 /*
@@ -5533,6 +5559,7 @@ void API dw_window_click_default(HWND handle, HWND next)
  */
 void API dw_window_capture(HWND handle)
 {
+    /* No mouse pointer on Android */
 }
 
 /*
@@ -5540,6 +5567,7 @@ void API dw_window_capture(HWND handle)
  */
 void API dw_window_release(void)
 {
+    /* No mouse pointer on Android */
 }
 
 /*
@@ -5550,6 +5578,7 @@ void API dw_window_release(void)
  */
 void API dw_window_reparent(HWND handle, HWND newparent)
 {
+    /* TODO: Do we need to do implement this? */
 }
 
 /*
@@ -5627,6 +5656,7 @@ char * API dw_font_choose(const char *currfont)
  */
 void API dw_font_set_default(const char *fontname)
 {
+    /* TODO: Implement this */
 }
 
 /*
@@ -5718,6 +5748,7 @@ void API dw_window_set_text(HWND handle, const char *text)
  */
 void API dw_window_set_tooltip(HWND handle, const char *bubbletext)
 {
+    /* No mouse pointer on Android */
 }
 
 void _dw_window_set_enabled(HWND handle, jboolean state)
@@ -5835,6 +5866,7 @@ void API dw_window_set_bitmap(HWND handle, unsigned long resid, const char *file
  */
 void API dw_window_set_icon(HWND handle, HICN icon)
 {
+    /* TODO: See if this is possible, the icon is controlled by app resources */
 }
 
 /*
@@ -5872,6 +5904,7 @@ HWND API dw_window_from_id(HWND handle, int id)
  */
 int API dw_window_minimize(HWND handle)
 {
+    /* TODO: Not sure if we should do anything here */
     return DW_ERROR_GENERAL;
 }
 
@@ -5881,6 +5914,7 @@ int API dw_window_minimize(HWND handle)
  */
 void API dw_window_redraw(HWND handle)
 {
+    /* Shouldn't be necessary on Android */
 }
 
 /*
@@ -5892,6 +5926,7 @@ void API dw_window_redraw(HWND handle)
  */
 int API dw_window_raise(HWND handle)
 {
+    /* TODO: Not sure if we should do anything here */
     return DW_ERROR_GENERAL;
 }
 
@@ -5904,6 +5939,7 @@ int API dw_window_raise(HWND handle)
  */
 int API dw_window_lower(HWND handle)
 {
+    /* TODO: Not sure if we should do anyting here */
     return DW_ERROR_GENERAL;
 }
 
@@ -5916,6 +5952,7 @@ int API dw_window_lower(HWND handle)
  */
 void API dw_window_set_size(HWND handle, ULONG width, ULONG height)
 {
+    /* Not possible on Android */
 }
 
 /*
@@ -5967,6 +6004,7 @@ void API dw_window_get_preferred_size(HWND handle, int *width, int *height)
  */
 void API dw_window_set_gravity(HWND handle, int horz, int vert)
 {
+    /* This is not possible on Android */
 }
 
 /*
@@ -5978,6 +6016,7 @@ void API dw_window_set_gravity(HWND handle, int horz, int vert)
  */
 void API dw_window_set_pos(HWND handle, LONG x, LONG y)
 {
+    /* This is not possible on Android */
 }
 
 /*
@@ -5991,6 +6030,7 @@ void API dw_window_set_pos(HWND handle, LONG x, LONG y)
  */
 void API dw_window_set_pos_size(HWND handle, LONG x, LONG y, ULONG width, ULONG height)
 {
+    /* This is not possible on Android */
 }
 
 /*
@@ -7431,6 +7471,7 @@ int API dw_browse(const char *url)
  */
 HPRINT API dw_print_new(const char *jobname, unsigned long flags, unsigned int pages, void *drawfunc, void *drawdata)
 {
+    /* TODO: Implement printing */
     return nullptr;
 }
 
@@ -7444,6 +7485,7 @@ HPRINT API dw_print_new(const char *jobname, unsigned long flags, unsigned int p
  */
 int API dw_print_run(HPRINT print, unsigned long flags)
 {
+    /* TODO: Implement printing */
     return DW_ERROR_UNKNOWN;
 }
 
@@ -7454,6 +7496,7 @@ int API dw_print_run(HPRINT print, unsigned long flags)
  */
 void API dw_print_cancel(HPRINT print)
 {
+    /* TODO: Implement printing */
 }
 
 /*
