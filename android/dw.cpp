@@ -3893,6 +3893,19 @@ void API dw_container_delete(HWND handle, int rowcount)
  */
 void API dw_container_scroll(HWND handle, int direction, long rows)
 {
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID containerScroll = env->GetMethodID(clazz, "containerScroll",
+                                                     "(Landroid/widget/ListView;II)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, containerScroll, handle, direction, (jint)rows);
+        _dw_jni_check_exception(env);
+    }
 }
 
 /*
@@ -3987,6 +4000,21 @@ char * API dw_container_query_next(HWND handle, unsigned long flags)
  */
 void API dw_container_cursor(HWND handle, const char *text)
 {
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // Generate a string
+        jstring jstr = text ? env->NewStringUTF(text) : nullptr;
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID containerCursor = env->GetMethodID(clazz, "containerCursor",
+                                                               "(Landroid/widget/ListView;Ljava/lang/String;)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, containerCursor, handle, jstr);
+        _dw_jni_check_exception(env);
+    }
 }
 
 /*
@@ -3997,6 +4025,19 @@ void API dw_container_cursor(HWND handle, const char *text)
  */
 void API dw_container_cursor_by_data(HWND handle, void *data)
 {
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID containerCursorByData = env->GetMethodID(clazz, "containerCursorByData",
+                                                              "(Landroid/widget/ListView;J)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, containerCursorByData, handle, (jlong)data);
+        _dw_jni_check_exception(env);
+    }
 }
 
 /*
