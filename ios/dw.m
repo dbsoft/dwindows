@@ -13,6 +13,9 @@
 #import <WebKit/WebKit.h>
 #import <AudioToolbox/AudioToolbox.h>
 #import <UserNotifications/UserNotifications.h>
+#import <UniformTypeIdentifiers/UTDefines.h>
+#import <UniformTypeIdentifiers/UTType.h>
+#import <UniformTypeIdentifiers/UTCoreTypes.h>
 #include "dw.h"
 #include <sys/utsname.h>
 #include <sys/socket.h>
@@ -1114,24 +1117,49 @@ API_AVAILABLE(ios(13.0))
 -(void)filePicker:(NSPointerArray *)params
 {
     DWDialog *dialog = dw_dialog_new(NULL);
-    UIDocumentPickerViewController *picker ;
+    UIDocumentPickerViewController *picker;
     DWDocumentPickerDelegate *delegate = [[DWDocumentPickerDelegate alloc] init];
-    UIDocumentPickerMode mode = UIDocumentPickerModeOpen;
     char *defpath = [params pointerAtIndex:0];
     char *ext = [params pointerAtIndex:1];
     int flags = DW_POINTER_TO_INT([params pointerAtIndex:2]);
     char *file = NULL;
     NSArray *UTIs;
 
-    /* Setup the picker */
-    if(flags & DW_FILE_SAVE)
-        mode = UIDocumentPickerModeExportToService;
-    /* Try to generate a UTI for our passed extension */
-    if(ext)
-        UTIs = [NSArray arrayWithObjects:[NSString stringWithFormat:@"public.%s", ext], @"public.text", nil];
-    else
-        UTIs = @[@"public.text"];
-    picker = [[UIDocumentPickerViewController alloc] initWithDocumentTypes:UTIs inMode:mode];
+    if (@available(iOS 14, *)) {
+        UTType *extuti = ext ? [UTType typeWithFilenameExtension:[NSString stringWithUTF8String:ext]] : nil;
+        
+        /* Try to generate a UTI for our passed extension */
+        if(flags & DW_DIRECTORY_OPEN)
+            UTIs = @[UTTypeFolder];
+        else
+        {
+            if(extuti)
+                UTIs = [NSArray arrayWithObjects:extuti, UTTypeText, nil];
+            else
+                UTIs = @[UTTypeText];
+        }
+        picker = [[UIDocumentPickerViewController alloc] initForOpeningContentTypes:UTIs
+                                                                             asCopy:(flags & DW_FILE_SAVE ? YES: NO)];
+    } else {
+        UIDocumentPickerMode mode = UIDocumentPickerModeOpen;
+        
+        /* Try to generate a UTI for our passed extension */
+        if(flags & DW_DIRECTORY_OPEN)
+            UTIs = @[@"public.directory"];
+        else
+        {
+            if(ext)
+                UTIs = [NSArray arrayWithObjects:[NSString stringWithFormat:@"public.%s", ext], @"public.text", nil];
+            else
+                UTIs = @[@"public.text"];
+        }
+        
+        /* Setup the picker */
+        if(flags & DW_FILE_SAVE)
+            mode = UIDocumentPickerModeExportToService;
+
+        picker = [[UIDocumentPickerViewController alloc] initWithDocumentTypes:UTIs inMode:mode];
+    }
     [picker setAllowsMultipleSelection:NO];
     [picker setShouldShowFileExtensions:YES];
     if(defpath)
