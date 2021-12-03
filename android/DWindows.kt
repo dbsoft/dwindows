@@ -1,3 +1,5 @@
+// (C) 2021 Brian Smith <brian@dbsoft.org>
+// (C) 2019 Anton Popov
 package org.dbsoft.dwindows
 
 import android.R
@@ -25,10 +27,6 @@ import android.text.InputFilter
 import android.text.InputFilter.LengthFilter
 import android.text.InputType
 import android.text.method.PasswordTransformationMethod
-import android.util.Base64
-import android.util.Log
-import android.util.SparseBooleanArray
-import android.util.TypedValue
 import android.view.*
 import android.view.View.OnTouchListener
 import android.view.ViewGroup
@@ -63,7 +61,815 @@ import java.util.concurrent.locks.ReentrantLock
 import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
 import android.content.Intent
+import android.util.*
+import android.util.Base64
+import kotlin.math.*
 
+// Color Wheel section
+private val HUE_COLORS = intArrayOf(
+    Color.RED,
+    Color.YELLOW,
+    Color.GREEN,
+    Color.CYAN,
+    Color.BLUE,
+    Color.MAGENTA,
+    Color.RED
+)
+
+private val SATURATION_COLORS = intArrayOf(
+    Color.WHITE,
+    setAlpha(Color.WHITE, 0)
+)
+
+open class ColorWheel @JvmOverloads constructor(
+    context: Context,
+    attrs: AttributeSet? = null,
+    defStyleAttr: Int = 0
+) : View(context, attrs, defStyleAttr) {
+
+    private val hueGradient = GradientDrawable().apply {
+        gradientType = GradientDrawable.SWEEP_GRADIENT
+        shape = GradientDrawable.OVAL
+        colors = HUE_COLORS
+    }
+
+    private val saturationGradient = GradientDrawable().apply {
+        gradientType = GradientDrawable.RADIAL_GRADIENT
+        shape = GradientDrawable.OVAL
+        colors = SATURATION_COLORS
+    }
+
+    private val thumbDrawable = ThumbDrawable()
+    private val hsvColor = HsvColor(value = 1f)
+
+    private var wheelCenterX = 0
+    private var wheelCenterY = 0
+    private var wheelRadius = 0
+    private var downX = 0f
+    private var downY = 0f
+
+    var rgb
+        get() = hsvColor.rgb
+        set(rgb) {
+            hsvColor.rgb = rgb
+            hsvColor.set(value = 1f)
+            fireColorListener()
+            invalidate()
+        }
+
+    var thumbRadius
+        get() = thumbDrawable.radius
+        set(value) {
+            thumbDrawable.radius = value
+            invalidate()
+        }
+
+    var thumbColor
+        get() = thumbDrawable.thumbColor
+        set(value) {
+            thumbDrawable.thumbColor = value
+            invalidate()
+        }
+
+    var thumbStrokeColor
+        get() = thumbDrawable.strokeColor
+        set(value) {
+            thumbDrawable.strokeColor = value
+            invalidate()
+        }
+
+    var thumbColorCircleScale
+        get() = thumbDrawable.colorCircleScale
+        set(value) {
+            thumbDrawable.colorCircleScale = value
+            invalidate()
+        }
+
+    var colorChangeListener: ((Int) -> Unit)? = null
+
+    var interceptTouchEvent = true
+
+    init {
+        thumbRadius = 13
+        thumbColor = Color.WHITE
+        thumbStrokeColor = Color.DKGRAY
+        thumbColorCircleScale = 0.7f
+    }
+
+    fun setRgb(r: Int, g: Int, b: Int) {
+        rgb = Color.rgb(r, g, b)
+    }
+
+    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+        val minDimension = minOf(
+            MeasureSpec.getSize(widthMeasureSpec),
+            MeasureSpec.getSize(heightMeasureSpec)
+        )
+
+        setMeasuredDimension(
+            resolveSize(minDimension, widthMeasureSpec),
+            resolveSize(minDimension, heightMeasureSpec)
+        )
+    }
+
+    override fun onDraw(canvas: Canvas) {
+        drawColorWheel(canvas)
+        drawThumb(canvas)
+    }
+
+    private fun drawColorWheel(canvas: Canvas) {
+        val hSpace = width - paddingLeft - paddingRight
+        val vSpace = height - paddingTop - paddingBottom
+
+        wheelCenterX = paddingLeft + hSpace / 2
+        wheelCenterY = paddingTop + vSpace / 2
+        wheelRadius = maxOf(minOf(hSpace, vSpace) / 2, 0)
+
+        val left = wheelCenterX - wheelRadius
+        val top = wheelCenterY - wheelRadius
+        val right = wheelCenterX + wheelRadius
+        val bottom = wheelCenterY + wheelRadius
+
+        hueGradient.setBounds(left, top, right, bottom)
+        saturationGradient.setBounds(left, top, right, bottom)
+        saturationGradient.gradientRadius = wheelRadius.toFloat()
+
+        hueGradient.draw(canvas)
+        saturationGradient.draw(canvas)
+    }
+
+    private fun drawThumb(canvas: Canvas) {
+        val r = hsvColor.saturation * wheelRadius
+        val hueRadians = toRadians(hsvColor.hue)
+        val x = cos(hueRadians) * r + wheelCenterX
+        val y = sin(hueRadians) * r + wheelCenterY
+
+        thumbDrawable.indicatorColor = hsvColor.rgb
+        thumbDrawable.setCoordinates(x, y)
+        thumbDrawable.draw(canvas)
+    }
+
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> onActionDown(event)
+            MotionEvent.ACTION_MOVE -> updateColorOnMotionEvent(event)
+            MotionEvent.ACTION_UP -> {
+                updateColorOnMotionEvent(event)
+                if (isTap(event, downX, downY)) performClick()
+            }
+        }
+
+        return true
+    }
+
+    private fun onActionDown(event: MotionEvent) {
+        parent.requestDisallowInterceptTouchEvent(interceptTouchEvent)
+        updateColorOnMotionEvent(event)
+        downX = event.x
+        downY = event.y
+    }
+
+    override fun performClick() = super.performClick()
+
+    private fun updateColorOnMotionEvent(event: MotionEvent) {
+        calculateColor(event)
+        fireColorListener()
+        invalidate()
+    }
+
+    private fun calculateColor(event: MotionEvent) {
+        val legX = event.x - wheelCenterX
+        val legY = event.y - wheelCenterY
+        val hypot = minOf(hypot(legX, legY), wheelRadius.toFloat())
+        val hue = (toDegrees(atan2(legY, legX)) + 360) % 360
+        val saturation = hypot / wheelRadius
+        hsvColor.set(hue, saturation, 1f)
+    }
+
+    private fun fireColorListener() {
+        colorChangeListener?.invoke(hsvColor.rgb)
+    }
+
+    override fun onSaveInstanceState(): Parcelable {
+        val superState = super.onSaveInstanceState()
+        val thumbState = thumbDrawable.saveState()
+        return ColorWheelState(superState, this, thumbState)
+    }
+
+    override fun onRestoreInstanceState(state: Parcelable) {
+        if (state is ColorWheelState) {
+            super.onRestoreInstanceState(state.superState)
+            readColorWheelState(state)
+        } else {
+            super.onRestoreInstanceState(state)
+        }
+    }
+
+    private fun readColorWheelState(state: ColorWheelState) {
+        thumbDrawable.restoreState(state.thumbState)
+        interceptTouchEvent = state.interceptTouchEvent
+        rgb = state.rgb
+    }
+}
+
+internal class ColorWheelState : View.BaseSavedState {
+
+    val thumbState: ThumbDrawableState
+    val interceptTouchEvent: Boolean
+    val rgb: Int
+
+    constructor(
+        superState: Parcelable?,
+        view: ColorWheel,
+        thumbState: ThumbDrawableState
+    ) : super(superState) {
+        this.thumbState = thumbState
+        interceptTouchEvent = view.interceptTouchEvent
+        rgb = view.rgb
+    }
+
+    constructor(source: Parcel) : super(source) {
+        thumbState = source.readThumbState()
+        interceptTouchEvent = source.readBooleanCompat()
+        rgb = source.readInt()
+    }
+
+    override fun writeToParcel(out: Parcel, flags: Int) {
+        super.writeToParcel(out, flags)
+        out.writeThumbState(thumbState, flags)
+        out.writeBooleanCompat(interceptTouchEvent)
+        out.writeInt(rgb)
+    }
+
+    companion object CREATOR : Parcelable.Creator<ColorWheelState> {
+
+        override fun createFromParcel(source: Parcel) = ColorWheelState(source)
+
+        override fun newArray(size: Int) = arrayOfNulls<ColorWheelState>(size)
+    }
+}
+internal fun Parcel.writeBooleanCompat(value: Boolean) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        this.writeBoolean(value)
+    } else {
+        this.writeInt(if (value) 1 else 0)
+    }
+}
+
+internal fun Parcel.readBooleanCompat(): Boolean {
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        this.readBoolean()
+    } else {
+        this.readInt() == 1
+    }
+}
+private const val MAX_ALPHA = 255
+
+open class GradientSeekBar @JvmOverloads constructor(
+    context: Context,
+    attrs: AttributeSet? = null,
+    defStyleAttr: Int = 0
+) : View(context, attrs, defStyleAttr) {
+
+    private val gradientColors = IntArray(2)
+    private val thumbDrawable = ThumbDrawable()
+    private val gradientDrawable = GradientDrawable()
+    private val argbEvaluator = android.animation.ArgbEvaluator()
+
+    private lateinit var orientationStrategy: OrientationStrategy
+    private var downX = 0f
+    private var downY = 0f
+
+    var startColor
+        get() = gradientColors[0]
+        set(color) { setColors(start = color) }
+
+    var endColor
+        get() = gradientColors[1]
+        set(color) { setColors(end = color) }
+
+    var offset = 0f
+        set(offset) {
+            field = ensureOffsetWithinRange(offset)
+            calculateArgb()
+        }
+
+    var barSize = 0
+        set(width) {
+            field = width
+            requestLayout()
+        }
+
+    var cornersRadius = 0f
+        set(radius) {
+            field = radius
+            invalidate()
+        }
+
+    var orientation = Orientation.VERTICAL
+        set(orientation) {
+            field = orientation
+            orientationStrategy = createOrientationStrategy()
+            requestLayout()
+        }
+
+    var thumbColor
+        get() = thumbDrawable.thumbColor
+        set(value) {
+            thumbDrawable.thumbColor = value
+            invalidate()
+        }
+
+    var thumbStrokeColor
+        get() = thumbDrawable.strokeColor
+        set(value) {
+            thumbDrawable.strokeColor = value
+            invalidate()
+        }
+
+    var thumbColorCircleScale
+        get() = thumbDrawable.colorCircleScale
+        set(value) {
+            thumbDrawable.colorCircleScale = value
+            invalidate()
+        }
+
+    var thumbRadius
+        get() = thumbDrawable.radius
+        set(radius) {
+            thumbDrawable.radius = radius
+            requestLayout()
+        }
+
+    var argb = 0
+        private set
+
+    var colorChangeListener: ((Float, Int) -> Unit)? = null
+
+    var interceptTouchEvent = true
+
+    init {
+        thumbColor = Color.WHITE
+        thumbStrokeColor = Color.DKGRAY
+        thumbColorCircleScale = 0.7f
+        thumbRadius = 13
+        barSize = 10
+        cornersRadius = 5.0f
+        offset = 0f
+        orientation = Orientation.VERTICAL
+        setColors(Color.TRANSPARENT, Color.BLACK)
+    }
+
+    private fun createOrientationStrategy(): OrientationStrategy  {
+        return when (orientation) {
+            Orientation.VERTICAL -> VerticalStrategy()
+            Orientation.HORIZONTAL -> HorizontalStrategy()
+        }
+    }
+
+    fun setColors(start: Int = startColor, end: Int = endColor) {
+        updateGradientColors(start, end)
+        calculateArgb()
+    }
+
+    private fun updateGradientColors(start: Int, end: Int) {
+        gradientColors[0] = start
+        gradientColors[1] = end
+        gradientDrawable.colors = gradientColors
+    }
+
+    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+        val dimens = orientationStrategy.measure(this, widthMeasureSpec, heightMeasureSpec)
+        setMeasuredDimension(dimens.width(), dimens.height())
+    }
+
+    override fun onDraw(canvas: Canvas) {
+        drawGradientRect(canvas)
+        drawThumb(canvas)
+    }
+
+    private fun drawGradientRect(canvas: Canvas) {
+        gradientDrawable.orientation = orientationStrategy.gradientOrientation
+        gradientDrawable.bounds = orientationStrategy.getGradientBounds(this)
+        gradientDrawable.cornerRadius = cornersRadius
+        gradientDrawable.draw(canvas)
+    }
+
+    private fun drawThumb(canvas: Canvas) {
+        val coordinates = orientationStrategy.getThumbPosition(this, gradientDrawable.bounds)
+        thumbDrawable.indicatorColor = argb
+        thumbDrawable.setCoordinates(coordinates.x, coordinates.y)
+        thumbDrawable.draw(canvas)
+    }
+
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> onActionDown(event)
+            MotionEvent.ACTION_MOVE -> calculateOffsetOnMotionEvent(event)
+            MotionEvent.ACTION_UP -> {
+                calculateOffsetOnMotionEvent(event)
+                if (isTap(event, downX, downY)) performClick()
+            }
+        }
+
+        return true
+    }
+
+    private fun onActionDown(event: MotionEvent) {
+        parent.requestDisallowInterceptTouchEvent(interceptTouchEvent)
+        calculateOffsetOnMotionEvent(event)
+        downX = event.x
+        downY = event.y
+    }
+
+    override fun performClick() = super.performClick()
+
+    private fun calculateOffsetOnMotionEvent(event: MotionEvent) {
+        offset = orientationStrategy.getOffset(this, event, gradientDrawable.bounds)
+    }
+
+    private fun calculateArgb() {
+        argb = argbEvaluator.evaluate(offset, startColor, endColor) as Int
+        fireListener()
+        invalidate()
+    }
+
+    private fun fireListener() {
+        colorChangeListener?.invoke(offset, argb)
+    }
+
+    override fun onSaveInstanceState(): Parcelable {
+        val superState = super.onSaveInstanceState()
+        val thumbState = thumbDrawable.saveState()
+        return GradientSeekBarState(superState, this, thumbState)
+    }
+
+    override fun onRestoreInstanceState(state: Parcelable) {
+        if (state is GradientSeekBarState) {
+            super.onRestoreInstanceState(state.superState)
+            readGradientSeekBarState(state)
+        } else {
+            super.onRestoreInstanceState(state)
+        }
+    }
+
+    private fun readGradientSeekBarState(state: GradientSeekBarState) {
+        updateGradientColors(state.startColor, state.endColor)
+        offset = state.offset
+        barSize = state.barSize
+        cornersRadius = state.cornerRadius
+        orientation = Orientation.values()[state.orientation]
+        interceptTouchEvent = state.interceptTouchEvent
+        thumbDrawable.restoreState(state.thumbState)
+    }
+
+    private fun ensureOffsetWithinRange(offset: Float) = ensureWithinRange(offset, 0f, 1f)
+
+    enum class Orientation { VERTICAL, HORIZONTAL }
+}
+
+val GradientSeekBar.currentColorAlpha get() = Color.alpha(argb)
+
+fun GradientSeekBar.setTransparentToColor(color: Int, respectAlpha: Boolean = true) {
+    if (respectAlpha) {
+        this.offset = Color.alpha(color) / MAX_ALPHA.toFloat()
+    }
+    this.setColors(
+        setAlpha(color, 0),
+        setAlpha(color, MAX_ALPHA)
+    )
+}
+
+inline fun GradientSeekBar.setAlphaChangeListener(
+    crossinline listener: (Float, Int, Int) -> Unit
+) {
+    this.colorChangeListener = { offset, color ->
+        listener(offset, color, this.currentColorAlpha)
+    }
+}
+
+fun GradientSeekBar.setBlackToColor(color: Int) {
+    this.setColors(Color.BLACK, color)
+}
+
+internal class GradientSeekBarState : View.BaseSavedState {
+
+    val startColor: Int
+    val endColor: Int
+    val offset: Float
+    val barSize: Int
+    val cornerRadius: Float
+    val orientation: Int
+    val interceptTouchEvent: Boolean
+    val thumbState: ThumbDrawableState
+
+    constructor(
+        superState: Parcelable?,
+        view: GradientSeekBar,
+        thumbState: ThumbDrawableState
+    ) : super(superState) {
+        startColor = view.startColor
+        endColor = view.endColor
+        offset = view.offset
+        barSize = view.barSize
+        cornerRadius = view.cornersRadius
+        orientation = view.orientation.ordinal
+        interceptTouchEvent = view.interceptTouchEvent
+        this.thumbState = thumbState
+    }
+
+    constructor(source: Parcel) : super(source) {
+        startColor = source.readInt()
+        endColor = source.readInt()
+        offset = source.readFloat()
+        barSize = source.readInt()
+        cornerRadius = source.readFloat()
+        orientation = source.readInt()
+        interceptTouchEvent = source.readBooleanCompat()
+        thumbState = source.readThumbState()
+    }
+
+    override fun writeToParcel(out: Parcel, flags: Int) {
+        super.writeToParcel(out, flags)
+        out.writeInt(startColor)
+        out.writeInt(endColor)
+        out.writeFloat(offset)
+        out.writeInt(barSize)
+        out.writeFloat(cornerRadius)
+        out.writeInt(orientation)
+        out.writeBooleanCompat(interceptTouchEvent)
+        out.writeThumbState(thumbState, flags)
+    }
+
+    companion object CREATOR : Parcelable.Creator<GradientSeekBarState> {
+
+        override fun createFromParcel(source: Parcel) = GradientSeekBarState(source)
+
+        override fun newArray(size: Int) = arrayOfNulls<GradientSeekBarState>(size)
+    }
+}
+
+internal class HorizontalStrategy : OrientationStrategy {
+
+    private val rect = Rect()
+    private val point = PointF()
+
+    override val gradientOrientation = GradientDrawable.Orientation.LEFT_RIGHT
+
+    override fun measure(view: GradientSeekBar, widthSpec: Int, heightSpec: Int): Rect {
+        val widthSize = View.MeasureSpec.getSize(widthSpec)
+        val maxHeight = maxOf(view.barSize, view.thumbRadius * 2)
+        val preferredWidth = widthSize + view.paddingLeft + view.paddingRight
+        val preferredHeight = maxHeight + view.paddingTop + view.paddingBottom
+        val finalWidth = View.resolveSize(preferredWidth, widthSpec)
+        val finalHeight = View.resolveSize(preferredHeight, heightSpec)
+        return rect.apply { set(0, 0, finalWidth, finalHeight) }
+    }
+
+    override fun getGradientBounds(view: GradientSeekBar): Rect {
+        val availableHeight = view.height - view.paddingTop - view.paddingRight
+        val left = view.paddingLeft + view.thumbRadius
+        val right = view.width - view.paddingRight - view.thumbRadius
+        val top = view.paddingTop + (availableHeight - view.barSize) / 2
+        val bottom = top + view.barSize
+        return rect.apply { set(left, top, right, bottom) }
+    }
+
+    override fun getThumbPosition(view: GradientSeekBar, gradient: Rect): PointF {
+        val x = (gradient.left + view.offset * gradient.width())
+        val y = view.height / 2f
+        return point.apply { set(x, y) }
+    }
+
+    override fun getOffset(view: GradientSeekBar, event: MotionEvent, gradient: Rect): Float {
+        val checkedX = ensureWithinRange(event.x.roundToInt(), gradient.left, gradient.right)
+        val relativeX = (checkedX - gradient.left).toFloat()
+        return relativeX / gradient.width()
+    }
+}
+
+internal fun View.isTap(lastEvent: MotionEvent, initialX: Float, initialY: Float): Boolean {
+    val config = ViewConfiguration.get(context)
+    val duration = lastEvent.eventTime - lastEvent.downTime
+    val distance = hypot(lastEvent.x - initialX, lastEvent.y - initialY)
+    return duration < ViewConfiguration.getTapTimeout() && distance < config.scaledTouchSlop
+}
+
+internal const val PI = Math.PI.toFloat()
+
+internal fun toRadians(degrees: Float) = degrees / 180f * PI
+
+internal fun toDegrees(radians: Float) = radians * 180f / PI
+
+internal fun <T> ensureWithinRange(
+    value: T,
+    start: T,
+    end: T
+): T where T : Number, T : Comparable<T> = minOf(maxOf(value, start), end)
+
+internal fun setAlpha(argb: Int, alpha: Int) =
+    Color.argb(alpha, Color.red(argb), Color.green(argb), Color.blue(argb))
+
+class HsvColor(hue: Float = 0f, saturation: Float = 0f, value: Float = 0f) {
+
+    private val hsv = floatArrayOf(
+        ensureHue(hue),
+        ensureSaturation(saturation),
+        ensureValue(value)
+    )
+
+    var hue
+        get() = hsv[0]
+        set(hue) { hsv[0] = ensureHue(hue) }
+
+    var saturation
+        get() = hsv[1]
+        set(saturation) { hsv[1] = ensureSaturation(saturation) }
+
+    var value
+        get() = hsv[2]
+        set(value) { hsv[2] = ensureValue(value) }
+
+    var rgb
+        get() = Color.HSVToColor(hsv)
+        set(rgb) { Color.colorToHSV(rgb, hsv) }
+
+    fun set(hue: Float = hsv[0], saturation: Float = hsv[1], value: Float = hsv[2]) {
+        hsv[0] = ensureHue(hue)
+        hsv[1] = ensureSaturation(saturation)
+        hsv[2] = ensureValue(value)
+    }
+
+    private fun ensureHue(hue: Float) = ensureWithinRange(hue, 0f, 360f)
+
+    private fun ensureValue(value: Float) = ensureWithinRange(value, 0f, 1f)
+
+    private fun ensureSaturation(saturation: Float) = ensureValue(saturation)
+}
+
+internal interface OrientationStrategy {
+
+    val gradientOrientation: GradientDrawable.Orientation
+
+    fun measure(view: GradientSeekBar, widthSpec: Int, heightSpec: Int): Rect
+
+    fun getGradientBounds(view: GradientSeekBar): Rect
+
+    fun getThumbPosition(view: GradientSeekBar, gradient: Rect): PointF
+
+    fun getOffset(view: GradientSeekBar, event: MotionEvent, gradient: Rect): Float
+}
+
+internal class ThumbDrawableState private constructor(
+    val radius: Int,
+    val thumbColor: Int,
+    val strokeColor: Int,
+    val colorCircleScale: Float
+) : Parcelable {
+
+    constructor(thumbDrawable: ThumbDrawable) : this(
+        thumbDrawable.radius,
+        thumbDrawable.thumbColor,
+        thumbDrawable.strokeColor,
+        thumbDrawable.colorCircleScale
+    )
+
+    constructor(parcel: Parcel) : this(
+        parcel.readInt(),
+        parcel.readInt(),
+        parcel.readInt(),
+        parcel.readFloat()
+    )
+
+    override fun writeToParcel(parcel: Parcel, flags: Int) {
+        parcel.writeInt(radius)
+        parcel.writeInt(thumbColor)
+        parcel.writeInt(strokeColor)
+        parcel.writeFloat(colorCircleScale)
+    }
+
+    override fun describeContents() = 0
+
+    companion object {
+
+        val EMPTY_STATE = ThumbDrawableState(0, 0, 0, 0f)
+
+        @JvmField
+        val CREATOR = object : Parcelable.Creator<ThumbDrawableState> {
+
+            override fun createFromParcel(parcel: Parcel) = ThumbDrawableState(parcel)
+
+            override fun newArray(size: Int) = arrayOfNulls<ThumbDrawableState>(size)
+        }
+    }
+}
+
+internal fun Parcel.writeThumbState(state: ThumbDrawableState, flags: Int) {
+    this.writeParcelable(state, flags)
+}
+
+internal fun Parcel.readThumbState(): ThumbDrawableState {
+    return this.readParcelable(ThumbDrawableState::class.java.classLoader)
+        ?: ThumbDrawableState.EMPTY_STATE
+}
+
+internal class ThumbDrawable {
+
+    private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { strokeWidth = 1f }
+    private var x = 0f
+    private var y = 0f
+
+    var indicatorColor = 0
+    var strokeColor = 0
+    var thumbColor = 0
+    var radius = 0
+
+    var colorCircleScale = 0f
+        set(value) { field = ensureWithinRange(value, 0f, 1f) }
+
+    fun setCoordinates(x: Float, y: Float) {
+        this.x = x
+        this.y = y
+    }
+
+    fun draw(canvas: Canvas) {
+        drawThumb(canvas)
+        drawStroke(canvas)
+        drawColorIndicator(canvas)
+    }
+
+    private fun drawThumb(canvas: Canvas) {
+        paint.color = thumbColor
+        paint.style = Paint.Style.FILL
+        canvas.drawCircle(x, y, radius.toFloat(), paint)
+    }
+
+    private fun drawStroke(canvas: Canvas) {
+        val strokeCircleRadius = radius - paint.strokeWidth / 2f
+
+        paint.color = strokeColor
+        paint.style = Paint.Style.STROKE
+        canvas.drawCircle(x, y, strokeCircleRadius, paint)
+    }
+
+    private fun drawColorIndicator(canvas: Canvas) {
+        val colorIndicatorCircleRadius = radius * colorCircleScale
+
+        paint.color = indicatorColor
+        paint.style = Paint.Style.FILL
+        canvas.drawCircle(x, y, colorIndicatorCircleRadius, paint)
+    }
+
+    fun restoreState(state: ThumbDrawableState) {
+        radius = state.radius
+        thumbColor = state.thumbColor
+        strokeColor = state.strokeColor
+        colorCircleScale = state.colorCircleScale
+    }
+
+    fun saveState() = ThumbDrawableState(this)
+}
+
+internal class VerticalStrategy : OrientationStrategy {
+
+    private val rect = Rect()
+    private val point = PointF()
+
+    override val gradientOrientation = GradientDrawable.Orientation.BOTTOM_TOP
+
+    override fun measure(view: GradientSeekBar, widthSpec: Int, heightSpec: Int): Rect {
+        val heightSize = View.MeasureSpec.getSize(heightSpec)
+        val maxWidth = maxOf(view.barSize, view.thumbRadius * 2)
+        val preferredWidth = maxWidth + view.paddingLeft + view.paddingRight
+        val preferredHeight = heightSize + view.paddingTop + view.paddingBottom
+        val finalWidth = View.resolveSize(preferredWidth, widthSpec)
+        val finalHeight = View.resolveSize(preferredHeight, heightSpec)
+        return rect.apply { set(0, 0, finalWidth, finalHeight) }
+    }
+
+    override fun getGradientBounds(view: GradientSeekBar): Rect {
+        val availableWidth = view.width - view.paddingLeft - view.paddingRight
+        val left = view.paddingLeft + (availableWidth - view.barSize) / 2
+        val right = left + view.barSize
+        val top = view.paddingTop + view.thumbRadius
+        val bottom = view.height - view.paddingBottom - view.thumbRadius
+        return rect.apply { set(left, top, right, bottom) }
+    }
+
+    override fun getThumbPosition(view: GradientSeekBar, gradient: Rect): PointF {
+        val y = (gradient.top + (1f - view.offset) * gradient.height())
+        val x = view.width / 2f
+        return point.apply { set(x, y) }
+    }
+
+    override fun getOffset(view: GradientSeekBar, event: MotionEvent, gradient: Rect): Float {
+        val checkedY = ensureWithinRange(event.y.roundToInt(), gradient.top, gradient.bottom)
+        val relativeY = (checkedY - gradient.top).toFloat()
+        return 1f - relativeY / gradient.height()
+    }
+}
+
+// Main Dynamic Windows section
 object DWEvent {
     const val TIMER = 0
     const val CONFIGURE = 1
