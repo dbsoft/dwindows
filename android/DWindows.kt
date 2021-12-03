@@ -5071,6 +5071,23 @@ class DWindows : AppCompatActivity() {
         return retval
     }
 
+    fun colorChoose(color: Int, alpha: Int, red: Int, green: Int, blue: Int): Int
+    {
+        var retval: Int = 0
+
+        waitOnUiThread {
+            val dialog = Dialog(this)
+            val colorWheel = ColorWheel(this, null, 0)
+
+            dialog.setContentView(colorWheel)
+            colorWheel.rgb = Color.rgb(red, green, blue)
+            dialog.window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+            dialog.show()
+            retval = colorWheel.rgb
+        }
+        return retval
+    }
+
     fun messageBox(title: String, body: String, flags: Int): Int
     {
         var retval = 0
