@@ -2966,8 +2966,25 @@ void API dw_color_background_set(unsigned long value)
  */
 unsigned long API dw_color_choose(unsigned long value)
 {
-    /* TODO: Implement this */
-    return value;
+    JNIEnv *env;
+    unsigned long newcolor = value;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        unsigned long _value = _dw_get_color(value);
+
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID colorChoose = env->GetMethodID(clazz, "colorChoose",
+                                                 "(IIIII)I");
+        // Call the method on the object
+        newcolor = (unsigned long)env->CallIntMethod(_dw_obj, colorChoose, (jint)value, 0,
+                   (jint)DW_RED_VALUE(_value), (jint)DW_GREEN_VALUE(_value), (jint)DW_BLUE_VALUE(_value));
+        if(!_dw_jni_check_exception(env))
+            return value;
+    }
+    return newcolor;
 }
 
 /* Draw a point on a window (preferably a render window).
