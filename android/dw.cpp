@@ -1207,7 +1207,7 @@ char * API dw_file_browse(const char *title, const char *defpath, const char *ex
         // First get the class that contains the method you need to call
         jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
         // Get the method that you want to call
-        jmethodID fileBrowse = env->GetMethodID(clazz, "fileBrowse",
+        jmethodID fileBrowse = env->GetMethodID(clazz, "fileBrowseNew",
                                                 "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;I)Ljava/lang/String;");
         // Call the method on the object
         jstring jresult = (jstring)_dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, fileBrowse, jstr, path, jext, flags), _DW_REFERENCE_NONE);
