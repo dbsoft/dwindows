@@ -3019,9 +3019,13 @@ class DWindows : AppCompatActivity() {
     fun mleSetVisible(mle: EditText, line: Int)
     {
         waitOnUiThread {
-            val y: Int = mle.layout.getLineTop(line)
+            val layout = mle.layout
 
-            mle.scrollTo(0, y)
+            if(layout != null) {
+                val y: Int = layout.getLineTop(line)
+
+                mle.scrollTo(0, y)
+            }
         }
     }
 
