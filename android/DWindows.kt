@@ -64,6 +64,10 @@ import android.content.Intent
 import android.util.*
 import android.util.Base64
 import kotlin.math.*
+import android.content.ContentUris
+
+
+
 
 // Color Wheel section
 private val HUE_COLORS = intArrayOf(
@@ -1655,7 +1659,7 @@ class DWindows : AppCompatActivity() {
     private var bgcolor: Int? = null
     private var fileURI: Uri? = null
     private var fileLock = ReentrantLock()
-    private var fileCond = threadLock.newCondition()
+    private var fileCond = fileLock.newCondition()
     // Lists of data for our Windows
     private var windowTitles = mutableListOf<String?>()
     private var windowMenuBars = mutableListOf<DWMenu?>()
@@ -5018,26 +5022,108 @@ class DWindows : AppCompatActivity() {
         }
     }
 
+    fun getDataColumn(context: Context, uri: Uri?, selection: String?, selectionArgs: Array<String?>?): String? {
+        var cursor: Cursor? = null
+        val column = "_data"
+        val projection = arrayOf(column)
+
+        try {
+            cursor = context.contentResolver.query(
+                uri!!, projection, selection, selectionArgs,
+                null
+            )
+            if (cursor != null && cursor.moveToFirst()) {
+                val index = cursor.getColumnIndexOrThrow(column)
+                return cursor.getString(index)
+            }
+        } finally {
+            cursor?.close()
+        }
+        return null
+    }
+
+    // Defpath does not seem to be supported on Android using the ACTION_GET_CONTENT Intent
     fun fileBrowseNew(title: String, defpath: String?, ext: String?, flags: Int): String?
     {
         var retval: String? = null
 
         // This can't be called from the main thread
         if(Looper.getMainLooper() != Looper.myLooper()) {
+            var success = true
+
             fileLock.lock()
             waitOnUiThread {
                 val fileintent = Intent(Intent.ACTION_GET_CONTENT)
-                fileintent.type = "text/plain"
+                // TODO: Filtering requires MIME types, not extensions
+                fileintent.type = "*/*"
                 fileintent.addCategory(Intent.CATEGORY_OPENABLE)
-                startActivityForResult(fileintent, 100)
+                try {
+                    startActivityForResult(fileintent, 100)
+                } catch (e: ActivityNotFoundException) {
+                    success = false
+                }
             }
 
-            // Wait until the intent finishes.
-            fileCond.await()
-            fileLock.unlock()
+            if(success) {
+                // Wait until the intent finishes.
+                fileCond.await()
+                fileLock.unlock()
 
-            if(fileURI != null) {
-                retval = getUriRealPath(this, fileURI)
+                if (DocumentsContract.isDocumentUri(this, fileURI)) {
+                    // ExternalStorageProvider
+                    if (fileURI?.authority == "com.android.externalstorage.documents") {
+                        val docId = DocumentsContract.getDocumentId(fileURI)
+                        val split = docId.split(":").toTypedArray()
+                        retval = Environment.getExternalStorageDirectory().toString() + "/" + split[1]
+                    } else if (fileURI?.authority == "com.android.providers.downloads.documents") {
+                        val id = DocumentsContract.getDocumentId(fileURI)
+                        val contentUri = ContentUris.withAppendedId(
+                            Uri.parse("content://downloads/public_downloads"),
+                            java.lang.Long.valueOf(id)
+                        )
+                        retval = getDataColumn(this, contentUri, null, null)
+                    } else if (fileURI?.authority == "com.android.providers.media.documents") {
+                        val docId = DocumentsContract.getDocumentId(fileURI)
+                        val split = docId.split(":").toTypedArray()
+                        val type = split[0]
+                        var contentUri: Uri? = null
+                        if ("image" == type) {
+                            contentUri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+                        } else if ("video" == type) {
+                            contentUri = MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+                        } else if ("audio" == type) {
+                            contentUri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+                        }
+                        val selection = "_id=?"
+                        val selectionArgs = arrayOf<String?>(
+                            split[1]
+                        )
+                        retval = getDataColumn(this, contentUri, selection, selectionArgs)
+                    }
+                } else if (fileURI?.scheme == "content") {
+                    retval = getDataColumn(this, fileURI, null, null)
+                }
+                // File
+                else if (fileURI?.scheme == "file") {
+                    retval = fileURI?.path
+                }
+
+                // If we are opening a directory DW_DIRECTORY_OPEN
+                if(retval != null && flags == 2) {
+                    val split = retval.split("/")
+                    val filename = split.last()
+
+                    if(filename != null) {
+                        val pathlen = retval.length
+                        val filelen = filename.length
+
+                        retval = retval.substring(0, pathlen - filelen - 1)
+                    }
+                }
+            } else {
+                // If we failed to start the intent... use old dialog
+                fileLock.unlock()
+                retval = fileBrowse(title, defpath, ext, flags)
             }
         }
         return retval
@@ -5073,17 +5159,23 @@ class DWindows : AppCompatActivity() {
 
     fun colorChoose(color: Int, alpha: Int, red: Int, green: Int, blue: Int): Int
     {
-        var retval: Int = 0
+        var retval: Int = color
 
-        waitOnUiThread {
-            val dialog = Dialog(this)
-            val colorWheel = ColorWheel(this, null, 0)
+        // This can't be called from the main thread
+        if(Looper.getMainLooper() != Looper.myLooper()) {
+            waitOnUiThread {
+                val dialog = Dialog(this)
+                val colorWheel = ColorWheel(this, null, 0)
 
-            dialog.setContentView(colorWheel)
-            colorWheel.rgb = Color.rgb(red, green, blue)
-            dialog.window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
-            dialog.show()
-            retval = colorWheel.rgb
+                dialog.setContentView(colorWheel)
+                colorWheel.rgb = Color.rgb(red, green, blue)
+                dialog.window?.setLayout(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT
+                )
+                dialog.show()
+                retval = colorWheel.rgb
+            }
         }
         return retval
     }
@@ -5245,6 +5337,7 @@ class DWindows : AppCompatActivity() {
             builder = NotificationCompat.Builder(this, appid)
                 .setContentTitle(title)
                 .setContentText(text)
+                .setSmallIcon(R.mipmap.sym_def_app_icon)
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
         }
         return builder
@@ -5259,190 +5352,6 @@ class DWindows : AppCompatActivity() {
                 notify(notificationID, builder.build())
             }
         }
-    }
-
-    /*
-     * This method will parse out the real local file path from the file content URI.
-     */
-    private fun getUriRealPath(ctx: Context?, uri: Uri?): String? {
-        var ret: String? = ""
-        if (ctx != null && uri != null) {
-            if (isContentUri(uri)) {
-                if (isGooglePhotoDoc(uri.authority)) {
-                    ret = uri.lastPathSegment
-                } else {
-                    ret = getImageRealPath(contentResolver, uri, null)
-                }
-            } else if (isFileUri(uri)) {
-                ret = uri.path
-            } else if (isDocumentUri(ctx, uri)) {
-
-                // Get uri related document id.
-                val documentId = DocumentsContract.getDocumentId(uri)
-
-                // Get uri authority.
-                val uriAuthority: String? = uri.authority
-                if (isMediaDoc(uriAuthority)) {
-                    val idArr = documentId.split(":").toTypedArray()
-                    if (idArr.size == 2) {
-                        // First item is document type.
-                        val docType = idArr[0]
-
-                        // Second item is document real id.
-                        val realDocId = idArr[1]
-
-                        // Get content uri by document type.
-                        var mediaContentUri: Uri? = MediaStore.Images.Media.EXTERNAL_CONTENT_URI
-                        if ("image" == docType) {
-                            mediaContentUri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI
-                        } else if ("video" == docType) {
-                            mediaContentUri = MediaStore.Video.Media.EXTERNAL_CONTENT_URI
-                        } else if ("audio" == docType) {
-                            mediaContentUri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
-                        }
-
-                        // Get where clause with real document id.
-                        val whereClause = MediaStore.Images.Media._ID + " = " + realDocId
-                        ret = getImageRealPath(contentResolver, mediaContentUri, whereClause)
-                    }
-                } else if (isDownloadDoc(uriAuthority)) {
-                    // Build download uri.
-                    val downloadUri: Uri = Uri.parse("content://downloads/public_downloads")
-
-                    // Append download document id at uri end.
-                    val downloadUriAppendId: Uri =
-                        ContentUris.withAppendedId(downloadUri, java.lang.Long.valueOf(documentId))
-                    ret = getImageRealPath(contentResolver, downloadUriAppendId, null)
-                } else if (isExternalStoreDoc(uriAuthority)) {
-                    val idArr = documentId.split(":").toTypedArray()
-                    if (idArr.size == 2) {
-                        val type = idArr[0]
-                        val realDocId = idArr[1]
-                        if ("primary".equals(type, ignoreCase = true)) {
-                            ret = Environment.getExternalStorageDirectory()
-                                .toString() + "/" + realDocId
-                        }
-                    }
-                }
-            }
-        }
-        return ret
-    }
-
-    /* Check whether this uri represent a document or not. */
-    private fun isDocumentUri(ctx: Context?, uri: Uri?): Boolean {
-        var ret = false
-        if (ctx != null && uri != null) {
-            ret = DocumentsContract.isDocumentUri(ctx, uri)
-        }
-        return ret
-    }
-
-    /* Check whether this uri is a content uri or not.
-     *  content uri like content://media/external/images/media/1302716
-     */
-    private fun isContentUri(uri: Uri?): Boolean {
-        var ret = false
-        if (uri != null) {
-            val uriSchema: String? = uri.scheme
-            if ("content".equals(uriSchema, ignoreCase = true)) {
-                ret = true
-            }
-        }
-        return ret
-    }
-
-    /* Check whether this uri is a file uri or not.
-     *  file uri like file:///storage/41B7-12F1/DCIM/Camera/IMG_20180211_095139.jpg
-     */
-    private fun isFileUri(uri: Uri?): Boolean {
-        var ret = false
-        if (uri != null) {
-            val uriSchema: String? = uri.scheme
-            if ("file".equals(uriSchema, ignoreCase = true)) {
-                ret = true
-            }
-        }
-        return ret
-    }
-
-
-    /* Check whether this document is provided by ExternalStorageProvider. Return true means the file is saved in external storage. */
-    private fun isExternalStoreDoc(uriAuthority: String?): Boolean {
-        var ret = false
-        if (uriAuthority != null && "com.android.externalstorage.documents" == uriAuthority) {
-            ret = true
-        }
-        return ret
-    }
-
-    /* Check whether this document is provided by DownloadsProvider. return true means this file is a downloaed file. */
-    private fun isDownloadDoc(uriAuthority: String?): Boolean {
-        var ret = false
-        if (uriAuthority != null && "com.android.providers.downloads.documents" == uriAuthority) {
-            ret = true
-        }
-        return ret
-    }
-
-    /*
-     * Check if MediaProvider provide this document, if true means this image is created in android media app.
-     */
-    private fun isMediaDoc(uriAuthority: String?): Boolean {
-        var ret = false
-        if (uriAuthority != null && "com.android.providers.media.documents" == uriAuthority) {
-            ret = true
-        }
-        return ret
-    }
-
-    /*
-     * Check whether google photos provide this document, if true means this image is created in google photos app.
-     */
-    private fun isGooglePhotoDoc(uriAuthority: String?): Boolean {
-        var ret = false
-        if (uriAuthority != null && "com.google.android.apps.photos.content" == uriAuthority) {
-            ret = true
-        }
-        return ret
-    }
-
-    /* Return uri represented document file real local path.*/
-    private fun getImageRealPath(
-        contentResolver: ContentResolver,
-        uri: Uri?,
-        whereClause: String?
-    ): String {
-        var ret = ""
-
-        if(uri != null) {
-            // Query the uri with condition.
-            val cursor: Cursor? = contentResolver.query(uri, null, whereClause, null, null)
-            if (cursor != null) {
-                val moveToFirst: Boolean = cursor.moveToFirst()
-                if (moveToFirst) {
-
-                    // Get columns name by uri type.
-                    var columnName = MediaStore.Images.Media.DATA
-                    if (uri === MediaStore.Images.Media.EXTERNAL_CONTENT_URI) {
-                        columnName = MediaStore.Images.Media.DATA
-                    } else if (uri === MediaStore.Audio.Media.EXTERNAL_CONTENT_URI) {
-                        columnName = MediaStore.Audio.Media.DATA
-                    } else if (uri === MediaStore.Video.Media.EXTERNAL_CONTENT_URI) {
-                        columnName = MediaStore.Video.Media.DATA
-                    }
-
-                    // Get column index.
-                    val imageColumnIndex: Int = cursor.getColumnIndex(columnName)
-
-                    // Get column value which is the uri related file local path.
-                    ret = cursor.getString(imageColumnIndex)
-                    // Clean up
-                    cursor.close()
-                }
-            }
-        }
-        return ret
     }
 
     /*
