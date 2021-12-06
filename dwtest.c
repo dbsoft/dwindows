@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <errno.h>
 #include "dw.h"
 /* For snprintf, strdup etc on old Windows SDK */
 #if defined(__WIN32__) || defined(__OS2__)
@@ -293,33 +294,39 @@ int DWSIGNAL text_expose(HWND hwnd, DWExpose *exp, void *data)
     return TRUE;
 }
 
-void read_file(void)
+char *read_file(char *filename)
 {
-    int i,len;
-    fp = fopen(current_file, "r" );
-    if(fp)
+    char *errors = NULL;
+
+    fp = fopen(filename, "r" );
+    if(!fp)
+        errors = strerror(errno);
+    else
     {
-       lp = (char **)calloc(1000,sizeof(char *));
-       /* should test for out of memory */
-       max_linewidth=0;
-       for(i=0; i<1000; i++)
-       {
+        int i,len;
+
+        lp = (char **)calloc(1000,sizeof(char *));
+        /* should test for out of memory */
+        max_linewidth=0;
+        for(i=0; i<1000; i++)
+        {
            lp[i] = (char *)calloc(1, 1025);
-           if (fgets( lp[i], 1024, fp ) == NULL)
+           if (fgets( lp[i], 1024, fp) == NULL)
                break;
-           len = (int)strlen( lp[i] );
+           len = (int)strlen( lp[i]);
            if (len > max_linewidth)
                max_linewidth = len;
            if(lp[i][len - 1] == '\n')
                lp[i][len - 1] = '\0';
-       }
-       num_lines = i;
-       fclose(fp);
-       dw_scrollbar_set_range(hscrollbar, max_linewidth, cols);
-       dw_scrollbar_set_pos(hscrollbar, 0);
-       dw_scrollbar_set_range(vscrollbar, num_lines, rows);
-       dw_scrollbar_set_pos(vscrollbar, 0);
+        }
+        num_lines = i;
+        fclose(fp);
+        dw_scrollbar_set_range(hscrollbar, max_linewidth, cols);
+        dw_scrollbar_set_pos(hscrollbar, 0);
+        dw_scrollbar_set_range(vscrollbar, num_lines, rows);
+        dw_scrollbar_set_pos(vscrollbar, 0);
     }
+    return errors;
 }
 
 /* When hpma is not NULL we are printing.. so handle things differently */
@@ -613,15 +620,20 @@ int DWSIGNAL browse_file_callback(HWND window, void *data)
     tmp = dw_file_browse("Pick a file", "dwtest.c", "c", DW_FILE_OPEN);
     if(tmp)
     {
-        HWND notification = dw_notification_new("New file loaded", "image/test.png", "dwtest loaded \"%s\" into the file browser on the Render tab, with \"File Display\" selected from the drop down list.", tmp);
+        char *errors = read_file(tmp);
+        char *title = "New file load";
+        char *image = "image/test.png";
+        HWND notification;
+
+        if(errors)
+            notification = dw_notification_new(title, image,"dwtest failed to load \"%s\" into the file browser, %s.", tmp, errors);
+        else
+            notification = dw_notification_new(title, image,"dwtest loaded \"%s\" into the file browser on the Render tab, with \"File Display\" selected from the drop down list.", tmp);
 
         if(current_file)
-        {
             dw_free(current_file);
-        }
         current_file = tmp;
         dw_window_set_text(entryfield, current_file);
-        read_file();
         current_col = current_row = 0;
         render_draw();
         dw_signal_connect(notification, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(notification_clicked_callback), NULL);
