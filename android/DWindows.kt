@@ -3552,6 +3552,37 @@ class DWindows : AppCompatActivity() {
         }
     }
 
+    fun scrollBarNew(vertical: Int, cid: Int): SeekBar?
+    {
+        var slider: SeekBar? = null
+
+        waitOnUiThread {
+            val dataArrayMap = SimpleArrayMap<String, Long>()
+
+            slider = SeekBar(this)
+            slider!!.tag = dataArrayMap
+            slider!!.id = cid
+            slider!!.max = 1
+            slider!!.progressTintList = null
+            slider!!.progressBackgroundTintList = null
+            if (vertical != 0) {
+                slider!!.rotation = 90F
+            }
+            slider!!.setOnSeekBarChangeListener(object : OnSeekBarChangeListener {
+                override fun onStopTrackingTouch(seekBar: SeekBar) {
+                }
+
+                override fun onStartTrackingTouch(seekBar: SeekBar) {
+                }
+
+                override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
+                    eventHandlerInt(slider as View, DWEvent.VALUE_CHANGED, slider!!.progress, 0, 0, 0)
+                }
+            })
+        }
+        return slider
+    }
+
     fun sliderNew(vertical: Int, increments: Int, cid: Int): SeekBar?
     {
         var slider: SeekBar? = null
@@ -3564,7 +3595,7 @@ class DWindows : AppCompatActivity() {
             slider!!.id = cid
             slider!!.max = increments
             if (vertical != 0) {
-                slider!!.rotation = 270F
+                slider!!.rotation = 90F
             }
             slider!!.setOnSeekBarChangeListener(object : OnSeekBarChangeListener {
                 override fun onStopTrackingTouch(seekBar: SeekBar) {
