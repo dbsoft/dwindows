@@ -4563,7 +4563,10 @@ void API dw_slider_set_pos(HWND handle, unsigned int position)
  */
 HWND API dw_scrollbar_new(int vertical, ULONG cid)
 {
-    return dw_slider_new(vertical, 1, cid);
+    DWSlider *slider = dw_slider_new(vertical, 1, cid);
+    [slider setMinimumTrackTintColor:[UIColor clearColor]];
+    [slider setMaximumTrackTintColor:[UIColor clearColor]];
+    return slider;
 }
 
 /*
