@@ -1985,7 +1985,19 @@ void API dw_slider_set_pos(HWND handle, unsigned int position)
  */
 HWND API dw_scrollbar_new(int vertical, ULONG cid)
 {
-    return dw_slider_new(vertical, 100, cid);
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID scrollBarNew = env->GetMethodID(clazz, "scrollBarNew", "(II)Landroid/widget/SeekBar;");
+        // Call the method on the object
+        jobject result = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, scrollBarNew, vertical, (jint)cid), _DW_REFERENCE_WEAK);
+        return result;
+    }
+    return nullptr;
 }
 
 /*
