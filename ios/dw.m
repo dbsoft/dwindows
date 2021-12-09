@@ -3431,6 +3431,12 @@ int API dw_messagebox(const char *title, int flags, const char *format, ...)
     UIAlertControllerStyle mstyle = UIAlertControllerStyleAlert;
     NSArray *params;
     va_list args;
+    static int in_mb = FALSE;
+
+    /* Prevent recursion */
+    if(in_mb)
+        return 0;
+    in_mb = TRUE;
 
     if(flags & DW_MB_OKCANCEL)
     {
@@ -3454,6 +3460,7 @@ int API dw_messagebox(const char *title, int flags, const char *format, ...)
 
     params = [NSMutableArray arrayWithObjects:mtitle, mtext, [NSNumber numberWithInteger:mstyle], button1, button2, button3, nil];
     [DWObj safeCall:@selector(messageBox:) withObject:params];
+    in_mb = FALSE;
     iResponse = [[params lastObject] integerValue];
 
     switch(iResponse)
