@@ -298,7 +298,7 @@ char *read_file(char *filename)
 {
     char *errors = NULL;
 
-    fp = fopen(filename, "r" );
+    fp = fopen(filename, "r");
     if(!fp)
         errors = strerror(errno);
     else
@@ -311,9 +311,9 @@ char *read_file(char *filename)
         for(i=0; i<1000; i++)
         {
            lp[i] = (char *)calloc(1, 1025);
-           if (fgets( lp[i], 1024, fp) == NULL)
+           if (fgets(lp[i], 1024, fp) == NULL)
                break;
-           len = (int)strlen( lp[i]);
+           len = (int)strlen(lp[i]);
            if (len > max_linewidth)
                max_linewidth = len;
            if(lp[i][len - 1] == '\n')
@@ -616,8 +616,7 @@ int DWSIGNAL notification_clicked_callback(HWND notification, void *data)
 
 int DWSIGNAL browse_file_callback(HWND window, void *data)
 {
-    char *tmp;
-    tmp = dw_file_browse("Pick a file", "dwtest.c", "c", DW_FILE_OPEN);
+    char *tmp = dw_file_browse("Pick a file", "dwtest.c", "c", DW_FILE_OPEN);
     if(tmp)
     {
         char *errors = read_file(tmp);
@@ -1616,9 +1615,9 @@ void buttons_add(void)
     dw_window_set_color(buttonsbox, DW_CLR_RED, DW_CLR_RED);
 
     calbox = dw_box_new(DW_HORZ, 0);
-    dw_box_pack_start(notebookbox5, calbox, 0, 0, TRUE, TRUE, 1);
+    dw_box_pack_start(notebookbox5, calbox, 0, 0, TRUE, FALSE, 1);
     cal = dw_calendar_new(100);
-    dw_box_pack_start(calbox, cal, -1, -1, TRUE, TRUE, 0);
+    dw_box_pack_start(calbox, cal, -1, -1, TRUE, FALSE, 0);
 
     dw_calendar_set_date(cal, 2019, 4, 30);
 
