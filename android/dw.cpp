@@ -2986,6 +2986,8 @@ unsigned long API dw_color_choose(unsigned long value)
     if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
         unsigned long _value = _dw_get_color(value);
+        int r, g, b;
+        jint ac;
 
         // First get the class that contains the method you need to call
         jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
@@ -2993,10 +2995,15 @@ unsigned long API dw_color_choose(unsigned long value)
         jmethodID colorChoose = env->GetMethodID(clazz, "colorChoose",
                                                  "(IIIII)I");
         // Call the method on the object
-        newcolor = (unsigned long)env->CallIntMethod(_dw_obj, colorChoose, (jint)value, 0,
+        ac = env->CallIntMethod(_dw_obj, colorChoose, (jint)value, 0,
                    (jint)DW_RED_VALUE(_value), (jint)DW_GREEN_VALUE(_value), (jint)DW_BLUE_VALUE(_value));
-        if(!_dw_jni_check_exception(env))
+        if(_dw_jni_check_exception(env))
             return value;
+        // Convert from Android Color to RGB back to Dynamic Windows
+        b = ac & 0xff;
+        g = (ac >> 8) & 0xff;
+        r = (ac >> 16) & 0xff;
+        newcolor = DW_RGB(r, g, b);
     }
     return newcolor;
 }

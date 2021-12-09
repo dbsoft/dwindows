@@ -66,6 +66,10 @@ import android.util.Base64
 import kotlin.math.*
 import android.content.ContentUris
 import androidx.appcompat.widget.AppCompatSeekBar
+import android.content.DialogInterface
+
+
+
 
 
 // Color Wheel section
@@ -1685,6 +1689,9 @@ class DWindows : AppCompatActivity() {
     private var fileURI: Uri? = null
     private var fileLock = ReentrantLock()
     private var fileCond = fileLock.newCondition()
+    private var colorLock = ReentrantLock()
+    private var colorCond = colorLock.newCondition()
+    private var colorChosen: Int = 0
     // Lists of data for our Windows
     private var windowTitles = mutableListOf<String?>()
     private var windowMenuBars = mutableListOf<DWMenu?>()
@@ -5247,19 +5254,29 @@ class DWindows : AppCompatActivity() {
 
         // This can't be called from the main thread
         if(Looper.getMainLooper() != Looper.myLooper()) {
+            colorLock.lock()
             waitOnUiThread {
                 val dialog = Dialog(this)
                 val colorWheel = ColorWheel(this, null, 0)
 
                 dialog.setContentView(colorWheel)
                 colorWheel.rgb = Color.rgb(red, green, blue)
+                colorChosen = colorWheel.rgb
+                colorWheel.colorChangeListener = { rgb: Int -> colorChosen = rgb }
                 dialog.window?.setLayout(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT
                 )
+                dialog.setOnDismissListener {
+                    colorLock.lock()
+                    colorCond.signal()
+                    colorLock.unlock()
+                }
                 dialog.show()
-                retval = colorWheel.rgb
             }
+            colorCond.await()
+            retval = colorChosen
+            colorLock.unlock()
         }
         return retval
     }
