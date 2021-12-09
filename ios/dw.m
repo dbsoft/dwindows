@@ -1064,6 +1064,7 @@ API_AVAILABLE(ios(13.0))
         DWDialog *dialog = dw_dialog_new(NULL);
         UIColorPickerViewController *picker = [[UIColorPickerViewController alloc] init];
         DWColorPickerDelegate *delegate = [[DWColorPickerDelegate alloc] init];
+        unsigned long color = [[params firstObject] unsignedLongValue];
 
         /* Setup our picker */
         [picker setSupportsAlpha:NO];
@@ -1072,6 +1073,7 @@ API_AVAILABLE(ios(13.0))
         [hiddenWindow makeKeyAndVisible];
         [delegate setDialog:dialog];
         [picker setDelegate:delegate];
+        [picker setSelectedColor:[UIColor colorWithRed: DW_RED_VALUE(color)/255.0 green: DW_GREEN_VALUE(color)/255.0 blue: DW_BLUE_VALUE(color)/255.0 alpha: 1]];
         /* Wait for them to pick a color */
         [[hiddenWindow rootViewController] presentViewController:picker animated:YES completion:nil];
         [params addObject:[NSNumber numberWithUnsignedLong:DW_POINTER_TO_UINT(dw_dialog_wait(dialog))]];
@@ -4561,12 +4563,15 @@ void API dw_slider_set_pos(HWND handle, unsigned int position)
  *       increments: Number of increments available.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND API dw_scrollbar_new(int vertical, ULONG cid)
+DW_FUNCTION_DEFINITION(dw_scrollbar_new, HWND, int vertical, ULONG cid)
+DW_FUNCTION_ADD_PARAM2(vertical, cid)
+DW_FUNCTION_RETURN(dw_scrollbar_new, HWND)
+DW_FUNCTION_RESTORE_PARAM2(vertical, int, cid, ULONG)
 {
     DWSlider *slider = dw_slider_new(vertical, 1, cid);
     [slider setMinimumTrackTintColor:[UIColor clearColor]];
     [slider setMaximumTrackTintColor:[UIColor clearColor]];
-    return slider;
+    DW_FUNCTION_RETURN_THIS(slider);
 }
 
 /*
@@ -5599,7 +5604,7 @@ void API dw_color_background_set(unsigned long value)
  */
 unsigned long API dw_color_choose(unsigned long value)
 {
-    NSMutableArray *params = [NSMutableArray arrayWithObject:[NSNumber numberWithUnsignedLong:value]];
+    NSMutableArray *params = [NSMutableArray arrayWithObject:[NSNumber numberWithUnsignedLong:_dw_get_color(value)]];
     unsigned long newcolor = value;
 
     [DWObj safeCall:@selector(colorPicker:) withObject:params];
