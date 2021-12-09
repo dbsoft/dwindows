@@ -1929,7 +1929,8 @@ HWND API dw_slider_new(int vertical, int increments, ULONG cid)
         // First get the class that contains the method you need to call
         jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
         // Get the method that you want to call
-        jmethodID sliderNew = env->GetMethodID(clazz, "sliderNew", "(III)Landroid/widget/SeekBar;");
+        jmethodID sliderNew = env->GetMethodID(clazz, "sliderNew",
+                                               "(III)Lorg/dbsoft/dwindows/DWSlider;");
         // Call the method on the object
         jobject result = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, sliderNew, vertical, increments, (jint)cid), _DW_REFERENCE_WEAK);
         return result;
@@ -1955,7 +1956,7 @@ unsigned int API dw_slider_get_pos(HWND handle)
         jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
         // Get the method that you want to call
         jmethodID percentGetPos = env->GetMethodID(clazz, "percentGetPos",
-                                                   "(Landroid/widget/ProgressBar;)I");
+                                                   "(Landroid/view/View;)I");
         // Call the method on the object
         retval = env->CallIntMethod(_dw_obj, percentGetPos, handle);
         if(_dw_jni_check_exception(env))
@@ -1992,7 +1993,8 @@ HWND API dw_scrollbar_new(int vertical, ULONG cid)
         // First get the class that contains the method you need to call
         jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
         // Get the method that you want to call
-        jmethodID scrollBarNew = env->GetMethodID(clazz, "scrollBarNew", "(II)Landroid/widget/SeekBar;");
+        jmethodID scrollBarNew = env->GetMethodID(clazz, "scrollBarNew",
+                                                  "(II)Lorg/dbsoft/dwindows/DWSlider;");
         // Call the method on the object
         jobject result = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, scrollBarNew, vertical, (jint)cid), _DW_REFERENCE_WEAK);
         return result;
@@ -2040,7 +2042,7 @@ void API dw_scrollbar_set_range(HWND handle, unsigned int range, unsigned int vi
         jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
         // Get the method that you want to call
         jmethodID percentSetRange = env->GetMethodID(clazz, "percentSetRange",
-                                                     "(Landroid/widget/ProgressBar;I)V");
+                                                     "(Landroid/view/View;I)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, percentSetRange, handle, (jint)range);
         _dw_jni_check_exception(env);
@@ -2088,7 +2090,7 @@ void API dw_percent_set_pos(HWND handle, unsigned int position)
         jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
         // Get the method that you want to call
         jmethodID percentSetPos = env->GetMethodID(clazz, "percentSetPos",
-                                                   "(Landroid/widget/ProgressBar;I)V");
+                                                   "(Landroid/view/View;I)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, percentSetPos, handle, (jint)position);
         _dw_jni_check_exception(env);
