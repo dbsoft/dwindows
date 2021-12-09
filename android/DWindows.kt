@@ -65,8 +65,7 @@ import android.util.*
 import android.util.Base64
 import kotlin.math.*
 import android.content.ContentUris
-
-
+import androidx.appcompat.widget.AppCompatSeekBar
 
 
 // Color Wheel section
@@ -941,6 +940,32 @@ private class DWWebViewClient : WebViewClient() {
     }
 
     external fun eventHandlerHTMLChanged(obj1: View, message: Int, URI: String, status: Int)
+}
+
+class DWSlider
+@JvmOverloads constructor(context: Context): FrameLayout(context) {
+    val slider: SeekBar = SeekBar(context)
+
+    init {
+        slider.layoutParams = LayoutParams(LayoutParams.MATCH_PARENT,
+                LayoutParams.WRAP_CONTENT, Gravity.CENTER)
+        addView(slider)
+    }
+
+    @Synchronized
+    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+        if(slider.rotation == 90F || slider.rotation == 270F) {
+            val layoutHeight = MeasureSpec.getSize(heightMeasureSpec)
+            // set slider width to layout heigth
+            slider.layoutParams.width = layoutHeight
+        }
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec)
+        if(slider.rotation == 90F || slider.rotation == 270F) {
+            // update layout width to the rotated height of the slider
+            // otherwise the layout remains quadratic
+            setMeasuredDimension(slider.measuredHeight, measuredHeight)
+        }
+    }
 }
 
 class DWSpinButton(context: Context) : AppCompatEditText(context), OnTouchListener {
@@ -3552,23 +3577,23 @@ class DWindows : AppCompatActivity() {
         }
     }
 
-    fun scrollBarNew(vertical: Int, cid: Int): SeekBar?
+    fun scrollBarNew(vertical: Int, cid: Int): DWSlider?
     {
-        var slider: SeekBar? = null
+        var scrollbar: DWSlider? = null
 
         waitOnUiThread {
             val dataArrayMap = SimpleArrayMap<String, Long>()
 
-            slider = SeekBar(this)
-            slider!!.tag = dataArrayMap
-            slider!!.id = cid
-            slider!!.max = 1
-            slider!!.progressTintList = null
-            slider!!.progressBackgroundTintList = null
+            scrollbar = DWSlider(this)
+            scrollbar!!.tag = dataArrayMap
+            scrollbar!!.id = cid
+            scrollbar!!.slider.max = 1
+            scrollbar!!.slider.progressTintList = null
+            scrollbar!!.slider.progressBackgroundTintList = null
             if (vertical != 0) {
-                slider!!.rotation = 90F
+                scrollbar!!.slider.rotation = 90F
             }
-            slider!!.setOnSeekBarChangeListener(object : OnSeekBarChangeListener {
+            scrollbar!!.slider.setOnSeekBarChangeListener(object : OnSeekBarChangeListener {
                 override fun onStopTrackingTouch(seekBar: SeekBar) {
                 }
 
@@ -3576,28 +3601,28 @@ class DWindows : AppCompatActivity() {
                 }
 
                 override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
-                    eventHandlerInt(slider as View, DWEvent.VALUE_CHANGED, slider!!.progress, 0, 0, 0)
+                    eventHandlerInt(scrollbar as View, DWEvent.VALUE_CHANGED, scrollbar!!.slider.progress, 0, 0, 0)
                 }
             })
         }
-        return slider
+        return scrollbar
     }
 
-    fun sliderNew(vertical: Int, increments: Int, cid: Int): SeekBar?
+    fun sliderNew(vertical: Int, increments: Int, cid: Int): DWSlider?
     {
-        var slider: SeekBar? = null
+        var slider: DWSlider? = null
 
         waitOnUiThread {
             val dataArrayMap = SimpleArrayMap<String, Long>()
 
-            slider = SeekBar(this)
+            slider = DWSlider(this)
             slider!!.tag = dataArrayMap
             slider!!.id = cid
-            slider!!.max = increments
+            slider!!.slider.max = increments
             if (vertical != 0) {
-                slider!!.rotation = 90F
+                slider!!.slider.rotation = 90F
             }
-            slider!!.setOnSeekBarChangeListener(object : OnSeekBarChangeListener {
+            slider!!.slider.setOnSeekBarChangeListener(object : OnSeekBarChangeListener {
                 override fun onStopTrackingTouch(seekBar: SeekBar) {
                 }
 
@@ -3605,7 +3630,7 @@ class DWindows : AppCompatActivity() {
                 }
 
                 override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
-                    eventHandlerInt(slider as View, DWEvent.VALUE_CHANGED, slider!!.progress, 0, 0, 0)
+                    eventHandlerInt(slider as View, DWEvent.VALUE_CHANGED, slider!!.slider.progress, 0, 0, 0)
                 }
             })
         }
@@ -3627,27 +3652,51 @@ class DWindows : AppCompatActivity() {
         return percent
     }
 
-    fun percentGetPos(percent: ProgressBar): Int
+    fun percentGetPos(percent: View): Int
     {
         var retval = 0
 
         waitOnUiThread {
-            retval = percent.progress
+            var progress: ProgressBar
+
+            if(percent is ProgressBar) {
+                progress = percent as ProgressBar
+            } else {
+                val slider = percent as DWSlider
+                progress = slider.slider
+            }
+            retval = progress.progress
         }
         return retval
     }
 
-    fun percentSetPos(percent: ProgressBar, position: Int)
+    fun percentSetPos(percent: View, position: Int)
     {
         waitOnUiThread {
-            percent.progress = position
+            var progress: ProgressBar
+
+            if(percent is ProgressBar) {
+                progress = percent as ProgressBar
+            } else {
+                val slider = percent as DWSlider
+                progress = slider.slider
+            }
+            progress.progress = position
         }
     }
 
-    fun percentSetRange(percent: ProgressBar, range: Int)
+    fun percentSetRange(percent: View, range: Int)
     {
         waitOnUiThread {
-            percent.max = range
+            var progress: ProgressBar
+
+            if(percent is ProgressBar) {
+                progress = percent as ProgressBar
+            } else {
+                val slider = percent as DWSlider
+                progress = slider.slider
+            }
+            progress.max = range
         }
     }
 
