@@ -687,12 +687,12 @@ Java_org_dbsoft_dwindows_DWPrintDocumentAdapter_eventHandlerPrintDraw(JNIEnv* en
 
     if(print && print->drawfunc)
     {
-        HPIXMAP pixmap = (HPIXMAP)alloca(sizeof(HPIXMAP));
+        HPIXMAP pixmap = (HPIXMAP)alloca(sizeof(struct _hpixmap));
 
+        memset(pixmap, 0, sizeof(struct _hpixmap));
         pixmap->width = width;
         pixmap->height = height;
         pixmap->bitmap = bitmap;
-        pixmap->handle = nullptr;
 
         print->drawfunc(print, pixmap, (int)page, print->drawdata);
     }
