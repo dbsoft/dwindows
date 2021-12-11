@@ -936,6 +936,43 @@ API_AVAILABLE(ios(13.0))
 -(BOOL)acceptsFirstResponder { return YES; }
 @end
 
+/* Subclass page renderer to implement page by page rendering */
+@interface DWPrintPageRenderer : UIPrintPageRenderer
+{
+    int (*drawfunc)(HPRINT, HPIXMAP, int, void *);
+    void *drawdata;
+    unsigned long flags;
+    unsigned int pages;
+    HPRINT *print;
+}
+-(void)setDrawFunc:(void *)input;
+-(void)setDrawData:(void *)input;
+-(void *)drawData;
+-(void)setFlags:(unsigned long)input;
+-(unsigned long)flags;
+-(void)setPages:(unsigned int)input;
+-(void)setPrint:(HPRINT)input;
+@end
+
+@implementation DWPrintPageRenderer
+-(void)setDrawFunc:(void *)input { drawfunc = input; }
+-(void)setDrawData:(void *)input { drawdata = input; }
+-(void *)drawData { return drawdata; }
+-(void)setFlags:(unsigned long)input { flags = input; }
+-(unsigned long)flags { return flags; }
+-(void)setPages:(unsigned int)input { pages = input; }
+-(void)setPrint:(HPRINT)input { print = input; }
+-(void)drawContentForPageAtIndex:(NSInteger)pageIndex inRect:(CGRect)contentRect
+{
+    HPIXMAP pm = dw_pixmap_new(nil, contentRect.size.width, contentRect.size.height, 32);
+    DWImage *image = pm->image;
+    drawfunc(print, pm, (int)pageIndex, drawdata);
+    [[image image] drawInRect:contentRect];
+    dw_pixmap_destroy(pm);
+}
+-(NSInteger)numberOfPages { return (NSInteger)pages; }
+@end
+
 @interface DWFontPickerDelegate : UIResponder <UIFontPickerViewControllerDelegate>
 {
     DWDialog *dialog;
@@ -1213,6 +1250,28 @@ API_AVAILABLE(ios(13.0))
     [hiddenWindow resignKeyWindow];
     [hiddenWindow setHidden:YES];
     [params addObject:[NSNumber numberWithInteger:iResponse]];
+}
+-(void)printDialog:(NSMutableArray *)params
+{
+    __block DWDialog *dialog = dw_dialog_new(NULL);
+    UIPrintInteractionController *pc = [UIPrintInteractionController sharedPrintController];
+    UIPrintInfo *pi = [params firstObject];
+    DWPrintPageRenderer *renderer = [params objectAtIndex:1];
+    /* Not currently using the passed in flags, but when we need them...
+     NSNumber *flags = [params objectAtIndex:2];*/
+    int result = DW_ERROR_UNKNOWN;
+
+    /* Setup our print dialog */
+    [pc setPrintInfo:pi];
+    [pc setPrintPageRenderer:renderer];
+
+    /* Present the shared printer dialog */
+    [pc presentAnimated:YES completionHandler:^(UIPrintInteractionController * _Nonnull printInteractionController, BOOL completed, NSError * _Nullable error) {
+        dw_dialog_dismiss(dialog, DW_INT_TO_POINTER((completed ? DW_ERROR_NONE : DW_ERROR_UNKNOWN)));
+    }];
+    result = DW_POINTER_TO_INT(dw_dialog_wait(dialog));
+
+    [params addObject:[NSNumber numberWithInteger:result]];
 }
 -(void)safeCall:(SEL)sel withObject:(id)param
 {
@@ -10884,7 +10943,26 @@ int dw_browse(const char *url)
  */
 HPRINT API dw_print_new(const char *jobname, unsigned long flags, unsigned int pages, void *drawfunc, void *drawdata)
 {
-    /* TODO: Implement printing on iOS */
+    if(drawfunc)
+    {
+        UIPrintInfo *pi = [UIPrintInfo alloc];
+        DWPrintPageRenderer *renderer = [DWPrintPageRenderer new];
+        NSMutableArray *pa = [[[NSMutableArray alloc] initWithObjects:pi, renderer, nil] retain];
+
+        if(!jobname)
+            jobname = "Dynamic Windows Print Job";
+
+
+        [pi setOutputType:UIPrintInfoOutputGeneral];
+        [pi setJobName:[NSString stringWithUTF8String:jobname]];
+        [pi setOrientation:UIPrintInfoOrientationPortrait];
+        [renderer setDrawFunc:drawfunc];
+        [renderer setDrawData:drawdata];
+        [renderer setPages:pages];
+        [renderer setFlags:flags];
+        [renderer setPrint:pa];
+        return pa;
+    }
     return NULL;
 }
 
@@ -10898,8 +10976,18 @@ HPRINT API dw_print_new(const char *jobname, unsigned long flags, unsigned int p
  */
 int API dw_print_run(HPRINT print, unsigned long flags)
 {
-    /* TODO: Implement printing on iOS */
-    return DW_ERROR_UNKNOWN;
+    int retval = DW_ERROR_UNKNOWN;
+
+    if(print)
+    {
+        NSMutableArray *pa = print;
+
+        [pa addObject:[NSNumber numberWithUnsignedLong:flags]];
+        [DWObj safeCall:@selector(printDialog:) withObject:pa];
+        retval = (int)[[pa lastObject] integerValue];
+        [pa release];
+    }
+    return retval;
 }
 
 /*
@@ -10909,7 +10997,14 @@ int API dw_print_run(HPRINT print, unsigned long flags)
  */
 void API dw_print_cancel(HPRINT print)
 {
-    /* TODO: Implement printing on iOS */
+    if(print)
+    {
+        NSMutableArray *pa = print;
+        UIPrintInteractionController *pc = [UIPrintInteractionController sharedPrintController];
+
+        [pc dismissAnimated:YES];
+        [pa release];
+    }
 }
 
 /*
