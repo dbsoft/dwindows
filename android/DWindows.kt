@@ -67,9 +67,9 @@ import kotlin.math.*
 import android.content.ContentUris
 import androidx.appcompat.widget.AppCompatSeekBar
 import android.content.DialogInterface
-
-
-
+import android.graphics.pdf.PdfDocument
+import android.print.*
+import android.print.pdf.PrintedPdfDocument
 
 
 // Color Wheel section
@@ -944,6 +944,106 @@ private class DWWebViewClient : WebViewClient() {
     }
 
     external fun eventHandlerHTMLChanged(obj1: View, message: Int, URI: String, status: Int)
+}
+
+class DWPrintDocumentAdapter : PrintDocumentAdapter()
+{
+    var context: Context? = null
+    var pages: Int = 0
+    var pdfDocument: PrintedPdfDocument? = null
+    var print: Long = 0
+
+    override fun onLayout(
+        oldAttributes: PrintAttributes?,
+        newAttributes: PrintAttributes,
+        cancellationSignal: CancellationSignal?,
+        callback: LayoutResultCallback,
+        extras: Bundle?
+    ) {
+        // Create a new PdfDocument with the requested page attributes
+        pdfDocument = context?.let { PrintedPdfDocument(it, newAttributes) }
+
+        // Respond to cancellation request
+        if (cancellationSignal?.isCanceled == true) {
+            callback.onLayoutCancelled()
+            return
+        }
+
+        if (pages > 0) {
+            // Return print information to print framework
+            PrintDocumentInfo.Builder("print_output.pdf")
+                .setContentType(PrintDocumentInfo.CONTENT_TYPE_DOCUMENT)
+                .setPageCount(pages)
+                .build()
+                .also { info ->
+                    // Content layout reflow is complete
+                    callback.onLayoutFinished(info, true)
+                }
+        } else {
+            // Otherwise report an error to the print framework
+            callback.onLayoutFailed("No pages to print.")
+        }
+    }
+
+    override fun onWrite(
+        pageRanges: Array<out PageRange>,
+        destination: ParcelFileDescriptor,
+        cancellationSignal: CancellationSignal?,
+        callback: WriteResultCallback
+    ) {
+        var writtenPagesArray: Array<PdfDocument.Page> = emptyArray()
+
+        // Iterate over each page of the document,
+        // check if it's in the output range.
+        for (i in 0 until pages) {
+            pdfDocument?.startPage(i)?.also { page ->
+
+                // check for cancellation
+                if (cancellationSignal?.isCanceled == true) {
+                    callback.onWriteCancelled()
+                    pdfDocument?.close()
+                    pdfDocument = null
+                    return
+                }
+
+                // Draw page content for printing
+                var bitmap = Bitmap.createBitmap(page.canvas.width, page.canvas.height, Bitmap.Config.ARGB_8888)
+                // Actual drawing is done in the JNI C code callback to the bitmap
+                eventHandlerPrintDraw(print, bitmap, i, page.canvas.width, page.canvas.height)
+                // Copy from the bitmap canvas our C code drew on to the PDF page canvas
+                val rect = Rect(0, 0, page.canvas.width, page.canvas.height)
+                page.canvas.drawBitmap(bitmap, rect, rect, null)
+
+                // Rendering is complete, so page can be finalized.
+                pdfDocument?.finishPage(page)
+
+                // Add the new page to the array
+                writtenPagesArray += page
+            }
+        }
+
+        // Write PDF document to file
+        try {
+            pdfDocument?.writeTo(FileOutputStream(destination.fileDescriptor))
+        } catch (e: IOException) {
+            callback.onWriteFailed(e.toString())
+            return
+        } finally {
+            pdfDocument?.close()
+            pdfDocument = null
+        }
+        // Signal the print framework the document is complete
+        callback.onWriteFinished(pageRanges)
+    }
+
+    override fun onFinish() {
+        // Notify our C code so it can cleanup
+        eventHandlerPrintFinish(print)
+        super.onFinish()
+    }
+
+    external fun eventHandlerPrintDraw(print: Long, bitmap: Bitmap, page: Int, width: Int, height: Int)
+    external fun eventHandlerPrintFinish(print: Long)
 }
 
 class DWSlider
@@ -4656,6 +4756,35 @@ class DWindows : AppCompatActivity() {
             }
         }
         return pixmap
+    }
+
+    fun printRun(print: Long, flags: Int, jobname: String, pages: Int, runflags: Int): PrintJob?
+    {
+        var retval: PrintJob? = null
+
+        waitOnUiThread {
+            // Get a PrintManager instance
+            val printManager = this.getSystemService(Context.PRINT_SERVICE) as PrintManager
+            // Setup our print adapter
+            val printAdapter = DWPrintDocumentAdapter()
+            printAdapter.context = this
+            printAdapter.pages = pages
+            printAdapter.print = print
+            // Start a print job, passing in a PrintDocumentAdapter implementation
+            // to handle the generation of a print document
+            retval = printManager.print(jobname, printAdapter, null)
+        }
+        return retval
+    }
+
+    fun printCancel(printjob: PrintJob)
+    {
+        waitOnUiThread {
+            // Get a PrintManager instance
+            val printManager = this.getSystemService(Context.PRINT_SERVICE) as PrintManager
+            // Remove the job we earlier added from the queue
+            printManager.printJobs.remove(printjob)
+        }
     }
 
     fun pixmapGetDimensions(pixmap: Bitmap): Long
