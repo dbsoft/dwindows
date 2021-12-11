@@ -668,6 +668,49 @@ Java_org_dbsoft_dwindows_DWWebViewClient_eventHandlerHTMLChanged(JNIEnv* env, jo
     _dw_event_handler(obj1, params);
 }
 
+typedef struct _dwprint
+{
+    int (*drawfunc)(HPRINT, HPIXMAP, int, void *);
+    void *drawdata;
+    unsigned long flags;
+    char *jobname;
+    jint pages;
+    jobject printjob;
+} DWPrint;
+
+/* Handlers for Print events */
+JNIEXPORT void JNICALL
+Java_org_dbsoft_dwindows_DWPrintDocumentAdapter_eventHandlerPrintDraw(JNIEnv* env, jobject obj, jlong pr,
+                                                                      jobject bitmap, jint page, jint width, jint height)
+{
+    DWPrint *print = (DWPrint *)pr;
+
+    if(print && print->drawfunc)
+    {
+        HPIXMAP pixmap = (HPIXMAP)alloca(sizeof(HPIXMAP));
+
+        pixmap->width = width;
+        pixmap->height = height;
+        pixmap->bitmap = bitmap;
+        pixmap->handle = nullptr;
+
+        print->drawfunc(print, pixmap, (int)page, print->drawdata);
+    }
+}
+
+JNIEXPORT void JNICALL
+Java_org_dbsoft_dwindows_DWPrintDocumentAdapter_eventHandlerPrintFinish(JNIEnv* env, jobject obj, jlong pr)
+{
+    DWPrint *print = (DWPrint *) pr;
+
+    if(print)
+    {
+        if(print->jobname)
+            free(print->jobname);
+        free(print);
+    }
+}
+
 JNIEXPORT void JNICALL
 Java_org_dbsoft_dwindows_DWindows_eventHandlerInt(JNIEnv* env, jobject obj, jobject obj1, jint message,
                                                jint inta, jint intb, jint intc, jint intd) {
@@ -7509,8 +7552,21 @@ int API dw_browse(const char *url)
  */
 HPRINT API dw_print_new(const char *jobname, unsigned long flags, unsigned int pages, void *drawfunc, void *drawdata)
 {
-    /* TODO: Implement printing */
-    return nullptr;
+    DWPrint *print;
+
+    if(!drawfunc || !(print = (DWPrint *)calloc(1, sizeof(DWPrint))))
+        return nullptr;
+
+    if(!jobname)
+        jobname = "Dynamic Windows Print Job";
+
+    print->drawfunc = (int (*)(HPRINT, HPIXMAP, int, void *))drawfunc;
+    print->drawdata = drawdata;
+    print->flags = flags;
+    print->jobname = strdup(jobname);
+    print->pages = (jint)pages;
+
+    return print;
 }
 
 /*
@@ -7521,10 +7577,27 @@ HPRINT API dw_print_new(const char *jobname, unsigned long flags, unsigned int p
  * Returns:
  *       DW_ERROR_UNKNOWN on error or DW_ERROR_NONE on success.
  */
-int API dw_print_run(HPRINT print, unsigned long flags)
+int API dw_print_run(HPRINT pr, unsigned long flags)
 {
-    /* TODO: Implement printing */
-    return DW_ERROR_UNKNOWN;
+    JNIEnv *env;
+    DWPrint *print = (DWPrint *)pr;
+    int retval = DW_ERROR_UNKNOWN;
+
+    if(print && print->drawfunc && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // Construct a String
+        jstring jstr = env->NewStringUTF(print->jobname);
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID printRun = env->GetMethodID(clazz, "printRun",
+                                              "(JILjava/lang/String;II)Landroid/print/PrintJob;");
+        // Call the method on the object
+        print->printjob = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, printRun, (jlong)pr, (jint)print->flags, jstr, (jint)print->pages, (jint)flags), _DW_REFERENCE_WEAK);
+        if(print->printjob)
+            retval = DW_ERROR_NONE;
+    }
+    return retval;
 }
 
 /*
@@ -7532,9 +7605,28 @@ int API dw_print_run(HPRINT print, unsigned long flags)
  * Parameters:
  *       print: Handle to the print object returned by dw_print_new().
  */
-void API dw_print_cancel(HPRINT print)
+void API dw_print_cancel(HPRINT pr)
 {
-    /* TODO: Implement printing */
+    JNIEnv *env;
+    DWPrint *print = (DWPrint *)pr;
+
+    if(print)
+    {
+        if(print->printjob && (env = (JNIEnv *) pthread_getspecific(_dw_env_key)))
+        {
+            // First get the class that contains the method you need to call
+            jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+            // Get the method that you want to call
+            jmethodID printCancel = env->GetMethodID(clazz, "printCancel",
+                                                     "(Landroid/print/PrintJob;)V");
+            // Call the method on the object
+            env->CallVoidMethod(_dw_obj, printCancel, print->printjob);
+            _dw_jni_check_exception(env);
+        }
+        if(print->jobname)
+            free(print->jobname);
+        free(print);
+    }
 }
 
 /*
