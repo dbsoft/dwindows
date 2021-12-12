@@ -187,28 +187,40 @@ rettype API func(__VA_ARGS__) { \
     DW_LOCAL_POOL_IN; \
     NSPointerArray *_args = [[NSPointerArray alloc] initWithOptions:NSPointerFunctionsOpaqueMemory]; \
     [_args addPointer:(void *)_##func];
-#define DW_FUNCTION_ADD_PARAM1(param1) [_args addPointer:(void *)&param1];
+#define DW_FUNCTION_ADD_PARAM1(param1) [_args addPointer:(void *)&param1]; \
+    [_args addPointer:(void *)pthread_getspecific(_dw_fg_color_key)]; \
+    [_args addPointer:(void *)pthread_getspecific(_dw_bg_color_key)];
 #define DW_FUNCTION_ADD_PARAM2(param1, param2) [_args addPointer:(void *)&param1]; \
-    [_args addPointer:(void *)&param2];
+    [_args addPointer:(void *)&param2]; \
+    [_args addPointer:(void *)pthread_getspecific(_dw_fg_color_key)]; \
+    [_args addPointer:(void *)pthread_getspecific(_dw_bg_color_key)];
 #define DW_FUNCTION_ADD_PARAM3(param1, param2, param3) [_args addPointer:(void *)&param1]; \
     [_args addPointer:(void *)&param2]; \
-    [_args addPointer:(void *)&param3];
+    [_args addPointer:(void *)&param3]; \
+    [_args addPointer:(void *)pthread_getspecific(_dw_fg_color_key)]; \
+    [_args addPointer:(void *)pthread_getspecific(_dw_bg_color_key)];
 #define DW_FUNCTION_ADD_PARAM4(param1, param2, param3, param4) [_args addPointer:(void *)&param1]; \
     [_args addPointer:(void *)&param2]; \
     [_args addPointer:(void *)&param3]; \
-    [_args addPointer:(void *)&param4];
+    [_args addPointer:(void *)&param4]; \
+    [_args addPointer:(void *)pthread_getspecific(_dw_fg_color_key)]; \
+    [_args addPointer:(void *)pthread_getspecific(_dw_bg_color_key)];
 #define DW_FUNCTION_ADD_PARAM5(param1, param2, param3, param4, param5) [_args addPointer:(void *)&param1]; \
     [_args addPointer:(void *)&param2]; \
     [_args addPointer:(void *)&param3]; \
     [_args addPointer:(void *)&param4]; \
-    [_args addPointer:(void *)&param5];
+    [_args addPointer:(void *)&param5]; \
+    [_args addPointer:(void *)pthread_getspecific(_dw_fg_color_key)]; \
+    [_args addPointer:(void *)pthread_getspecific(_dw_bg_color_key)];
 #define DW_FUNCTION_ADD_PARAM6(param1, param2, param3, param4, param5, param6) \
     [_args addPointer:(void *)&param1]; \
     [_args addPointer:(void *)&param2]; \
     [_args addPointer:(void *)&param3]; \
     [_args addPointer:(void *)&param4]; \
     [_args addPointer:(void *)&param5]; \
-    [_args addPointer:(void *)&param6];
+    [_args addPointer:(void *)&param6]; \
+    [_args addPointer:(void *)pthread_getspecific(_dw_fg_color_key)]; \
+    [_args addPointer:(void *)pthread_getspecific(_dw_bg_color_key)];
 #define DW_FUNCTION_ADD_PARAM7(param1, param2, param3, param4, param5, param6, param7) \
     [_args addPointer:(void *)&param1]; \
     [_args addPointer:(void *)&param2]; \
@@ -216,7 +228,9 @@ rettype API func(__VA_ARGS__) { \
     [_args addPointer:(void *)&param4]; \
     [_args addPointer:(void *)&param5]; \
     [_args addPointer:(void *)&param6]; \
-    [_args addPointer:(void *)&param7];
+    [_args addPointer:(void *)&param7]; \
+    [_args addPointer:(void *)pthread_getspecific(_dw_fg_color_key)]; \
+    [_args addPointer:(void *)pthread_getspecific(_dw_bg_color_key)];
 #define DW_FUNCTION_ADD_PARAM8(param1, param2, param3, param4, param5, param6, param7, param8) \
     [_args addPointer:(void *)&param1]; \
     [_args addPointer:(void *)&param2]; \
@@ -225,7 +239,9 @@ rettype API func(__VA_ARGS__) { \
     [_args addPointer:(void *)&param5]; \
     [_args addPointer:(void *)&param6]; \
     [_args addPointer:(void *)&param7]; \
-    [_args addPointer:(void *)&param8];
+    [_args addPointer:(void *)&param8]; \
+    [_args addPointer:(void *)pthread_getspecific(_dw_fg_color_key)]; \
+    [_args addPointer:(void *)pthread_getspecific(_dw_bg_color_key)];
 #define DW_FUNCTION_ADD_PARAM9(param1, param2, param3, param4, param5, param6, param7, param8, param9) \
     [_args addPointer:(void *)&param1]; \
     [_args addPointer:(void *)&param2]; \
@@ -235,33 +251,48 @@ rettype API func(__VA_ARGS__) { \
     [_args addPointer:(void *)&param6]; \
     [_args addPointer:(void *)&param7]; \
     [_args addPointer:(void *)&param8]; \
-    [_args addPointer:(void *)&param9];
-#define DW_FUNCTION_RESTORE_PARAM1(param1, vartype1) vartype1 param1 = *((vartype1 *)[_args pointerAtIndex:1]);
+    [_args addPointer:(void *)&param9]; \
+    [_args addPointer:(void *)pthread_getspecific(_dw_fg_color_key)]; \
+    [_args addPointer:(void *)pthread_getspecific(_dw_bg_color_key)];
+#define DW_FUNCTION_RESTORE_PARAM1(param1, vartype1) \
+    vartype1 param1 = *((vartype1 *)[_args pointerAtIndex:1]); \
+    NSColor * DW_UNUSED(_dw_fg_color) = (NSColor *)[_args pointerAtIndex:2]; \
+    NSColor * DW_UNUSED(_dw_bg_color) = (NSColor *)[_args pointerAtIndex:3];
 #define DW_FUNCTION_RESTORE_PARAM2(param1, vartype1, param2, vartype2) \
     vartype1 param1 = *((vartype1 *)[_args pointerAtIndex:1]); \
-    vartype2 param2 = *((vartype2 *)[_args pointerAtIndex:2]);
+    vartype2 param2 = *((vartype2 *)[_args pointerAtIndex:2]); \
+    NSColor * DW_UNUSED(_dw_fg_color) = (NSColor *)[_args pointerAtIndex:3]; \
+    NSColor * DW_UNUSED(_dw_bg_color) = (NSColor *)[_args pointerAtIndex:4];
 #define DW_FUNCTION_RESTORE_PARAM3(param1, vartype1, param2, vartype2, param3, vartype3) \
     vartype1 param1 = *((vartype1 *)[_args pointerAtIndex:1]); \
     vartype2 param2 = *((vartype2 *)[_args pointerAtIndex:2]); \
-    vartype3 param3 = *((vartype3 *)[_args pointerAtIndex:3]);
+    vartype3 param3 = *((vartype3 *)[_args pointerAtIndex:3]); \
+    NSColor * DW_UNUSED(_dw_fg_color) = (NSColor *)[_args pointerAtIndex:4]; \
+    NSColor * DW_UNUSED(_dw_bg_color) = (NSColor *)[_args pointerAtIndex:5];
 #define DW_FUNCTION_RESTORE_PARAM4(param1, vartype1, param2, vartype2, param3, vartype3, param4, vartype4) \
     vartype1 param1 = *((vartype1 *)[_args pointerAtIndex:1]); \
     vartype2 param2 = *((vartype2 *)[_args pointerAtIndex:2]); \
     vartype3 param3 = *((vartype3 *)[_args pointerAtIndex:3]); \
-    vartype4 param4 = *((vartype4 *)[_args pointerAtIndex:4]);
+    vartype4 param4 = *((vartype4 *)[_args pointerAtIndex:4]); \
+    NSColor * DW_UNUSED(_dw_fg_color) = (NSColor *)[_args pointerAtIndex:5]; \
+    NSColor * DW_UNUSED(_dw_bg_color) = (NSColor *)[_args pointerAtIndex:6];
 #define DW_FUNCTION_RESTORE_PARAM5(param1, vartype1, param2, vartype2, param3, vartype3, param4, vartype4, param5, vartype5) \
     vartype1 param1 = *((vartype1 *)[_args pointerAtIndex:1]); \
     vartype2 param2 = *((vartype2 *)[_args pointerAtIndex:2]); \
     vartype3 param3 = *((vartype3 *)[_args pointerAtIndex:3]); \
     vartype4 param4 = *((vartype4 *)[_args pointerAtIndex:4]); \
-    vartype5 param5 = *((vartype5 *)[_args pointerAtIndex:5]);
+    vartype5 param5 = *((vartype5 *)[_args pointerAtIndex:5]); \
+    NSColor * DW_UNUSED(_dw_fg_color) = (NSColor *)[_args pointerAtIndex:6]; \
+    NSColor * DW_UNUSED(_dw_bg_color) = (NSColor *)[_args pointerAtIndex:7];
 #define DW_FUNCTION_RESTORE_PARAM6(param1, vartype1, param2, vartype2, param3, vartype3, param4, vartype4, param5, vartype5, param6, vartype6) \
     vartype1 param1 = *((vartype1 *)[_args pointerAtIndex:1]); \
     vartype2 param2 = *((vartype2 *)[_args pointerAtIndex:2]); \
     vartype3 param3 = *((vartype3 *)[_args pointerAtIndex:3]); \
     vartype4 param4 = *((vartype4 *)[_args pointerAtIndex:4]); \
     vartype5 param5 = *((vartype5 *)[_args pointerAtIndex:5]); \
-    vartype6 param6 = *((vartype6 *)[_args pointerAtIndex:6]);
+    vartype6 param6 = *((vartype6 *)[_args pointerAtIndex:6]); \
+    NSColor * DW_UNUSED(_dw_fg_color) = (NSColor *)[_args pointerAtIndex:7]; \
+    NSColor * DW_UNUSED(_dw_bg_color) = (NSColor *)[_args pointerAtIndex:8];
 #define DW_FUNCTION_RESTORE_PARAM7(param1, vartype1, param2, vartype2, param3, vartype3, param4, vartype4, param5, vartype5, param6, vartype6, param7, vartype7) \
     vartype1 param1 = *((vartype1 *)[_args pointerAtIndex:1]); \
     vartype2 param2 = *((vartype2 *)[_args pointerAtIndex:2]); \
@@ -269,7 +300,9 @@ rettype API func(__VA_ARGS__) { \
     vartype4 param4 = *((vartype4 *)[_args pointerAtIndex:4]); \
     vartype5 param5 = *((vartype5 *)[_args pointerAtIndex:5]); \
     vartype6 param6 = *((vartype6 *)[_args pointerAtIndex:6]); \
-    vartype7 param7 = *((vartype7 *)[_args pointerAtIndex:7]);
+    vartype7 param7 = *((vartype7 *)[_args pointerAtIndex:7]); \
+    NSColor * DW_UNUSED(_dw_fg_color) = (NSColor *)[_args pointerAtIndex:8]; \
+    NSColor * DW_UNUSED(_dw_bg_color) = (NSColor *)[_args pointerAtIndex:9];
 #define DW_FUNCTION_RESTORE_PARAM8(param1, vartype1, param2, vartype2, param3, vartype3, param4, vartype4, param5, vartype5, param6, vartype6, param7, vartype7, param8, vartype8) \
     vartype1 param1 = *((vartype1 *)[_args pointerAtIndex:1]); \
     vartype2 param2 = *((vartype2 *)[_args pointerAtIndex:2]); \
@@ -278,7 +311,9 @@ rettype API func(__VA_ARGS__) { \
     vartype5 param5 = *((vartype5 *)[_args pointerAtIndex:5]); \
     vartype6 param6 = *((vartype6 *)[_args pointerAtIndex:6]); \
     vartype7 param7 = *((vartype7 *)[_args pointerAtIndex:7]); \
-    vartype8 param8 = *((vartype8 *)[_args pointerAtIndex:8]);
+    vartype8 param8 = *((vartype8 *)[_args pointerAtIndex:8]); \
+    NSColor * DW_UNUSED(_dw_fg_color) = (NSColor *)[_args pointerAtIndex:9]; \
+    NSColor * DW_UNUSED(_dw_bg_color) = (NSColor *)[_args pointerAtIndex:10];
 #define DW_FUNCTION_RESTORE_PARAM9(param1, vartype1, param2, vartype2, param3, vartype3, param4, vartype4, param5, vartype5, param6, vartype6, param7, vartype7, param8, vartype8, param9, vartype9) \
     vartype1 param1 = *((vartype1 *)[_args pointerAtIndex:1]); \
     vartype2 param2 = *((vartype2 *)[_args pointerAtIndex:2]); \
@@ -288,7 +323,9 @@ rettype API func(__VA_ARGS__) { \
     vartype6 param6 = *((vartype6 *)[_args pointerAtIndex:6]); \
     vartype7 param7 = *((vartype7 *)[_args pointerAtIndex:7]); \
     vartype8 param8 = *((vartype8 *)[_args pointerAtIndex:8]); \
-    vartype9 param9 = *((vartype9 *)[_args pointerAtIndex:9]);
+    vartype9 param9 = *((vartype9 *)[_args pointerAtIndex:9]); \
+    NSColor * DW_UNUSED(_dw_fg_color) = (NSColor *)[_args pointerAtIndex:10]; \
+    NSColor * DW_UNUSED(_dw_bg_color) = (NSColor *)[_args pointerAtIndex:11];
 #define DW_FUNCTION_END }
 #define DW_FUNCTION_NO_RETURN(func) [DWObj safeCall:@selector(callBack:) withObject:_args]; \
     [_args release]; \
@@ -6876,9 +6913,12 @@ DW_FUNCTION_RESTORE_PARAM4(handle, HWND, pixmap, HPIXMAP, x, int, y, int)
     if(bCanDraw == YES)
     {
         NSBezierPath* aPath = [NSBezierPath bezierPath];
+#ifndef BUILDING_FOR_MOJAVE
+        NSColor *_dw_fg_color = pthread_getspecific(_dw_fg_color_key);
+#endif
+
         [aPath setLineWidth: 0.5];
-        NSColor *color = pthread_getspecific(_dw_fg_color_key);
-        [color set];
+        [_dw_fg_color set];
 
         [aPath moveToPoint:NSMakePoint(x, y)];
         [aPath stroke];
@@ -6937,8 +6977,11 @@ DW_FUNCTION_RESTORE_PARAM6(handle, HWND, pixmap, HPIXMAP, x1, int, y1, int, x2, 
     if(bCanDraw == YES)
     {
         NSBezierPath* aPath = [NSBezierPath bezierPath];
-        NSColor *color = pthread_getspecific(_dw_fg_color_key);
-        [color set];
+#ifndef BUILDING_FOR_MOJAVE
+        NSColor *_dw_fg_color = pthread_getspecific(_dw_fg_color_key);
+#endif
+
+        [_dw_fg_color set];
 
         [aPath moveToPoint:NSMakePoint(x1 + 0.5, y1 + 0.5)];
         [aPath lineToPoint:NSMakePoint(x2 + 0.5, y2 + 0.5)];
@@ -7006,11 +7049,13 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pixmap, HPIXMAP, x, int, y, int, text, 
 
     if(bCanDraw == YES)
     {
-        NSColor *fgcolor = pthread_getspecific(_dw_fg_color_key);
-        NSColor *bgcolor = pthread_getspecific(_dw_bg_color_key);
-        NSMutableDictionary *dict = [[NSMutableDictionary alloc] initWithObjectsAndKeys:fgcolor, NSForegroundColorAttributeName, nil];
-        if(bgcolor)
-            [dict setValue:bgcolor forKey:NSBackgroundColorAttributeName];
+#ifndef BUILDING_FOR_MOJAVE
+        NSColor *_dw_fg_color = pthread_getspecific(_dw_fg_color_key);
+        NSColor *_dw_bg_color = pthread_getspecific(_dw_bg_color_key);
+#endif
+        NSMutableDictionary *dict = [[NSMutableDictionary alloc] initWithObjectsAndKeys:_dw_fg_color, NSForegroundColorAttributeName, nil];
+        if(_dw_bg_color)
+            [dict setValue:_dw_bg_color forKey:NSBackgroundColorAttributeName];
         if(font)
             [dict setValue:font forKey:NSFontAttributeName];
         [nstr drawAtPoint:NSMakePoint(x, y) withAttributes:dict];
@@ -7144,8 +7189,11 @@ DW_FUNCTION_RESTORE_PARAM6(handle, HWND, pixmap, HPIXMAP, flags, int, npoints, i
     if(bCanDraw == YES)
     {
         NSBezierPath* aPath = [NSBezierPath bezierPath];
-        NSColor *color = pthread_getspecific(_dw_fg_color_key);
-        [color set];
+#ifndef BUILDING_FOR_MOJAVE
+        NSColor *_dw_fg_color = pthread_getspecific(_dw_fg_color_key);
+#endif
+
+        [_dw_fg_color set];
 
         [aPath moveToPoint:NSMakePoint(*x + 0.5, *y + 0.5)];
         for(z=1;z<npoints;z++)
@@ -7219,8 +7267,11 @@ DW_FUNCTION_RESTORE_PARAM7(handle, HWND, pixmap, HPIXMAP, flags, int, x, int, y,
 
     if(bCanDraw == YES)
     {
-        NSColor *color = pthread_getspecific(_dw_fg_color_key);
-        [color set];
+#ifndef BUILDING_FOR_MOJAVE
+        NSColor *_dw_fg_color = pthread_getspecific(_dw_fg_color_key);
+#endif
+
+        [_dw_fg_color set];
 
         if(flags & DW_DRAW_FILL)
             [NSBezierPath fillRect:NSMakeRect(x, y, width, height)];
@@ -7291,8 +7342,11 @@ DW_FUNCTION_RESTORE_PARAM9(handle, HWND, pixmap, HPIXMAP, flags, int, xorigin, i
     if(bCanDraw)
     {
         NSBezierPath* aPath = [NSBezierPath bezierPath];
-        NSColor *color = pthread_getspecific(_dw_fg_color_key);
-        [color set];
+#ifndef BUILDING_FOR_MOJAVE
+        NSColor *_dw_fg_color = pthread_getspecific(_dw_fg_color_key);
+#endif
+
+        [_dw_fg_color set];
 
         /* Special case of a full circle/oval */
         if(flags & DW_DRAW_FULL)
