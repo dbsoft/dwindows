@@ -17,7 +17,8 @@
         <activity android:name=".DWindows"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
             android:screenOrientation="fullSensor"
-            android:persistent="true">
+            android:persistent="true"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
