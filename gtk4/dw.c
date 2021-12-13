@@ -58,61 +58,52 @@
 #ifndef _DW_SINGLE_THREADED
 #define DW_FUNCTION_DEFINITION(func, rettype, ...)  gboolean _##func(void **_args); \
 rettype API func(__VA_ARGS__) { 
-#define DW_FUNCTION_ADD_PARAM void **_args = alloca(sizeof(void *)*2); \
-    _args[0] = (void *)pthread_getspecific(_dw_event_key); \
-    _args[1] = (void *)NULL;
-#define DW_FUNCTION_ADD_PARAM1(param1) void **_args = alloca(sizeof(void *)*3); \
+#define DW_FUNCTION_ADD_PARAM void **_args = alloca(sizeof(void *)*4); \
     _args[0] = (void *)pthread_getspecific(_dw_event_key); \
     _args[1] = (void *)NULL; \
-    _args[2] = (void *)&param1;
-#define DW_FUNCTION_ADD_PARAM2(param1, param2) void **_args = alloca(sizeof(void *)*4); \
+    _args[2] = (void *)pthread_getspecific(_dw_fg_color_key); \
+    _args[3] = (void *)pthread_getspecific(_dw_bg_color_key);
+#define DW_FUNCTION_ADD_PARAM1(param1) void **_args = alloca(sizeof(void *)*5); \
     _args[0] = (void *)pthread_getspecific(_dw_event_key); \
     _args[1] = (void *)NULL; \
     _args[2] = (void *)&param1; \
-    _args[3] = (void *)&param2;
-#define DW_FUNCTION_ADD_PARAM3(param1, param2, param3) void **_args = alloca(sizeof(void *)*5); \
+    _args[3] = (void *)pthread_getspecific(_dw_fg_color_key); \
+    _args[4] = (void *)pthread_getspecific(_dw_bg_color_key);
+#define DW_FUNCTION_ADD_PARAM2(param1, param2) void **_args = alloca(sizeof(void *)*6); \
     _args[0] = (void *)pthread_getspecific(_dw_event_key); \
     _args[1] = (void *)NULL; \
     _args[2] = (void *)&param1; \
     _args[3] = (void *)&param2; \
-    _args[4] = (void *)&param3;
-#define DW_FUNCTION_ADD_PARAM4(param1, param2, param3, param4) void **_args = alloca(sizeof(void *)*6); \
+    _args[4] = (void *)pthread_getspecific(_dw_fg_color_key); \
+    _args[5] = (void *)pthread_getspecific(_dw_bg_color_key);
+#define DW_FUNCTION_ADD_PARAM3(param1, param2, param3) void **_args = alloca(sizeof(void *)*7); \
     _args[0] = (void *)pthread_getspecific(_dw_event_key); \
     _args[1] = (void *)NULL; \
     _args[2] = (void *)&param1; \
     _args[3] = (void *)&param2; \
     _args[4] = (void *)&param3; \
-    _args[5] = (void *)&param4;
-#define DW_FUNCTION_ADD_PARAM5(param1, param2, param3, param4, param5) void **_args = alloca(sizeof(void *)*7); \
+    _args[5] = (void *)pthread_getspecific(_dw_fg_color_key); \
+    _args[6] = (void *)pthread_getspecific(_dw_bg_color_key);
+#define DW_FUNCTION_ADD_PARAM4(param1, param2, param3, param4) void **_args = alloca(sizeof(void *)*8); \
     _args[0] = (void *)pthread_getspecific(_dw_event_key); \
     _args[1] = (void *)NULL; \
     _args[2] = (void *)&param1; \
     _args[3] = (void *)&param2; \
     _args[4] = (void *)&param3; \
     _args[5] = (void *)&param4; \
-    _args[6] = (void *)&param5;
+    _args[6] = (void *)pthread_getspecific(_dw_fg_color_key); \
+    _args[7] = (void *)pthread_getspecific(_dw_bg_color_key);
+#define DW_FUNCTION_ADD_PARAM5(param1, param2, param3, param4, param5) void **_args = alloca(sizeof(void *)*9); \
+    _args[0] = (void *)pthread_getspecific(_dw_event_key); \
+    _args[1] = (void *)NULL; \
+    _args[2] = (void *)&param1; \
+    _args[3] = (void *)&param2; \
+    _args[4] = (void *)&param3; \
+    _args[5] = (void *)&param4; \
+    _args[6] = (void *)&param5; \
+    _args[7] = (void *)pthread_getspecific(_dw_fg_color_key); \
+    _args[8] = (void *)pthread_getspecific(_dw_bg_color_key);
 #define DW_FUNCTION_ADD_PARAM6(param1, param2, param3, param4, param5, param6) \
-    void **_args = alloca(sizeof(void *)*8); \
-    _args[0] = (void *)pthread_getspecific(_dw_event_key); \
-    _args[1] = (void *)NULL; \
-    _args[2] = (void *)&param1; \
-    _args[3] = (void *)&param2; \
-    _args[4] = (void *)&param3; \
-    _args[5] = (void *)&param4; \
-    _args[6] = (void *)&param5; \
-    _args[7] = (void *)&param6;
-#define DW_FUNCTION_ADD_PARAM7(param1, param2, param3, param4, param5, param6, param7) \
-    void **_args = alloca(sizeof(void *)*9); \
-    _args[0] = (void *)pthread_getspecific(_dw_event_key); \
-    _args[1] = (void *)NULL; \
-    _args[2] = (void *)&param1; \
-    _args[3] = (void *)&param2; \
-    _args[4] = (void *)&param3; \
-    _args[5] = (void *)&param4; \
-    _args[6] = (void *)&param5; \
-    _args[7] = (void *)&param6; \
-    _args[8] = (void *)&param7;
-#define DW_FUNCTION_ADD_PARAM8(param1, param2, param3, param4, param5, param6, param7, param8) \
     void **_args = alloca(sizeof(void *)*10); \
     _args[0] = (void *)pthread_getspecific(_dw_event_key); \
     _args[1] = (void *)NULL; \
@@ -122,9 +113,9 @@ rettype API func(__VA_ARGS__) {
     _args[5] = (void *)&param4; \
     _args[6] = (void *)&param5; \
     _args[7] = (void *)&param6; \
-    _args[8] = (void *)&param7; \
-    _args[9] = (void *)&param8;
-#define DW_FUNCTION_ADD_PARAM9(param1, param2, param3, param4, param5, param6, param7, param8, param9) \
+    _args[8] = (void *)pthread_getspecific(_dw_fg_color_key); \
+    _args[9] = (void *)pthread_getspecific(_dw_bg_color_key);
+#define DW_FUNCTION_ADD_PARAM7(param1, param2, param3, param4, param5, param6, param7) \
     void **_args = alloca(sizeof(void *)*11); \
     _args[0] = (void *)pthread_getspecific(_dw_event_key); \
     _args[1] = (void *)NULL; \
@@ -135,9 +126,9 @@ rettype API func(__VA_ARGS__) {
     _args[6] = (void *)&param5; \
     _args[7] = (void *)&param6; \
     _args[8] = (void *)&param7; \
-    _args[9] = (void *)&param8; \
-    _args[10] = (void *)&param9;
-#define DW_FUNCTION_ADD_PARAM10(param1, param2, param3, param4, param5, param6, param7, param8, param9, param10) \
+    _args[9] = (void *)pthread_getspecific(_dw_fg_color_key); \
+    _args[10] = (void *)pthread_getspecific(_dw_bg_color_key);
+#define DW_FUNCTION_ADD_PARAM8(param1, param2, param3, param4, param5, param6, param7, param8) \
     void **_args = alloca(sizeof(void *)*12); \
     _args[0] = (void *)pthread_getspecific(_dw_event_key); \
     _args[1] = (void *)NULL; \
@@ -149,9 +140,9 @@ rettype API func(__VA_ARGS__) {
     _args[7] = (void *)&param6; \
     _args[8] = (void *)&param7; \
     _args[9] = (void *)&param8; \
-    _args[10] = (void *)&param9; \
-    _args[11] = (void *)&param10;
-#define DW_FUNCTION_ADD_PARAM11(param1, param2, param3, param4, param5, param6, param7, param8, param9, param10, param11) \
+    _args[10] = (void *)pthread_getspecific(_dw_fg_color_key); \
+    _args[11] = (void *)pthread_getspecific(_dw_bg_color_key);
+#define DW_FUNCTION_ADD_PARAM9(param1, param2, param3, param4, param5, param6, param7, param8, param9) \
     void **_args = alloca(sizeof(void *)*13); \
     _args[0] = (void *)pthread_getspecific(_dw_event_key); \
     _args[1] = (void *)NULL; \
@@ -164,9 +155,9 @@ rettype API func(__VA_ARGS__) {
     _args[8] = (void *)&param7; \
     _args[9] = (void *)&param8; \
     _args[10] = (void *)&param9; \
-    _args[11] = (void *)&param10; \
-    _args[12] = (void *)&param11;
-#define DW_FUNCTION_ADD_PARAM12(param1, param2, param3, param4, param5, param6, param7, param8, param9, param10, param11, param12) \
+    _args[11] = (void *)pthread_getspecific(_dw_fg_color_key); \
+    _args[12] = (void *)pthread_getspecific(_dw_bg_color_key);
+#define DW_FUNCTION_ADD_PARAM10(param1, param2, param3, param4, param5, param6, param7, param8, param9, param10) \
     void **_args = alloca(sizeof(void *)*14); \
     _args[0] = (void *)pthread_getspecific(_dw_event_key); \
     _args[1] = (void *)NULL; \
@@ -180,35 +171,82 @@ rettype API func(__VA_ARGS__) {
     _args[9] = (void *)&param8; \
     _args[10] = (void *)&param9; \
     _args[11] = (void *)&param10; \
+    _args[12] = (void *)pthread_getspecific(_dw_fg_color_key); \
+    _args[13] = (void *)pthread_getspecific(_dw_bg_color_key);
+#define DW_FUNCTION_ADD_PARAM11(param1, param2, param3, param4, param5, param6, param7, param8, param9, param10, param11) \
+    void **_args = alloca(sizeof(void *)*15); \
+    _args[0] = (void *)pthread_getspecific(_dw_event_key); \
+    _args[1] = (void *)NULL; \
+    _args[2] = (void *)&param1; \
+    _args[3] = (void *)&param2; \
+    _args[4] = (void *)&param3; \
+    _args[5] = (void *)&param4; \
+    _args[6] = (void *)&param5; \
+    _args[7] = (void *)&param6; \
+    _args[8] = (void *)&param7; \
+    _args[9] = (void *)&param8; \
+    _args[10] = (void *)&param9; \
+    _args[11] = (void *)&param10; \
     _args[12] = (void *)&param11; \
-    _args[13] = (void *)&param12;
+    _args[13] = (void *)pthread_getspecific(_dw_fg_color_key); \
+    _args[14] = (void *)pthread_getspecific(_dw_bg_color_key);
+#define DW_FUNCTION_ADD_PARAM12(param1, param2, param3, param4, param5, param6, param7, param8, param9, param10, param11, param12) \
+    void **_args = alloca(sizeof(void *)*16); \
+    _args[0] = (void *)pthread_getspecific(_dw_event_key); \
+    _args[1] = (void *)NULL; \
+    _args[2] = (void *)&param1; \
+    _args[3] = (void *)&param2; \
+    _args[4] = (void *)&param3; \
+    _args[5] = (void *)&param4; \
+    _args[6] = (void *)&param5; \
+    _args[7] = (void *)&param6; \
+    _args[8] = (void *)&param7; \
+    _args[9] = (void *)&param8; \
+    _args[10] = (void *)&param9; \
+    _args[11] = (void *)&param10; \
+    _args[12] = (void *)&param11; \
+    _args[13] = (void *)&param12; \
+    _args[14] = (void *)pthread_getspecific(_dw_fg_color_key); \
+    _args[15] = (void *)pthread_getspecific(_dw_bg_color_key);
 #define DW_FUNCTION_RESTORE_PARAM1(param1, vartype1) \
-    vartype1 param1 = *((vartype1 *)_args[2]);
+    vartype1 param1 = *((vartype1 *)_args[2]); \
+    GdkRGBA * DW_UNUSED(_dw_fg_color) = (GdkRGBA *)_args[3]; \
+    GdkRGBA * DW_UNUSED(_dw_bg_color) = (GdkRGBA *)_args[4];
 #define DW_FUNCTION_RESTORE_PARAM2(param1, vartype1, param2, vartype2) \
     vartype1 param1 = *((vartype1 *)_args[2]); \
-    vartype2 param2 = *((vartype2 *)_args[3]);
+    vartype2 param2 = *((vartype2 *)_args[3]); \
+    GdkRGBA * DW_UNUSED(_dw_fg_color) = (GdkRGBA *)_args[4]; \
+    GdkRGBA * DW_UNUSED(_dw_bg_color) = (GdkRGBA *)_args[5];
 #define DW_FUNCTION_RESTORE_PARAM3(param1, vartype1, param2, vartype2, param3, vartype3) \
     vartype1 param1 = *((vartype1 *)_args[2]); \
     vartype2 param2 = *((vartype2 *)_args[3]); \
-    vartype3 param3 = *((vartype3 *)_args[4]);
+    vartype3 param3 = *((vartype3 *)_args[4]); \
+    GdkRGBA * DW_UNUSED(_dw_fg_color) = (GdkRGBA *)_args[5]; \
+    GdkRGBA * DW_UNUSED(_dw_bg_color) = (GdkRGBA *)_args[6];
 #define DW_FUNCTION_RESTORE_PARAM4(param1, vartype1, param2, vartype2, param3, vartype3, param4, vartype4) \
     vartype1 param1 = *((vartype1 *)_args[2]); \
     vartype2 param2 = *((vartype2 *)_args[3]); \
     vartype3 param3 = *((vartype3 *)_args[4]); \
-    vartype4 param4 = *((vartype4 *)_args[5]);
+    vartype4 param4 = *((vartype4 *)_args[5]); \
+    GdkRGBA * DW_UNUSED(_dw_fg_color) = (GdkRGBA *)_args[6]; \
+    GdkRGBA * DW_UNUSED(_dw_bg_color) = (GdkRGBA *)_args[7];
 #define DW_FUNCTION_RESTORE_PARAM5(param1, vartype1, param2, vartype2, param3, vartype3, param4, vartype4, param5, vartype5) \
     vartype1 param1 = *((vartype1 *)_args[2]); \
     vartype2 param2 = *((vartype2 *)_args[3]); \
     vartype3 param3 = *((vartype3 *)_args[4]); \
     vartype4 param4 = *((vartype4 *)_args[5]); \
-    vartype5 param5 = *((vartype5 *)_args[6]);
+    vartype5 param5 = *((vartype5 *)_args[6]); \
+    GdkRGBA * DW_UNUSED(_dw_fg_color) = (GdkRGBA *)_args[7]; \
+    GdkRGBA * DW_UNUSED(_dw_bg_color) = (GdkRGBA *)_args[8];
 #define DW_FUNCTION_RESTORE_PARAM6(param1, vartype1, param2, vartype2, param3, vartype3, param4, vartype4, param5, vartype5, param6, vartype6) \
     vartype1 param1 = *((vartype1 *)_args[2]); \
     vartype2 param2 = *((vartype2 *)_args[3]); \
     vartype3 param3 = *((vartype3 *)_args[4]); \
     vartype4 param4 = *((vartype4 *)_args[5]); \
     vartype5 param5 = *((vartype5 *)_args[6]); \
-    vartype6 param6 = *((vartype6 *)_args[7]);
+    vartype6 param6 = *((vartype6 *)_args[7]); \
+    GdkRGBA * DW_UNUSED(_dw_fg_color) = (GdkRGBA *)_args[8]; \
+    GdkRGBA * DW_UNUSED(_dw_bg_color) = (GdkRGBA *)_args[9];
 #define DW_FUNCTION_RESTORE_PARAM7(param1, vartype1, param2, vartype2, param3, vartype3, param4, vartype4, param5, vartype5, param6, vartype6, param7, vartype7) \
     vartype1 param1 = *((vartype1 *)_args[2]); \
     vartype2 param2 = *((vartype2 *)_args[3]); \
@@ -216,7 +254,9 @@ rettype API func(__VA_ARGS__) {
     vartype4 param4 = *((vartype4 *)_args[5]); \
     vartype5 param5 = *((vartype5 *)_args[6]); \
     vartype6 param6 = *((vartype6 *)_args[7]); \
-    vartype7 param7 = *((vartype7 *)_args[8]);
+    vartype7 param7 = *((vartype7 *)_args[8]); \
+    GdkRGBA * DW_UNUSED(_dw_fg_color) = (GdkRGBA *)_args[9]; \
+    GdkRGBA * DW_UNUSED(_dw_bg_color) = (GdkRGBA *)_args[10];
 #define DW_FUNCTION_RESTORE_PARAM8(param1, vartype1, param2, vartype2, param3, vartype3, param4, vartype4, param5, vartype5, param6, vartype6, param7, vartype7, param8, vartype8) \
     vartype1 param1 = *((vartype1 *)_args[2]); \
     vartype2 param2 = *((vartype2 *)_args[3]); \
@@ -225,7 +265,9 @@ rettype API func(__VA_ARGS__) {
     vartype5 param5 = *((vartype5 *)_args[6]); \
     vartype6 param6 = *((vartype6 *)_args[7]); \
     vartype7 param7 = *((vartype7 *)_args[8]); \
-    vartype8 param8 = *((vartype8 *)_args[9]);
+    vartype8 param8 = *((vartype8 *)_args[9]); \
+    GdkRGBA * DW_UNUSED(_dw_fg_color) = (GdkRGBA *)_args[10]; \
+    GdkRGBA * DW_UNUSED(_dw_bg_color) = (GdkRGBA *)_args[11];
 #define DW_FUNCTION_RESTORE_PARAM9(param1, vartype1, param2, vartype2, param3, vartype3, param4, vartype4, param5, vartype5, param6, vartype6, param7, vartype7, param8, vartype8, param9, vartype9) \
     vartype1 param1 = *((vartype1 *)_args[2]); \
     vartype2 param2 = *((vartype2 *)_args[3]); \
@@ -235,7 +277,9 @@ rettype API func(__VA_ARGS__) {
     vartype6 param6 = *((vartype6 *)_args[7]); \
     vartype7 param7 = *((vartype7 *)_args[8]); \
     vartype8 param8 = *((vartype8 *)_args[9]); \
-    vartype9 param9 = *((vartype9 *)_args[10]);
+    vartype9 param9 = *((vartype9 *)_args[10]); \
+    GdkRGBA * DW_UNUSED(_dw_fg_color) = (GdkRGBA *)_args[11]; \
+    GdkRGBA * DW_UNUSED(_dw_bg_color) = (GdkRGBA *)_args[12];
 #define DW_FUNCTION_RESTORE_PARAM10(param1, vartype1, param2, vartype2, param3, vartype3, param4, vartype4, param5, vartype5, param6, vartype6, param7, vartype7, param8, vartype8, param9, vartype9, param10, vartype10) \
     vartype1 param1 = *((vartype1 *)_args[2]); \
     vartype2 param2 = *((vartype2 *)_args[3]); \
@@ -246,7 +290,9 @@ rettype API func(__VA_ARGS__) {
     vartype7 param7 = *((vartype7 *)_args[8]); \
     vartype8 param8 = *((vartype8 *)_args[9]); \
     vartype9 param9 = *((vartype9 *)_args[10]); \
-    vartype10 param10 = *((vartype10 *)_args[11]);
+    vartype10 param10 = *((vartype10 *)_args[11]); \
+    GdkRGBA * DW_UNUSED(_dw_fg_color) = (GdkRGBA *)_args[12]; \
+    GdkRGBA * DW_UNUSED(_dw_bg_color) = (GdkRGBA *)_args[13];
 #define DW_FUNCTION_RESTORE_PARAM11(param1, vartype1, param2, vartype2, param3, vartype3, param4, vartype4, param5, vartype5, param6, vartype6, param7, vartype7, param8, vartype8, param9, vartype9, param10, vartype10, param11, vartype11) \
     vartype1 param1 = *((vartype1 *)_args[2]); \
     vartype2 param2 = *((vartype2 *)_args[3]); \
@@ -258,7 +304,9 @@ rettype API func(__VA_ARGS__) {
     vartype8 param8 = *((vartype8 *)_args[9]); \
     vartype9 param9 = *((vartype9 *)_args[10]); \
     vartype10 param10 = *((vartype10 *)_args[11]); \
-    vartype11 param11 = *((vartype11 *)_args[12]);
+    vartype11 param11 = *((vartype11 *)_args[12]); \
+    GdkRGBA * DW_UNUSED(_dw_fg_color) = (GdkRGBA *)_args[13]; \
+    GdkRGBA * DW_UNUSED(_dw_bg_color) = (GdkRGBA *)_args[14];
 #define DW_FUNCTION_RESTORE_PARAM12(param1, vartype1, param2, vartype2, param3, vartype3, param4, vartype4, param5, vartype5, param6, vartype6, param7, vartype7, param8, vartype8, param9, vartype9, param10, vartype10, param11, vartype11, param12, vartype12) \
     vartype1 param1 = *((vartype1 *)_args[2]); \
     vartype2 param2 = *((vartype2 *)_args[3]); \
@@ -271,7 +319,9 @@ rettype API func(__VA_ARGS__) {
     vartype9 param9 = *((vartype9 *)_args[10]); \
     vartype10 param10 = *((vartype10 *)_args[11]); \
     vartype11 param11 = *((vartype11 *)_args[12]); \
-    vartype12 param12 = *((vartype12 *)_args[13]);
+    vartype12 param12 = *((vartype12 *)_args[13]); \
+    GdkRGBA * DW_UNUSED(_dw_fg_color) = (GdkRGBA *)_args[14]; \
+    GdkRGBA * DW_UNUSED(_dw_bg_color) = (GdkRGBA *)_args[15];
 #define DW_FUNCTION_END }
 #define DW_FUNCTION_NO_RETURN(func) dw_event_reset((HEV)_args[0]); \
     if(_dw_thread == (pthread_t)-1 || pthread_self() == _dw_thread) \
@@ -6534,9 +6584,11 @@ DW_FUNCTION_RESTORE_PARAM4(handle, HWND, pixmap, HPIXMAP, x, int, y, int)
       cr = cairo_create(pixmap->image);
    if(cr)
    {
-      GdkRGBA *foreground = pthread_getspecific(_dw_fg_color_key);
+#ifdef _DW_SINGLE_THREADED
+      GdkRGBA *_dw_fg_color = pthread_getspecific(_dw_fg_color_key);
+#endif
 
-      gdk_cairo_set_source_rgba(cr, foreground);
+      gdk_cairo_set_source_rgba(cr, _dw_fg_color);
       cairo_set_line_width(cr, 1);
       cairo_move_to(cr, x, y);
       cairo_stroke(cr);
@@ -6579,9 +6631,11 @@ DW_FUNCTION_RESTORE_PARAM6(handle, HWND, pixmap, HPIXMAP, x1, int, y1, int, x2, 
       cr = cairo_create(pixmap->image);
    if(cr)
    {
-      GdkRGBA *foreground = pthread_getspecific(_dw_fg_color_key);
+#ifdef _DW_SINGLE_THREADED
+      GdkRGBA *_dw_fg_color = pthread_getspecific(_dw_fg_color_key);
+#endif
 
-      gdk_cairo_set_source_rgba(cr, foreground);
+      gdk_cairo_set_source_rgba(cr, _dw_fg_color);
       cairo_set_line_width(cr, 1);
       cairo_move_to(cr, x1, y1);
       cairo_line_to(cr, x2, y2);
@@ -6626,12 +6680,14 @@ DW_FUNCTION_RESTORE_PARAM6(handle, HWND, pixmap, HPIXMAP, flags, int, npoints, i
       cr = cairo_create(pixmap->image);
    if(cr)
    {
-      GdkRGBA *foreground = pthread_getspecific(_dw_fg_color_key);
+#ifdef _DW_SINGLE_THREADED
+      GdkRGBA *_dw_fg_color = pthread_getspecific(_dw_fg_color_key);
+#endif
 
       if(flags & DW_DRAW_NOAA)
          cairo_set_antialias(cr, CAIRO_ANTIALIAS_NONE);
 
-      gdk_cairo_set_source_rgba(cr, foreground);
+      gdk_cairo_set_source_rgba(cr, _dw_fg_color);
       cairo_set_line_width(cr, 1);
       cairo_move_to(cr, x[0], y[0]);
       for(z=1;z<npoints;z++)
@@ -6681,12 +6737,14 @@ DW_FUNCTION_RESTORE_PARAM7(handle, HWND, pixmap, HPIXMAP, flags, int, x, int, y,
       cr = cairo_create(pixmap->image);
    if(cr)
    {
-      GdkRGBA *foreground = pthread_getspecific(_dw_fg_color_key);
+#ifdef _DW_SINGLE_THREADED
+      GdkRGBA *_dw_fg_color = pthread_getspecific(_dw_fg_color_key);
+#endif
 
       if(flags & DW_DRAW_NOAA)
          cairo_set_antialias(cr, CAIRO_ANTIALIAS_NONE);
 
-      gdk_cairo_set_source_rgba(cr, foreground);
+      gdk_cairo_set_source_rgba(cr, _dw_fg_color);
       cairo_set_line_width(cr, 1);
       cairo_move_to(cr, x, y);
       cairo_line_to(cr, x, y + height);
@@ -6738,14 +6796,16 @@ DW_FUNCTION_RESTORE_PARAM9(handle, HWND, pixmap, HPIXMAP, flags, int, xorigin, i
       cr = cairo_create(pixmap->image);
    if(cr)
    {
-      GdkRGBA *foreground = pthread_getspecific(_dw_fg_color_key);
+#ifdef _DW_SINGLE_THREADED
+      GdkRGBA *_dw_fg_color = pthread_getspecific(_dw_fg_color_key);
+#endif
       int width = abs(x2-x1);
       float scale = fabs((float)(y2-y1))/(float)width;
 
       if(flags & DW_DRAW_NOAA)
          cairo_set_antialias(cr, CAIRO_ANTIALIAS_NONE);
 
-      gdk_cairo_set_source_rgba(cr, foreground);
+      gdk_cairo_set_source_rgba(cr, _dw_fg_color);
       cairo_set_line_width(cr, 1);
       if(scale != 1.0)
          cairo_scale(cr, 1.0, scale);
@@ -6825,20 +6885,22 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pixmap, HPIXMAP, x, int, y, int, text, 
 
                if(layout)
                {
-                  GdkRGBA *foreground = pthread_getspecific(_dw_fg_color_key);
-                  GdkRGBA *background = pthread_getspecific(_dw_bg_color_key);
+#ifdef _DW_SINGLE_THREADED
+                  GdkRGBA *_dw_fg_color = pthread_getspecific(_dw_fg_color_key);
+                  GdkRGBA *_dw_bg_color = pthread_getspecific(_dw_bg_color_key);
+#endif
 
                   pango_layout_set_font_description(layout, font);
                   pango_layout_set_text(layout, text, strlen(text));
 
-                  gdk_cairo_set_source_rgba(cr, foreground);
+                  gdk_cairo_set_source_rgba(cr, _dw_fg_color);
                   /* Create a background color attribute if required */
-                  if(background)
+                  if(_dw_bg_color)
                   {
                      PangoAttrList *list = pango_layout_get_attributes(layout);
-                     PangoAttribute *attr = pango_attr_background_new((guint16)(background->red * 65535),
-                                                                      (guint16)(background->green * 65535),
-                                                                      (guint16)(background->blue* 65535));
+                     PangoAttribute *attr = pango_attr_background_new((guint16)(_dw_bg_color->red * 65535),
+                                                                      (guint16)(_dw_bg_color->green * 65535),
+                                                                      (guint16)(_dw_bg_color->blue* 65535));
                      if(!list)
                      {
                         list = pango_attr_list_new();
