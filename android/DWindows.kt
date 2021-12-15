@@ -5406,6 +5406,7 @@ class DWindows : AppCompatActivity() {
                 params = RelativeLayout.LayoutParams(w, w)
                 params.setMargins(margin,margin,margin,margin)
                 params.addRule(RelativeLayout.BELOW, display.id)
+                params.addRule(RelativeLayout.ABOVE, gradientBar.id)
                 layout.addView(colorWheel, params)
                 params = RelativeLayout.LayoutParams(w, h)
                 params.setMargins(margin,margin,margin,margin)
@@ -5415,8 +5416,10 @@ class DWindows : AppCompatActivity() {
                 dialog.setContentView(layout)
                 colorChosen = Color.rgb(red, green, blue)
                 colorWheel.rgb = colorChosen
-                gradientBar.setBlackToColor(colorChosen)
-                gradientBar.offset = 1F
+                gradientBar.setBlackToColor(colorWheel.rgb)
+                var hsv = FloatArray(3)
+                Color.colorToHSV(colorChosen, hsv)
+                gradientBar.offset = hsv[2]
                 display.setBackgroundColor(colorChosen)
                 colorWheel.colorChangeListener = { rgb: Int ->
                     gradientBar.setBlackToColor(rgb)
