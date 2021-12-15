@@ -5387,14 +5387,49 @@ class DWindows : AppCompatActivity() {
             waitOnUiThread {
                 val dialog = Dialog(this)
                 val colorWheel = ColorWheel(this, null, 0)
+                val gradientBar = GradientSeekBar(this, null, 0)
+                val display = View(this)
+                val layout = RelativeLayout(this)
+                val w = RelativeLayout.LayoutParams.MATCH_PARENT
+                val h = RelativeLayout.LayoutParams.WRAP_CONTENT
+                val margin = 10
 
-                dialog.setContentView(colorWheel)
-                colorWheel.rgb = Color.rgb(red, green, blue)
-                colorChosen = colorWheel.rgb
-                colorWheel.colorChangeListener = { rgb: Int -> colorChosen = rgb }
+                colorWheel.id = View.generateViewId()
+                gradientBar.id = View.generateViewId()
+                display.id = View.generateViewId()
+                gradientBar.orientation = GradientSeekBar.Orientation.HORIZONTAL
+
+                var params: RelativeLayout.LayoutParams = RelativeLayout.LayoutParams(w, 100)
+                params.addRule(RelativeLayout.ALIGN_PARENT_TOP)
+                params.setMargins(margin,margin,margin,margin)
+                layout.addView(display, params)
+                params = RelativeLayout.LayoutParams(w, w)
+                params.setMargins(margin,margin,margin,margin)
+                params.addRule(RelativeLayout.BELOW, display.id)
+                layout.addView(colorWheel, params)
+                params = RelativeLayout.LayoutParams(w, h)
+                params.setMargins(margin,margin,margin,margin)
+                params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM)
+                layout.addView(gradientBar, params)
+
+                dialog.setContentView(layout)
+                colorChosen = Color.rgb(red, green, blue)
+                colorWheel.rgb = colorChosen
+                gradientBar.setBlackToColor(colorChosen)
+                gradientBar.offset = 1F
+                display.setBackgroundColor(colorChosen)
+                colorWheel.colorChangeListener = { rgb: Int ->
+                    gradientBar.setBlackToColor(rgb)
+                    display.setBackgroundColor(gradientBar.argb)
+                    colorChosen = gradientBar.argb
+                }
+                gradientBar.colorChangeListener = { offset: Float, argb: Int ->
+                    display.setBackgroundColor(argb)
+                    colorChosen = argb
+                }
                 dialog.window?.setLayout(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT
                 )
                 dialog.setOnDismissListener {
                     colorLock.lock()
