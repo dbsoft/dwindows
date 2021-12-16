@@ -3,6 +3,7 @@
 package org.dbsoft.dwindows
 
 import android.R
+import android.animation.ArgbEvaluator
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.Dialog
@@ -5377,6 +5378,25 @@ class DWindows : AppCompatActivity() {
         return retval
     }
 
+    // No reverse evaluate function to get the offset from a color in a range...
+    // So we do a hacky while loop to test offsets in the range to see if we can
+    // find the color and return the offset... return -1F on failure
+    fun colorSliderOffset(chosenColor: Int, startColor: Int, endColor: Int): Float
+    {
+        val argbEvaluator = android.animation.ArgbEvaluator()
+        var testOffset = 0F
+
+        while(testOffset <= 1F) {
+            val testColor = argbEvaluator.evaluate(testOffset, startColor, endColor) as Int
+
+            if(testColor == chosenColor) {
+                return testOffset
+            }
+            testOffset += 0.001F
+        }
+        return -1F
+    }
+
     fun colorChoose(color: Int, alpha: Int, red: Int, green: Int, blue: Int): Int
     {
         var retval: Int = color
@@ -5417,9 +5437,16 @@ class DWindows : AppCompatActivity() {
                 colorChosen = Color.rgb(red, green, blue)
                 colorWheel.rgb = colorChosen
                 gradientBar.setBlackToColor(colorWheel.rgb)
-                var hsv = FloatArray(3)
-                Color.colorToHSV(colorChosen, hsv)
-                gradientBar.offset = hsv[2]
+                val testOffset = colorSliderOffset(colorChosen, gradientBar.startColor, gradientBar.endColor)
+                if(testOffset < 0F) {
+                    // If our test method didn't work... convert to HSV
+                    // and use the brightness value as the slider offset
+                    var hsv = FloatArray(3)
+                    Color.colorToHSV(colorChosen, hsv)
+                    gradientBar.offset = hsv[2]
+                } else {
+                    gradientBar.offset = testOffset
+                }
                 display.setBackgroundColor(colorChosen)
                 colorWheel.colorChangeListener = { rgb: Int ->
                     gradientBar.setBlackToColor(rgb)
