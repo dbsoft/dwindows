@@ -5394,7 +5394,7 @@ void API dw_notebook_pack(HWND handle, ULONG pageid, HWND page)
         jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
         // Get the method that you want to call
         jmethodID notebookPagePack = env->GetMethodID(clazz, "notebookPagePack",
-                                                      "(Landroid/widget/RelativeLayout;JLandroid/widget/LinearLayout;)V");
+                                                      "(Landroid/widget/RelativeLayout;JLandroid/view/View;)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, notebookPagePack, handle, (jlong)pageid, page);
         _dw_jni_check_exception(env);

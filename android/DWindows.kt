@@ -904,7 +904,7 @@ object DWEvent {
 val DWImageExts = arrayOf("", ".png", ".webp", ".jpg", ".jpeg", ".gif")
 
 class DWTabViewPagerAdapter : RecyclerView.Adapter<DWTabViewPagerAdapter.DWEventViewHolder>() {
-    val viewList = mutableListOf<LinearLayout>()
+    val viewList = mutableListOf<View>()
     val pageList = mutableListOf<Long>()
     val titleList = mutableListOf<String?>()
     var currentPageID = 0L
@@ -3446,7 +3446,7 @@ class DWindows : AppCompatActivity() {
         }
     }
 
-    fun notebookPagePack(notebook: RelativeLayout, pageID: Long, box: LinearLayout)
+    fun notebookPagePack(notebook: RelativeLayout, pageID: Long, box: View)
     {
         waitOnUiThread {
             var pager: ViewPager2? = null
