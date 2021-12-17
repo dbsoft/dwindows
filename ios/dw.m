@@ -2860,10 +2860,12 @@ API_AVAILABLE(ios(10.0))
 }
 -(void)showPicker:(id)sender
 {
+    [self resignFirstResponder];
+
     pickerView = [[UIPickerView alloc] init];
     [pickerView setDataSource:self];
     [pickerView setDelegate:self];
-    
+
     /* If the text field is empty show the place holder otherwise show the last selected option */
     if([[self text] length] == 0 || ![dataArray containsObject:[self text]])
     {
@@ -2879,7 +2881,6 @@ API_AVAILABLE(ios(10.0))
 
     UIToolbar* toolbar = [[UIToolbar alloc] init];
     [toolbar setBarStyle:toolbarStyle];
-    [toolbar sizeToFit];
     
     /* Space between buttons */
     UIBarButtonItem *flexibleSpace = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace
@@ -2899,10 +2900,18 @@ API_AVAILABLE(ios(10.0))
                                     action:@selector(cancelClicked:)];
         
     [toolbar setItems:[NSArray arrayWithObjects:cancelButton, flexibleSpace, doneButton, nil]];
-    
+    [toolbar sizeToFit];
+
     /* Custom input view */
     [self setInputView:pickerView];
     [self setInputAccessoryView:toolbar];
+    [super becomeFirstResponder];
+}
+-(BOOL)becomeFirstResponder
+{
+    [self setInputView:nil];
+    [self setInputAccessoryView:nil];
+    return [super becomeFirstResponder];
 }
 -(int)selectedIndex { return selectedIndex; }
 @end
