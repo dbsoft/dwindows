@@ -1889,6 +1889,7 @@ BOOL _dw_is_dark(void)
         cgcontext = nil;
         [image retain];
         [oldimage release];
+        CGImageRelease(cgimage);
     }
     return image;
 }
