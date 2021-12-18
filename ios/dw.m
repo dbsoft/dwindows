@@ -797,6 +797,7 @@ API_AVAILABLE(ios(13.0))
     DWMenu *windowmenu, *popupmenu;
     int redraw;
     int shown;
+    void *userdata;
 }
 -(void)sendEvent:(UIEvent *)theEvent;
 -(void)keyDown:(UIKey *)key API_AVAILABLE(ios(13.4));
@@ -809,6 +810,8 @@ API_AVAILABLE(ios(13.0))
 -(void)setPopupMenu:(DWMenu *)input;
 -(DWMenu *)menu;
 -(DWMenu *)popupMenu;
+-(void *)userdata;
+-(void)setUserdata:(void *)input;
 @end
 
 @implementation DWWindow
@@ -839,6 +842,8 @@ API_AVAILABLE(ios(13.0))
 }
 -(void)dealloc
 {
+    UserData *root = userdata;
+    _dw_remove_userdata(&root, NULL, TRUE);
     if(windowmenu)
         [windowmenu release];
     if(popupmenu)
@@ -846,6 +851,8 @@ API_AVAILABLE(ios(13.0))
     dw_signal_disconnect_by_window(self);
     [super dealloc];
 }
+-(void *)userdata { return userdata; }
+-(void)setUserdata:(void *)input { userdata = input; }
 @end
 
 @interface DWImage : NSObject
@@ -9581,7 +9588,14 @@ DW_FUNCTION_RESTORE_PARAM3(window, HWND, dataname, const char *, data, void *)
     {
         UIWindow *win = window;
         NSArray *subviews = [win subviews];
-        object = [subviews firstObject];
+        for(id obj in subviews)
+        {
+            if([obj isMemberOfClass:[DWView class]])
+            {
+                object = obj;
+                break;
+            }
+        }
     }
     else if([object isMemberOfClass:[UIScrollView class]])
     {
@@ -9631,7 +9645,14 @@ DW_FUNCTION_RESTORE_PARAM2(window, HWND, dataname, const char *)
     {
         UIWindow *win = window;
         NSArray *subviews = [win subviews];
-        object = [subviews firstObject];
+        for(id obj in subviews)
+        {
+            if([obj isMemberOfClass:[DWView class]])
+            {
+                object = obj;
+                break;
+            }
+        }
     }
     else if([object isMemberOfClass:[UIScrollView class]])
     {
