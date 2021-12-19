@@ -771,7 +771,7 @@ API_AVAILABLE(ios(13.0))
     {
         box = calloc(1, sizeof(Box));
         box->type = DW_VERT;
-        box->vsize = box->hsize = SIZEEXPAND;
+        box->vsize = box->hsize = _DW_SIZE_EXPAND;
         box->width = box->height = 1;
     }
     return self;
@@ -1640,7 +1640,7 @@ BOOL _dw_is_dark(void)
 
         for(z=0;z<thisbox->count;z++)
         {
-            if(thisbox->items[z].type != TYPEBOX)
+            if(thisbox->items[z].type != _DW_TYPE_BOX)
             {
                 id object = thisbox->items[z].hwnd;
 
@@ -2996,7 +2996,7 @@ void _dw_handle_resize_events(Box *thisbox)
     {
         id handle = thisbox->items[z].hwnd;
 
-        if(thisbox->items[z].type == TYPEBOX)
+        if(thisbox->items[z].type == _DW_TYPE_BOX)
         {
             Box *tmp = (Box *)[handle box];
 
@@ -3079,7 +3079,7 @@ static void _dw_resize_box(Box *thisbox, int *depth, int x, int y, int pass)
     {
         int itempad, itemwidth, itemheight;
 
-        if(thisbox->items[z].type == TYPEBOX)
+        if(thisbox->items[z].type == _DW_TYPE_BOX)
         {
             id box = thisbox->items[z].hwnd;
             Box *tmp = (Box *)[box box];
@@ -3122,7 +3122,7 @@ static void _dw_resize_box(Box *thisbox, int *depth, int x, int y, int pass)
             if(itemwidth > uxmax)
                 uxmax = itemwidth;
 
-            if(thisbox->items[z].hsize != SIZEEXPAND)
+            if(thisbox->items[z].hsize != _DW_SIZE_EXPAND)
             {
                 if(itemwidth > upxmax)
                     upxmax = itemwidth;
@@ -3133,7 +3133,7 @@ static void _dw_resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                     upxmax = itempad;
             }
             thisbox->minheight += itemheight;
-            if(thisbox->items[z].vsize != SIZEEXPAND)
+            if(thisbox->items[z].vsize != _DW_SIZE_EXPAND)
                 thisbox->usedpady += itemheight;
             else
                 thisbox->usedpady += itempad;
@@ -3142,7 +3142,7 @@ static void _dw_resize_box(Box *thisbox, int *depth, int x, int y, int pass)
         {
             if(itemheight > uymax)
                 uymax = itemheight;
-            if(thisbox->items[z].vsize != SIZEEXPAND)
+            if(thisbox->items[z].vsize != _DW_SIZE_EXPAND)
             {
                 if(itemheight > upymax)
                     upymax = itemheight;
@@ -3153,7 +3153,7 @@ static void _dw_resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                     upymax = itempad;
             }
             thisbox->minwidth += itemwidth;
-            if(thisbox->items[z].hsize != SIZEEXPAND)
+            if(thisbox->items[z].hsize != _DW_SIZE_EXPAND)
                 thisbox->usedpadx += itemwidth;
             else
                 thisbox->usedpadx += itempad;
@@ -3177,7 +3177,7 @@ static void _dw_resize_box(Box *thisbox, int *depth, int x, int y, int pass)
             int thispad = thisbox->pad * 2;
 
             /* Calculate the new sizes */
-            if(thisbox->items[z].hsize == SIZEEXPAND)
+            if(thisbox->items[z].hsize == _DW_SIZE_EXPAND)
             {
                 if(thisbox->type == DW_HORZ)
                 {
@@ -3189,7 +3189,7 @@ static void _dw_resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                 else
                     width = x - (itempad + thispad + thisbox->grouppadx);
             }
-            if(thisbox->items[z].vsize == SIZEEXPAND)
+            if(thisbox->items[z].vsize == _DW_SIZE_EXPAND)
             {
                 if(thisbox->type == DW_VERT)
                 {
@@ -3216,7 +3216,7 @@ static void _dw_resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                 [handle setFrame:rect];
 
                 /* After placing a box... place its components */
-                if(thisbox->items[z].type == TYPEBOX)
+                if(thisbox->items[z].type == _DW_TYPE_BOX)
                 {
                     id box = thisbox->items[z].hwnd;
                     Box *tmp = (Box *)[box box];
@@ -4108,7 +4108,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
 
     /* Fill in the item data appropriately */
     if([object isKindOfClass:[DWBox class]])
-       tmpitem[index].type = TYPEBOX;
+       tmpitem[index].type = _DW_TYPE_BOX;
     else
     {
         if(width == 0 && hsize == FALSE)
@@ -4116,19 +4116,19 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
         if(height == 0 && vsize == FALSE)
             dw_messagebox(funcname, DW_MB_OK|DW_MB_ERROR, "Height and expand Vertical both unset for box: %x item: %x",box,item);
 
-        tmpitem[index].type = TYPEITEM;
+        tmpitem[index].type = _DW_TYPE_ITEM;
     }
 
     tmpitem[index].hwnd = item;
     tmpitem[index].origwidth = tmpitem[index].width = width;
     tmpitem[index].origheight = tmpitem[index].height = height;
     tmpitem[index].pad = pad;
-    tmpitem[index].hsize = hsize ? SIZEEXPAND : SIZESTATIC;
-    tmpitem[index].vsize = vsize ? SIZEEXPAND : SIZESTATIC;
+    tmpitem[index].hsize = hsize ? _DW_SIZE_EXPAND : _DW_SIZE_STATIC;
+    tmpitem[index].vsize = vsize ? _DW_SIZE_EXPAND : _DW_SIZE_STATIC;
 
-    /* If either of the parameters are -1 ... calculate the size */
-    if(width == -1 || height == -1)
-        _dw_control_size(object, width == -1 ? &tmpitem[index].width : NULL, height == -1 ? &tmpitem[index].height : NULL);
+    /* If either of the parameters are -1 (DW_SIZE_AUTO) ... calculate the size */
+    if(width == DW_SIZE_AUTO || height == DW_SIZE_AUTO)
+        _dw_control_size(object, width == DW_SIZE_AUTO ? &tmpitem[index].width : NULL, height == DW_SIZE_AUTO ? &tmpitem[index].height : NULL);
 
     thisbox->items = tmpitem;
 
@@ -8680,9 +8680,9 @@ int API dw_window_set_font(HWND handle, const char *fontname)
         Item *item = _dw_box_item(handle);
 
         /* Check to see if any of the sizes need to be recalculated */
-        if(item && (item->origwidth == -1 || item->origheight == -1))
+        if(item && (item->origwidth == DW_SIZE_AUTO || item->origheight == DW_SIZE_AUTO))
         {
-            _dw_control_size(handle, item->origwidth == -1 ? &item->width : NULL, item->origheight == -1 ? &item->height : NULL);
+            _dw_control_size(handle, item->origwidth == DW_SIZE_AUTO ? &item->width : NULL, item->origheight == DW_SIZE_AUTO ? &item->height : NULL);
             /* Queue a redraw on the top-level window */
             _dw_redraw([object window], TRUE);
         }
@@ -8905,19 +8905,19 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, text, char *)
     /* If we changed the text...
      * Check to see if any of the sizes need to be recalculated
      */
-    if(item && (item->origwidth == -1 || item->origheight == -1))
+    if(item && (item->origwidth == DW_SIZE_AUTO || item->origheight == DW_SIZE_AUTO))
     {
       int newwidth, newheight;
 
       _dw_control_size(handle, &newwidth, &newheight);
 
       /* Only update the item and redraw the window if it changed */
-      if((item->origwidth == -1 && item->width != newwidth) ||
-         (item->origheight == -1 && item->height != newheight))
+      if((item->origwidth == DW_SIZE_AUTO && item->width != newwidth) ||
+         (item->origheight == DW_SIZE_AUTO && item->height != newheight))
       {
-         if(item->origwidth == -1)
+         if(item->origwidth == DW_SIZE_AUTO)
             item->width = newwidth;
-         if(item->origheight == -1)
+         if(item->origheight == DW_SIZE_AUTO)
             item->height = newheight;
          /* Queue a redraw on the top-level window */
          _dw_redraw([object window], TRUE);
@@ -9040,9 +9040,9 @@ void API dw_window_set_bitmap_from_data(HWND handle, unsigned long cid, const ch
             Item *item = _dw_box_item(handle);
 
             /* Check to see if any of the sizes need to be recalculated */
-            if(item && (item->origwidth == -1 || item->origheight == -1))
+            if(item && (item->origwidth == DW_SIZE_AUTO || item->origheight == DW_SIZE_AUTO))
             {
-                _dw_control_size(handle, item->origwidth == -1 ? &item->width : NULL, item->origheight == -1 ? &item->height : NULL);
+                _dw_control_size(handle, item->origwidth == DW_SIZE_AUTO ? &item->width : NULL, item->origheight == DW_SIZE_AUTO ? &item->height : NULL);
                 /* Queue a redraw on the top-level window */
                 _dw_redraw([object window], TRUE);
             }
@@ -9107,9 +9107,9 @@ void API dw_window_set_bitmap(HWND handle, unsigned long resid, const char *file
             Item *item = _dw_box_item(handle);
 
             /* Check to see if any of the sizes need to be recalculated */
-            if(item && (item->origwidth == -1 || item->origheight == -1))
+            if(item && (item->origwidth == DW_SIZE_AUTO || item->origheight == DW_SIZE_AUTO))
             {
-                _dw_control_size(handle, item->origwidth == -1 ? &item->width : NULL, item->origheight == -1 ? &item->height : NULL);
+                _dw_control_size(handle, item->origwidth == DW_SIZE_AUTO ? &item->width : NULL, item->origheight == DW_SIZE_AUTO ? &item->height : NULL);
                 /* Queue a redraw on the top-level window */
                 _dw_redraw([object window], TRUE);
             }

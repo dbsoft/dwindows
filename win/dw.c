@@ -1463,7 +1463,7 @@ int _dw_focus_check_box(Box *box, HWND handle, int start, int direction, HWND de
 
    for(z=beg;_dw_focus_comp(direction, z, end);z+=direction)
    {
-      if(box->items[z].type == TYPEBOX)
+      if(box->items[z].type == _DW_TYPE_BOX)
       {
          Box *thisbox = (Box *)GetWindowLongPtr(box->items[z].hwnd, GWLP_USERDATA);
 
@@ -1694,7 +1694,7 @@ static void _dw_resize_box(Box *thisbox, int *depth, int x, int y, int xborder, 
    {
       int itempad, itemwidth, itemheight;
 
-      if(thisbox->items[z].type == TYPEBOX)
+      if(thisbox->items[z].type == _DW_TYPE_BOX)
       {
          Box *tmp = (Box *)GetWindowLongPtr(thisbox->items[z].hwnd, GWLP_USERDATA);
 
@@ -1736,7 +1736,7 @@ static void _dw_resize_box(Box *thisbox, int *depth, int x, int y, int xborder, 
          if(itemwidth > uxmax)
             uxmax = itemwidth;
 
-         if(thisbox->items[z].hsize != SIZEEXPAND)
+         if(thisbox->items[z].hsize != _DW_SIZE_EXPAND)
          {
             if(itemwidth > upxmax)
                upxmax = itemwidth;
@@ -1747,7 +1747,7 @@ static void _dw_resize_box(Box *thisbox, int *depth, int x, int y, int xborder, 
                upxmax = itempad;
          }
          thisbox->minheight += itemheight;
-         if(thisbox->items[z].vsize != SIZEEXPAND)
+         if(thisbox->items[z].vsize != _DW_SIZE_EXPAND)
             thisbox->usedpady += itemheight;
          else
             thisbox->usedpady += itempad;
@@ -1756,7 +1756,7 @@ static void _dw_resize_box(Box *thisbox, int *depth, int x, int y, int xborder, 
       {
          if(itemheight > uymax)
             uymax = itemheight;
-         if(thisbox->items[z].vsize != SIZEEXPAND)
+         if(thisbox->items[z].vsize != _DW_SIZE_EXPAND)
          {
             if(itemheight > upymax)
                upymax = itemheight;
@@ -1767,7 +1767,7 @@ static void _dw_resize_box(Box *thisbox, int *depth, int x, int y, int xborder, 
                upymax = itempad;
          }
          thisbox->minwidth += itemwidth;
-         if(thisbox->items[z].hsize != SIZEEXPAND)
+         if(thisbox->items[z].hsize != _DW_SIZE_EXPAND)
             thisbox->usedpadx += itemwidth;
          else
             thisbox->usedpadx += itempad;
@@ -1798,7 +1798,7 @@ static void _dw_resize_box(Box *thisbox, int *depth, int x, int y, int xborder, 
          int thispad = thisbox->pad * 2;
 
          /* Calculate the new sizes */
-         if(thisbox->items[z].hsize == SIZEEXPAND)
+         if(thisbox->items[z].hsize == _DW_SIZE_EXPAND)
          {
             if(thisbox->type == DW_HORZ)
             {
@@ -1810,7 +1810,7 @@ static void _dw_resize_box(Box *thisbox, int *depth, int x, int y, int xborder, 
             else
                width = x - (itempad + thispad + thisbox->grouppadx);
          }
-         if(thisbox->items[z].vsize == SIZEEXPAND)
+         if(thisbox->items[z].vsize == _DW_SIZE_EXPAND)
          {
             if(thisbox->type == DW_VERT)
             {
@@ -1973,7 +1973,7 @@ static void _dw_resize_box(Box *thisbox, int *depth, int x, int y, int xborder, 
                   SetWindowPos(handle, HWND_TOP, currentx + pad + xborder, currenty + pad + yborder, width, height, 0);
 
                /* After placing a box... place its components */
-               if(thisbox->items[z].type == TYPEBOX)
+               if(thisbox->items[z].type == _DW_TYPE_BOX)
                {
                   Box *boxinfo = (Box *)GetWindowLongPtr(handle, GWLP_USERDATA);
 
@@ -3894,7 +3894,7 @@ void _dw_change_box(Box *thisbox, int percent, int type)
 
    for(z=0;z<thisbox->count;z++)
    {
-      if(thisbox->items[z].type == TYPEBOX)
+      if(thisbox->items[z].type == _DW_TYPE_BOX)
       {
          Box *tmp = (Box*)GetWindowLongPtr(thisbox->items[z].hwnd, GWLP_USERDATA);
          _dw_change_box(tmp, percent, type);
@@ -3903,12 +3903,12 @@ void _dw_change_box(Box *thisbox, int percent, int type)
       {
          if(type == DW_HORZ)
          {
-            if(thisbox->items[z].hsize == SIZEEXPAND)
+            if(thisbox->items[z].hsize == _DW_SIZE_EXPAND)
                thisbox->items[z].width = (int)(((float)thisbox->items[z].origwidth) * (((float)percent)/((float)100.0)));
          }
          else
          {
-            if(thisbox->items[z].vsize == SIZEEXPAND)
+            if(thisbox->items[z].vsize == _DW_SIZE_EXPAND)
                thisbox->items[z].height = (int)(((float)thisbox->items[z].origheight) * (((float)percent)/((float)100.0)));
          }
       }
@@ -3929,14 +3929,14 @@ void _dw_handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y
       float ratio = (float)percent/(float)100.0;
       Box *tmp = (Box *)GetWindowLongPtr(handle1, GWLP_USERDATA);
 
-      newx = (int)((float)newx * ratio) - (SPLITBAR_WIDTH/2);
+      newx = (int)((float)newx * ratio) - (_DW_SPLITBAR_WIDTH/2);
 
       MoveWindow(handle1, 0, 0, newx, y, FALSE);
       _dw_do_resize(tmp, newx - 1, y - 1, 0, 0);
 
       tmp = (Box *)GetWindowLongPtr(handle2, GWLP_USERDATA);
 
-      newx = x - newx - SPLITBAR_WIDTH;
+      newx = x - newx - _DW_SPLITBAR_WIDTH;
 
       MoveWindow(handle2, x - newx, 0, newx, y, FALSE);
       _dw_do_resize(tmp, newx - 1, y - 1, 0, 0);
@@ -3949,14 +3949,14 @@ void _dw_handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y
       float ratio = (float)(100.0-percent)/(float)100.0;
       Box *tmp = (Box *)GetWindowLongPtr(handle2, GWLP_USERDATA);
 
-      newy = (int)((float)newy * ratio) - (SPLITBAR_WIDTH/2);
+      newy = (int)((float)newy * ratio) - (_DW_SPLITBAR_WIDTH/2);
 
       MoveWindow(handle2, 0, y - newy, x, newy, FALSE);
       _dw_do_resize(tmp, x - 1, newy - 1, 0, 0);
 
       tmp = (Box *)GetWindowLongPtr(handle1, GWLP_USERDATA);
 
-      newy = y - newy - SPLITBAR_WIDTH;
+      newy = y - newy - _DW_SPLITBAR_WIDTH;
 
       MoveWindow(handle1, 0, 0, x, newy, FALSE);
       _dw_do_resize(tmp, x - 1, newy - 1, 0, 0);
@@ -4068,9 +4068,9 @@ LRESULT CALLBACK _dw_splitwndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
             dw_window_get_pos_size(hwnd, NULL, NULL, &cx, &cy);
 
             if(type == DW_HORZ)
-               Rectangle(hdcPaint, cx - start - SPLITBAR_WIDTH, 0, cx - start, cy);
+               Rectangle(hdcPaint, cx - start - _DW_SPLITBAR_WIDTH, 0, cx - start, cy);
             else
-               Rectangle(hdcPaint, 0, start, cx, start + SPLITBAR_WIDTH);
+               Rectangle(hdcPaint, 0, start, cx, start + _DW_SPLITBAR_WIDTH);
 
             SelectObject(hdcPaint, oldBrush);
             DeleteObject(SelectObject(hdcPaint, oldPen));
@@ -4120,14 +4120,14 @@ LRESULT CALLBACK _dw_splitwndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
                   if(type == DW_HORZ)
                   {
                      start = point.x - rect.left;
-                     if(width - SPLITBAR_WIDTH > 1 && start < width - SPLITBAR_WIDTH)
-                        *percent = ((float)start / (float)(width - SPLITBAR_WIDTH)) * (float)100.0;
+                     if(width - _DW_SPLITBAR_WIDTH > 1 && start < width - _DW_SPLITBAR_WIDTH)
+                        *percent = ((float)start / (float)(width - _DW_SPLITBAR_WIDTH)) * (float)100.0;
                   }
                   else
                   {
                      start = point.y - rect.top;
-                     if(height - SPLITBAR_WIDTH > 1 && start < height - SPLITBAR_WIDTH)
-                        *percent = ((float)start / (float)(height - SPLITBAR_WIDTH)) * (float)100.0;
+                     if(height - _DW_SPLITBAR_WIDTH > 1 && start < height - _DW_SPLITBAR_WIDTH)
+                        *percent = ((float)start / (float)(height - _DW_SPLITBAR_WIDTH)) * (float)100.0;
                   }
                   _dw_handle_splitbar_resize(hwnd, *percent, type, width, height);
                }
@@ -5753,9 +5753,9 @@ int API dw_window_set_font(HWND handle, const char *fontname)
           DeleteObject(oldfont);
 
        /* Check to see if any of the sizes need to be recalculated */
-       if(item && (item->origwidth == -1 || item->origheight == -1))
+       if(item && (item->origwidth == DW_SIZE_AUTO || item->origheight == DW_SIZE_AUTO))
        {
-          _dw_control_size(handle, item->origwidth == -1 ? &item->width : NULL, item->origheight == -1 ? &item->height : NULL);
+          _dw_control_size(handle, item->origwidth == DW_SIZE_AUTO ? &item->width : NULL, item->origheight == DW_SIZE_AUTO ? &item->height : NULL);
           /* Queue a redraw on the top-level window */
          _dw_redraw(_dw_toplevel_window(handle), TRUE);
        }
@@ -5990,7 +5990,7 @@ HWND API dw_window_new(HWND hwndOwner, const char *title, ULONG flStyle)
 #endif
 
    newbox->type = DW_VERT;
-   newbox->vsize = newbox->hsize = SIZEEXPAND;
+   newbox->vsize = newbox->hsize = _DW_SIZE_EXPAND;
    newbox->cinfo.fore = newbox->cinfo.back = -1;
    newbox->cinfo.style = flStyle;
 
@@ -7763,9 +7763,9 @@ void _dw_window_set_bitmap(HWND handle, HICON icon, HBITMAP hbitmap)
       Item *item = _dw_box_item(handle);
 
       /* Check to see if any of the sizes need to be recalculated */
-      if(item && (item->origwidth == -1 || item->origheight == -1))
+      if(item && (item->origwidth == DW_SIZE_AUTO || item->origheight == DW_SIZE_AUTO))
       {
-         _dw_control_size(handle, item->origwidth == -1 ? &item->width : NULL, item->origheight == -1 ? &item->height : NULL);
+         _dw_control_size(handle, item->origwidth == DW_SIZE_AUTO ? &item->width : NULL, item->origheight == DW_SIZE_AUTO ? &item->height : NULL);
          /* Queue a redraw on the top-level window */
          _dw_redraw(_dw_toplevel_window(handle), TRUE);
       }
@@ -7899,19 +7899,19 @@ void API dw_window_set_text(HWND handle, const char *text)
       Item *item = _dw_box_item(handle);
 
       /* Check to see if any of the sizes need to be recalculated */
-      if(item && (item->origwidth == -1 || item->origheight == -1))
+      if(item && (item->origwidth == DW_SIZE_AUTO || item->origheight == DW_SIZE_AUTO))
       {
          int newwidth, newheight;
 
          _dw_control_size(handle, &newwidth, &newheight);
 
          /* Only update the item and redraw the window if it changed */
-         if((item->origwidth == -1 && item->width != newwidth) ||
-            (item->origheight == -1 && item->height != newheight))
+         if((item->origwidth == DW_SIZE_AUTO && item->width != newwidth) ||
+            (item->origheight == DW_SIZE_AUTO && item->height != newheight))
          {
-            if(item->origwidth == -1)
+            if(item->origwidth == DW_SIZE_AUTO)
                item->width = newwidth;
-            if(item->origheight == -1)
+            if(item->origheight == DW_SIZE_AUTO)
                item->height = newheight;
             /* Queue a redraw on the top-level window */
             _dw_redraw(_dw_toplevel_window(handle), TRUE);
@@ -8107,7 +8107,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
          width = 1;
 
       if(_tcsnicmp(tmpbuf, FRAMECLASSNAME, _tcslen(FRAMECLASSNAME)+1)==0)
-         tmpitem[index].type = TYPEBOX;
+         tmpitem[index].type = _DW_TYPE_BOX;
       else
       {
          if(_tcsnicmp(tmpbuf, TEXT("SysMonthCal32"), 13)==0)
@@ -8116,7 +8116,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
             MonthCal_GetMinReqRect(item, &rc);
             width = 1 + rc.right - rc.left;
             height = 1 + rc.bottom - rc.top;
-            tmpitem[index].type = TYPEITEM;
+            tmpitem[index].type = _DW_TYPE_ITEM;
          }
          else
          {
@@ -8125,7 +8125,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
             if ( height == 0 && vsize == FALSE )
                dw_messagebox(funcname, DW_MB_OK|DW_MB_ERROR, "Height and expand Vertical both unset for box: %x item: %x",box,item);
 
-            tmpitem[index].type = TYPEITEM;
+            tmpitem[index].type = _DW_TYPE_ITEM;
          }
       }
 
@@ -8133,12 +8133,12 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
       tmpitem[index].origwidth = tmpitem[index].width = width;
       tmpitem[index].origheight = tmpitem[index].height = height;
       tmpitem[index].pad = pad;
-      tmpitem[index].hsize = hsize ? SIZEEXPAND : SIZESTATIC;
-      tmpitem[index].vsize = vsize ? SIZEEXPAND : SIZESTATIC;
+      tmpitem[index].hsize = hsize ? _DW_SIZE_EXPAND : _DW_SIZE_STATIC;
+      tmpitem[index].vsize = vsize ? _DW_SIZE_EXPAND : _DW_SIZE_STATIC;
 
-      /* If either of the parameters are -1 ... calculate the size */
-      if(width == -1 || height == -1)
-         _dw_control_size(item, width == -1 ? &tmpitem[index].width : NULL, height == -1 ? &tmpitem[index].height : NULL);
+      /* If either of the parameters are -1 (DW_SIZE_AUTO) ... calculate the size */
+      if(width == DW_SIZE_AUTO || height == DW_SIZE_AUTO)
+         _dw_control_size(item, width == DW_SIZE_AUTO ? &tmpitem[index].width : NULL, height == DW_SIZE_AUTO ? &tmpitem[index].height : NULL);
 
       thisbox->items = tmpitem;
 
