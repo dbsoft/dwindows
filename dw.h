@@ -133,13 +133,16 @@ extern "C" {
 #endif
 
 /* Used internally */
-#define TYPEBOX  0
-#define TYPEITEM 1
+#define _DW_TYPE_BOX  0
+#define _DW_TYPE_ITEM 1
 
-#define SIZESTATIC 0
-#define SIZEEXPAND 1
+#define _DW_SPLITBAR_WIDTH 4
 
-#define SPLITBAR_WIDTH 4
+#define _DW_SIZE_STATIC 0
+#define _DW_SIZE_EXPAND 1
+
+/* Control size constants */
+#define DW_SIZE_AUTO    -1
 
 typedef struct _user_data
 {

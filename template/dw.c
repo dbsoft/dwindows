@@ -75,7 +75,7 @@ static void _dw_resize_box(Box *thisbox, int *depth, int x, int y, int pass)
    {
       int itempad, itemwidth, itemheight;
         
-      if(thisbox->items[z].type == TYPEBOX)
+      if(thisbox->items[z].type == _DW_TYPE_BOX)
       {
          Box *tmp = (Box *)_dw_window_pointer_get(thisbox->items[z].hwnd);
 
@@ -111,7 +111,7 @@ static void _dw_resize_box(Box *thisbox, int *depth, int x, int y, int pass)
          if(itemwidth > uxmax)
             uxmax = itemwidth;
             
-         if(thisbox->items[z].hsize != SIZEEXPAND)
+         if(thisbox->items[z].hsize != _DW_SIZE_EXPAND)
          {
             if(itemwidth > upxmax)
                upxmax = itemwidth;
@@ -122,7 +122,7 @@ static void _dw_resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                upxmax = itempad;
          }
          thisbox->minheight += itemheight;
-         if(thisbox->items[z].vsize != SIZEEXPAND)
+         if(thisbox->items[z].vsize != _DW_SIZE_EXPAND)
             thisbox->usedpady += itemheight;
          else
             thisbox->usedpady += itempad;
@@ -131,7 +131,7 @@ static void _dw_resize_box(Box *thisbox, int *depth, int x, int y, int pass)
       {
          if(itemheight > uymax)
             uymax = itemheight;
-         if(thisbox->items[z].vsize != SIZEEXPAND)
+         if(thisbox->items[z].vsize != _DW_SIZE_EXPAND)
          {
             if(itemheight > upymax)
                upymax = itemheight;
@@ -142,7 +142,7 @@ static void _dw_resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                upymax = itempad;
          }
          thisbox->minwidth += itemwidth;
-         if(thisbox->items[z].hsize != SIZEEXPAND)
+         if(thisbox->items[z].hsize != _DW_SIZE_EXPAND)
             thisbox->usedpadx += itemwidth;
          else
             thisbox->usedpadx += itempad;
@@ -173,7 +173,7 @@ static void _dw_resize_box(Box *thisbox, int *depth, int x, int y, int pass)
          int thispad = thisbox->pad * 2;
 
          /* Calculate the new sizes */
-         if(thisbox->items[z].hsize == SIZEEXPAND)
+         if(thisbox->items[z].hsize == _DW_SIZE_EXPAND)
          {
             if(thisbox->type == DW_HORZ)
             {
@@ -185,7 +185,7 @@ static void _dw_resize_box(Box *thisbox, int *depth, int x, int y, int pass)
             else
                width = x - (itempad + thispad + thisbox->grouppadx);
          }
-         if(thisbox->items[z].vsize == SIZEEXPAND)
+         if(thisbox->items[z].vsize == _DW_SIZE_EXPAND)
          {
             if(thisbox->type == DW_VERT)
             {
@@ -602,23 +602,23 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
 
     /* Fill in the item data appropriately */
     if(0 /* Test to see if "item" is a box */)
-       tmpitem[index].type = TYPEBOX;
+       tmpitem[index].type = _DW_TYPE_BOX;
     else
-       tmpitem[index].type = TYPEITEM;
+       tmpitem[index].type = _DW_TYPE_ITEM;
 
     tmpitem[index].hwnd = item;
     tmpitem[index].origwidth = tmpitem[index].width = width;
     tmpitem[index].origheight = tmpitem[index].height = height;
     tmpitem[index].pad = pad;
     if(hsize)
-       tmpitem[index].hsize = SIZEEXPAND;
+       tmpitem[index].hsize = _DW_SIZE_EXPAND;
     else
-       tmpitem[index].hsize = SIZESTATIC;
+       tmpitem[index].hsize = _DW_SIZE_STATIC;
 
     if(vsize)
-       tmpitem[index].vsize = SIZEEXPAND;
+       tmpitem[index].vsize = _DW_SIZE_EXPAND;
     else
-       tmpitem[index].vsize = SIZESTATIC;
+       tmpitem[index].vsize = _DW_SIZE_STATIC;
 
     thisbox->items = tmpitem;
 
