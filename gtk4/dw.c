@@ -9494,7 +9494,7 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, index, unsigned int, buffer, char *)
          if (gtk_tree_model_iter_nth_child(GTK_TREE_MODEL(store), &iter, NULL, index))
          {
             /* Update the text */
-            gtk_list_store_set(store, &iter, buffer);
+            gtk_list_store_set(store, &iter, 0, buffer, -1);
          }
       }
    }
