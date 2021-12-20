@@ -116,6 +116,9 @@ extern "C" {
 #define DW_GRAV_BOTTOM           2
 #define DW_GRAV_OBSTACLES        (1 << 10)
 
+/* Control size constants */
+#define DW_SIZE_AUTO    -1
+
 /* ensure we can build the Gtk port with MingW on Windows */
 #if defined(DW_USE_GTK) && defined(__MINGW32__)
 # ifndef GDK_WINDOWING_WIN32
@@ -140,9 +143,6 @@ extern "C" {
 
 #define _DW_SIZE_STATIC 0
 #define _DW_SIZE_EXPAND 1
-
-/* Control size constants */
-#define DW_SIZE_AUTO    -1
 
 typedef struct _user_data
 {
