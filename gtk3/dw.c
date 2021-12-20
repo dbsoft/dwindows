@@ -10828,7 +10828,7 @@ void dw_listbox_set_text(HWND handle, unsigned int index, const char *buffer)
          if (gtk_tree_model_iter_nth_child(GTK_TREE_MODEL(store), &iter, NULL, index))
          {
             /* Update the text */
-            gtk_list_store_set(store, &iter, buffer);
+            gtk_list_store_set(store, &iter, 0, buffer, -1);
          }
       }
    }
