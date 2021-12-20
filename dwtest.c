@@ -980,15 +980,15 @@ void archive_add(void)
 
     dw_entryfield_set_limit(copypastefield, 260);
 
-    dw_box_pack_start(browsebox, copypastefield, -1, -1, TRUE, FALSE, 4);
+    dw_box_pack_start(browsebox, copypastefield, DW_SIZE_AUTO, DW_SIZE_AUTO, TRUE, FALSE, 4);
 
     copybutton = dw_button_new("Copy", 0);
 
-    dw_box_pack_start(browsebox, copybutton, -1, -1, FALSE, FALSE, 0);
+    dw_box_pack_start(browsebox, copybutton, DW_SIZE_AUTO, DW_SIZE_AUTO, FALSE, FALSE, 0);
 
     pastebutton = dw_button_new("Paste", 0);
 
-    dw_box_pack_start(browsebox, pastebutton, -1, -1, FALSE, FALSE, 0);
+    dw_box_pack_start(browsebox, pastebutton, DW_SIZE_AUTO, DW_SIZE_AUTO, FALSE, FALSE, 0);
 
     /* Archive Name */
     stext = dw_text_new("File to browse", 0);
@@ -1118,9 +1118,9 @@ void text_add(void)
     hbox = dw_box_new(DW_HORZ, 1 );
     dw_box_pack_start(notebookbox2, hbox, 100, 20, TRUE, FALSE, 1);
     status1 = dw_status_text_new("", 0);
-    dw_box_pack_start(hbox, status1, 100, -1, TRUE, FALSE, 1);
+    dw_box_pack_start(hbox, status1, 100, DW_SIZE_AUTO, TRUE, FALSE, 1);
     status2 = dw_status_text_new("", 0);
-    dw_box_pack_start(hbox, status2, 100, -1, TRUE, FALSE, 1);
+    dw_box_pack_start(hbox, status2, 100, DW_SIZE_AUTO, TRUE, FALSE, 1);
     /* a box with combobox and button */
     hbox = dw_box_new(DW_HORZ, 1 );
     dw_box_pack_start(notebookbox2, hbox, 100, 25, TRUE, FALSE, 1);
@@ -1131,12 +1131,12 @@ void text_add(void)
     dw_listbox_append(rendcombo, "File Display");
     label = dw_text_new("Image X:", 100);
     dw_window_set_style(label, DW_DT_VCENTER | DW_DT_CENTER, DW_DT_VCENTER | DW_DT_CENTER);
-    dw_box_pack_start(hbox, label, -1, 25, FALSE, TRUE, 0);
+    dw_box_pack_start(hbox, label, DW_SIZE_AUTO, 25, FALSE, TRUE, 0);
     imagexspin = dw_spinbutton_new("20", 1021);
     dw_box_pack_start(hbox, imagexspin, 25, 25, TRUE, TRUE, 0);
     label = dw_text_new("Y:", 100);
     dw_window_set_style(label, DW_DT_VCENTER | DW_DT_CENTER, DW_DT_VCENTER | DW_DT_CENTER);
-    dw_box_pack_start(hbox, label, -1, 25, FALSE, TRUE, 0);
+    dw_box_pack_start(hbox, label, DW_SIZE_AUTO, 25, FALSE, TRUE, 0);
     imageyspin = dw_spinbutton_new("20", 1021);
     dw_box_pack_start(hbox, imageyspin, 25, 25, TRUE, TRUE, 0);
     dw_spinbutton_set_limits(imagexspin, 2000, 0);
@@ -1144,12 +1144,12 @@ void text_add(void)
     dw_spinbutton_set_pos(imagexspin, 20);
     dw_spinbutton_set_pos(imageyspin, 20);
     imagestretchcheck = dw_checkbox_new("Stretch", 1021);
-    dw_box_pack_start(hbox, imagestretchcheck, -1, 25, FALSE, TRUE, 0);
+    dw_box_pack_start(hbox, imagestretchcheck, DW_SIZE_AUTO, 25, FALSE, TRUE, 0);
 
     button1 = dw_button_new("Refresh", 1223L );
-    dw_box_pack_start(hbox, button1, -1, 25, FALSE, TRUE, 0);
+    dw_box_pack_start(hbox, button1, DW_SIZE_AUTO, 25, FALSE, TRUE, 0);
     button2 = dw_button_new("Print", 1224L );
-    dw_box_pack_start(hbox, button2, -1, 25, FALSE, TRUE, 0);
+    dw_box_pack_start(hbox, button2, DW_SIZE_AUTO, 25, FALSE, TRUE, 0);
 
     /* Pre-create the scrollbars so we can query their sizes */
     vscrollbar = dw_scrollbar_new(DW_VERT, 50);
@@ -1187,11 +1187,11 @@ void text_add(void)
     dw_box_pack_start(textboxA, textbox2, 10, 10, TRUE, TRUE, 0);
     dw_window_set_font(textbox2, FIXEDFONT);
     /* create horizonal scrollbar */
-    dw_box_pack_start(textboxA, hscrollbar, -1, -1, TRUE, FALSE, 0);
+    dw_box_pack_start(textboxA, hscrollbar, DW_SIZE_AUTO, DW_SIZE_AUTO, TRUE, FALSE, 0);
 
     /* create vertical scrollbar */
     vscrollbox = dw_box_new(DW_VERT, 0);
-    dw_box_pack_start(vscrollbox, vscrollbar, -1, -1, FALSE, TRUE, 0);
+    dw_box_pack_start(vscrollbox, vscrollbar, DW_SIZE_AUTO, DW_SIZE_AUTO, FALSE, TRUE, 0);
     /* Pack an area of empty space 14x14 pixels */
     dw_box_pack_start(vscrollbox, 0, vscrollbarwidth, hscrollbarheight, FALSE, FALSE, 0);
     dw_box_pack_start(pagebox, vscrollbox, 0, 0, FALSE, TRUE, 0);
@@ -1260,7 +1260,7 @@ void tree_add(void)
 
         /* and a status area to see whats going on */
         tree_status = dw_status_text_new("", 0);
-        dw_box_pack_start(notebookbox3, tree_status, 100, -1, TRUE, FALSE, 1);
+        dw_box_pack_start(notebookbox3, tree_status, 100, DW_SIZE_AUTO, TRUE, FALSE, 1);
 
         /* set up our signal trappers... */
         dw_signal_connect(tree, DW_SIGNAL_ITEM_CONTEXT, DW_SIGNAL_FUNC(item_context_cb), DW_POINTER(tree_status));
@@ -1465,23 +1465,23 @@ void container_add(void)
         hbox = dw_box_new(DW_HORZ, 0);
 
         checkbox = dw_checkbox_new("Word wrap", 0);
-        dw_box_pack_start(hbox, checkbox, -1, -1, FALSE, TRUE, 1);
+        dw_box_pack_start(hbox, checkbox, DW_SIZE_AUTO, DW_SIZE_AUTO, FALSE, TRUE, 1);
         text = dw_text_new("Foreground:", 0);
         dw_window_set_style(text, DW_DT_VCENTER, DW_DT_VCENTER);
-        dw_box_pack_start(hbox, text, -1, -1, FALSE, TRUE, 1);
+        dw_box_pack_start(hbox, text, DW_SIZE_AUTO, DW_SIZE_AUTO, FALSE, TRUE, 1);
         mlefore = color_combobox();
-        dw_box_pack_start(hbox, mlefore, 150, -1, TRUE, FALSE, 1);
+        dw_box_pack_start(hbox, mlefore, 150, DW_SIZE_AUTO, TRUE, FALSE, 1);
         text = dw_text_new("Background:", 0);
         dw_window_set_style(text, DW_DT_VCENTER, DW_DT_VCENTER);
-        dw_box_pack_start(hbox, text, -1, -1, FALSE, TRUE, 1);
+        dw_box_pack_start(hbox, text, DW_SIZE_AUTO, DW_SIZE_AUTO, FALSE, TRUE, 1);
         mleback = color_combobox();
-        dw_box_pack_start(hbox, mleback, 150, -1, TRUE, FALSE, 1);
+        dw_box_pack_start(hbox, mleback, 150, DW_SIZE_AUTO, TRUE, FALSE, 1);
         dw_checkbox_set(checkbox, TRUE);
         text = dw_text_new("Font:", 0);
         dw_window_set_style(text, DW_DT_VCENTER, DW_DT_VCENTER);
-        dw_box_pack_start(hbox, text, -1, -1, FALSE, TRUE, 1);
+        dw_box_pack_start(hbox, text, DW_SIZE_AUTO, DW_SIZE_AUTO, FALSE, TRUE, 1);
         fontsize = dw_spinbutton_new("9", 0);
-        dw_box_pack_start(hbox, fontsize, -1, -1, FALSE, FALSE, 1);
+        dw_box_pack_start(hbox, fontsize, DW_SIZE_AUTO, DW_SIZE_AUTO, FALSE, FALSE, 1);
         dw_spinbutton_set_limits(fontsize, 100, 5);
         dw_spinbutton_set_pos(fontsize, 9);
         fontname = dw_combobox_new("Default", 0);
@@ -1495,8 +1495,8 @@ void container_add(void)
         dw_listbox_append(fontname, "Times New Roman Bold");
         dw_listbox_append(fontname, "Times New Roman Italic");
         dw_listbox_append(fontname, "Times New Roman Bold Italic");
-        dw_box_pack_start(hbox, fontname, 150, -1, TRUE, FALSE, 1);
-        dw_box_pack_start(notebookbox4, hbox, -1, -1, TRUE, FALSE, 1);
+        dw_box_pack_start(hbox, fontname, 150, DW_SIZE_AUTO, TRUE, FALSE, 1);
+        dw_box_pack_start(notebookbox4, hbox, DW_SIZE_AUTO, DW_SIZE_AUTO, TRUE, FALSE, 1);
 
         dw_window_set_data(hbox, "mlefore", DW_POINTER(mlefore));
         dw_window_set_data(hbox, "mleback", DW_POINTER(mleback));
@@ -1510,7 +1510,7 @@ void container_add(void)
 
     /* and a status area to see whats going on */
     container_status = dw_status_text_new("", 0);
-    dw_box_pack_start(notebookbox4, container_status, 100, -1, TRUE, FALSE, 1);
+    dw_box_pack_start(notebookbox4, container_status, 100, DW_SIZE_AUTO, TRUE, FALSE, 1);
 
     titles[0] = "Type";
     titles[1] = "Size";
@@ -1617,7 +1617,7 @@ void buttons_add(void)
     calbox = dw_box_new(DW_HORZ, 0);
     dw_box_pack_start(notebookbox5, calbox, 0, 0, TRUE, FALSE, 1);
     cal = dw_calendar_new(100);
-    dw_box_pack_start(calbox, cal, -1, -1, TRUE, FALSE, 0);
+    dw_box_pack_start(calbox, cal, DW_SIZE_AUTO, DW_SIZE_AUTO, TRUE, FALSE, 0);
 
     dw_calendar_set_date(cal, 2019, 4, 30);
 
@@ -1641,7 +1641,7 @@ void buttons_add(void)
     dw_box_pack_start(notebookbox5, combox, 25, 200, TRUE, FALSE, 0);
     combobox1 = dw_combobox_new("fred", 0); /* no point in specifying an initial value */
     dw_listbox_append(combobox1, "fred");
-    dw_box_pack_start(combox, combobox1, -1, -1, TRUE, FALSE, 0);
+    dw_box_pack_start(combox, combobox1, DW_SIZE_AUTO, DW_SIZE_AUTO, TRUE, FALSE, 0);
     /*
      dw_window_set_text( combobox, "initial value");
      */
@@ -1658,7 +1658,7 @@ void buttons_add(void)
 #endif
 
     combobox2 = dw_combobox_new("joe", 0); /* no point in specifying an initial value */
-    dw_box_pack_start(combox, combobox2, -1, -1, TRUE, FALSE, 0);
+    dw_box_pack_start(combox, combobox2, DW_SIZE_AUTO, DW_SIZE_AUTO, TRUE, FALSE, 0);
     /*
      dw_window_set_text(combobox, "initial value");
      */
@@ -1683,20 +1683,20 @@ void buttons_add(void)
     dw_listbox_insert(combobox2, "inserted item 5", 5);
     /* make a spinbutton */
     spinbutton = dw_spinbutton_new("", 0); /* no point in specifying text */
-    dw_box_pack_start(combox, spinbutton, -1, -1, TRUE, FALSE, 0);
+    dw_box_pack_start(combox, spinbutton, DW_SIZE_AUTO, DW_SIZE_AUTO, TRUE, FALSE, 0);
     dw_spinbutton_set_limits(spinbutton, 100, 1);
     dw_spinbutton_set_pos(spinbutton, 30);
     dw_signal_connect(spinbutton, DW_SIGNAL_VALUE_CHANGED, DW_SIGNAL_FUNC(spinbutton_valuechanged_callback), NULL);
     /* make a slider */
     slider = dw_slider_new(FALSE, 11, 0); /* no point in specifying text */
-    dw_box_pack_start(combox, slider, -1, -1, TRUE, FALSE, 0);
+    dw_box_pack_start(combox, slider, DW_SIZE_AUTO, DW_SIZE_AUTO, TRUE, FALSE, 0);
     dw_signal_connect(slider, DW_SIGNAL_VALUE_CHANGED, DW_SIGNAL_FUNC(slider_valuechanged_callback), NULL);
     /* make a percent */
     percent = dw_percent_new(0);
-    dw_box_pack_start(combox, percent, -1, -1, TRUE, FALSE, 0);
+    dw_box_pack_start(combox, percent, DW_SIZE_AUTO, DW_SIZE_AUTO, TRUE, FALSE, 0);
 }
 
-void create_button( int redraw)
+void create_button(int redraw)
 {
     HWND abutton1;
     filetoolbarbox = dw_box_new(DW_VERT, 0);
@@ -1817,7 +1817,7 @@ void scrollbox_add(void)
     dw_box_pack_start(notebookbox8, scrollbox, 0, 0, TRUE, TRUE, 1);
 
     abutton1 = dw_button_new("Show Adjustments", 0);
-    dw_box_pack_start(scrollbox, abutton1, -1, -1, FALSE, FALSE, 0);
+    dw_box_pack_start(scrollbox, abutton1, DW_SIZE_AUTO, DW_SIZE_AUTO, FALSE, FALSE, 0);
     dw_signal_connect(abutton1, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(scrollbox_button_callback), NULL);
 
     for(i = 0; i < MAX_WIDGETS; i++)
@@ -1826,10 +1826,10 @@ void scrollbox_add(void)
         dw_box_pack_start(scrollbox, tmpbox, 0, 0, TRUE, FALSE, 2);
         sprintf(buf, "Label %d", i);
         labelarray[i] = dw_text_new(buf , 0);
-        dw_box_pack_start( tmpbox, labelarray[i], 0, -1, TRUE, FALSE, 0);
+        dw_box_pack_start(tmpbox, labelarray[i], 0, DW_SIZE_AUTO, TRUE, FALSE, 0);
         sprintf(buf, "Entry %d", i);
         entryarray[i] = dw_entryfield_new(buf , i);
-        dw_box_pack_start(tmpbox, entryarray[i], 0, -1, TRUE, FALSE, 0);
+        dw_box_pack_start(tmpbox, entryarray[i], 0, DW_SIZE_AUTO, TRUE, FALSE, 0);
     }
 }
 
@@ -1887,7 +1887,7 @@ void thread_add(void)
     dw_box_pack_start(notebookbox9, tmpbox, 0, 0, TRUE, TRUE, 1);
 
     startbutton = dw_button_new( "Start Threads", 0 );
-    dw_box_pack_start(tmpbox, startbutton, -1, -1, FALSE, FALSE, 0);
+    dw_box_pack_start(tmpbox, startbutton, DW_SIZE_AUTO, DW_SIZE_AUTO, FALSE, FALSE, 0);
     dw_signal_connect(startbutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(start_threads_button_callback), NULL);
 
     /* Create the base threading components */
@@ -2088,41 +2088,41 @@ void html_add(void)
 
         /* Add navigation buttons */
         item = dw_button_new("Back", 0);
-        dw_box_pack_start(hbox, item, -1, -1, FALSE, FALSE, 0);
+        dw_box_pack_start(hbox, item, DW_SIZE_AUTO, DW_SIZE_AUTO, FALSE, FALSE, 0);
         dw_signal_connect(item, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(web_back_clicked), DW_POINTER(html));
 
         item = dw_button_new("Forward", 0);
-        dw_box_pack_start(hbox, item, -1, -1, FALSE, FALSE, 0);
+        dw_box_pack_start(hbox, item, DW_SIZE_AUTO, DW_SIZE_AUTO, FALSE, FALSE, 0);
         dw_signal_connect(item, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(web_forward_clicked), DW_POINTER(html));
 
         /* Put in some extra space */
         dw_box_pack_start(hbox, 0, 5, 1, FALSE, FALSE, 0);
 
         item = dw_button_new("Reload", 0);
-        dw_box_pack_start(hbox, item, -1, -1, FALSE, FALSE, 0);
+        dw_box_pack_start(hbox, item, DW_SIZE_AUTO, DW_SIZE_AUTO, FALSE, FALSE, 0);
         dw_signal_connect(item, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(web_reload_clicked), DW_POINTER(html));
 
         /* Put in some extra space */
         dw_box_pack_start(hbox, 0, 5, 1, FALSE, FALSE, 0);
-        dw_box_pack_start(hbox, javascript, -1, -1, TRUE, FALSE, 0);
+        dw_box_pack_start(hbox, javascript, DW_SIZE_AUTO, DW_SIZE_AUTO, TRUE, FALSE, 0);
 
         item = dw_button_new("Run", 0);
         dw_window_set_data(item, "javascript", DW_POINTER(javascript));
-        dw_box_pack_start(hbox, item, -1, -1, FALSE, FALSE, 0);
+        dw_box_pack_start(hbox, item, DW_SIZE_AUTO, DW_SIZE_AUTO, FALSE, FALSE, 0);
         dw_signal_connect(item, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(web_run_clicked), DW_POINTER(html));
         dw_window_click_default(javascript, item);
 
         dw_box_pack_start(notebookbox7, html, 0, 100, TRUE, TRUE, 0);
         dw_html_url(html, "https://dbsoft.org/dw_help.php");
         htmlstatus = dw_status_text_new("HTML status loading...", 0);
-        dw_box_pack_start(notebookbox7, htmlstatus, 100, -1, TRUE, FALSE, 1);
+        dw_box_pack_start(notebookbox7, htmlstatus, 100, DW_SIZE_AUTO, TRUE, FALSE, 1);
         dw_signal_connect(html, DW_SIGNAL_HTML_CHANGED, DW_SIGNAL_FUNC(web_html_changed), DW_POINTER(htmlstatus));
         dw_signal_connect(html, DW_SIGNAL_HTML_RESULT, DW_SIGNAL_FUNC(web_html_result), DW_POINTER(javascript));
     }
     else
     {
         html = dw_text_new("HTML widget not available.", 0);
-        dw_box_pack_start( notebookbox7, html, 0, 100, TRUE, TRUE, 0);
+        dw_box_pack_start(notebookbox7, html, 0, 100, TRUE, TRUE, 0);
     }
 }
 
@@ -2189,13 +2189,13 @@ int dwmain(int argc, char *argv[])
     }
 
     /* Create our window */
-    mainwindow = dw_window_new( HWND_DESKTOP, "dwindows test UTF8 中国語 (繁体) cañón", flStyle | DW_FCF_SIZEBORDER | DW_FCF_MINMAX);
+    mainwindow = dw_window_new(HWND_DESKTOP, "dwindows test UTF8 中国語 (繁体) cañón", flStyle | DW_FCF_SIZEBORDER | DW_FCF_MINMAX);
     dw_window_set_icon(mainwindow, fileicon);
 
     menu_add();
 
-    notebookbox = dw_box_new( DW_VERT, 5 );
-    dw_box_pack_start( mainwindow, notebookbox, 0, 0, TRUE, TRUE, 0);
+    notebookbox = dw_box_new(DW_VERT, 5);
+    dw_box_pack_start(mainwindow, notebookbox, 0, 0, TRUE, TRUE, 0);
 
     foldericon = dw_icon_load_from_file(FOLDER_ICON_NAME);
     fileicon = dw_icon_load_from_file(FILE_ICON_NAME);
@@ -2215,63 +2215,64 @@ int dwmain(int argc, char *argv[])
         fileicon = dw_icon_load_from_file(pathbuff);
     }
 
-    notebook = dw_notebook_new( 1, TRUE );
-    dw_box_pack_start( notebookbox, notebook, 100, 100, TRUE, TRUE, 0);
+    notebook = dw_notebook_new(1, TRUE);
+    dw_box_pack_start(notebookbox, notebook, 100, 100, TRUE, TRUE, 0);
     dw_signal_connect(notebook, DW_SIGNAL_SWITCH_PAGE, DW_SIGNAL_FUNC(switch_page_cb), NULL);
 
-    notebookbox1 = dw_box_new( DW_VERT, 5 );
-    notebookpage1 = dw_notebook_page_new( notebook, 0, TRUE );
-    dw_notebook_pack( notebook, notebookpage1, notebookbox1 );
+    notebookbox1 = dw_box_new(DW_VERT, 5);
+    notebookpage1 = dw_notebook_page_new( notebook, 0, TRUE);
+    dw_notebook_pack( notebook, notebookpage1, notebookbox1);
     dw_notebook_page_set_text( notebook, notebookpage1, "buttons and entry");
     archive_add();
 
-    notebookbox2 = dw_box_new( DW_VERT, 5 );
-    notebookpage2 = dw_notebook_page_new( notebook, 1, FALSE );
-    dw_notebook_pack( notebook, notebookpage2, notebookbox2 );
-    dw_notebook_page_set_text( notebook, notebookpage2, "render");
+    notebookbox2 = dw_box_new(DW_VERT, 5);
+    notebookpage2 = dw_notebook_page_new( notebook, 1, FALSE);
+    dw_notebook_pack( notebook, notebookpage2, notebookbox2);
+    dw_notebook_page_set_text(notebook, notebookpage2, "render");
     text_add();
 
-    notebookbox3 = dw_box_new( DW_VERT, 5 );
-    notebookpage3 = dw_notebook_page_new( notebook, 1, FALSE );
-    dw_notebook_pack( notebook, notebookpage3, notebookbox3 );
+    notebookbox3 = dw_box_new(DW_VERT, 5);
+    notebookpage3 = dw_notebook_page_new( notebook, 1, FALSE);
+    dw_notebook_pack( notebook, notebookpage3, notebookbox3);
     dw_notebook_page_set_text( notebook, notebookpage3, "tree");
     tree_add();
 
-    notebookbox4 = dw_box_new( DW_VERT, 5 );
-    notebookpage4 = dw_notebook_page_new( notebook, 1, FALSE );
+    notebookbox4 = dw_box_new(DW_VERT, 5);
+    notebookpage4 = dw_notebook_page_new(notebook, 1, FALSE);
     dw_notebook_pack( notebook, notebookpage4, notebookbox4 );
     dw_notebook_page_set_text( notebook, notebookpage4, "container");
     container_add();
 
-    notebookbox5 = dw_box_new( DW_VERT, 5 );
-    notebookpage5 = dw_notebook_page_new( notebook, 1, FALSE );
-    dw_notebook_pack( notebook, notebookpage5, notebookbox5 );
-    dw_notebook_page_set_text( notebook, notebookpage5, "buttons");
+    notebookbox5 = dw_box_new(DW_VERT, 5);
+    notebookpage5 = dw_notebook_page_new(notebook, 1, FALSE);
+    dw_notebook_pack(notebook, notebookpage5, notebookbox5);
+    dw_notebook_page_set_text(notebook, notebookpage5, "buttons");
     buttons_add();
 
 #ifdef DW_INCLUDE_DEPRECATED
-    notebookbox6 = dw_box_new( DW_VERT, 5 );
-    notebookpage6 = dw_notebook_page_new( notebook, 1, FALSE );
-    dw_notebook_pack( notebook, notebookpage6, notebookbox6 );
-    dw_notebook_page_set_text( notebook, notebookpage6, "mdi");
+    notebookbox6 = dw_box_new(DW_VERT, 5);
+    notebookpage6 = dw_notebook_page_new(notebook, 1, FALSE);
+    dw_notebook_pack(notebook, notebookpage6, notebookbox6);
+    dw_notebook_page_set_text(notebook, notebookpage6, "mdi");
     mdi_add();
 #endif
-    notebookbox7 = dw_box_new( DW_VERT, 6 );
-    notebookpage7 = dw_notebook_page_new( notebook, 1, FALSE );
-    dw_notebook_pack( notebook, notebookpage7, notebookbox7 );
-    dw_notebook_page_set_text( notebook, notebookpage7, "html");
+
+    notebookbox7 = dw_box_new(DW_VERT, 6);
+    notebookpage7 = dw_notebook_page_new(notebook, 1, FALSE);
+    dw_notebook_pack(notebook, notebookpage7, notebookbox7);
+    dw_notebook_page_set_text(notebook, notebookpage7, "html");
     html_add();
 
-    notebookbox8 = dw_box_new( DW_VERT, 7 );
-    notebookpage8 = dw_notebook_page_new( notebook, 1, FALSE );
-    dw_notebook_pack( notebook, notebookpage8, notebookbox8 );
-    dw_notebook_page_set_text( notebook, notebookpage8, "scrollbox");
+    notebookbox8 = dw_box_new(DW_VERT, 7);
+    notebookpage8 = dw_notebook_page_new(notebook, 1, FALSE);
+    dw_notebook_pack(notebook, notebookpage8, notebookbox8);
+    dw_notebook_page_set_text(notebook, notebookpage8, "scrollbox");
     scrollbox_add();
 
-    notebookbox9 = dw_box_new( DW_VERT, 8 );
-    notebookpage9 = dw_notebook_page_new( notebook, 1, FALSE );
-    dw_notebook_pack( notebook, notebookpage9, notebookbox9 );
-    dw_notebook_page_set_text( notebook, notebookpage9, "thread/event");
+    notebookbox9 = dw_box_new(DW_VERT, 8);
+    notebookpage9 = dw_notebook_page_new(notebook, 1, FALSE);
+    dw_notebook_pack(notebook, notebookpage9, notebookbox9);
+    dw_notebook_page_set_text(notebook, notebookpage9, "thread/event");
     thread_add();
 
     /* Set the default field */
