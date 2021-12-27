@@ -219,12 +219,21 @@ if test $build_gtk = "yes"; then
          GTK_PACKAGES="gtk+-2.0 gthread-2.0"
          GTK_LIBS=`$PKG_CFG --silence-errors --libs $GTK_PACKAGES`
       fi
+      # Default WebKitGTK test is 4.0 for GTK3
+      WEBKIT_PKG="webkit2gtk-4.0"
       if test $with_gtk4 = "yes"; then
          DW_DIR=gtk4
-         GTK_PACKAGES="gtk4"
+         # First try the X11 version so we can call Xlib directly 
+         # to fill in the holes not available with Wayland
+         GTK_PACKAGES="gtk4-x11"
          GTK_LIBS=`$PKG_CFG --silence-errors --libs $GTK_PACKAGES`
+         if test x"$GTK_LIBS" = x; then 
+            GTK_PACKAGES="gtk4"
+            GTK_LIBS=`$PKG_CFG --silence-errors --libs $GTK_PACKAGES`
+         fi
+         # WebKitGTK built for GTK4 becomes 5.0
+         WEBKIT_PKG="webkitgtk-5.0"
       fi
-      WEBKIT_PKG="webkit2gtk-4.0"
       if test x"$GTK_LIBS" = x; then
          GTK_PACKAGES="gtk+-3.0"
          GTK_LIBS=`$PKG_CFG --silence-errors --libs $GTK_PACKAGES`
