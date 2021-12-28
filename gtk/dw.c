@@ -2286,7 +2286,7 @@ void API dw_main_sleep(int milliseconds)
             if(!pthread_getspecific(_dw_mutex_key))
             {
                gdk_threads_enter();
-               pthread_setspecific(_dw_mutex_key, (void *)1);
+               pthread_setspecific(_dw_mutex_key, (void *)&_dw_locked_by_me);
                _dw_locked_by_me = TRUE;
             }
             _dw_thread = curr;
@@ -2325,7 +2325,7 @@ void API dw_main_iteration(void)
       if(!pthread_getspecific(_dw_mutex_key))
       {
          gdk_threads_enter();
-         pthread_setspecific(_dw_mutex_key, (void *)1);
+         pthread_setspecific(_dw_mutex_key, (void *)&_dw_locked_by_me);
          _dw_locked_by_me = TRUE;
       }
       _dw_thread = curr;
