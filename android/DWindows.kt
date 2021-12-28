@@ -1,4 +1,4 @@
-// (C) 2021 Brian Smith <brian@dbsoft.org>
+// (C) 2021-2022 Brian Smith <brian@dbsoft.org>
 // (C) 2019 Anton Popov
 package org.dbsoft.dwindows
 
