@@ -5479,16 +5479,13 @@ fi
 
 
    if test x"$PKG_CFG" != x; then
+      # Figure out the best available GTK packages...
+      # Preference order GTK3>GTK4>GTK2, WebKit2>WebKit1.1>WebKit1.0>WebKit
       GTK_LIBS=""
-      if test $with_gtk2 = "yes"; then
-         DW_DIR=gtk
-         GTK_PACKAGES="gtk+-2.0 gthread-2.0"
-         GTK_LIBS=`$PKG_CFG --silence-errors --libs $GTK_PACKAGES`
-      fi
-      # Default WebKitGTK test is 4.0 for GTK3
-      WEBKIT_PKG="webkit2gtk-4.0"
+      GTK_PACKAGES=""
+      WEBKIT_PKG=""
+      WEBKIT_ALT_PKG=""
       if test $with_gtk4 = "yes"; then
-         DW_DIR=gtk4
          # First try the X11 version so we can call Xlib directly
          # to fill in the holes not available with Wayland
          GTK_PACKAGES="gtk4-x11"
@@ -5497,58 +5494,59 @@ fi
             GTK_PACKAGES="gtk4"
             GTK_LIBS=`$PKG_CFG --silence-errors --libs $GTK_PACKAGES`
          fi
-         # WebKitGTK built for GTK4 becomes 5.0
-         WEBKIT_PKG="webkitgtk-5.0"
-      fi
-      if test x"$GTK_LIBS" = x; then
-         GTK_PACKAGES="gtk+-3.0"
-         GTK_LIBS=`$PKG_CFG --silence-errors --libs $GTK_PACKAGES`
-      else
-         WEBKIT_PKG="webkit-1.1"
-      fi
-      # test for webkit2gtk or webkitgtk packages
-      WEBKIT_CFLAGS=`$PKG_CFG --silence-errors --cflags $WEBKIT_PKG`
-      if test x"$WEBKIT_CFLAGS" = x; then
-         # no webkit2gtk-4.0 or webkitgtk-1.1
-         if test $DW_DIR = "gtk"; then
-            WEBKIT_PKG="webkit-1.0"
-            WEBKIT_CFLAGS=`$PKG_CFG --silence-errors --cflags $WEBKIT_PKG`
-            if test x"$WEBKIT_CFLAGS" = x; then
-               WEBKIT_PKG="WebKitGtk"
-               WEBKIT_CFLAGS=`$PKG_CFG --silence-errors --cflags $WEBKIT_PKG`
-               if test x"$WEBKIT_CFLAGS" = x; then
-                  WEBKIT_LIBS=`$PKG_CFG --silence-errors --libs $WEBKIT_PKG`
-               fi
-            else
-               $as_echo "#define USE_WEBKIT10 1" >>confdefs.h
-
-               WEBKIT_LIBS=`$PKG_CFG --silence-errors --libs $WEBKIT_PKG`
-            fi
-         else
-            if test $DW_DIR = "gtk3"; then
-               WEBKIT_PKG="webkitgtk-3.0"
-               WEBKIT_CFLAGS=`$PKG_CFG --silence-errors --cflags $WEBKIT_PKG`
-               if test x"$WEBKIT_CFLAGS" = x; then
-                  WEBKIT_PKG="webkitgtk-1.0"
-                  WEBKIT_CFLAGS=`$PKG_CFG --silence-errors --cflags $WEBKIT_PKG`
-                  if test x"$WEBKIT_CFLAGS" = x; then
-                     $as_echo "#define USE_WEBKIT10 1" >>confdefs.h
-
-                     WEBKIT_LIBS=`$PKG_CFG --silence-errors --libs $WEBKIT_PKG`
-                  fi
-               else
-                  $as_echo "#define USE_WEBKIT11 1" >>confdefs.h
-
-                  WEBKIT_LIBS=`$PKG_CFG --silence-errors --libs $WEBKIT_PKG`
-               fi
-            fi
+         if test x"$GTK_LIBS" != x; then
+            DW_DIR=gtk4
+            # WebKit2GTK built for GTK4 becomes 5.0
+            WEBKIT_PKG="webkit2gtk-5.0"
          fi
       else
-         WEBKIT_LIBS=`$PKG_CFG --silence-errors --libs $WEBKIT_PKG`
+         # Put the GTK2 test here since --with-gtk2 is mutually
+         # exclusive with --with-gtk4
          if test $with_gtk2 = "yes"; then
+            GTK_PACKAGES="gtk+-2.0 gthread-2.0"
+            GTK_LIBS=`$PKG_CFG --silence-errors --libs $GTK_PACKAGES`
+            if test x"$GTK_LIBS" != x; then
+               DW_DIR=gtk
+               WEBKIT_PKG="webkit-1.1"
+               WEBKIT_ALT_PKG="webkit-1.0"
+            fi
+         fi
+      fi
+      # We did not successfully find a GTK installation after
+      # handling --with-gtk2 and --with-gtk4 so try GTK3
+      if test x"$GTK_LIBS" = x; then
+         # GTK3 Defaults section
+         GTK_PACKAGES="gtk+-3.0"
+         GTK_LIBS=`$PKG_CFG --silence-errors --libs $GTK_PACKAGES`
+         WEBKIT_PKG="webkit2gtk-4.0"
+         WEBKIT_ALT_PKG="webkitgtk-3.0"
+      fi
+      echo "checking for GTK version: $DW_DIR"
+      # Test for the preferred WebKit package
+      WEBKIT_LIBS=`$PKG_CFG --silence-errors --libs $WEBKIT_PKG`
+      if test x"$WEBKIT_LIBS" = x; then
+         # Preferred package is not available, try the alternate if defined
+         if test x"$WEBKIT_ALT_PKG" != x; then
+            WEBKIT_LIBS=`$PKG_CFG --silence-errors --libs $WEBKIT_ALT_PKG`
+            if test x"$WEBKIT_LIBS" != x; then
+               WEBKIT_PKG=$WEBKIT_ALT_PKG
+            fi
+         fi
+      fi
+      echo "checking for WebKit package: $WEBKIT_PKG"
+      WEBKIT_CFLAGS=`$PKG_CFG --silence-errors --cflags $WEBKIT_PKG`
+      # If we got a WebKit package that might work...
+      # Add defintitions necessary for the correct code paths
+      if test x"$WEBKIT_LIBS" != x; then
+         if test "$WEBKIT_PKG" = "webkit-1.0"; then
+            $as_echo "#define USE_WEBKIT10 1" >>confdefs.h
+
+         fi
+         if test "$WEBKIT_PKG" = "webkit-1.1"; then
             $as_echo "#define USE_WEBKIT11 1" >>confdefs.h
 
-         else
+         fi
+         if test "$WEBKIT_PKG" = "webkit2gtk-4.0"; then
             $as_echo "#define USE_WEBKIT2 1" >>confdefs.h
 
          fi
