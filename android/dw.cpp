@@ -2,8 +2,8 @@
  * Dynamic Windows:
  *          A GTK like GUI implementation of the Android GUI.
  *
- * (C) 2011-2021 Brian Smith <brian@dbsoft.org>
- * (C) 2011-2021 Mark Hessling <mark@rexx.org>
+ * (C) 2011-2022 Brian Smith <brian@dbsoft.org>
+ * (C) 2011-2022 Mark Hessling <mark@rexx.org>
  *
  * Requires Android API 23 (Marshmallow) or higher.
  *

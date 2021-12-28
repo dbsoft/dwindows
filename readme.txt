@@ -70,8 +70,6 @@ Added initial support for GTK4. --with-gtk4 is now available.
     GTK4 support is less complete than GTK3, a number of features
     of the GTK3 version are no longer possible in GTK4 like:
     Taskbar icon support, MDI, gravity and non-callback drawing.
-    Also at the time of this writing, WebKitGTK does not officially
-    support GTK4, so HTML is also unsupported.
 Added initial support for Wayland on GTK3 and GTK4.
     Wayland is not in my opinion ready for prime time, many features,
     possibly a half a dozen functions, dealing with coordinates, 

@@ -2,8 +2,8 @@
  * Dynamic Windows:
  *          A GTK like implementation of the iOS GUI
  *
- * (C) 2011-2021 Brian Smith <brian@dbsoft.org>
- * (C) 2011-2018 Mark Hessling <mark@rexx.org>
+ * (C) 2011-2022 Brian Smith <brian@dbsoft.org>
+ * (C) 2011-2021 Mark Hessling <mark@rexx.org>
  *
  * Requires 13.0 or later.
  * clang -g -o dwtest -D__IOS__ -I. dwtest.c ios/dw.m -framework UIKit -framework WebKit -framework Foundation -framework UserNotifications

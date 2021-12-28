@@ -2,8 +2,8 @@
  * Dynamic Windows:
  *          A GTK like implementation of the MacOS GUI using Cocoa
  *
- * (C) 2011-2021 Brian Smith <brian@dbsoft.org>
- * (C) 2011-2018 Mark Hessling <mark@rexx.org>
+ * (C) 2011-2022 Brian Smith <brian@dbsoft.org>
+ * (C) 2011-2021 Mark Hessling <mark@rexx.org>
  *
  * Requires 10.5 or later.
  * clang -std=c99 -g -o dwtest -D__MAC__ -I. dwtest.c mac/dw.m -framework Cocoa -framework WebKit
