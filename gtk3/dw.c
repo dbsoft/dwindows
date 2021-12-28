@@ -134,8 +134,8 @@ void (*_dw_gdk_threads_init)(void) = NULL;
 void (*_dw_gdk_threads_enter)(void) = NULL;
 void (*_dw_gdk_threads_leave)(void) = NULL;
 
-#define  DW_MUTEX_LOCK { if(pthread_self() != _dw_thread && !pthread_getspecific(_dw_mutex_key)) { _dw_gdk_threads_enter(); pthread_setspecific(_dw_mutex_key, (void *)1); _locked_by_me = TRUE; } }
-#define  DW_MUTEX_UNLOCK { if(pthread_self() != _dw_thread && _locked_by_me == TRUE) { _dw_gdk_threads_leave(); pthread_setspecific(_dw_mutex_key, NULL); _locked_by_me = FALSE; } }
+#define  DW_MUTEX_LOCK { if(pthread_self() != _dw_thread && !pthread_getspecific(_dw_mutex_key)) { _dw_gdk_threads_enter(); pthread_setspecific(_dw_mutex_key, (void *)&_dw_locked_by_me); _dw_locked_by_me = TRUE; } }
+#define  DW_MUTEX_UNLOCK { if(pthread_self() != _dw_thread && _dw_locked_by_me == TRUE) { _dw_gdk_threads_leave(); pthread_setspecific(_dw_mutex_key, NULL); _dw_locked_by_me = FALSE; } }
 
 #define DEFAULT_SIZE_WIDTH 12
 #define DEFAULT_SIZE_HEIGHT 6
@@ -2172,7 +2172,7 @@ void API dw_main_sleep(int milliseconds)
 
       while(((tv.tv_sec - start.tv_sec)*1000) + ((tv.tv_usec - start.tv_usec)/1000) <= milliseconds)
       {
-         int _locked_by_me = FALSE;
+         int _dw_locked_by_me = FALSE;
 
          if(orig == (pthread_t)-1)
          {
@@ -2180,7 +2180,7 @@ void API dw_main_sleep(int milliseconds)
             {
                _dw_gdk_threads_enter();
                pthread_setspecific(_dw_mutex_key, (void *)1);
-               _locked_by_me = TRUE;
+               _dw_locked_by_me = TRUE;
             }
             _dw_thread = curr;
          }
@@ -2191,7 +2191,7 @@ void API dw_main_sleep(int milliseconds)
          if(orig == (pthread_t)-1)
          {
             _dw_thread = orig;
-            if(_locked_by_me)
+            if(_dw_locked_by_me)
             {
                pthread_setspecific(_dw_mutex_key, NULL);
                _dw_gdk_threads_leave();
@@ -2211,7 +2211,7 @@ void API dw_main_iteration(void)
 {
    pthread_t orig = _dw_thread;
    pthread_t curr = pthread_self();
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    if(_dw_thread == (pthread_t)-1)
    {
@@ -2219,7 +2219,7 @@ void API dw_main_iteration(void)
       {
          _dw_gdk_threads_enter();
          pthread_setspecific(_dw_mutex_key, (void *)1);
-         _locked_by_me = TRUE;
+         _dw_locked_by_me = TRUE;
       }
       _dw_thread = curr;
    }
@@ -2230,7 +2230,7 @@ void API dw_main_iteration(void)
    if(orig == (pthread_t)-1)
    {
       _dw_thread = orig;
-      if(_locked_by_me)
+      if(_dw_locked_by_me)
       {
          pthread_setspecific(_dw_mutex_key, NULL);
          _dw_gdk_threads_leave();
@@ -2364,7 +2364,7 @@ int dw_messagebox(const char *title, int flags, const char *format, ...)
    GtkMessageType gtkicon = GTK_MESSAGE_OTHER;
    GtkButtonsType gtkbuttons = GTK_BUTTONS_OK;
    GtkWidget *dialog;
-   int response, _locked_by_me = FALSE;
+   int response, _dw_locked_by_me = FALSE;
    va_list args;
    char outbuf[1025] = {0};
 
@@ -2427,7 +2427,7 @@ int dw_messagebox(const char *title, int flags, const char *format, ...)
  */
 int dw_window_minimize(HWND handle)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 #ifdef DW_INCLUDE_DEPRECATED
    GtkWidget *mdi = NULL;
 #endif
@@ -2457,7 +2457,7 @@ int dw_window_minimize(HWND handle)
  */
 int dw_window_raise(HWND handle)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    if(!handle)
       return 0;
@@ -2475,7 +2475,7 @@ int dw_window_raise(HWND handle)
  */
 int dw_window_lower(HWND handle)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    if(!handle)
       return 0;
@@ -2493,7 +2493,7 @@ int dw_window_lower(HWND handle)
  */
 int dw_window_show(HWND handle)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
    GtkWidget *defaultitem;
 #ifdef DW_INCLUDE_DEPRECATED
    GtkWidget *mdi;
@@ -2560,7 +2560,7 @@ int dw_window_show(HWND handle)
  */
 int dw_window_hide(HWND handle)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 #ifdef DW_INCLUDE_DEPRECATED
    GtkWidget *mdi = NULL;
 #endif
@@ -2588,7 +2588,7 @@ int dw_window_hide(HWND handle)
  */
 int dw_window_destroy(HWND handle)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 #ifdef DW_INCLUDE_DEPRECATED
    GtkWidget *mdi = NULL;
 #endif
@@ -2681,7 +2681,7 @@ void dw_window_redraw(HWND handle)
  */
 void dw_window_reparent(HWND handle, HWND newparent)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    gdk_window_reparent(gtk_widget_get_window(GTK_WIDGET(handle)), newparent ? gtk_widget_get_window(GTK_WIDGET(newparent)) : gdk_get_default_root_window(), 0, 0);
@@ -2809,7 +2809,7 @@ int dw_window_set_font(HWND handle, const char *fontname)
 {
    GtkWidget *handle2 = handle;
    char *font = _dw_convert_font(fontname);
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
    gpointer data;
 
    DW_MUTEX_LOCK;
@@ -2856,7 +2856,7 @@ char * API dw_font_choose(const char *currfont)
    GtkFontChooser *fd;
    char *font = currfont ? strdup(currfont) : NULL;
    char *name = font ? strchr(font, '.') : NULL;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
    char *retfont = NULL;
 
    /* Detect Dynamic Windows style font name...
@@ -2927,7 +2927,7 @@ char *dw_window_get_font(HWND handle)
    GtkWidget *handle2 = handle;
    char *font;
    char *retfont=NULL;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    if(GTK_IS_SCROLLED_WINDOW(handle))
@@ -3056,7 +3056,7 @@ static int _dw_set_color(HWND handle, unsigned long fore, unsigned long back)
 int dw_window_set_color(HWND handle, unsigned long fore, unsigned long back)
 {
    GtkWidget *handle2 = handle;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
 
@@ -3107,7 +3107,7 @@ static GdkDeviceManager *_dw_grab_manager = NULL;
  */
 void dw_window_capture(HWND handle)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
 #if GTK_CHECK_VERSION(3,20,0)
@@ -3137,7 +3137,7 @@ void dw_window_capture(HWND handle)
  */
 void dw_window_set_pointer(HWND handle, int pointertype)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
    GdkCursor *cursor;
 
    DW_MUTEX_LOCK;
@@ -3162,7 +3162,7 @@ void dw_window_set_pointer(HWND handle, int pointertype)
  */
 void dw_window_release(void)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
 #if GTK_CHECK_VERSION(3,20,0)
@@ -3186,7 +3186,7 @@ void dw_window_release(void)
 HWND dw_window_new(HWND hwndOwner, const char *title, unsigned long flStyle)
 {
    GtkWidget *tmp;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
    int flags = 0;
 
    DW_MUTEX_LOCK;
@@ -3276,7 +3276,7 @@ HWND dw_window_new(HWND hwndOwner, const char *title, unsigned long flStyle)
 HWND dw_box_new(int type, int pad)
 {
    GtkWidget *tmp, *eventbox;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    tmp = gtk_grid_new();
@@ -3300,7 +3300,7 @@ HWND dw_box_new(int type, int pad)
 HWND dw_scrollbox_new( int type, int pad )
 {
    GtkWidget *tmp, *box, *eventbox;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    tmp = gtk_scrolled_window_new(NULL, NULL);
@@ -3336,7 +3336,7 @@ HWND dw_scrollbox_new( int type, int pad )
  */
 int dw_scrollbox_get_pos(HWND handle, int orient)
 {
-   int val = -1, _locked_by_me = FALSE;
+   int val = -1, _dw_locked_by_me = FALSE;
    GtkAdjustment *adjustment;
 
    if (!handle)
@@ -3361,7 +3361,7 @@ int dw_scrollbox_get_pos(HWND handle, int orient)
  */
 int API dw_scrollbox_get_range(HWND handle, int orient)
 {
-   int range = -1, _locked_by_me = FALSE;
+   int range = -1, _dw_locked_by_me = FALSE;
    GtkAdjustment *adjustment;
 
    if (!handle)
@@ -3390,7 +3390,7 @@ int API dw_scrollbox_get_range(HWND handle, int orient)
 HWND dw_groupbox_new(int type, int pad, const char *title)
 {
    GtkWidget *tmp, *frame;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    frame = gtk_frame_new(NULL);
@@ -3420,7 +3420,7 @@ HWND dw_groupbox_new(int type, int pad, const char *title)
 HWND dw_mdi_new(unsigned long id)
 {
    GtkWidget *tmp;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    tmp = gtk_mdi_new();
@@ -3438,7 +3438,7 @@ HWND dw_mdi_new(unsigned long id)
 HWND dw_bitmap_new(unsigned long id)
 {
    GtkWidget *tmp;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    tmp = gtk_image_new();
@@ -3457,7 +3457,7 @@ HWND dw_bitmap_new(unsigned long id)
 HWND dw_notebook_new(unsigned long id, int top)
 {
    GtkWidget *tmp, **pagearray = calloc(sizeof(GtkWidget *), 256);
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    tmp = gtk_notebook_new();
@@ -3481,7 +3481,7 @@ HWND dw_notebook_new(unsigned long id, int top)
  */
 HMENUI dw_menu_new(unsigned long id)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
    GtkAccelGroup *accel_group;
    HMENUI tmp;
 
@@ -3504,7 +3504,7 @@ HMENUI dw_menu_new(unsigned long id)
  */
 HMENUI dw_menubar_new(HWND location)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
    GtkAccelGroup *accel_group;
    GtkWidget *box;
    HMENUI tmp = 0;
@@ -3540,7 +3540,7 @@ void dw_menu_destroy(HMENUI *menu)
 {
    if(menu && *menu)
    {
-      int _locked_by_me = FALSE;
+      int _dw_locked_by_me = FALSE;
       GtkWidget *window;
 
       DW_MUTEX_LOCK;
@@ -3593,7 +3593,7 @@ HWND dw_menu_append_item(HMENUI menu, const char *title, unsigned long id, unsig
 {
    GtkWidget *tmphandle;
    char accel, *tempbuf = malloc(strlen(title)+1);
-   int _locked_by_me = FALSE, submenucount;
+   int _dw_locked_by_me = FALSE, submenucount;
    GtkAccelGroup *accel_group;
 
    if (!menu)
@@ -3715,7 +3715,7 @@ void dw_menu_item_set_check(HMENUI menu, unsigned long id, int check)
 {
    char numbuf[25] = {0};
    GtkWidget *tmphandle;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    if(!menu)
       return;
@@ -3746,7 +3746,7 @@ void dw_menu_item_set_state(HMENUI menu, unsigned long id, unsigned long state)
    char numbuf[25] = {0};
    GtkWidget *tmphandle;
    int check;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    if(!menu)
       return;
@@ -3797,7 +3797,7 @@ int API dw_menu_delete_item(HMENUI menu, unsigned long id)
 {
    char numbuf[25] = {0};
    GtkWidget *tmphandle;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
    int ret = DW_ERROR_UNKNOWN;
 
    if(!menu)
@@ -3827,7 +3827,7 @@ int API dw_menu_delete_item(HMENUI menu, unsigned long id)
  */
 void dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    if(!menu || !*menu)
       return;
@@ -3856,7 +3856,7 @@ void dw_pointer_query_pos(long *x, long *y)
    int gx = 0, gy = 0;
 #ifdef GDK_WINDOWING_X11
    GdkModifierType state = 0;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
    GdkDisplay *display;
 
    DW_MUTEX_LOCK;
@@ -3891,7 +3891,7 @@ void dw_pointer_query_pos(long *x, long *y)
 void dw_pointer_set_pos(long x, long y)
 {
 #ifdef GDK_WINDOWING_X11
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
    GdkDisplay *display;
 
    DW_MUTEX_LOCK;
@@ -3951,7 +3951,7 @@ GtkWidget *_dw_tree_setup(GtkWidget *tmp, GtkTreeModel *store)
 HWND dw_container_new(unsigned long id, int multi)
 {
    GtkWidget *tmp;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    if(!(tmp = _dw_tree_create(id)))
@@ -3978,7 +3978,7 @@ HWND dw_tree_new(ULONG id)
    GtkTreeViewColumn *col;
    GtkCellRenderer *rend;
    GtkTreeSelection *sel;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    if(!(tmp = _dw_tree_create(id)))
@@ -4023,7 +4023,7 @@ HWND dw_tree_new(ULONG id)
 HWND dw_text_new(const char *text, unsigned long id)
 {
    GtkWidget *tmp;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    tmp = gtk_label_new(text);
@@ -4052,7 +4052,7 @@ HWND dw_text_new(const char *text, unsigned long id)
 HWND dw_status_text_new(const char *text, ULONG id)
 {
    GtkWidget *tmp, *frame;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    frame = gtk_frame_new(NULL);
@@ -4085,7 +4085,7 @@ HWND dw_status_text_new(const char *text, ULONG id)
 HWND dw_mle_new(unsigned long id)
 {
    GtkWidget *tmp, *tmpbox;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    tmpbox = gtk_scrolled_window_new (NULL, NULL);
@@ -4115,7 +4115,7 @@ HWND dw_mle_new(unsigned long id)
 HWND dw_entryfield_new(const char *text, unsigned long id)
 {
    GtkWidget *tmp;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    tmp = gtk_entry_new();
@@ -4141,7 +4141,7 @@ HWND dw_entryfield_new(const char *text, unsigned long id)
 HWND dw_entryfield_password_new(const char *text, ULONG id)
 {
    GtkWidget *tmp;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    tmp = gtk_entry_new();
@@ -4169,7 +4169,7 @@ HWND dw_combobox_new(const char *text, unsigned long id)
 {
    GtkWidget *tmp;
    GtkListStore *store;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    store = gtk_list_store_new(1, G_TYPE_STRING);
@@ -4195,7 +4195,7 @@ HWND dw_combobox_new(const char *text, unsigned long id)
 HWND dw_button_new(const char *text, unsigned long id)
 {
    GtkWidget *tmp;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    tmp = gtk_button_new_with_label(text);
@@ -4217,7 +4217,7 @@ HWND dw_bitmapbutton_new(const char *text, unsigned long id)
 {
    GtkWidget *tmp;
    GtkWidget *bitmap;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    tmp = gtk_button_new();
@@ -4253,7 +4253,7 @@ HWND dw_bitmapbutton_new_from_file(const char *text, unsigned long id, const cha
 {
    GtkWidget *tmp;
    GtkWidget *bitmap;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    /* Create a new button */
@@ -4289,7 +4289,7 @@ HWND dw_bitmapbutton_new_from_data(const char *text, unsigned long id, const cha
 {
    GtkWidget *tmp;
    GtkWidget *bitmap;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    tmp = gtk_button_new();
@@ -4321,7 +4321,7 @@ HWND dw_spinbutton_new(const char *text, unsigned long id)
 {
    GtkAdjustment *adj;
    GtkWidget *tmp;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    adj = (GtkAdjustment *)gtk_adjustment_new ((float)atoi(text), -65536.0, 65536.0, 1.0, 5.0, 0.0);
@@ -4348,7 +4348,7 @@ HWND dw_radiobutton_new(const char *text, ULONG id)
 {
    /* This will have to be fixed in the future. */
    GtkWidget *tmp;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    tmp = gtk_radio_button_new_with_label(NULL, text);
@@ -4372,7 +4372,7 @@ HWND dw_slider_new(int vertical, int increments, ULONG id)
 {
    GtkWidget *tmp;
    GtkAdjustment *adjustment;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    adjustment = (GtkAdjustment *)gtk_adjustment_new(0, 0, (gfloat)increments, 1, 1, 1);
@@ -4403,7 +4403,7 @@ HWND dw_scrollbar_new(int vertical, ULONG id)
 {
    GtkWidget *tmp;
    GtkAdjustment *adjustment;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 #ifdef HAVE_OVERLAY_SCROLLBARS
    gboolean overlaysb;
 #endif
@@ -4435,7 +4435,7 @@ HWND dw_scrollbar_new(int vertical, ULONG id)
 HWND dw_percent_new(unsigned long id)
 {
    GtkWidget *tmp;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    tmp = gtk_progress_bar_new();
@@ -4454,7 +4454,7 @@ HWND dw_percent_new(unsigned long id)
 HWND dw_checkbox_new(const char *text, unsigned long id)
 {
    GtkWidget *tmp;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    tmp = gtk_check_button_new_with_label(text);
@@ -4479,7 +4479,7 @@ HWND dw_listbox_new(unsigned long id, int multi)
    GtkTreeViewColumn *col;
    GtkCellRenderer *rend;
    GtkTreeSelection *sel;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    if(!(tmp = _dw_tree_create(id)))
@@ -4526,7 +4526,7 @@ HWND dw_listbox_new(unsigned long id, int multi)
 void dw_window_set_icon(HWND handle, HICN icon)
 {
    GdkPixbuf *icon_pixbuf;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    icon_pixbuf = _dw_find_pixbuf(icon, NULL, NULL);
@@ -4555,7 +4555,7 @@ void dw_window_set_bitmap(HWND handle, unsigned long id, const char *filename)
    GdkPixbuf *tmp = NULL;
    int found_ext = 0;
    int i;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    if(!id && !filename)
       return;
@@ -4630,7 +4630,7 @@ void dw_window_set_bitmap(HWND handle, unsigned long id, const char *filename)
 void dw_window_set_bitmap_from_data(HWND handle, unsigned long id, const char *data, int len)
 {
    GdkPixbuf *tmp = NULL;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    if(!id && !data)
       return;
@@ -4687,7 +4687,7 @@ void dw_window_set_bitmap_from_data(HWND handle, unsigned long id, const char *d
  */
 void dw_window_set_text(HWND handle, const char *text)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
    GtkWidget *tmp;
 
    DW_MUTEX_LOCK;
@@ -4727,7 +4727,7 @@ void dw_window_set_text(HWND handle, const char *text)
  */
 void API dw_window_set_tooltip(HWND handle, const char *bubbletext)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    if(bubbletext && *bubbletext)
@@ -4747,7 +4747,7 @@ void API dw_window_set_tooltip(HWND handle, const char *bubbletext)
 char *dw_window_get_text(HWND handle)
 {
    const char *possible = NULL;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    if(GTK_IS_ENTRY(handle))
@@ -4768,7 +4768,7 @@ char *dw_window_get_text(HWND handle)
  */
 void dw_window_disable(HWND handle)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    gtk_widget_set_sensitive(handle, FALSE);
@@ -4782,7 +4782,7 @@ void dw_window_disable(HWND handle)
  */
 void dw_window_enable(HWND handle)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    gtk_widget_set_sensitive(handle, TRUE);
@@ -4798,7 +4798,7 @@ void dw_window_enable(HWND handle)
 HWND API dw_window_from_id(HWND handle, int id)
 {
    GList *orig = NULL, *list = NULL;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    if(handle && GTK_IS_CONTAINER(handle))
@@ -4835,7 +4835,7 @@ HWND API dw_window_from_id(HWND handle, int id)
 unsigned int dw_mle_import(HWND handle, const char *buffer, int startpoint)
 {
    unsigned int tmppoint = startpoint;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    if(GTK_IS_SCROLLED_WINDOW(handle))
@@ -4868,7 +4868,7 @@ unsigned int dw_mle_import(HWND handle, const char *buffer, int startpoint)
  */
 void dw_mle_export(HWND handle, char *buffer, int startpoint, int length)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
    gchar *text;
 
    DW_MUTEX_LOCK;
@@ -4907,7 +4907,7 @@ void dw_mle_export(HWND handle, char *buffer, int startpoint, int length)
  */
 void dw_mle_get_size(HWND handle, unsigned long *bytes, unsigned long *lines)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    if(bytes)
       *bytes = 0;
@@ -4941,7 +4941,7 @@ void dw_mle_get_size(HWND handle, unsigned long *bytes, unsigned long *lines)
  */
 void dw_mle_delete(HWND handle, int startpoint, int length)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    if(GTK_IS_SCROLLED_WINDOW(handle))
@@ -4969,7 +4969,7 @@ void dw_mle_delete(HWND handle, int startpoint, int length)
  */
 void dw_mle_clear(HWND handle)
 {
-   int length, _locked_by_me = FALSE;
+   int length, _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    if(GTK_IS_SCROLLED_WINDOW(handle))
@@ -4995,7 +4995,7 @@ void dw_mle_clear(HWND handle)
  */
 void dw_mle_set_visible(HWND handle, int line)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    if(GTK_IS_SCROLLED_WINDOW(handle))
@@ -5033,7 +5033,7 @@ void dw_mle_set_visible(HWND handle, int line)
  */
 void dw_mle_set_editable(HWND handle, int state)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    if(GTK_IS_SCROLLED_WINDOW(handle))
@@ -5054,7 +5054,7 @@ void dw_mle_set_editable(HWND handle, int state)
  */
 void dw_mle_set_word_wrap(HWND handle, int state)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    if(GTK_IS_SCROLLED_WINDOW(handle))
@@ -5085,7 +5085,7 @@ void dw_mle_set_auto_complete(HWND handle, int state)
  */
 void dw_mle_set_cursor(HWND handle, int point)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    if(GTK_IS_SCROLLED_WINDOW(handle))
@@ -5125,7 +5125,7 @@ void dw_mle_set_cursor(HWND handle, int point)
  */
 int dw_mle_search(HWND handle, const char *text, int point, unsigned long flags)
 {
-   int _locked_by_me = FALSE, retval = 0;
+   int _dw_locked_by_me = FALSE, retval = 0;
 
    DW_MUTEX_LOCK;
    if(GTK_IS_SCROLLED_WINDOW(handle))
@@ -5186,7 +5186,7 @@ gboolean _dw_update_progress_bar(gpointer data)
  */
 void dw_percent_set_pos(HWND handle, unsigned int position)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    if(position == DW_PERCENT_INDETERMINATE)
@@ -5217,7 +5217,7 @@ void dw_percent_set_pos(HWND handle, unsigned int position)
  */
 unsigned int dw_slider_get_pos(HWND handle)
 {
-   int val = 0, _locked_by_me = FALSE;
+   int val = 0, _dw_locked_by_me = FALSE;
    GtkAdjustment *adjustment;
 
    if(!handle)
@@ -5247,7 +5247,7 @@ unsigned int dw_slider_get_pos(HWND handle)
  */
 void dw_slider_set_pos(HWND handle, unsigned int position)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
    GtkAdjustment *adjustment;
 
    if(!handle)
@@ -5274,7 +5274,7 @@ void dw_slider_set_pos(HWND handle, unsigned int position)
  */
 unsigned int dw_scrollbar_get_pos(HWND handle)
 {
-   int val = 0, _locked_by_me = FALSE;
+   int val = 0, _dw_locked_by_me = FALSE;
    GtkAdjustment *adjustment;
 
    if(!handle)
@@ -5296,7 +5296,7 @@ unsigned int dw_scrollbar_get_pos(HWND handle)
  */
 void dw_scrollbar_set_pos(HWND handle, unsigned int position)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
    GtkAdjustment *adjustment;
 
    if(!handle)
@@ -5322,7 +5322,7 @@ void dw_scrollbar_set_pos(HWND handle, unsigned int position)
  */
 void API dw_scrollbar_set_range(HWND handle, unsigned int range, unsigned int visible)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
    GtkAdjustment *adjustment;
 
    if(!handle)
@@ -5347,7 +5347,7 @@ void API dw_scrollbar_set_range(HWND handle, unsigned int range, unsigned int vi
  */
 void dw_spinbutton_set_pos(HWND handle, long position)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    gtk_spin_button_set_value(GTK_SPIN_BUTTON(handle), (gfloat)position);
@@ -5365,7 +5365,7 @@ void dw_spinbutton_set_limits(HWND handle, long upper, long lower)
 {
    long curval;
    GtkAdjustment *adj;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    curval = dw_spinbutton_get_pos(handle);
    DW_MUTEX_LOCK;
@@ -5387,7 +5387,7 @@ void dw_spinbutton_set_limits(HWND handle, long upper, long lower)
  */
 void dw_entryfield_set_limit(HWND handle, ULONG limit)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    gtk_entry_set_max_length(GTK_ENTRY(handle), limit);
@@ -5402,7 +5402,7 @@ void dw_entryfield_set_limit(HWND handle, ULONG limit)
 long dw_spinbutton_get_pos(HWND handle)
 {
    long retval;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    retval = (long)gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(handle));
@@ -5419,7 +5419,7 @@ long dw_spinbutton_get_pos(HWND handle)
 int dw_checkbox_get(HWND handle)
 {
    int retval;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    retval = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(handle));
@@ -5436,7 +5436,7 @@ int dw_checkbox_get(HWND handle)
  */
 void dw_checkbox_set(HWND handle, int value)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(handle), value);
@@ -5460,7 +5460,7 @@ HTREEITEM dw_tree_insert_after(HWND handle, HTREEITEM item, const char *title, H
    GtkTreeStore *store;
    GdkPixbuf *pixbuf;
    HTREEITEM retval = 0;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    if(!handle)
       return NULL;
@@ -5499,7 +5499,7 @@ HTREEITEM dw_tree_insert(HWND handle, const char *title, HICN icon, HTREEITEM pa
    GtkTreeStore *store;
    GdkPixbuf *pixbuf;
    HTREEITEM retval = 0;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    if(!handle)
       return NULL;
@@ -5535,7 +5535,7 @@ void dw_tree_item_change(HWND handle, HTREEITEM item, const char *title, HICN ic
    GtkWidget *tree;
    GtkTreeStore *store;
    GdkPixbuf *pixbuf;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    if(!handle)
       return;
@@ -5563,7 +5563,7 @@ void dw_tree_item_set_data(HWND handle, HTREEITEM item, void *itemdata)
 {
    GtkWidget *tree;
    GtkTreeStore *store;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    if(!handle || !item)
       return;
@@ -5584,7 +5584,7 @@ void dw_tree_item_set_data(HWND handle, HTREEITEM item, void *itemdata)
  */
 char * API dw_tree_get_title(HWND handle, HTREEITEM item)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
    char *text = NULL;
    GtkWidget *tree;
    GtkTreeModel *store;
@@ -5616,7 +5616,7 @@ char * API dw_tree_get_title(HWND handle, HTREEITEM item)
  */
 HTREEITEM API dw_tree_get_parent(HWND handle, HTREEITEM item)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
    HTREEITEM parent = (HTREEITEM)0;
    GtkWidget *tree;
    GtkTreeModel *store;
@@ -5650,7 +5650,7 @@ void *dw_tree_item_get_data(HWND handle, HTREEITEM item)
    void *ret = NULL;
    GtkWidget *tree;
    GtkTreeModel *store;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    if(!handle || !item)
       return NULL;
@@ -5674,7 +5674,7 @@ void dw_tree_item_select(HWND handle, HTREEITEM item)
 {
    GtkWidget *tree;
    GtkTreeStore *store;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    if(!handle || !item)
       return;
@@ -5721,7 +5721,7 @@ void dw_tree_clear(HWND handle)
 {
    GtkWidget *tree;
    GtkTreeStore *store;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    if(!handle)
       return;
@@ -5754,7 +5754,7 @@ void dw_tree_item_expand(HWND handle, HTREEITEM item)
 {
    GtkWidget *tree;
    GtkTreeStore *store;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    if(!handle)
       return;
@@ -5781,7 +5781,7 @@ void dw_tree_item_collapse(HWND handle, HTREEITEM item)
 {
    GtkWidget *tree;
    GtkTreeStore *store;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    if(!handle)
       return;
@@ -5808,7 +5808,7 @@ void dw_tree_item_delete(HWND handle, HTREEITEM item)
 {
    GtkWidget *tree;
    GtkTreeStore *store;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    if(!handle)
       return;
@@ -5835,7 +5835,7 @@ static int _dw_container_setup(HWND handle, unsigned long *flags, char **titles,
    GtkTreeViewColumn *col;
    GtkCellRenderer *rend;
    GtkTreeSelection *sel;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
    GType *array = calloc(count + _DW_CONTAINER_STORE_EXTRA + 1, sizeof(GType));
 
    DW_MUTEX_LOCK;
@@ -6072,7 +6072,7 @@ GdkPixbuf *_icon_resize(GdkPixbuf *ret)
  */
 HICN API dw_icon_load_from_file(const char *filename)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
    char *file = alloca(strlen(filename) + 6);
    int i, found_ext = 0;
    HICN ret = 0;
@@ -6116,7 +6116,7 @@ HICN API dw_icon_load_from_file(const char *filename)
  */
 HICN API dw_icon_load_from_data(const char *data, int len)
 {
-   int fd, written = -1, _locked_by_me = FALSE;
+   int fd, written = -1, _dw_locked_by_me = FALSE;
    char template[] = "/tmp/dwiconXXXXXX";
    HICN ret = 0;
 
@@ -6165,7 +6165,7 @@ void *dw_container_alloc(HWND handle, int rowcount)
    int z, prevrowcount = 0;
    GtkWidget *cont;
    GtkListStore *store = NULL;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    cont = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
@@ -6201,7 +6201,7 @@ void _dw_container_set_item(HWND handle, void *pointer, int column, int row, voi
    int flag = 0;
    GtkWidget *cont;
    GtkListStore *store = NULL;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    cont = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
@@ -6383,7 +6383,7 @@ int dw_container_get_column_type(HWND handle, int column)
    char numbuf[25] = {0};
    int flag, rc = 0;
    GtkWidget *cont = handle;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    cont = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
@@ -6436,7 +6436,7 @@ void API dw_container_set_stripe(HWND handle, unsigned long oddcolor, unsigned l
 {
 #if !GTK_CHECK_VERSION(3,14,0)
    GtkWidget *cont;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
    DW_MUTEX_LOCK;
    cont = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
 
@@ -6462,7 +6462,7 @@ void API dw_container_set_stripe(HWND handle, unsigned long oddcolor, unsigned l
 void dw_container_set_column_width(HWND handle, int column, int width)
 {
    GtkWidget *cont;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    cont = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
@@ -6485,7 +6485,7 @@ void _dw_container_set_row_data(HWND handle, void *pointer, int row, int type, v
 {
    GtkWidget *cont = handle;
    GtkListStore *store = NULL;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    /* Make sure it is the correct tree type */
@@ -6579,7 +6579,7 @@ void dw_container_delete(HWND handle, int rowcount)
 {
    GtkWidget *cont;
    GtkListStore *store = NULL;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    cont = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
@@ -6621,7 +6621,7 @@ void dw_container_clear(HWND handle, int redraw)
 {
    GtkWidget *cont;
    GtkListStore *store = NULL;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    cont = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
@@ -6651,7 +6651,7 @@ void dw_container_clear(HWND handle, int redraw)
 void dw_container_scroll(HWND handle, int direction, long rows)
 {
    GtkWidget *cont;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    cont = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
@@ -6729,7 +6729,7 @@ char *dw_container_query_start(HWND handle, unsigned long flags)
    GtkWidget *cont;
    GtkListStore *store = NULL;
    char *retval = NULL;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
    int type = flags & DW_CR_RETDATA ? _DW_DATA_TYPE_POINTER : _DW_DATA_TYPE_STRING;
 
    DW_MUTEX_LOCK;
@@ -6820,7 +6820,7 @@ char *dw_container_query_next(HWND handle, unsigned long flags)
    GtkWidget *cont;
    GtkListStore *store = NULL;
    char *retval = NULL;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
    int type = flags & DW_CR_RETDATA ? _DW_DATA_TYPE_POINTER : _DW_DATA_TYPE_STRING;
 
    DW_MUTEX_LOCK;
@@ -6921,7 +6921,7 @@ void _dw_container_cursor(HWND handle, void *data, int textcomp)
 {
    GtkWidget *cont;
    GtkListStore *store = NULL;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    cont = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
@@ -6974,7 +6974,7 @@ void _dw_container_delete_row(HWND handle, void *data, int textcomp)
 {
    GtkWidget *cont;
    GtkListStore *store = NULL;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    cont = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
@@ -7029,7 +7029,7 @@ void dw_container_delete_row_by_data(HWND handle, void *data)
 void dw_container_optimize(HWND handle)
 {
    GtkWidget *cont;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    cont = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
@@ -7067,7 +7067,7 @@ void dw_taskbar_insert(HWND handle, HICN icon, const char *bubbletext)
 {
    GtkStatusIcon *status;
    GdkPixbuf *pixbuf;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    pixbuf = _dw_find_pixbuf(icon, NULL, NULL);
@@ -7089,7 +7089,7 @@ void dw_taskbar_insert(HWND handle, HICN icon, const char *bubbletext)
 void dw_taskbar_delete(HWND handle, HICN icon)
 {
    GtkStatusIcon *status;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    status = g_object_get_data(G_OBJECT(handle), "_dw_taskbar");
@@ -7112,7 +7112,7 @@ static void _dw_render_destroy(GtkWidget *widget, gpointer data)
  */
 HWND dw_render_new(unsigned long id)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
    GtkWidget *tmp;
 
    DW_MUTEX_LOCK;
@@ -7141,7 +7141,7 @@ HWND dw_render_new(unsigned long id)
  */
 void API dw_render_redraw(HWND handle)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    if(handle && GTK_IS_WIDGET(handle))
@@ -7218,7 +7218,7 @@ unsigned long API dw_color_choose(unsigned long value)
 {
    GtkColorChooser *cd;
    GdkRGBA color = _dw_internal_color(value);
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
    unsigned long retcolor = value;
 
    DW_MUTEX_LOCK;
@@ -7280,7 +7280,7 @@ static gint _dw_color_cancel(GtkWidget *widget, DWDialog *dwwait)
 unsigned long API dw_color_choose(unsigned long value)
 {
    GtkWidget *colorw, *ok_button, *cancel_button;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
    DWDialog *dwwait;
    GtkColorSelection *colorsel;
    GdkRGBA color = _dw_internal_color(value);
@@ -7331,7 +7331,7 @@ unsigned long API dw_color_choose(unsigned long value)
  */
 void dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
    cairo_t *cr = NULL;
    int cached = FALSE;
 #if GTK_CHECK_VERSION(3,22,0)
@@ -7407,7 +7407,7 @@ void dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
  */
 void dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y2)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
    cairo_t *cr = NULL;
    int cached = FALSE;
 #if GTK_CHECK_VERSION(3,22,0)
@@ -7484,7 +7484,7 @@ void dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y2)
  */
 void dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, int *x, int *y)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
    cairo_t *cr = NULL;
    int cached = FALSE;
    int z;
@@ -7571,7 +7571,7 @@ void dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, int *x
  */
 void dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int width, int height)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
    cairo_t *cr = NULL;
    int cached = FALSE;
 #if GTK_CHECK_VERSION(3,22,0)
@@ -7659,7 +7659,7 @@ void dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int widt
  */
 void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yorigin, int x1, int y1, int x2, int y2)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
    cairo_t *cr = NULL;
    int cached = FALSE;
 #if GTK_CHECK_VERSION(3,22,0)
@@ -7754,7 +7754,7 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
   */
 void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, const char *text)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
    cairo_t *cr = NULL;
    int cached = FALSE;
    PangoFontDescription *font;
@@ -7878,7 +7878,7 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, const char *text)
  */
 void dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, const char *text, int *width, int *height)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
    PangoFontDescription *font;
    char *fontname = NULL;
    int free_fontname = 0;
@@ -7951,7 +7951,7 @@ void dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, const char *text, int
  */
 HPIXMAP dw_pixmap_new(HWND handle, unsigned long width, unsigned long height, int depth)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
    HPIXMAP pixmap;
 
    if (!(pixmap = calloc(1,sizeof(struct _hpixmap))))
@@ -7986,7 +7986,7 @@ HPIXMAP dw_pixmap_new(HWND handle, unsigned long width, unsigned long height, in
  */
 HPIXMAP dw_pixmap_new_from_file(HWND handle, const char *filename)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
    HPIXMAP pixmap;
    char *file = alloca(strlen(filename) + 6);
    int found_ext = 0;
@@ -8040,7 +8040,7 @@ HPIXMAP dw_pixmap_new_from_file(HWND handle, const char *filename)
  */
 HPIXMAP dw_pixmap_new_from_data(HWND handle, const char *data, int len)
 {
-   int fd, written = -1, _locked_by_me = FALSE;
+   int fd, written = -1, _dw_locked_by_me = FALSE;
    HPIXMAP pixmap;
    char template[] = "/tmp/dwpixmapXXXXXX";
 
@@ -8098,7 +8098,7 @@ void dw_pixmap_set_transparent_color(HPIXMAP pixmap, unsigned long color)
 HPIXMAP dw_pixmap_grab(HWND handle, ULONG id)
 {
    HPIXMAP pixmap;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    if (!(pixmap = calloc(1,sizeof(struct _hpixmap))))
       return NULL;
@@ -8121,7 +8121,7 @@ static void _dw_flush_dirty(gpointer widget, gpointer data)
  */
 void dw_flush(void)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    g_list_foreach(_dw_dirty_list, _dw_flush_dirty, NULL);
@@ -8164,7 +8164,7 @@ int API dw_pixmap_set_font(HPIXMAP pixmap, const char *fontname)
  */
 void dw_pixmap_destroy(HPIXMAP pixmap)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    g_object_unref(G_OBJECT(pixmap->pixbuf));
@@ -8214,7 +8214,7 @@ void API dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int wi
  */
 int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int width, int height, HWND src, HPIXMAP srcp, int xsrc, int ysrc, int srcwidth, int srcheight)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
    cairo_t *cr = NULL;
    int cached = FALSE;
    int retval = DW_ERROR_GENERAL;
@@ -8304,7 +8304,7 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
  */
 void dw_beep(int freq, int dur)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    gdk_display_beep(gdk_display_get_default());
@@ -9229,7 +9229,7 @@ void _dw_get_scrolled_size(GtkWidget *item, gint *thiswidth, gint *thisheight)
 /* Internal box packing function called by the other 3 functions */
 void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsize, int vsize, int pad, char *funcname)
 {
-   int warn = FALSE, _locked_by_me = FALSE;
+   int warn = FALSE, _dw_locked_by_me = FALSE;
    GtkWidget *tmp, *tmpitem, *image = NULL;
 
    if(!box)
@@ -9440,7 +9440,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
  */
 int API dw_box_unpack(HWND handle)
 {
-   int _locked_by_me = FALSE, retcode = DW_ERROR_GENERAL;
+   int _dw_locked_by_me = FALSE, retcode = DW_ERROR_GENERAL;
 
    DW_MUTEX_LOCK;
    if(GTK_IS_WIDGET(handle))
@@ -9522,7 +9522,7 @@ int API dw_box_unpack(HWND handle)
  */
 HWND API dw_box_unpack_at_index(HWND box, int index)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
    HWND retval = 0;
 
    DW_MUTEX_LOCK;
@@ -9743,7 +9743,7 @@ void _dw_get_frame_extents(GtkWidget *window, int *vert, int *horz)
  */
 void dw_window_set_size(HWND handle, unsigned long width, unsigned long height)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    if(!handle)
       return;
@@ -9810,7 +9810,7 @@ void dw_window_set_size(HWND handle, unsigned long width, unsigned long height)
  */
 void API dw_window_get_preferred_size(HWND handle, int *width, int *height)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    if(GTK_IS_SCROLLED_WINDOW(handle))
@@ -9865,7 +9865,7 @@ int _dw_screen_width(void)
 int dw_screen_width(void)
 {
    int retval = 0;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    retval = _dw_screen_width();
@@ -9904,7 +9904,7 @@ int _dw_screen_height(void)
 int dw_screen_height(void)
 {
    int retval;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    retval = _dw_screen_height();
@@ -9917,7 +9917,7 @@ unsigned long dw_color_depth_get(void)
 {
    int retval;
    GdkVisual *vis;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
 #if GTK_CHECK_VERSION(3,22,0)
@@ -9953,7 +9953,7 @@ void API dw_window_set_gravity(HWND handle, int horz, int vert)
  */
 void dw_window_set_pos(HWND handle, long x, long y)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 #ifdef DW_INCLUDE_DEPRECATED
    GtkWidget *mdi;
 #endif
@@ -10124,7 +10124,7 @@ void dw_window_set_pos_size(HWND handle, long x, long y, unsigned long width, un
  */
 void dw_window_get_pos_size(HWND handle, long *x, long *y, ULONG *width, ULONG *height)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
    gint gx = 0, gy = 0, gwidth = 0, gheight = 0;
 #ifdef DW_INCLUDE_DEPRECATED
    GtkWidget *mdi;
@@ -10190,7 +10190,7 @@ void dw_window_get_pos_size(HWND handle, long *x, long *y, ULONG *width, ULONG *
 void dw_window_set_style(HWND handle, unsigned long style, unsigned long mask)
 {
    GtkWidget *handle2 = handle;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    if(GTK_IS_SCROLLED_WINDOW(handle))
@@ -10279,7 +10279,7 @@ void dw_window_set_style(HWND handle, unsigned long style, unsigned long mask)
 unsigned long dw_notebook_page_new(HWND handle, unsigned long flags, int front)
 {
    int z;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
    GtkWidget **pagearray;
 
    DW_MUTEX_LOCK;
@@ -10339,7 +10339,7 @@ int _dw_get_physical_page(HWND handle, unsigned long pageid)
  */
 void dw_notebook_page_destroy(HWND handle, unsigned int pageid)
 {
-   int realpage, _locked_by_me = FALSE;
+   int realpage, _dw_locked_by_me = FALSE;
    GtkWidget **pagearray;
 
    DW_MUTEX_LOCK;
@@ -10361,7 +10361,7 @@ void dw_notebook_page_destroy(HWND handle, unsigned int pageid)
 unsigned long dw_notebook_page_get(HWND handle)
 {
    int retval, phys;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    phys = gtk_notebook_get_current_page(GTK_NOTEBOOK(handle));
@@ -10378,7 +10378,7 @@ unsigned long dw_notebook_page_get(HWND handle)
  */
 void dw_notebook_page_set(HWND handle, unsigned int pageid)
 {
-   int realpage, _locked_by_me = FALSE;
+   int realpage, _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    realpage = _dw_get_physical_page(handle, pageid);
@@ -10398,7 +10398,7 @@ void dw_notebook_page_set(HWND handle, unsigned int pageid)
 void dw_notebook_page_set_text(HWND handle, unsigned long pageid, const char *text)
 {
    GtkWidget *child;
-   int realpage, _locked_by_me = FALSE;
+   int realpage, _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    realpage = _dw_get_physical_page(handle, pageid);
@@ -10444,7 +10444,7 @@ void dw_notebook_pack(HWND handle, unsigned long pageid, HWND page)
 {
    GtkWidget *label, *child, *oldlabel, **pagearray;
    const gchar *text = NULL;
-   int num, z, realpage = -1, pad, _locked_by_me = FALSE;
+   int num, z, realpage = -1, pad, _dw_locked_by_me = FALSE;
    char ptext[101] = {0};
 
    DW_MUTEX_LOCK;
@@ -10519,7 +10519,7 @@ void dw_listbox_insert(HWND handle, const char *text, int pos)
 {
    GtkWidget *handle2 = handle;
    GtkListStore *store = NULL;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    /* Get the inner handle for scrolled controls */
@@ -10571,7 +10571,7 @@ void dw_listbox_list_append(HWND handle, char **text, int count)
 {
    GtkWidget *handle2 = handle;
    GtkListStore *store = NULL;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    /* Get the inner handle for scrolled controls */
@@ -10617,7 +10617,7 @@ void dw_listbox_clear(HWND handle)
 {
    GtkWidget *handle2 = handle;
    GtkListStore *store = NULL;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    /* Get the inner handle for scrolled controls */
@@ -10655,7 +10655,7 @@ int dw_listbox_count(HWND handle)
 {
    GtkWidget *handle2 = handle;
    GtkListStore *store = NULL;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
    int retval = 0;
 
    DW_MUTEX_LOCK;
@@ -10693,7 +10693,7 @@ int dw_listbox_count(HWND handle)
 void dw_listbox_set_top(HWND handle, int top)
 {
    GtkWidget *handle2 = handle;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    if(GTK_IS_SCROLLED_WINDOW(handle))
@@ -10749,7 +10749,7 @@ void dw_listbox_get_text(HWND handle, unsigned int index, char *buffer, unsigned
 {
    GtkWidget *handle2 = handle;
    GtkListStore *store = NULL;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    /* Get the inner handle for scrolled controls */
@@ -10802,7 +10802,7 @@ void dw_listbox_set_text(HWND handle, unsigned int index, const char *buffer)
 {
    GtkWidget *handle2 = handle;
    GtkListStore *store = NULL;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    /* Get the inner handle for scrolled controls */
@@ -10846,7 +10846,7 @@ int dw_listbox_selected_multi(HWND handle, int where)
    GtkWidget *handle2;
    GtkListStore *store = NULL;
    int retval = DW_LIT_NONE;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    handle2 = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
@@ -10896,7 +10896,7 @@ int dw_listbox_selected(HWND handle)
 {
    GtkWidget *handle2 = handle;
    GtkListStore *store = NULL;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
    unsigned int retval = 0;
 
    DW_MUTEX_LOCK;
@@ -10972,7 +10972,7 @@ void dw_listbox_select(HWND handle, int index, int state)
 {
    GtkWidget *handle2 = handle;
    GtkListStore *store = NULL;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    /* Get the inner handle for scrolled controls */
@@ -11031,7 +11031,7 @@ void dw_listbox_delete(HWND handle, int index)
 {
    GtkWidget *handle2 = handle;
    GtkListStore *store = NULL;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    /* Get the inner handle for scrolled controls */
@@ -11110,7 +11110,7 @@ static gint _dw_splitbar_size_allocate(GtkWidget *widget, GtkAllocation *event, 
 HWND dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long id)
 {
    GtkWidget *tmp = NULL;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
    float *percent = malloc(sizeof(float));
 
    DW_MUTEX_LOCK;
@@ -11176,7 +11176,7 @@ float dw_splitbar_get(HWND handle)
 HWND dw_calendar_new(unsigned long id)
 {
    GtkWidget *tmp;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
    GtkCalendarDisplayOptions flags;
    time_t now;
    struct tm *tmdata;
@@ -11205,7 +11205,7 @@ HWND dw_calendar_new(unsigned long id)
  */
 void dw_calendar_set_date(HWND handle, unsigned int year, unsigned int month, unsigned int day)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    if(GTK_IS_CALENDAR(handle))
@@ -11224,7 +11224,7 @@ void dw_calendar_set_date(HWND handle, unsigned int year, unsigned int month, un
  */
 void dw_calendar_get_date(HWND handle, unsigned int *year, unsigned int *month, unsigned int *day)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    if(GTK_IS_CALENDAR(handle))
@@ -11245,7 +11245,7 @@ void dw_calendar_get_date(HWND handle, unsigned int *year, unsigned int *month, 
  */
 void API dw_window_set_focus(HWND handle)
 {
-    int _locked_by_me = FALSE;
+    int _dw_locked_by_me = FALSE;
 
     if(!handle)
        return;
@@ -11265,7 +11265,7 @@ void API dw_window_set_focus(HWND handle)
  */
 void dw_window_default(HWND window, HWND defaultitem)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    if(!window)
       return;
@@ -11283,7 +11283,7 @@ void dw_window_default(HWND window, HWND defaultitem)
  */
 void dw_window_click_default(HWND window, HWND next)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    if(!window)
       return;
@@ -11682,7 +11682,7 @@ WebKitWebView *_dw_html_web_view(GtkWidget *widget)
 void dw_html_action(HWND handle, int action)
 {
 #ifdef USE_WEBKIT
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
    WebKitWebView *web_view;
 
    DW_MUTEX_LOCK;
@@ -11740,7 +11740,7 @@ void dw_html_action(HWND handle, int action)
 int dw_html_raw(HWND handle, const char *string)
 {
 #ifdef USE_WEBKIT
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
    WebKitWebView *web_view;
 
    DW_MUTEX_LOCK;
@@ -11772,7 +11772,7 @@ int dw_html_raw(HWND handle, const char *string)
 int dw_html_url(HWND handle, const char *url)
 {
 #ifdef USE_WEBKIT
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
    WebKitWebView *web_view;
 
    DW_MUTEX_LOCK;
@@ -11805,7 +11805,7 @@ int dw_html_url(HWND handle, const char *url)
 int dw_html_javascript_run(HWND handle, const char *script, void *scriptdata)
 {
 #ifdef USE_WEBKIT
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
    WebKitWebView *web_view;
 
    DW_MUTEX_LOCK;
@@ -11856,7 +11856,7 @@ HWND dw_html_new(unsigned long id)
 {
    GtkWidget *widget = NULL;
 #ifdef USE_WEBKIT
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
    WebKitWebView *web_view;
 #ifdef USE_WEBKIT2
    WebKitSettings *settings;
@@ -11905,7 +11905,7 @@ HWND dw_html_new(unsigned long id)
  */
 char *dw_clipboard_get_text()
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
    GtkClipboard *clipboard_object;
    char *ret = NULL;
 
@@ -11931,7 +11931,7 @@ char *dw_clipboard_get_text()
  */
 void  dw_clipboard_set_text(const char *str, int len)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
    GtkClipboard *clipboard_object;
 
    DW_MUTEX_LOCK;
@@ -11978,7 +11978,7 @@ static void _dw_draw_page(GtkPrintOperation *operation, GtkPrintContext *context
 HPRINT API dw_print_new(const char *jobname, unsigned long flags, unsigned int pages, void *drawfunc, void *drawdata)
 {
    GtkPrintOperation *op;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    if(!drawfunc)
       return NULL;
@@ -12008,7 +12008,7 @@ int API dw_print_run(HPRINT print, unsigned long flags)
 {
    GtkPrintOperationResult res;
    GtkPrintOperation *op = (GtkPrintOperation *)print;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    res = gtk_print_operation_run(op, GTK_PRINT_OPERATION_ACTION_PRINT_DIALOG, NULL, NULL);
@@ -12023,7 +12023,7 @@ int API dw_print_run(HPRINT print, unsigned long flags)
  */
 void API dw_print_cancel(HPRINT print)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
    GtkPrintOperation *op = (GtkPrintOperation *)print;
 
    DW_MUTEX_LOCK;
@@ -12120,7 +12120,7 @@ void dw_window_function(HWND handle, void *function, void *data)
 void dw_window_set_data(HWND window, const char *dataname, void *data)
 {
    HWND thiswindow = window;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    if(!window)
       return;
@@ -12145,7 +12145,7 @@ void dw_window_set_data(HWND window, const char *dataname, void *data)
 void *dw_window_get_data(HWND window, const char *dataname)
 {
    HWND thiswindow = window;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
    void *ret = NULL;
 
    if(!window)
@@ -12216,7 +12216,7 @@ gboolean _dw_timer_func(gpointer data)
  */
 HTIMER API dw_timer_connect(int interval, void *sigfunc, void *data)
 {
-   int *tag, _locked_by_me = FALSE;
+   int *tag, _dw_locked_by_me = FALSE;
    char tmpbuf[31] = {0};
 
    tag = calloc(1, sizeof(int));
@@ -12238,7 +12238,7 @@ HTIMER API dw_timer_connect(int interval, void *sigfunc, void *data)
  */
 void API dw_timer_disconnect(HTIMER id)
 {
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
    char tmpbuf[31] = {0};
 
    snprintf(tmpbuf, 30, "_dw_timer%d", id);
@@ -12317,7 +12317,7 @@ void dw_signal_connect_data(HWND window, const char *signame, void *sigfunc, voi
    void *thisfunc  = _dw_findsigfunc(signame);
    char *thisname = (char *)signame;
    HWND thiswindow = window;
-   int sigid, _locked_by_me = FALSE;
+   int sigid, _dw_locked_by_me = FALSE;
    void **params = calloc(_DW_INTERNAL_CALLBACK_PARAMS, sizeof(void *));
    gint cid;
 
@@ -12511,7 +12511,7 @@ void dw_signal_disconnect_by_name(HWND window, const char *signame)
 {
    int z, count;
    void *thisfunc;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
    void **params = alloca(sizeof(void *) * 3);
 
    DW_MUTEX_LOCK;
@@ -12541,7 +12541,7 @@ void dw_signal_disconnect_by_window(HWND window)
 {
    HWND thiswindow;
    int z, count;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    thiswindow = _dw_find_signal_window(window, NULL);
@@ -12562,7 +12562,7 @@ void dw_signal_disconnect_by_window(HWND window)
 void dw_signal_disconnect_by_data(HWND window, void *data)
 {
    int z, count;
-   int _locked_by_me = FALSE;
+   int _dw_locked_by_me = FALSE;
    void **params = alloca(sizeof(void *) * 3);
 
    DW_MUTEX_LOCK;
@@ -12667,7 +12667,7 @@ int API dw_feature_get(DWFEATURE feature)
 #ifdef GDK_WINDOWING_X11
         case DW_FEATURE_WINDOW_PLACEMENT:
         {
-            int _locked_by_me = FALSE, retval = DW_FEATURE_UNSUPPORTED;
+            int _dw_locked_by_me = FALSE, retval = DW_FEATURE_UNSUPPORTED;
             GdkDisplay *display;
 
             DW_MUTEX_LOCK;
@@ -12725,7 +12725,7 @@ int API dw_feature_set(DWFEATURE feature, int state)
 #ifdef GDK_WINDOWING_X11
         case DW_FEATURE_WINDOW_PLACEMENT:
         {
-            int _locked_by_me = FALSE, retval = DW_FEATURE_UNSUPPORTED;
+            int _dw_locked_by_me = FALSE, retval = DW_FEATURE_UNSUPPORTED;
             GdkDisplay *display;
 
             DW_MUTEX_LOCK;

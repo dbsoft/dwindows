@@ -121,7 +121,8 @@ Changed dw_timer_connnect() and dw_timer_disconnect() to use HTIMER.
     HTIMER and other existing platforms will continue to use "int"
     for compatibility. Other platforms may change in the future.
 Changed dw_exec() with DW_EXEC_CON will now open the Terminal.app 
-    instead of attempting to launch an xterm on Mac.
+    on Mac and the system (Gnome) terminal on Unix via GLib's 
+    G_APP_INFO_CREATE_NEEDS_TERMINAL instead of launching an xterm.
 Fixed GTK warnings on GTK3 caused by using Pango style font syntax.
 Fixed GTK3 leaks when setting fonts or colors on a widget repeatedly.
 Fixed incorrect reporting of word wrap support on Windows.
