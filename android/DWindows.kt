@@ -71,6 +71,12 @@ import android.content.DialogInterface
 import android.graphics.pdf.PdfDocument
 import android.print.*
 import android.print.pdf.PrintedPdfDocument
+import android.widget.Checkable
+
+import android.widget.LinearLayout
+
+
+
 
 
 // Color Wheel section
@@ -1641,6 +1647,40 @@ class DWContainerModel {
     }
 }
 
+class DWContainerRow : LinearLayout, Checkable {
+    private var mChecked = false
+
+    constructor(context: Context?) : super(context) {}
+    constructor(context: Context?, attrs: AttributeSet?) : super(context, attrs) {}
+    constructor(context: Context?, attrs: AttributeSet?, defStyle: Int) : super(context, attrs, defStyle) {}
+
+    override fun setChecked(b: Boolean) {
+        mChecked = b
+        refreshDrawableState()
+    }
+
+    override fun isChecked(): Boolean {
+        return mChecked
+    }
+
+    override fun toggle() {
+        mChecked = !mChecked
+        refreshDrawableState()
+    }
+
+    override fun onCreateDrawableState(extraSpace: Int): IntArray {
+        val states = super.onCreateDrawableState(extraSpace + 1)
+        if (mChecked) {
+            mergeDrawableStates(states, CHECKED_STATE)
+        }
+        return states
+    }
+
+    companion object {
+        val CHECKED_STATE = intArrayOf(R.attr.state_checked)
+    }
+}
+
 class DWContainerAdapter(c: Context) : BaseAdapter()
 {
     private var context = c
@@ -1667,7 +1707,7 @@ class DWContainerAdapter(c: Context) : BaseAdapter()
     }
 
     override fun getView(position: Int, view: View?, parent: ViewGroup): View {
-        var rowView: LinearLayout? = view as LinearLayout?
+        var rowView: DWContainerRow? = view as DWContainerRow?
         var displayColumns = model.numberOfColumns()
 
         // In simple mode, limit the columns to 1 or 2
@@ -1683,7 +1723,7 @@ class DWContainerAdapter(c: Context) : BaseAdapter()
 
         // If the view passed in is null we need to create the layout
         if(rowView == null) {
-            rowView = LinearLayout(context)
+            rowView = DWContainerRow(context)
             rowView.orientation = LinearLayout.HORIZONTAL
 
             for(i in 0 until displayColumns) {
@@ -3957,8 +3997,10 @@ class DWindows : AppCompatActivity() {
                 val title = adapter.model.getRowTitle(position)
                 val data = adapter.model.getRowData(position)
                 val now = System.currentTimeMillis()
+                val rowView: DWContainerRow = view as DWContainerRow
 
                 view.isSelected = !view.isSelected
+                rowView.isChecked = !rowView.isChecked
                 adapter.selectedItem = position
                 lastClickView = cont!!
                 // If we are single select or we got a double tap...
