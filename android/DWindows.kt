@@ -1197,34 +1197,43 @@ class DWComboBox(context: Context) : AppCompatEditText(context), OnTouchListener
 
 class DWListBox(context: Context) : ListView(context), OnItemClickListener {
     var list = mutableListOf<String>()
+    var multiple = mutableListOf<Int>()
     var selected: Int = -1
     var colorFore: Int? = null
     var colorBack: Int? = null
+    var colorSelected: Int = Color.DKGRAY
 
     init {
-        setAdapter(
-            object : ArrayAdapter<String>(
+        adapter = object : ArrayAdapter<String>(
                 context,
                 R.layout.simple_list_item_1, list
-            ) {
-                override fun getView(pos: Int, view: View?, parent: ViewGroup): View {
-                    val thisview = super.getView(pos, view, parent)
-                    val textview = thisview as TextView
-                    if (colorFore != null) {
-                        textview.setTextColor(colorFore!!)
-                    }
-                    if (colorBack != null) {
-                        textview.setBackgroundColor(colorBack!!)
-                    }
-                    return thisview
+        ) {
+            override fun getView(pos: Int, view: View?, parent: ViewGroup): View {
+                val thisview = super.getView(pos, view, parent)
+                val textview = thisview as TextView
+                if (colorFore != null) {
+                    textview.setTextColor(colorFore!!)
                 }
+                if (colorBack != null) {
+                    textview.setBackgroundColor(colorBack!!)
+                }
+                return thisview
             }
-        )
+        }
         onItemClickListener = this
     }
 
     override fun onItemClick(parent: AdapterView<*>?, view: View, position: Int, id: Long) {
         selected = position
+        if(this.choiceMode == ListView.CHOICE_MODE_MULTIPLE) {
+            if(multiple.contains(position)) {
+                multiple.remove(position)
+                view.setBackgroundColor(Color.TRANSPARENT)
+            } else {
+                multiple.add(position)
+                view.setBackgroundColor(colorSelected)
+            }
+        }
         eventHandlerInt(DWEvent.LIST_SELECT, position, 0, 0, 0)
     }
 
@@ -4392,6 +4401,7 @@ class DWindows : AppCompatActivity() {
                 val listbox = window
 
                 listbox.list.add(text)
+                listbox.multiple.clear()
                 val adapter = listbox.adapter as ArrayAdapter<String>
                 adapter.notifyDataSetChanged()
             }
@@ -4409,6 +4419,7 @@ class DWindows : AppCompatActivity() {
                 val listbox = window
 
                 listbox.list.add(pos, text)
+                listbox.multiple.clear()
                 val adapter = listbox.adapter as ArrayAdapter<String>
                 adapter.notifyDataSetChanged()
             }
@@ -4426,6 +4437,7 @@ class DWindows : AppCompatActivity() {
                 val listbox = window
 
                 listbox.list.clear()
+                listbox.multiple.clear()
                 val adapter = listbox.adapter as ArrayAdapter<String>
                 adapter.notifyDataSetChanged()
             }
@@ -4547,6 +4559,7 @@ class DWindows : AppCompatActivity() {
 
                 if(index < listbox.list.count()) {
                     listbox.list.removeAt(index)
+                    listbox.multiple.clear()
                     val adapter = listbox.adapter as ArrayAdapter<String>
                     adapter.notifyDataSetChanged()
                 }
@@ -4574,21 +4587,20 @@ class DWindows : AppCompatActivity() {
         waitOnUiThread {
             if(window is DWListBox) {
                 val listbox = window
-                val checked: SparseBooleanArray = listbox.getCheckedItemPositions()
 
                 // If we are starting over....
-                if(where == -1 && checked.size() > 0) {
-                    retval = checked.keyAt(0)
+                if(where == -1 && listbox.multiple.count() > 0) {
+                    retval = listbox.multiple[0]
                 } else {
                     // Otherwise loop until we find our current place
-                    for (i in 0 until checked.size()) {
+                    for (i in 0 until listbox.multiple.count()) {
                         // Item position in adapter
-                        val position: Int = checked.keyAt(i)
+                        val position: Int = listbox.multiple[i]
                         // If we are at our current point... check to see
                         // if there is another one, and return it...
                         // otherwise we will return -1 to indicated we are done.
-                        if (where == position && (i+1) < checked.size()) {
-                            retval = checked.keyAt(i+1)
+                        if (where == position && (i+1) < listbox.multiple.count()) {
+                            retval = listbox.multiple[i+1]
                         }
                     }
                 }
