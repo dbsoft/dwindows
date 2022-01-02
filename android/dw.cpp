@@ -4028,22 +4028,24 @@ char * API dw_container_query_start(HWND handle, unsigned long flags)
             jmethodID containerGetDataStart = env->GetMethodID(clazz, "containerGetDataStart",
                                                                "(Landroid/widget/ListView;I)J");
             // Call the method on the object
-            jlong data = env->CallLongMethod(_dw_obj, containerGetDataStart, handle, (int)flags);
+            jlong data = env->CallLongMethod(_dw_obj, containerGetDataStart, handle, (jint)flags);
             if(!_dw_jni_check_exception(env))
                 retval = (char *)data;
         } else {
             // First get the class that contains the method you need to call
             jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
             // Get the method that you want to call
-            jmethodID containerGetDataStart = env->GetMethodID(clazz, "containerGetTitleStart",
+            jmethodID containerGetTitleStart = env->GetMethodID(clazz, "containerGetTitleStart",
                                                                "(Landroid/widget/ListView;I)Ljava/lang/String;");
             // Call the method on the object
-            jstring jstr = (jstring)_dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, containerGetDataStart, handle, (int)flags), _DW_REFERENCE_NONE);
-            if(jstr)
-                retval = (char *)env->GetStringUTFChars(jstr, nullptr);
+            jstring jstr = (jstring)_dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, containerGetTitleStart, handle, (jint)flags), _DW_REFERENCE_NONE);
+            char *str;
+
+            if(jstr && (str = (char *)env->GetStringUTFChars(jstr, nullptr)))
+                retval = strdup(str);
         }
     }
-    return nullptr;
+    return retval;
 }
 
 /*
@@ -4070,22 +4072,24 @@ char * API dw_container_query_next(HWND handle, unsigned long flags)
             jmethodID containerGetDataStart = env->GetMethodID(clazz, "containerGetDataNext",
                                                                "(Landroid/widget/ListView;I)J");
             // Call the method on the object
-            jlong data = env->CallLongMethod(_dw_obj, containerGetDataStart, handle, (int)flags);
+            jlong data = env->CallLongMethod(_dw_obj, containerGetDataStart, handle, (jint)flags);
             if(!_dw_jni_check_exception(env))
                 retval = (char *)data;
         } else {
             // First get the class that contains the method you need to call
             jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
             // Get the method that you want to call
-            jmethodID containerGetDataStart = env->GetMethodID(clazz, "containerGetTitleNext",
+            jmethodID containerGetTitleNext = env->GetMethodID(clazz, "containerGetTitleNext",
                                                                "(Landroid/widget/ListView;I)Ljava/lang/String;");
             // Call the method on the object
-            jstring jstr = (jstring)_dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, containerGetDataStart, handle, (int)flags), _DW_REFERENCE_NONE);
-            if(jstr)
-                retval = (char *)env->GetStringUTFChars(jstr, nullptr);
+            jstring jstr = (jstring)_dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, containerGetTitleNext, handle, (jint)flags), _DW_REFERENCE_NONE);
+            char *str;
+
+            if(jstr && (str = (char *)env->GetStringUTFChars(jstr, nullptr)))
+                retval = strdup(str);
         }
     }
-    return nullptr;
+    return retval;
 }
 
 /*
