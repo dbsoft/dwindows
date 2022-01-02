@@ -1663,9 +1663,17 @@ class DWContainerRow : LinearLayout, Checkable {
     constructor(context: Context?, attrs: AttributeSet?) : super(context, attrs) {}
     constructor(context: Context?, attrs: AttributeSet?, defStyle: Int) : super(context, attrs, defStyle) {}
 
+    fun updateBackground() {
+        if(mChecked) {
+            this.setBackgroundColor(Color.DKGRAY)
+        } else {
+            this.setBackgroundColor(Color.TRANSPARENT)
+        }
+    }
+
     override fun setChecked(b: Boolean) {
         mChecked = b
-        refreshDrawableState()
+        updateBackground()
     }
 
     override fun isChecked(): Boolean {
@@ -1674,19 +1682,7 @@ class DWContainerRow : LinearLayout, Checkable {
 
     override fun toggle() {
         mChecked = !mChecked
-        refreshDrawableState()
-    }
-
-    override fun onCreateDrawableState(extraSpace: Int): IntArray {
-        val states = super.onCreateDrawableState(extraSpace + 1)
-        if (mChecked) {
-            mergeDrawableStates(states, CHECKED_STATE)
-        }
-        return states
-    }
-
-    companion object {
-        val CHECKED_STATE = intArrayOf(R.attr.state_checked)
+        updateBackground()
     }
 }
 
@@ -4009,7 +4005,7 @@ class DWindows : AppCompatActivity() {
                 val rowView: DWContainerRow = view as DWContainerRow
 
                 view.isSelected = !view.isSelected
-                rowView.isChecked = !rowView.isChecked
+                rowView.toggle()
                 adapter.selectedItem = position
                 lastClickView = cont!!
                 // If we are single select or we got a double tap...
@@ -4071,6 +4067,19 @@ class DWindows : AppCompatActivity() {
         }
     }
 
+    // Create a new SparseBooleanArray with only the true or false contents
+    private fun onlyBooleanArray(array: SparseBooleanArray, bool: Boolean): SparseBooleanArray
+    {
+        val newArray = SparseBooleanArray()
+
+        for (i in 0 until array.size()) {
+            if (array.valueAt(i) == bool) {
+                newArray.put(array.keyAt(i), bool)
+            }
+        }
+        return newArray
+    }
+
     fun containerGetTitleStart(cont: ListView, flags: Int): String?
     {
         var retval: String? = null
@@ -4080,7 +4089,7 @@ class DWindows : AppCompatActivity() {
 
             // Handle DW_CRA_SELECTED
             if((flags and 1) != 0) {
-                val checked: SparseBooleanArray = cont.getCheckedItemPositions()
+                val checked: SparseBooleanArray = onlyBooleanArray(cont.checkedItemPositions, true)
                 val position = checked.keyAt(0)
 
                 adapter.model.querypos = position
@@ -4107,7 +4116,7 @@ class DWindows : AppCompatActivity() {
             if(adapter.model.querypos != -1) {
                 // Handle DW_CRA_SELECTED
                 if ((flags and 1) != 0) {
-                    val checked: SparseBooleanArray = cont.getCheckedItemPositions()
+                    val checked: SparseBooleanArray = onlyBooleanArray(cont.checkedItemPositions, true)
 
                     // Otherwise loop until we find our current place
                     for (i in 0 until checked.size()) {
@@ -4143,7 +4152,7 @@ class DWindows : AppCompatActivity() {
 
             // Handle DW_CRA_SELECTED
             if((flags and 1) != 0) {
-                val checked: SparseBooleanArray = cont.getCheckedItemPositions()
+                val checked: SparseBooleanArray = onlyBooleanArray(cont.checkedItemPositions, true)
                 val position = checked.keyAt(0)
 
                 adapter.model.querypos = position
@@ -4170,7 +4179,7 @@ class DWindows : AppCompatActivity() {
             if(adapter.model.querypos != -1) {
                 // Handle DW_CRA_SELECTED
                 if ((flags and 1) != 0) {
-                    val checked: SparseBooleanArray = cont.getCheckedItemPositions()
+                    val checked: SparseBooleanArray = onlyBooleanArray(cont.checkedItemPositions, true)
 
                     // Otherwise loop until we find our current place
                     for (i in 0 until checked.size()) {
