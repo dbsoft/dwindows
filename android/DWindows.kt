@@ -4090,10 +4090,15 @@ class DWindows : AppCompatActivity() {
             // Handle DW_CRA_SELECTED
             if((flags and 1) != 0) {
                 val checked: SparseBooleanArray = onlyBooleanArray(cont.checkedItemPositions, true)
-                val position = checked.keyAt(0)
 
-                adapter.model.querypos = position
-                retval = adapter.model.getRowTitle(position)
+                if(checked.size() > 0) {
+                    val position = checked.keyAt(0)
+
+                    adapter.model.querypos = position
+                    retval = adapter.model.getRowTitle(position)
+                } else {
+                    adapter.model.querypos = -1
+                }
             } else {
                 if(adapter.model.rowdata.size == 0) {
                     adapter.model.querypos = -1
@@ -4128,6 +4133,7 @@ class DWindows : AppCompatActivity() {
 
                             adapter.model.querypos = newpos
                             retval = adapter.model.getRowTitle(newpos)
+                            break
                         }
                     }
                 } else {
@@ -4153,10 +4159,15 @@ class DWindows : AppCompatActivity() {
             // Handle DW_CRA_SELECTED
             if((flags and 1) != 0) {
                 val checked: SparseBooleanArray = onlyBooleanArray(cont.checkedItemPositions, true)
-                val position = checked.keyAt(0)
 
-                adapter.model.querypos = position
-                retval = adapter.model.getRowData(position)
+                if(checked.size() > 0) {
+                    val position = checked.keyAt(0)
+
+                    adapter.model.querypos = position
+                    retval = adapter.model.getRowData(position)
+                } else {
+                    adapter.model.querypos = -1
+                }
             } else {
                 if(adapter.model.rowdata.size == 0) {
                     adapter.model.querypos = -1
@@ -4191,6 +4202,7 @@ class DWindows : AppCompatActivity() {
 
                             adapter.model.querypos = newpos
                             retval = adapter.model.getRowData(newpos)
+                            break
                         }
                     }
                 } else {
