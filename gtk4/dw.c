@@ -474,6 +474,7 @@ static void _dw_html_result_event(GObject *object, GAsyncResult *result, gpointe
 static void _dw_html_changed_event(WebKitWebView  *web_view, WebKitLoadEvent load_event, gpointer data);
 #endif
 static void _dw_signal_disconnect(gpointer data, GClosure *closure);
+static void _dw_event_coordinates_to_window(GtkWidget *widget, double *x, double *y);
 
 GObject *_DWObject = NULL;
 GApplication *_DWApp = NULL;
@@ -481,6 +482,8 @@ GMainLoop *_DWMainLoop = NULL;
 static char _dw_app_id[_DW_APP_ID_SIZE+1] = { 0 };
 char *_DWDefaultFont = NULL;
 static char _dw_share_path[PATH_MAX+1] = { 0 };
+static long _dw_mouse_last_x = 0;
+static long _dw_mouse_last_y = 0;
 
 typedef struct _dw_signal_list
 {
@@ -778,6 +781,11 @@ static gint _dw_button_press_event(GtkGestureSingle *gesture, int n_press, doubl
          mybutton = DW_BUTTON3_MASK;
 
       retval = buttonfunc(work.window, (int)x, (int)y, mybutton, work.data);
+      
+      _dw_event_coordinates_to_window(work.window, &x, &y);
+      
+      _dw_mouse_last_x = (long)x;
+      _dw_mouse_last_y = (long)y;
    }
    return retval;
 }
@@ -798,6 +806,11 @@ static gint _dw_button_release_event(GtkGestureSingle *gesture, int n_press, dou
          mybutton = DW_BUTTON3_MASK;
 
       retval = buttonfunc(work.window, (int)x, (int)y, mybutton, work.data);
+      
+      _dw_event_coordinates_to_window(work.window, &x, &y);
+      
+      _dw_mouse_last_x = (long)x;
+      _dw_mouse_last_y = (long)y;
    }
    return retval;
 }
@@ -822,6 +835,11 @@ static gint _dw_motion_notify_event(GtkEventControllerMotion *controller, double
          keys |= DW_BUTTON3_MASK;
 
       retval = motionfunc(work.window, (int)x, (int)y, keys, work.data);
+      
+      _dw_event_coordinates_to_window(work.window, &x, &y);
+      
+      _dw_mouse_last_x = (long)x;
+      _dw_mouse_last_y = (long)y;
    }
    return retval;
 }
@@ -991,7 +1009,7 @@ static gint _dw_combobox_select_event(GtkWidget *widget, gpointer data)
 }
 
 /* Convert coordinate system from the widget to the window */
-void _dw_event_coordinates_to_window(GtkWidget *widget, double *x, double *y)
+static void _dw_event_coordinates_to_window(GtkWidget *widget, double *x, double *y)
 {
    GtkRoot *root = (widget && GTK_IS_WIDGET(widget)) ? gtk_widget_get_root(widget) : NULL;
    
@@ -1042,6 +1060,9 @@ static gint _dw_tree_context_event(GtkGestureSingle *gesture, int n_press, doubl
          GtkWidget *widget = work.window;
          
          _dw_event_coordinates_to_window(widget, &x, &y);
+      
+         _dw_mouse_last_x = (long)x;
+         _dw_mouse_last_y = (long)y;
          
          /* Containers and trees are inside scrolled window widgets */
          if(GTK_IS_SCROLLED_WINDOW(widget))
@@ -3298,22 +3319,12 @@ DW_FUNCTION_RESTORE_PARAM4(menu, HMENUI *, parent, HWND, x, int, y, int)
  *       x: Pointer to variable to store X coordinate.
  *       y: Pointer to variable to store Y coordinate.
  */
-DW_FUNCTION_DEFINITION(dw_pointer_query_pos, void, long *x, long *y)
-DW_FUNCTION_ADD_PARAM2(x, y)
-DW_FUNCTION_NO_RETURN(dw_pointer_query_pos)
-DW_FUNCTION_RESTORE_PARAM2(x, long *, y, long *)
+void API dw_pointer_query_pos(long *x, long *y)
 {
-   GdkSeat *seat = gdk_display_get_default_seat(gdk_display_get_default());
-   GdkDevice *mouse = gdk_seat_get_pointer(seat);
-   double dx, dy;
-  
-   gdk_device_get_surface_at_position(mouse, &dx, &dy);
-  
    if(x)
-      *x = (long)dx;
+      *x = (long)_dw_mouse_last_x;
    if(y)
-      *y = (long)dy;
-   DW_FUNCTION_RETURN_NOTHING;
+      *y = (long)_dw_mouse_last_y;
 }
 
 /*
