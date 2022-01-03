@@ -3,7 +3,6 @@
 package org.dbsoft.dwindows
 
 import android.R
-import android.animation.ArgbEvaluator
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.Dialog
@@ -66,7 +65,6 @@ import android.util.*
 import android.util.Base64
 import kotlin.math.*
 import android.content.ContentUris
-import androidx.appcompat.widget.AppCompatSeekBar
 import android.content.DialogInterface
 import android.graphics.pdf.PdfDocument
 import android.print.*
@@ -74,6 +72,12 @@ import android.print.pdf.PrintedPdfDocument
 import android.widget.Checkable
 
 import android.widget.LinearLayout
+import android.graphics.BitmapFactory
+
+import android.graphics.Bitmap
+
+
+
 
 
 
@@ -1220,6 +1224,7 @@ class DWListBox(context: Context) : ListView(context), OnItemClickListener {
                 return thisview
             }
         }
+        colorSelected = getPlatformSelectionColor(context)
         onItemClickListener = this
     }
 
@@ -1658,14 +1663,21 @@ class DWContainerModel {
 
 class DWContainerRow : LinearLayout, Checkable {
     private var mChecked = false
+    private var colorSelection = Color.DKGRAY
 
-    constructor(context: Context?) : super(context) {}
-    constructor(context: Context?, attrs: AttributeSet?) : super(context, attrs) {}
-    constructor(context: Context?, attrs: AttributeSet?, defStyle: Int) : super(context, attrs, defStyle) {}
+    constructor(context: Context?) : super(context) {
+        colorSelection = context?.let { getPlatformSelectionColor(it) }!!
+    }
+    constructor(context: Context?, attrs: AttributeSet?) : super(context, attrs) {
+        colorSelection = context?.let { getPlatformSelectionColor(it) }!!
+    }
+    constructor(context: Context?, attrs: AttributeSet?, defStyle: Int) : super(context, attrs, defStyle) {
+        colorSelection = context?.let { getPlatformSelectionColor(it) }!!
+    }
 
     fun updateBackground() {
         if(mChecked) {
-            this.setBackgroundColor(Color.DKGRAY)
+            this.setBackgroundColor(colorSelection)
         } else {
             this.setBackgroundColor(Color.TRANSPARENT)
         }
@@ -1822,6 +1834,33 @@ private class DWMLE(c: Context): AppCompatEditText(c) {
     }
 }
 
+fun getPlatformSelectionColor(context: Context): Int {
+    val bitmap = BitmapFactory.decodeResource(context.resources, R.drawable.list_selector_background)
+    var redBucket: Float = 0f
+    var greenBucket: Float = 0f
+    var blueBucket: Float = 0f
+    var pixelCount: Float = 0f
+
+    if(bitmap != null) {
+        for (y in 0 until bitmap.height) {
+            for (x in 0 until bitmap.width) {
+                val c = bitmap.getPixel(x, y)
+                pixelCount++
+                redBucket += Color.red(c)
+                greenBucket += Color.green(c)
+                blueBucket += Color.blue(c)
+            }
+        }
+
+        return Color.rgb(
+            (redBucket / pixelCount).toInt(),
+            (greenBucket / pixelCount).toInt(),
+            (blueBucket / pixelCount).toInt()
+        )
+    }
+    return Color.GRAY
+}
+
 class DWindows : AppCompatActivity() {
     var windowLayout: ViewPager2? = null
     var threadLock = ReentrantLock()
@@ -1829,6 +1868,7 @@ class DWindows : AppCompatActivity() {
     var notificationID: Int = 0
     var darkMode: Int = -1
     var lastClickView: View? = null
+    var colorSelection: Int = Color.DKGRAY
     private var appID: String? = null
     private var paint = Paint()
     private var bgcolor: Int? = null
@@ -1951,6 +1991,8 @@ class DWindows : AppCompatActivity() {
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT
             )
+
+        colorSelection = getPlatformSelectionColor(this)
 
         // Initialize the Dynamic Windows code...
         // This will start a new thread that calls the app's dwmain()
