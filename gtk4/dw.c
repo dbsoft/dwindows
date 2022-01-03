@@ -1011,7 +1011,7 @@ void _dw_event_coordinates_to_window(GtkWidget *widget, double *x, double *y)
       graphene_point_t *treepoint = graphene_point_init(graphene_point_alloc(), (float)*x, (float)*y);
       graphene_point_t *windowpoint = graphene_point_alloc();
       
-      if(gtk_widget_compute_point(widget, GTK_WIDGET(root), treepoint, windowpoint))
+      if(gtk_widget_compute_point(widget, parent, treepoint, windowpoint))
       {            
          *x = (double)windowpoint->x;
          *y = (double)windowpoint->y;
