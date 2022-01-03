@@ -990,6 +990,38 @@ static gint _dw_combobox_select_event(GtkWidget *widget, gpointer data)
    return retval;
 }
 
+/* Convert coordinate system from the widget to the window */
+void _dw_event_coordinates_to_window(GtkWidget *widget, double *x, double *y)
+{
+   GtkRoot *root = (widget && GTK_IS_WIDGET(widget)) ? gtk_widget_get_root(widget) : NULL;
+   
+   if(root && GTK_IS_WIDGET(root))
+   {
+      GtkWidget *parent = GTK_WIDGET(root);
+      
+      /* If the parent is a window, try to use the box attached to it... */
+      if(GTK_IS_WINDOW(parent))
+      {
+         GtkWidget *box = g_object_get_data(G_OBJECT(parent), "_dw_grid");
+         
+         if(box && GTK_IS_GRID(box))
+            parent = box;
+      }
+            
+      graphene_point_t *treepoint = graphene_point_init(graphene_point_alloc(), (float)*x, (float)*y);
+      graphene_point_t *windowpoint = graphene_point_alloc();
+      
+      if(gtk_widget_compute_point(widget, GTK_WIDGET(root), treepoint, windowpoint))
+      {            
+         *x = (double)windowpoint->x;
+         *y = (double)windowpoint->y;
+      }
+      
+      graphene_point_free(treepoint);
+      graphene_point_free(windowpoint);
+   }
+}
+
 #define _DW_DATA_TYPE_STRING  0
 #define _DW_DATA_TYPE_POINTER 1
 
@@ -1008,7 +1040,9 @@ static gint _dw_tree_context_event(GtkGestureSingle *gesture, int n_press, doubl
          char *text = NULL;
          void *itemdata = NULL;
          GtkWidget *widget = work.window;
-
+         
+         _dw_event_coordinates_to_window(widget, &x, &y);
+         
          /* Containers and trees are inside scrolled window widgets */
          if(GTK_IS_SCROLLED_WINDOW(widget))
             widget = GTK_WIDGET(g_object_get_data(G_OBJECT(widget), "_dw_user"));
