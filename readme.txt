@@ -2,7 +2,7 @@ This is a stable release of Dynamic Windows version 3.2.
 
 The current Dynamic Windows source base is considered stable on:
 OS/2, Mac, Windows, Linux, FreeBSD and OpenSolaris.
-The source base is considered beta on: iOS and Android.
+The source base is considered beta on: iOS, Android and GTK4.
 
 Build Recommendations:
 MacOS:
@@ -76,10 +76,11 @@ Added initial support for Wayland on GTK3 and GTK4.
     mouse pointer grabbing and such are unable to function.
     I recommend sticking with X11 for now, but built with GTK3 or
     GTK4 Dynamic Windows applications will run on Wayland now.
+    GTK3 with Wayland also does not support non-callback drawing.
 Added initial iOS support, kicking off a push for mobile.
     iOS requires 13.0 or later due use of SF Symbols and features
     introduced with iOS 13 and Mac Catalyst. Several widgets are
-    currently unsupported: Tree, MDI and Taskbar.
+    currently unsupported: Tree, MDI and Taskbar. See mobile.txt
     Command line builds not supported, create an Xcode project.
 Added initial Android support, Android Studio with Kotlin required.
     API 23 (Android 6) or later is required to run the apps.
@@ -100,10 +101,12 @@ Added dw_render_redraw() function to trigger a DW_SIGNAL_EXPOSE
     callback. GTK4 and GTK3 with Wayland require drawing to be 
     done in the callback, necessitating a dw_render_redraw() or
     dw_flush() call.  dw_flush() may cause multiple draw passes.
+    iOS and Android also require drawing in the expose callback.
 Added new function dw_window_compare() to check if two window handles
     reference the same object.  Necessary in the Android port since
     handles passed to callbacks can be local references, so they
     don't always match the handles saved during window creation.
+    This is a special case function which normally isn't required.
 Added support for dw_window_set_font() with a NULL font parameter.
     This resets the font used on the widget to the default font.
 Added a new constant DW_SIZE_AUTO to pass to box packing functions.
