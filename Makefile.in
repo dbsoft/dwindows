@@ -191,24 +191,26 @@ dwtest: dwtest.o
 	-$(srcdir)/mac/finishup.sh $(srcdir)
 
 zip:
-	zip dwindows$(VER_MAJ)$(VER_MIN).zip $(srcdir)/license.txt $(srcdir)/makefile.* $(srcdir)/readme.txt $(srcdir)/*.c $(srcdir)/dw.h  $(srcdir)/dwcompat.h \
-	$(srcdir)/win/*.def $(srcdir)/os2/*.def $(srcdir)/install.sh $(srcdir)/*.in $(srcdir)/configure \
-	$(srcdir)/ac*.m4 $(srcdir)/dwindows-config.1 $(srcdir)/Version \
-	$(srcdir)/gtk/*.c $(srcdir)/gtk/*.cpp $(srcdir)/win/*.c $(srcdir)/os2/*.c $(srcdir)/win/*.txt $(srcdir)/os2/*.txt \
-	$(srcdir)/gtk/*.xpm $(srcdir)/win/*.ico $(srcdir)/os2/*.ico $(srcdir)/mac/*.png \
-	$(srcdir)/mac/Info.plist $(srcdir)/mac/PkgInfo $(srcdir)/mac/*.m $(srcdir)/mac/finishup.sh \
-	$(srcdir)/platform/*.h \
+	zip dwindows$(VER_MAJ)$(VER_MIN).zip $(srcdir)/*.txt $(srcdir)/makefile.* $(srcdir)/*.c $(srcdir)/dw.h  $(srcdir)/dwcompat.h \
+	$(srcdir)/install.sh $(srcdir)/*.in $(srcdir)/configure $(srcdir)/Version \
+	$(srcdir)/ac*.m4 $(srcdir)/dwindows-config.1 $(srcdir)/config.sub $(srcdir)/config.guess $(srcdir)/image/test.* \
+	$(srcdir)/win/*.c $(srcdir)/win/*.cpp $(srcdir)/win/*.h $(srcdir)/win/*.ico $(srcdir)/win/*.txt $(srcdir)/win/*.def $(srcdir)/win/*.rc $(srcdir)/win/*.manifest \
+	$(srcdir)/os2/*.c $(srcdir)/os2/*.ico $(srcdir)/os2/*.txt $(srcdir)/os2/*.def \
+	$(srcdir)/gtk/*.c $(srcdir)/gtk3/*.c $(srcdir)/gtk4/*.c $(srcdir)/gtk/*.xpm \
+	$(srcdir)/mac/Info.plist $(srcdir)/mac/PkgInfo $(srcdir)/mac/*.m $(srcdir)/mac/*.sh $(srcdir)/mac/*.png \
+	$(srcdir)/ios/*.m $(srcdir)/android/*.cpp $(srcdir)/android/*.kt $(srcdir)/platform/*.h \
 	$(srcdir)/debian/control $(srcdir)/debian/rules $(srcdir)/debian/copyright $(srcdir)/debian/compat $(srcdir)/debian/changelog
 
 dist:
 	(cd $(srcdir)/..;ln -sf dwindows $(SRCDIR))
-	(cd $(srcdir)/..;tar -cvf - $(SRCDIR)/license.txt $(SRCDIR)/makefile.* $(SRCDIR)/readme.txt $(SRCDIR)/*.c $(SRCDIR)/dw.h $(SRCDIR)/dwcompat.h \
+	(cd $(srcdir)/..;tar -cvf - $(SRCDIR)/*.txt $(SRCDIR)/makefile.* $(SRCDIR)/*.c $(SRCDIR)/dw.h $(SRCDIR)/dwcompat.h \
 	$(SRCDIR)/install.sh $(SRCDIR)/*.in $(SRCDIR)/configure $(SRCDIR)/Version \
 	$(SRCDIR)/ac*.m4 $(SRCDIR)/dwindows-config.1 $(SRCDIR)/config.sub $(SRCDIR)/config.guess $(SRCDIR)/image/test.* \
-	$(SRCDIR)/win/*.c $(SRCDIR)/win/*.cpp $(SRCDIR)/win/*.manifest $(SRCDIR)/win/*.txt $(SRCDIR)/win/*.def $(SRCDIR)/win/*.ico $(SRCDIR)/win/*.rc \
-	$(SRCDIR)/os2/*.c $(SRCDIR)/os2/*.txt $(SRCDIR)/os2/*.def $(SRCDIR)/os2/*.ico \
-	$(SRCDIR)/gtk/*.c $(SRCDIR)/gtk3/*.c $(SRCDIR)/gtk/*.xpm \
-	$(SRCDIR)/mac/Info.plist $(SRCDIR)/mac/PkgInfo $(SRCDIR)/mac/*.m $(SRCDIR)/mac/finishup.sh $(SRCDIR)/mac/*.png \
+	$(SRCDIR)/win/*.c $(SRCDIR)/win/*.cpp $(SRCDIR)/win/*.h $(SRCDIR)/win/*.txt $(SRCDIR)/win/*.def $(SRCDIR)/win/*.ico $(SRCDIR)/win/*.rc $(SRCDIR)/win/*.manifest \
+	$(SRCDIR)/os2/*.c $(SRCDIR)/os2/*.ico $(SRCDIR)/os2/*.txt $(SRCDIR)/os2/*.def \
+	$(SRCDIR)/gtk/*.c $(SRCDIR)/gtk3/*.c $(SRCDIR)/gtk4/*.c $(SRCDIR)/gtk/*.xpm \
+	$(SRCDIR)/mac/Info.plist $(SRCDIR)/mac/PkgInfo $(SRCDIR)/mac/*.m $(SRCDIR)/mac/*.sh $(SRCDIR)/mac/*.png \
+	$(SRCDIR)/ios/*.m $(SRCDIR)/android/*.cpp $(SRCDIR)/android/*.kt \
 	$(SRCDIR)/debian/control $(SRCDIR)/debian/rules $(SRCDIR)/debian/copyright $(SRCDIR)/debian/compat $(SRCDIR)/debian/changelog \
 	$(SRCDIR)/platform/*.h | gzip > $(SRCDIR).tar.gz )
 	(cd $(srcdir)/..;rm -f $(SRCDIR))
