@@ -1,3 +1,28 @@
+dwindows (3.2-1) unstable; urgency=low
+
+  * Added support for initial beta support for GTK 4.  --with-gtk4 is now available.
+  * Added support for Wayland on both GTK 3 and GTK 4.
+  * Added DW_FEATURE_WINDOW_PLACEMENT, DW_FEATURE_TREE and DW_FEATURE_TASKBAR.
+  * Added dw_render_redraw() function to trigger a DW_SIGNAL_EXPOSE event on render
+    widgets allowing drawing to happen in the callback.
+  * Added new function dw_window_compare() to check if two window handles
+    reference the same object.
+  * Added support for dw_window_set_font() with a NULL font parameter.
+    This resets the font used on the widget to the default font.
+  * Added a new constant DW_SIZE_AUTO to pass to box packing functions.
+  * Added a new constant DW_DIR_SEPARATOR which is char that defines
+    the path directory separator on the running platform.
+  * Changed the entrypoint to be dwmain() instead of main().
+    This allows special handling of the entrypoint on systems requiring it.
+  * Changed dw_timer_connnect() and dw_timer_disconnect() to use HTIMER.
+  * Changed dw_exec() with DW_EXEC_CON will now open the system (Gnome) terminal on Unix
+    via GLib's G_APP_INFO_CREATE_NEEDS_TERMINAL instead of launching an xterm.
+  * Fixed GTK warnings on GTK3 caused by using Pango style font syntax.
+  * Fixed GTK3 leaks when setting fonts or colors on a widget repeatedly.
+  * Fixed a bug in dw_listbox_set_text() on GTK3.
+
+ -- Brian Smith <brian@dbsoft.org>  Wed, 6 Jan 2022 08:00:00 +1000
+ 
 dwindows (3.1-1) unstable; urgency=low
 
   * Added notification APIs: dw_notification_new() dw_notification_send() dw_app_id_set()
