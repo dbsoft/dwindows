@@ -4,6 +4,7 @@
  *
  * (C) 2011-2022 Brian Smith <brian@dbsoft.org>
  * (C) 2011-2021 Mark Hessling <mark@rexx.org>
+ * (C) 2017 Ralph Shane (Base tree view implementation)
  *
  * Requires 13.0 or later.
  * clang -g -o dwtest -D__IOS__ -I. dwtest.c ios/dw.m -framework UIKit -framework WebKit -framework Foundation -framework UserNotifications
@@ -1599,6 +1600,7 @@ BOOL _dw_is_dark(void)
 #define _DW_BUTTON_TYPE_NORMAL 0
 #define _DW_BUTTON_TYPE_CHECK  1
 #define _DW_BUTTON_TYPE_RADIO  2
+#define _DW_BUTTON_TYPE_TREE   3
 
 /* Subclass for a button type */
 @interface DWButton : UIButton
@@ -1607,6 +1609,7 @@ BOOL _dw_is_dark(void)
     DWBox *parent;
     int type, checkstate;
 }
+@property(nonatomic, strong) void(^didCheckedChanged)(BOOL checked);
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
 -(void)buttonClicked:(id)sender;
@@ -1624,7 +1627,7 @@ BOOL _dw_is_dark(void)
 -(void)buttonClicked:(id)sender
 {
     /* Toggle the button */
-    if(type == _DW_BUTTON_TYPE_CHECK)
+    if(type == _DW_BUTTON_TYPE_CHECK || type == _DW_BUTTON_TYPE_TREE)
         [self setCheckState:(checkstate ? FALSE : TRUE)];
     else if(type == _DW_BUTTON_TYPE_RADIO)
         [self setCheckState:TRUE];
@@ -1656,6 +1659,8 @@ BOOL _dw_is_dark(void)
             }
         }
     }
+    if(_didCheckedChanged)
+        _didCheckedChanged(checkstate);
 }
 -(void)setParent:(DWBox *)input { parent = input; }
 -(DWBox *)parent { return parent; }
@@ -1690,6 +1695,14 @@ BOOL _dw_is_dark(void)
                 imagename = @"largecircle.fill.circle";
             else
                 imagename = @"circle";
+        }
+        break;
+        case _DW_BUTTON_TYPE_TREE:
+        {
+            if(checkstate)
+                imagename = @"chevron.down";
+            else
+                imagename = @"chevron.forward";
         }
         break;
     }
@@ -2643,6 +2656,450 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
         [self tableView:tableView didSelectRowAtIndexPath:indexPath];
 }
 -(void)dealloc { UserData *root = userdata; _dw_remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
+@end
+
+/* Custom tree view subclasses: DWTree, DWTreeItem, DWTreeViewCell, DWTreeViewCellDelegate */
+@interface DWTreeItem : NSObject
+@property(nonatomic, strong) UIImage *icon;
+@property(nonatomic, strong) NSString *title;
+@property(nonatomic, assign) void *data;
+@property(nonatomic, weak) DWTreeItem *parent;
+@property(nonatomic, retain, readonly) NSMutableArray<DWTreeItem *> *children;
+@property(nonatomic, assign, readonly) NSUInteger levelDepth;
+@property(nonatomic, assign, readonly) BOOL isRoot;
+@property(nonatomic, assign, readonly) BOOL hasChildren;
+@property(nonatomic, assign) BOOL expanded;
+-(instancetype)initWithIcon:(UIImage *)icon Title:(NSString *)title andData:(void *)itemdata;
+-(void)insertChildAfter:(DWTreeItem *)treeItem;
+-(void)appendChild:(DWTreeItem *)newChild;
+-(void)removeFromParent;
+-(void)moveToDestination:(DWTreeItem *)destination;
+-(BOOL)containsTreeItem:(DWTreeItem *)treeItem;
+-(NSArray<DWTreeItem *> *)visibleNodes;
+@end
+
+@implementation DWTreeItem
+{
+    NSArray *_flattenedTreeCache;
+}
+-(void)dealloc { NSLog(@"DWTreeItem \"%@\" dealloc", self.title); [_title release]; [_icon release]; [super dealloc]; }
+-(instancetype)initWithIcon:(UIImage *)icon Title:(NSString *)title andData:(void *)itemdata
+{
+    if(self = [super init])
+    {
+        _title = [title retain];
+        _icon = [icon retain];
+        _data = itemdata;
+        _children = [[NSMutableArray alloc] initWithCapacity:1];
+    }
+    return self;
+}
+-(NSString *)title
+{
+    if(_title)
+        return _title;
+    return self.description;
+}
+-(UIImage *)icon
+{
+    if(_icon)
+        return _icon;
+    return nil;
+}
+-(NSArray<DWTreeItem *> *)visibleNodes
+{
+    NSMutableArray *allElements = [[NSMutableArray alloc] init];
+    [allElements addObject:self];
+    if(_expanded)
+    {
+        for (DWTreeItem *child in _children)
+            [allElements addObjectsFromArray:[child visibleNodes]];
+    }
+    return allElements;
+}
+-(void)insertChildAfter:(DWTreeItem *)treeItem
+{
+    DWTreeItem *parent = self.parent;
+    NSUInteger index = [parent.children indexOfObject:self];
+    if(index == NSNotFound)
+        index = [parent.children count];
+    treeItem.parent = parent;
+    [parent.children insertObject:treeItem atIndex:(index+1)];
+}
+-(void)appendChild:(DWTreeItem *)newChild
+{
+    newChild.parent = self;
+    [_children addObject:newChild];
+}
+-(void)removeFromParent
+{
+    DWTreeItem *parent = self.parent;
+    if(parent)
+    {
+        [parent.children removeObject:self];
+        self.parent = nil;
+    }
+}
+-(void)moveToDestination:(DWTreeItem *)destination
+{
+    NSAssert([self containsTreeItem:destination]==NO, @"[self containsTreeItem:destination] something went wrong!");
+    if(self == destination || destination == nil)
+        return;
+    [self removeFromParent];
+
+    [destination insertChildAfter:self];
+}
+-(BOOL)containsTreeItem:(DWTreeItem *)treeItem
+{
+    DWTreeItem *parent = treeItem.parent;
+    if(parent == nil)
+        return NO;
+    if(self == parent)
+        return YES;
+    return [self containsTreeItem:parent];
+}
+-(NSUInteger)levelDepth
+{
+    NSUInteger cnt = 0;
+    if(_parent != nil)
+    {
+        cnt += 1;
+        cnt += [_parent levelDepth];
+    }
+    return cnt;
+}
+-(BOOL)isRoot { return (!_parent); }
+-(BOOL)hasChildren { return (_children.count > 0); }
+@end
+
+@class DWTreeViewCell;
+@protocol DWTreeViewCellDelegate <NSObject>
+//@optional
+- (BOOL) queryExpandableInTreeViewCell:(DWTreeViewCell *)treeViewCell;
+- (void) treeViewCell:(DWTreeViewCell *)treeViewCell expanded:(BOOL)expanded;
+@end
+
+@interface DWTreeViewCell : UITableViewCell
+@property(nonatomic, strong) UILabel *titleLabel;
+@property(nonatomic) NSUInteger level;
+@property(nonatomic) BOOL expanded;
+@property(nonatomic) BOOL isFolder;
+@property(nonatomic, assign) id <DWTreeViewCellDelegate> delegate;
+-(instancetype)initWithStyle:(UITableViewCellStyle)style
+             reuseIdentifier:(NSString *)reuseIdentifier
+                       level:(NSUInteger)level
+                    expanded:(BOOL)expanded;
+@end
+
+CGRect DWRectInflate(CGRect rect, CGFloat dx, CGFloat dy)
+{
+    return CGRectMake(rect.origin.x-dx, rect.origin.y-dy, rect.size.width+2*dx, rect.size.height+2*dy);
+}
+
+static CGFloat IMG_HEIGHT_WIDTH = 20;
+static CGFloat XOFFSET = 3;
+
+@implementation DWTreeViewCell
+{
+    DWButton *_arrowImageButton;
+    UIImageView *_itemImage;
+}
+-(id)initWithStyle:(UITableViewCellStyle)style
+   reuseIdentifier:(NSString *)reuseIdentifier
+             level:(NSUInteger)level
+          expanded:(BOOL)expanded
+{
+    self = [super initWithStyle:style reuseIdentifier:reuseIdentifier];
+
+    if(self)
+    {
+        _level = level;
+        _expanded = expanded;
+
+        UIView *content = self.contentView;
+
+        UILabel *titleLabel = [[UILabel alloc] initWithFrame:CGRectZero];
+        titleLabel.lineBreakMode = NSLineBreakByWordWrapping;
+        titleLabel.numberOfLines = 0;
+        titleLabel.textAlignment = NSTextAlignmentLeft;
+        [content addSubview:titleLabel];
+        _titleLabel = titleLabel;
+
+        UIImageView *itemImage = [[UIImageView alloc] initWithFrame:CGRectMake(0, 0, IMG_HEIGHT_WIDTH, IMG_HEIGHT_WIDTH)];
+        [content addSubview:itemImage];
+        _itemImage = itemImage;
+
+        DWButton *arrowImageButton = [[DWButton alloc] initWithFrame:CGRectMake(0, 0, IMG_HEIGHT_WIDTH, IMG_HEIGHT_WIDTH)];
+        [arrowImageButton setType:_DW_BUTTON_TYPE_TREE];
+        [arrowImageButton setDidCheckedChanged:^(BOOL checked) {
+            _expanded = checked;
+            if([_delegate respondsToSelector:@selector(treeViewCell:expanded:)])
+                [_delegate treeViewCell:self expanded:checked];
+        }];
+        [arrowImageButton setCheckState:_expanded];
+        [content addSubview:arrowImageButton];
+        _arrowImageButton = arrowImageButton;
+    }
+    return self;
+}
+#pragma mark -
+#pragma mark Other overrides
+-(void)layoutSubviews
+{
+    [super layoutSubviews];
+
+    CGSize size = self.contentView.bounds.size;
+    CGFloat stepSize = size.height;
+    CGRect rc = CGRectMake(_level * stepSize, 0, stepSize, stepSize);
+    _arrowImageButton.frame = DWRectInflate(rc, -XOFFSET, -XOFFSET);
+
+    rc = CGRectMake((_level + 1) * stepSize, 0, stepSize, stepSize);
+    _itemImage.frame = DWRectInflate(rc, -XOFFSET, -XOFFSET);
+    _titleLabel.frame = CGRectMake((_level + 2) * stepSize, 0, size.width - (_level + 3) * stepSize, stepSize);
+}
+@end
+
+@class DWTree;
+
+@protocol DWTreeViewDelegate <NSObject>
+@required
+-(NSInteger)numberOfRowsInTreeView:(DWTree *)treeView;
+-(DWTreeItem *)treeView:(DWTree *)treeView treeItemForRow:(NSInteger)row;
+-(NSInteger)treeView:(DWTree *)treeView rowForTreeItem:(DWTreeItem *)treeItem;
+-(void)treeView:(DWTree *)treeView removeTreeItem:(DWTreeItem *)treeItem;
+-(void)treeView:(DWTree *)treeView moveTreeItem:(DWTreeItem *)treeItem to:(DWTreeItem *)to;
+-(void)treeView:(DWTree *)treeView addTreeItem:(DWTreeItem *)treeItem;
+//@optional
+-(void)treeView:(DWTree *)treeView didSelectForTreeItem:(DWTreeItem *)treeItem;
+-(BOOL)treeView:(DWTree *)treeView queryExpandableInTreeItem:(DWTreeItem *)treeItem;
+-(void)treeView:(DWTree *)treeView treeItem:(DWTreeItem *)treeItem expanded:(BOOL)expanded;
+@optional
+-(BOOL)treeView:(DWTree *)treeView canEditTreeItem:(DWTreeItem *)treeItem;
+-(BOOL)treeView:(DWTree *)treeView canMoveTreeItem:(DWTreeItem *)treeItem;
+@end
+
+@interface DWTree : UITableView
+@property(nonatomic, strong) UIFont *font;
+@property(nonatomic, strong) DWTreeItem *treeItem;
+@property(nonatomic, weak) id<DWTreeViewDelegate> treeViewDelegate;
+-(instancetype)initWithFrame:(CGRect)frame;
+-(void)insertTreeItem:(DWTreeItem *)treeItem;
+@end
+
+@interface DWTree () <UITableViewDataSource, UITableViewDelegate, DWTreeViewCellDelegate, DWTreeViewDelegate>
+@end
+
+@implementation DWTree
+{
+    DWTreeItem *_rootNode;
+    DWTreeItem *_selectedNode;
+}
+-(instancetype)initWithFrame:(CGRect)frame
+{
+    if(self = [super initWithFrame:frame])
+    {
+        self.delegate=self;
+        self.dataSource=self;
+        _treeViewDelegate=self;
+        self.separatorStyle= UITableViewCellSeparatorStyleNone;
+        _font = [UIFont systemFontOfSize:16];
+        _rootNode = [[[DWTreeItem alloc] initWithIcon:nil Title:@"@Root" andData:NULL] retain];
+        _rootNode.expanded = YES;
+    }
+    return self;
+}
+-(void)dealloc { [_rootNode release]; [super dealloc]; }
+-(void)insertTreeItem:(DWTreeItem *)treeItem
+{
+    DWTreeItem *targetNode = nil;
+
+    NSArray<DWTreeViewCell *> *cells = [self visibleCells];
+
+    // Target the selected tree node first if any
+    for(DWTreeViewCell *cell in cells)
+    {
+        DWTreeItem *iter = [self treeItemForTreeViewCell:cell];
+        if(iter == _selectedNode)
+        {
+            targetNode = iter;
+            break;
+        }
+    }
+    // Otherwise target first visible node if any
+    if(targetNode == nil && [cells count])
+        targetNode = [self treeItemForTreeViewCell:cells[0]];
+    // Finally put it on the root level
+    if(targetNode == nil)
+        targetNode = _rootNode;
+    // If target is still nil something went horrible wrong
+    NSAssert(targetNode, @"targetNode == nil, something went wrong!");
+    [targetNode insertChildAfter:treeItem];
+
+    if([_treeViewDelegate respondsToSelector:@selector(treeView:addTreeItem:)])
+        [_treeViewDelegate treeView:self addTreeItem:treeItem];
+
+    [self reloadData];
+    [self resetSelection:NO];
+}
+-(void)setFont:(UIFont *)font
+{
+    _font = font;
+    [self reloadData];
+    [self resetSelection:NO];
+}
+-(void)resetSelection:(BOOL)delay
+{
+    NSInteger row = NSNotFound;
+    if([_treeViewDelegate respondsToSelector:@selector(treeView:rowForTreeItem:)])
+        row = [_treeViewDelegate treeView:self rowForTreeItem:_selectedNode];
+    if(row != NSNotFound)
+    {
+        NSIndexPath *indexPath = [NSIndexPath indexPathForRow:row inSection:0];
+        dispatch_block_t run = ^ {
+            [self selectRowAtIndexPath:indexPath animated:NO scrollPosition:UITableViewScrollPositionNone];
+        };
+        if(delay)
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.1 * NSEC_PER_SEC)), dispatch_get_main_queue(), run);
+        else
+            run();
+    }
+}
+#pragma mark - DWTreeViewDelegate
+-(NSInteger)numberOfRowsInTreeView:(DWTree *)treeView { return [_rootNode visibleNodes].count; }
+-(void)treeView:(DWTree *)treeView addTreeItem:(DWTreeItem *)treeItem {}
+-(void)treeView:(DWTree *)treeView didSelectForTreeItem:(DWTreeItem *)treeItem {}
+-(void)treeView:(DWTree *)treeView moveTreeItem:(DWTreeItem *)treeItem to:(DWTreeItem *)to {}
+-(BOOL)treeView:(DWTree *)treeView queryExpandableInTreeItem:(DWTreeItem *)treeItem { return YES; }
+-(void)treeView:(DWTree *)treeView removeTreeItem:(DWTreeItem *)treeItem {}
+-(NSInteger)treeView:(DWTree *)treeView rowForTreeItem:(DWTreeItem *)treeItem {  return [[_rootNode visibleNodes] indexOfObject:treeItem]; }
+-(void)treeView:(DWTree *)treeView treeItem:(DWTreeItem *)treeItem expanded:(BOOL)expanded {}
+- (DWTreeItem *)treeView:(DWTree *)treeView treeItemForRow:(NSInteger)row { return [[_rootNode visibleNodes] objectAtIndex:row]; }
+#pragma mark - UITableViewDataSource
+-(NSInteger)numberOfSectionsInTableView:(UITableView *)tableView { return 1; }
+-(NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section
+{
+    NSInteger count = 0;
+    if([_treeViewDelegate respondsToSelector:@selector(numberOfRowsInTreeView:)])
+        count = [_treeViewDelegate numberOfRowsInTreeView:self];
+    return count;
+}
+-(UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
+{
+    static NSString *CellIdentifier = @"Cell";
+    
+    DWTreeItem *treeItem = [self treeItemForIndexPath:indexPath];
+    DWTreeViewCell *cell = [[DWTreeViewCell alloc] initWithStyle:UITableViewCellStyleDefault
+                                                 reuseIdentifier:CellIdentifier
+                                                           level:[treeItem levelDepth]
+                                                        expanded:treeItem.expanded];
+    cell.titleLabel.text = treeItem.title;
+    cell.imageView.image = treeItem.icon;
+    cell.titleLabel.font = _font;
+    //cell.selectionStyle = UITableViewCellSelectionStyleNone;
+    cell.delegate = self;
+    return cell;
+}
+-(BOOL)tableView:(UITableView *)tableView canEditRowAtIndexPath:(NSIndexPath *)indexPath
+{
+    DWTreeItem *treeItem = [self treeItemForIndexPath:indexPath];
+    if([_treeViewDelegate respondsToSelector:@selector(treeView:canEditTreeItem:)])
+        return [_treeViewDelegate treeView:self canEditTreeItem:treeItem];
+    else
+        return (treeItem.isRoot == NO);
+}
+-(void)tableView:(UITableView *)tableView commitEditingStyle:(UITableViewCellEditingStyle)editingStyle forRowAtIndexPath:(NSIndexPath *)indexPath
+{
+    DWTreeItem *treeItem = [self treeItemForIndexPath:indexPath];
+    if(editingStyle == UITableViewCellEditingStyleDelete)
+    {
+        [treeItem removeFromParent];
+        if([_treeViewDelegate respondsToSelector:@selector(treeView:removeTreeItem:)])
+            [_treeViewDelegate treeView:self removeTreeItem:treeItem];
+        if(treeItem.expanded && treeItem.hasChildren)
+            [self reloadData];
+        else
+            [tableView deleteRowsAtIndexPaths:@[indexPath] withRowAnimation:UITableViewRowAnimationFade];
+        [self resetSelection:YES];
+    } else if (editingStyle == UITableViewCellEditingStyleInsert) {
+        // Create a new instance of the appropriate class, insert it into the array, and add a new row to the table view
+    }
+}
+-(void)tableView:(UITableView *)tableView moveRowAtIndexPath:(NSIndexPath *)fromIndexPath toIndexPath:(NSIndexPath *)toIndexPath
+{
+    if([fromIndexPath isEqual:toIndexPath])
+        return;
+    DWTreeItem *srcNode = [self treeItemForIndexPath:fromIndexPath];
+    DWTreeItem *targetNode = [self treeItemForIndexPath:toIndexPath];
+    [srcNode moveToDestination:targetNode];
+    
+    if([_treeViewDelegate respondsToSelector:@selector(treeView:moveTreeItem:to:)])
+        [_treeViewDelegate treeView:self moveTreeItem:srcNode to:targetNode];
+    
+    [self reloadData];
+    [self resetSelection:NO];
+}
+-(BOOL)tableView:(UITableView *)tableView canMoveRowAtIndexPath:(NSIndexPath *)indexPath
+{
+    DWTreeItem *treeItem = [self treeItemForIndexPath:indexPath];
+    if([_treeViewDelegate respondsToSelector:@selector(treeView:canMoveTreeItem:)])
+        return [_treeViewDelegate treeView:self canMoveTreeItem:treeItem];
+    else
+        return (treeItem.isRoot == NO);
+}
+#pragma mark - DWTableViewDelegate
+-(void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath
+{
+    DWTreeItem *treeItem = [self treeItemForIndexPath:indexPath];
+    if([_treeViewDelegate respondsToSelector:@selector(treeView:didSelectForTreeItem:)])
+        [_treeViewDelegate treeView:self didSelectForTreeItem:treeItem];
+    _selectedNode = treeItem;
+}
+-(NSIndexPath *)tableView:(UITableView *)tableView targetIndexPathForMoveFromRowAtIndexPath:(NSIndexPath *)sourceIndexPath toProposedIndexPath:(NSIndexPath *)proposedDestinationIndexPath
+{
+    DWTreeItem *srcNode = [self treeItemForIndexPath:sourceIndexPath];
+    DWTreeItem *targetNode = [self treeItemForIndexPath:proposedDestinationIndexPath];
+    if([srcNode containsTreeItem:targetNode] || srcNode==targetNode)
+        return sourceIndexPath;
+    // NSLog(@"Moving to target node \"%@\"", targetNode.title);
+    return proposedDestinationIndexPath;
+}
+#pragma mark - DWTreeViewCellDelegate
+-(BOOL)queryExpandableInTreeViewCell:(DWTreeViewCell *)treeViewCell
+{
+    BOOL allow = YES;
+    if([_treeViewDelegate respondsToSelector:@selector(treeView:queryExpandableInTreeItem:)])
+    {
+        DWTreeItem *treeItem = [self treeItemForTreeViewCell:treeViewCell];
+        allow = [_treeViewDelegate treeView:self queryExpandableInTreeItem:treeItem];
+    }
+    return allow;
+}
+-(void)treeViewCell:(DWTreeViewCell *)treeViewCell expanded:(BOOL)expanded
+{
+    DWTreeItem *treeItem = [self treeItemForTreeViewCell:treeViewCell];
+    treeItem.expanded = expanded;
+    if(treeItem.hasChildren)
+    {
+        [self reloadData];
+        [self resetSelection:NO];
+    }
+    if([_treeViewDelegate respondsToSelector:@selector(treeView:treeItem:expanded:)])
+        [_treeViewDelegate treeView:self treeItem:treeItem expanded:expanded];
+}
+#pragma mark - retrieve TreeItem object from special cell
+-(DWTreeItem *)treeItemForTreeViewCell:(DWTreeViewCell *)treeViewCell
+{
+    NSIndexPath *indexPath = [self indexPathForCell:treeViewCell];
+    return [self treeItemForIndexPath:indexPath];
+}
+-(DWTreeItem *)treeItemForIndexPath:(NSIndexPath *)indexPath
+{
+    DWTreeItem *treeItem = nil;
+    if([_treeViewDelegate respondsToSelector:@selector(treeView:treeItemForRow:)])
+        treeItem = [_treeViewDelegate treeView:self treeItemForRow:indexPath.row];
+    NSAssert(treeItem, @"Can't get the Tree Node data");
+    return treeItem;
+}
 @end
 
 /* Subclass for a Calendar type */
@@ -6082,10 +6539,16 @@ DW_FUNCTION_RESTORE_PARAM9(handle, HWND, pixmap, HPIXMAP, flags, int, xorigin, i
  * Returns:
  *       A handle to a tree window or NULL on failure.
  */
-HWND API dw_tree_new(ULONG cid)
+DW_FUNCTION_DEFINITION(dw_tree_new, HWND, ULONG cid)
+DW_FUNCTION_ADD_PARAM1(cid)
+DW_FUNCTION_RETURN(dw_tree_new, HWND)
+DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
 {
-    /* TODO: Implement tree for iOS if possible */
-    return 0;
+    DW_FUNCTION_INIT;
+    DWTree *tree = [[[DWTree alloc] init] retain];
+    [tree setTag:cid];
+    [tree autorelease];
+    DW_FUNCTION_RETURN_THIS(tree);
 }
 
 /*
@@ -6100,10 +6563,28 @@ HWND API dw_tree_new(ULONG cid)
  * Returns:
  *       A handle to a tree item or NULL on failure.
  */
-HTREEITEM API dw_tree_insert_after(HWND handle, HTREEITEM item, const char *title, HICN icon, HTREEITEM parent, void *itemdata)
+DW_FUNCTION_DEFINITION(dw_tree_insert_after, HTREEITEM, HWND handle, HTREEITEM item, const char *title, HICN icon, HTREEITEM parent, void *itemdata)
+DW_FUNCTION_ADD_PARAM6(handle, item, title, icon, parent, itemdata)
+DW_FUNCTION_RETURN(dw_tree_insert_after, HTREEITEM)
+DW_FUNCTION_RESTORE_PARAM6(handle, HWND, item, HTREEITEM, title, char *, icon, HICN, parent, HTREEITEM, itemdata, void *)
 {
-    /* TODO: Implement tree for iOS if possible */
-    return 0;
+    DW_FUNCTION_INIT;
+    DWTree *tree = handle;
+    DWTreeItem *treeparent = item ? item : parent;
+    DWTreeItem *treeitem = [[[DWTreeItem alloc] initWithIcon:icon
+                                                       Title:[NSString stringWithUTF8String:(title ? title : "")]
+                                                     andData:itemdata] retain];
+    if(treeparent)
+    {
+        if(item)
+            [treeparent insertChildAfter:treeitem];
+        else
+            [treeparent appendChild:treeitem];
+    }
+    else
+        [tree insertTreeItem:treeitem];
+    [treeitem autorelease];
+    DW_FUNCTION_RETURN_THIS(treeitem);
 }
 
 /*
@@ -6119,8 +6600,7 @@ HTREEITEM API dw_tree_insert_after(HWND handle, HTREEITEM item, const char *titl
  */
 HTREEITEM API dw_tree_insert(HWND handle, const char *title, HICN icon, HTREEITEM parent, void *itemdata)
 {
-    /* TODO: Implement tree for iOS if possible */
-    return 0;
+    return dw_tree_insert_after(handle, NULL, title, icon, parent, itemdata);
 }
 
 /*
@@ -6131,10 +6611,17 @@ HTREEITEM API dw_tree_insert(HWND handle, const char *title, HICN icon, HTREEITE
  * Returns:
  *       A malloc()ed buffer of item text to be dw_free()ed or NULL on error.
  */
-char * API dw_tree_get_title(HWND handle, HTREEITEM item)
+DW_FUNCTION_DEFINITION(dw_tree_get_title, char *, HWND handle, HTREEITEM item)
+DW_FUNCTION_ADD_PARAM2(handle, item)
+DW_FUNCTION_RETURN(dw_tree_get_title, char *)
+DW_FUNCTION_RESTORE_PARAM2(DW_UNUSED(handle), HWND, item, HTREEITEM)
 {
-    /* TODO: Implement tree for iOS if possible */
-    return NULL;
+    DW_FUNCTION_INIT;
+    char *title = NULL;
+    DWTreeItem *treeitem = item;
+    if(treeitem)
+        title = strdup([treeitem.title UTF8String]);
+    DW_FUNCTION_RETURN_THIS(title);
 }
 
 /*
@@ -6145,10 +6632,17 @@ char * API dw_tree_get_title(HWND handle, HTREEITEM item)
  * Returns:
  *       A handle to a tree item or NULL on failure.
  */
-HTREEITEM API dw_tree_get_parent(HWND handle, HTREEITEM item)
+DW_FUNCTION_DEFINITION(dw_tree_get_parent, HTREEITEM, HWND handle, HTREEITEM item)
+DW_FUNCTION_ADD_PARAM2(handle, item)
+DW_FUNCTION_RETURN(dw_tree_get_parent, HTREEITEM)
+DW_FUNCTION_RESTORE_PARAM2(DW_UNUSED(handle), HWND, item, HTREEITEM)
 {
-    /* TODO: Implement tree for iOS if possible */
-    return 0;
+    DW_FUNCTION_INIT;
+    DWTreeItem *treeparent = nil;
+    DWTreeItem *treeitem = item;
+    if(treeitem)
+        treeparent = treeitem.parent;
+    DW_FUNCTION_RETURN_THIS(treeparent);
 }
 
 /*
