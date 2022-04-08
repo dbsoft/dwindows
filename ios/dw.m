@@ -2709,7 +2709,8 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
 -(NSArray<DWTreeItem *> *)visibleNodes
 {
     NSMutableArray *allElements = [[NSMutableArray alloc] init];
-    [allElements addObject:self];
+    if(![self isRoot])
+        [allElements addObject:self];
     if(_expanded)
     {
         for (DWTreeItem *child in _children)
@@ -2933,7 +2934,10 @@ static CGFloat XOFFSET = 3;
         targetNode = _rootNode;
     // If target is still nil something went horrible wrong
     NSAssert(targetNode, @"targetNode == nil, something went wrong!");
-    [targetNode insertChildAfter:treeItem];
+    if(targetNode.isRoot)
+        [targetNode appendChild:treeItem];
+    else
+        [targetNode insertChildAfter:treeItem];
 
     if([_treeViewDelegate respondsToSelector:@selector(treeView:addTreeItem:)])
         [_treeViewDelegate treeView:self addTreeItem:treeItem];
