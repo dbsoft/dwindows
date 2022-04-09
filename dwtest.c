@@ -1275,6 +1275,7 @@ void tree_add(void)
         dw_tree_item_change(tree, t1, "tree folder 1", foldericon);
         dw_tree_item_change(tree, t2, "tree folder 2", foldericon);
         dw_tree_item_set_data(tree, t2, DW_INT_TO_POINTER(100));
+        dw_tree_item_expand(tree, t1);
         title = dw_tree_get_title(tree, t1);
         dw_debug("t1 title \"%s\" data %d t2 data %d\n", title, DW_POINTER_TO_INT(dw_tree_item_get_data(tree, t1)),
                  DW_POINTER_TO_INT(dw_tree_item_get_data(tree, t2)));
