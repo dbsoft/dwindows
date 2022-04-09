@@ -2784,12 +2784,13 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
 @property(nonatomic, strong) UILabel *titleLabel;
 @property(nonatomic) NSUInteger level;
 @property(nonatomic) BOOL expanded;
-@property(nonatomic) BOOL isFolder;
+@property(nonatomic) BOOL children;
 @property(nonatomic, assign) id <DWTreeViewCellDelegate> delegate;
 -(instancetype)initWithStyle:(UITableViewCellStyle)style
              reuseIdentifier:(NSString *)reuseIdentifier
                        level:(NSUInteger)level
-                    expanded:(BOOL)expanded;
+                    expanded:(BOOL)expanded
+                    children:(BOOL)children;
 @end
 
 CGRect DWRectInflate(CGRect rect, CGFloat dx, CGFloat dy)
@@ -2797,25 +2798,30 @@ CGRect DWRectInflate(CGRect rect, CGFloat dx, CGFloat dy)
     return CGRectMake(rect.origin.x-dx, rect.origin.y-dy, rect.size.width+2*dx, rect.size.height+2*dy);
 }
 
-static CGFloat IMG_HEIGHT_WIDTH = 20;
-static CGFloat XOFFSET = 3;
+static CGFloat _DW_TREE_IMG_HEIGHT_WIDTH = 20;
+static CGFloat _DW_TREE_XOFFSET = 3;
 
 @implementation DWTreeViewCell
 {
     DWButton *_arrowImageButton;
-    UIImageView *_itemImage;
 }
 -(id)initWithStyle:(UITableViewCellStyle)style
    reuseIdentifier:(NSString *)reuseIdentifier
              level:(NSUInteger)level
           expanded:(BOOL)expanded
+          children:(BOOL)children
 {
+    // We should never display the root node
+    if(level < 1)
+        return nil;
+
     self = [super initWithStyle:style reuseIdentifier:reuseIdentifier];
 
     if(self)
     {
-        _level = level;
+        _level = level - 1;
         _expanded = expanded;
+        _children = children;
 
         UIView *content = self.contentView;
 
@@ -2826,11 +2832,9 @@ static CGFloat XOFFSET = 3;
         [content addSubview:titleLabel];
         _titleLabel = titleLabel;
 
-        UIImageView *itemImage = [[UIImageView alloc] initWithFrame:CGRectMake(0, 0, IMG_HEIGHT_WIDTH, IMG_HEIGHT_WIDTH)];
-        [content addSubview:itemImage];
-        _itemImage = itemImage;
-
-        DWButton *arrowImageButton = [[DWButton alloc] initWithFrame:CGRectMake(0, 0, IMG_HEIGHT_WIDTH, IMG_HEIGHT_WIDTH)];
+        DWButton *arrowImageButton = [[DWButton alloc] initWithFrame:CGRectMake(0, 0,
+                                                                                _DW_TREE_IMG_HEIGHT_WIDTH,
+                                                                                _DW_TREE_IMG_HEIGHT_WIDTH)];
         [arrowImageButton setType:_DW_BUTTON_TYPE_TREE];
         [arrowImageButton setDidCheckedChanged:^(BOOL checked) {
             _expanded = checked;
@@ -2838,6 +2842,9 @@ static CGFloat XOFFSET = 3;
                 [_delegate treeViewCell:self expanded:checked];
         }];
         [arrowImageButton setCheckState:_expanded];
+        [arrowImageButton setContentHorizontalAlignment:UIControlContentHorizontalAlignmentCenter];
+        if(!children)
+            [arrowImageButton setHidden:YES];
         [content addSubview:arrowImageButton];
         _arrowImageButton = arrowImageButton;
     }
@@ -2852,10 +2859,10 @@ static CGFloat XOFFSET = 3;
     CGSize size = self.contentView.bounds.size;
     CGFloat stepSize = size.height;
     CGRect rc = CGRectMake(_level * stepSize, 0, stepSize, stepSize);
-    _arrowImageButton.frame = DWRectInflate(rc, -XOFFSET, -XOFFSET);
+    _arrowImageButton.frame = DWRectInflate(rc, -_DW_TREE_XOFFSET, -_DW_TREE_XOFFSET);
 
     rc = CGRectMake((_level + 1) * stepSize, 0, stepSize, stepSize);
-    _itemImage.frame = DWRectInflate(rc, -XOFFSET, -XOFFSET);
+    self.imageView.frame = DWRectInflate(rc, -_DW_TREE_XOFFSET, -_DW_TREE_XOFFSET);
     _titleLabel.frame = CGRectMake((_level + 2) * stepSize, 0, size.width - (_level + 3) * stepSize, stepSize);
 }
 @end
@@ -2914,21 +2921,24 @@ static CGFloat XOFFSET = 3;
 {
     DWTreeItem *targetNode = nil;
 
-    NSArray<DWTreeViewCell *> *cells = [self visibleCells];
-
-    // Target the selected tree node first if any
-    for(DWTreeViewCell *cell in cells)
+    if([self window])
     {
-        DWTreeItem *iter = [self treeItemForTreeViewCell:cell];
-        if(iter == _selectedNode)
+        NSArray<DWTreeViewCell *> *cells = [self visibleCells];
+
+        // Target the selected tree node first if any
+        for(DWTreeViewCell *cell in cells)
         {
-            targetNode = iter;
-            break;
+            DWTreeItem *iter = [self treeItemForTreeViewCell:cell];
+            if(iter == _selectedNode)
+            {
+                targetNode = iter;
+                break;
+            }
         }
+        // Otherwise target first visible node if any
+        if(targetNode == nil && [cells count])
+            targetNode = [self treeItemForTreeViewCell:cells[0]];
     }
-    // Otherwise target first visible node if any
-    if(targetNode == nil && [cells count])
-        targetNode = [self treeItemForTreeViewCell:cells[0]];
     // Finally put it on the root level
     if(targetNode == nil)
         targetNode = _rootNode;
@@ -2948,6 +2958,12 @@ static CGFloat XOFFSET = 3;
 -(void)setFont:(UIFont *)font
 {
     _font = font;
+    [self reloadData];
+    [self resetSelection:NO];
+}
+-(void)clear
+{
+    [[_rootNode children] removeAllObjects];
     [self reloadData];
     [self resetSelection:NO];
 }
@@ -2995,7 +3011,8 @@ static CGFloat XOFFSET = 3;
     DWTreeViewCell *cell = [[DWTreeViewCell alloc] initWithStyle:UITableViewCellStyleDefault
                                                  reuseIdentifier:CellIdentifier
                                                            level:[treeItem levelDepth]
-                                                        expanded:treeItem.expanded];
+                                                        expanded:treeItem.expanded
+                                                        children:[treeItem hasChildren]];
     cell.titleLabel.text = treeItem.title;
     cell.imageView.image = treeItem.icon;
     cell.titleLabel.font = _font;
@@ -6657,10 +6674,19 @@ DW_FUNCTION_RESTORE_PARAM2(DW_UNUSED(handle), HWND, item, HTREEITEM)
  *          title: The text title of the entry.
  *          icon: Handle to coresponding icon.
  */
-void API dw_tree_item_change(HWND handle, HTREEITEM item, const char *title, HICN icon)
+DW_FUNCTION_DEFINITION(dw_tree_item_change, void, HWND handle, HTREEITEM item, const char *title, HICN icon)
+DW_FUNCTION_ADD_PARAM4(handle, item, title, icon)
+DW_FUNCTION_NO_RETURN(dw_tree_item_change)
+DW_FUNCTION_RESTORE_PARAM4(DW_UNUSED(handle), HWND, item, HTREEITEM, title, const char *, icon, HICN)
 {
-    /* TODO: Implement tree for iOS if possible */
-
+    DW_FUNCTION_INIT;
+    DWTreeItem *treeitem = item;
+    if(handle && treeitem)
+    {
+        [treeitem setIcon:icon];
+        [treeitem setTitle:[NSString stringWithUTF8String:(title ? title : "")]];
+    }
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -6670,10 +6696,16 @@ void API dw_tree_item_change(HWND handle, HTREEITEM item, const char *title, HIC
  *          item: Handle of the item to be modified.
  *          itemdata: User defined data to be associated with item.
  */
-void API dw_tree_item_set_data(HWND handle, HTREEITEM item, void *itemdata)
+DW_FUNCTION_DEFINITION(dw_tree_item_set_data, void, HWND handle, HTREEITEM item, void *itemdata)
+DW_FUNCTION_ADD_PARAM3(handle, item, itemdata)
+DW_FUNCTION_NO_RETURN(dw_tree_item_set_data)
+DW_FUNCTION_RESTORE_PARAM3(DW_UNUSED(handle), HWND, item, HTREEITEM, itemdata, void *)
 {
-    /* TODO: Implement tree for iOS if possible */
-
+    DW_FUNCTION_INIT;
+    DWTreeItem *treeitem = item;
+    if(handle && treeitem)
+        [treeitem setData:itemdata];
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -6684,10 +6716,17 @@ void API dw_tree_item_set_data(HWND handle, HTREEITEM item, void *itemdata)
  * Returns:
  *       A pointer to tree item data or NULL on failure.
  */
-void * API dw_tree_item_get_data(HWND handle, HTREEITEM item)
+DW_FUNCTION_DEFINITION(dw_tree_item_get_data, void *, HWND handle, HTREEITEM item)
+DW_FUNCTION_ADD_PARAM2(handle, item)
+DW_FUNCTION_RETURN(dw_tree_item_get_data, void *)
+DW_FUNCTION_RESTORE_PARAM2(DW_UNUSED(handle), HWND, item, HTREEITEM)
 {
-    /* TODO: Implement tree for iOS if possible */
-   return NULL;
+    DW_FUNCTION_INIT;
+    void *result = NULL;
+    DWTreeItem *treeitem = item;
+    if(handle && treeitem)
+        result = [treeitem data];
+    DW_FUNCTION_RETURN_THIS(result);
 }
 
 /*
@@ -6706,9 +6745,15 @@ void API dw_tree_item_select(HWND handle, HTREEITEM item)
  * Parameters:
  *       handle: Handle to the window (widget) to be cleared.
  */
-void API dw_tree_clear(HWND handle)
+DW_FUNCTION_DEFINITION(dw_tree_clear, void, HWND handle)
+DW_FUNCTION_ADD_PARAM1(handle)
+DW_FUNCTION_NO_RETURN(dw_tree_clear)
+DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
 {
-    /* TODO: Implement tree for iOS if possible */
+    DW_FUNCTION_INIT;
+    DWTree *tree = handle;
+    [tree clear];
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -6717,9 +6762,21 @@ void API dw_tree_clear(HWND handle)
  *       handle: Handle to the tree window (widget).
  *       item: Handle to node to be expanded.
  */
-void API dw_tree_item_expand(HWND handle, HTREEITEM item)
+DW_FUNCTION_DEFINITION(dw_tree_item_expand, void, HWND handle, HTREEITEM item)
+DW_FUNCTION_ADD_PARAM2(handle, item)
+DW_FUNCTION_NO_RETURN(dw_tree_item_expand)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, item, HTREEITEM)
 {
-    /* TODO: Implement tree for iOS if possible */
+    DW_FUNCTION_INIT;
+    DWTree *tree = handle;
+    DWTreeItem *treeitem = item;
+    if(![treeitem expanded])
+    {
+        [treeitem setExpanded:YES];
+        [tree reloadData];
+        [tree resetSelection:NO];
+    }
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -6728,9 +6785,21 @@ void API dw_tree_item_expand(HWND handle, HTREEITEM item)
  *       handle: Handle to the tree window (widget).
  *       item: Handle to node to be collapsed.
  */
-void API dw_tree_item_collapse(HWND handle, HTREEITEM item)
+DW_FUNCTION_DEFINITION(dw_tree_item_collapse, void, HWND handle, HTREEITEM item)
+DW_FUNCTION_ADD_PARAM2(handle, item)
+DW_FUNCTION_NO_RETURN(dw_tree_item_collapse)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, item, HTREEITEM)
 {
-    /* TODO: Implement tree for iOS if possible */
+    DW_FUNCTION_INIT;
+    DWTree *tree = handle;
+    DWTreeItem *treeitem = item;
+    if([treeitem expanded])
+    {
+        [treeitem setExpanded:NO];
+        [tree reloadData];
+        [tree resetSelection:NO];
+    }
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -6739,10 +6808,20 @@ void API dw_tree_item_collapse(HWND handle, HTREEITEM item)
  *       handle: Handle to the window (widget) to be cleared.
  *       item: Handle to node to be deleted.
  */
-void API dw_tree_item_delete(HWND handle, HTREEITEM item)
+DW_FUNCTION_DEFINITION(dw_tree_item_delete, void, HWND handle, HTREEITEM item)
+DW_FUNCTION_ADD_PARAM2(handle, item)
+DW_FUNCTION_NO_RETURN(dw_tree_item_delete)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, item, HTREEITEM)
 {
-    /* TODO: Implement tree for iOS if possible */
+    DW_FUNCTION_INIT;
+    DWTree *tree = handle;
+    DWTreeItem *treeitem = item;
+    [treeitem removeFromParent];
+    [tree reloadData];
+    [tree resetSelection:NO];
+    DW_FUNCTION_RETURN_NOTHING;
 }
+
 
 /*
  * Create a container object to be packed.
