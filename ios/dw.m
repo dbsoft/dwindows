@@ -3025,8 +3025,7 @@ static CGFloat _DW_TREE_XOFFSET = 3;
     DWTreeItem *treeItem = [self treeItemForIndexPath:indexPath];
     if([_treeViewDelegate respondsToSelector:@selector(treeView:canEditTreeItem:)])
         return [_treeViewDelegate treeView:self canEditTreeItem:treeItem];
-    else
-        return (treeItem.isRoot == NO);
+    return NO;
 }
 -(void)tableView:(UITableView *)tableView commitEditingStyle:(UITableViewCellEditingStyle)editingStyle forRowAtIndexPath:(NSIndexPath *)indexPath
 {
@@ -6663,6 +6662,8 @@ DW_FUNCTION_RESTORE_PARAM2(DW_UNUSED(handle), HWND, item, HTREEITEM)
     DWTreeItem *treeitem = item;
     if(treeitem)
         treeparent = treeitem.parent;
+    if(treeparent && [treeparent isRoot])
+        treeparent = NULL;
     DW_FUNCTION_RETURN_THIS(treeparent);
 }
 
@@ -6735,10 +6736,30 @@ DW_FUNCTION_RESTORE_PARAM2(DW_UNUSED(handle), HWND, item, HTREEITEM)
  *       handle: Handle to the tree window (widget) to be selected.
  *       item: Handle to the item to be selected.
  */
-void API dw_tree_item_select(HWND handle, HTREEITEM item)
+DW_FUNCTION_DEFINITION(dw_tree_item_select, void, HWND handle, HTREEITEM item)
+DW_FUNCTION_ADD_PARAM2(handle, item)
+DW_FUNCTION_NO_RETURN(dw_tree_item_select)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, item, HTREEITEM)
 {
-    /* TODO: Implement tree for iOS if possible */
+    DW_FUNCTION_INIT;
+    DWTree *tree = handle;
+    DWTreeItem *treeitem = item;
+
+    if(tree && treeitem)
+    {
+        NSInteger itemIndex = [tree treeView:tree rowForTreeItem:treeitem];
+        if(itemIndex > -1)
+        {
+            NSIndexPath *ip = [NSIndexPath indexPathForRow:(NSUInteger)itemIndex inSection:0];
+
+            [tree selectRowAtIndexPath:ip
+                              animated:NO
+                        scrollPosition:UITableViewScrollPositionNone];
+        }
+    }
+    DW_FUNCTION_RETURN_NOTHING;
 }
+
 
 /*
  * Removes all nodes from a tree.
