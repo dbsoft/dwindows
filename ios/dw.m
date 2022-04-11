@@ -533,19 +533,18 @@ int _dw_event_handler1(id object, id event, int message)
             case _DW_EVENT_ITEM_ENTER:
             {
                 int (*containerselectfunc)(HWND, char *, void *, void *) = handler->signalfunction;
-                void **params = (void **)event;
 
-                return containerselectfunc(handler->window, params[0], handler->data, params[1]);
+                return containerselectfunc(handler->window, [event pointerAtIndex:0], handler->data,
+                                           [event pointerAtIndex:1]);
             }
             /* Container context menu event */
             case _DW_EVENT_ITEM_CONTEXT:
             {
                 int (* API containercontextfunc)(HWND, char *, int, int, void *, void *) = (int (* API)(HWND, char *, int, int, void *, void *))handler->signalfunction;
-                void **params = (void **)event;
-                char *text = (char *)params[0];
-                void *user = params[1];
-                int x = DW_POINTER_TO_INT(params[2]);
-                int y = DW_POINTER_TO_INT(params[3]);
+                char *text = (char *)[event pointerAtIndex:0];
+                void *user = [event pointerAtIndex:1];
+                int x = DW_POINTER_TO_INT([event pointerAtIndex:2]);
+                int y = DW_POINTER_TO_INT([event pointerAtIndex:3]);
 
                 return containercontextfunc(handler->window, text, x, y, handler->data, user);
             }
@@ -568,10 +567,26 @@ int _dw_event_handler1(id object, id event, int message)
 
                 if([object isKindOfClass:[UITableView class]] && event)
                 {
-                    void **params = (void **)event;
+                    /* Event will be NSPointerArray for Containers */
+                    if([event isKindOfClass:[NSPointerArray class]])
+                    {
+                        text = [event pointerAtIndex:0];
+                        user = [event pointerAtIndex:1];
+                    }
+                    else
+                    {
+                        /* Event should be DWTreeItem for Trees */
+                        const char *title = [[item title] UTF8String];
+                        int retval;
 
-                    text = params[0];
-                    user = params[1];
+                        text = strdup(title ? title : "");
+                        user = [item data];
+                        item = event;
+
+                        retval = treeselectfunc(handler->window, item, text, handler->data, user);
+                        free(text);
+                        return retval;
+                    }
                 }
 
                 return treeselectfunc(handler->window, item, text, handler->data, user);
@@ -2357,15 +2372,15 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
 {
     DWWindow *window = (DWWindow *)[self window];
     UIContextMenuConfiguration *config = nil;
-    void *params[4];
+    NSPointerArray *params = [NSPointerArray pointerArrayWithOptions:NSPointerFunctionsOpaqueMemory];
 
-    params[0] = [self getRowTitle:(int)indexPath.row];
-    params[1] = [self getRowData:(int)indexPath.row];
-    params[2] = DW_INT_TO_POINTER((int)point.x);
-    params[3] = DW_INT_TO_POINTER((int)point.y);
+    [params addPointer:[self getRowTitle:(int)indexPath.row]];
+    [params addPointer:[self getRowData:(int)indexPath.row]];
+    [params addPointer:DW_INT_TO_POINTER((int)point.x)];
+    [params addPointer:DW_INT_TO_POINTER((int)point.y)];
 
     _dw_event_point = point;
-    _dw_event_handler(self, (id)params, _DW_EVENT_ITEM_CONTEXT);
+    _dw_event_handler(self, params, _DW_EVENT_ITEM_CONTEXT);
 
     if(window && [window popupMenu])
     {
@@ -2623,10 +2638,10 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
 }
 -(void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath
 {
-    void *params[2];
+    NSPointerArray *params = [NSPointerArray pointerArrayWithOptions:NSPointerFunctionsOpaqueMemory];
 
-    params[0] = (void *)[self getRowTitle:(int)indexPath.row];
-    params[1] = (void *)[self getRowData:(int)indexPath.row];
+    [params addPointer:[self getRowTitle:(int)indexPath.row]];
+    [params addPointer:[self getRowData:(int)indexPath.row]];
 
     /* If multiple selection is enabled, treat it as selectionChanged: */
     if([self allowsMultipleSelection])
@@ -2635,9 +2650,9 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
         
         /* Handler for container class... check for double tap */
         if(lastClickRow == indexPath.row && now - lastClick < 0.3)
-            _dw_event_handler(self, (id)params, _DW_EVENT_ITEM_ENTER);
+            _dw_event_handler(self, params, _DW_EVENT_ITEM_ENTER);
         else
-            _dw_event_handler(self, (id)params, _DW_EVENT_ITEM_SELECT);
+            _dw_event_handler(self, params, _DW_EVENT_ITEM_SELECT);
         /* Handler for listbox class */
         _dw_event_handler(self, DW_INT_TO_POINTER((int)indexPath.row), _DW_EVENT_LIST_SELECT);
         /* Update lastClick for double tap check */
@@ -2647,7 +2662,7 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
     else /* Otherwise treat it as doubleClicked: */
     {
         /* Handler for container class */
-        _dw_event_handler(self, (id)params, _DW_EVENT_ITEM_ENTER);
+        _dw_event_handler(self, params, _DW_EVENT_ITEM_ENTER);
    }
 }
 -(void)tableView:(UITableView *)tableView didDeselectRowAtIndexPath:(NSIndexPath *)indexPath
@@ -2877,8 +2892,8 @@ static CGFloat _DW_TREE_XOFFSET = 3;
 -(void)treeView:(DWTree *)treeView removeTreeItem:(DWTreeItem *)treeItem;
 -(void)treeView:(DWTree *)treeView moveTreeItem:(DWTreeItem *)treeItem to:(DWTreeItem *)to;
 -(void)treeView:(DWTree *)treeView addTreeItem:(DWTreeItem *)treeItem;
-//@optional
 -(void)treeView:(DWTree *)treeView didSelectForTreeItem:(DWTreeItem *)treeItem;
+-(UIContextMenuConfiguration *)treeView:(DWTree *)treeView contextMenuConfigurationForTreeItem:(DWTreeItem *)treeItem point:(CGPoint)point;
 -(BOOL)treeView:(DWTree *)treeView queryExpandableInTreeItem:(DWTreeItem *)treeItem;
 -(void)treeView:(DWTree *)treeView treeItem:(DWTreeItem *)treeItem expanded:(BOOL)expanded;
 @optional
@@ -2987,12 +3002,46 @@ static CGFloat _DW_TREE_XOFFSET = 3;
 #pragma mark - DWTreeViewDelegate
 -(NSInteger)numberOfRowsInTreeView:(DWTree *)treeView { return [_rootNode visibleNodes].count; }
 -(void)treeView:(DWTree *)treeView addTreeItem:(DWTreeItem *)treeItem {}
--(void)treeView:(DWTree *)treeView didSelectForTreeItem:(DWTreeItem *)treeItem {}
+-(void)treeView:(DWTree *)treeView didSelectForTreeItem:(DWTreeItem *)treeItem
+{
+    if(treeItem)
+        _dw_event_handler(treeView, (void *)treeItem, _DW_EVENT_ITEM_SELECT);
+}
+-(UIContextMenuConfiguration *)treeView:(DWTree *)treeView contextMenuConfigurationForTreeItem:(DWTreeItem *)treeItem point:(CGPoint)point
+{
+    UIContextMenuConfiguration *config = nil;
+    DWWindow *window = (DWWindow *)[self window];
+    const char *title = [[treeItem title] UTF8String];
+    NSPointerArray *params = [NSPointerArray pointerArrayWithOptions:NSPointerFunctionsOpaqueMemory];
+
+    [params addPointer:strdup(title ? title : "")];
+    [params addPointer:[treeItem data]];
+    [params addPointer:DW_INT_TO_POINTER((int)point.x)];
+    [params addPointer:DW_INT_TO_POINTER((int)point.y)];
+
+    _dw_event_point = point;
+    _dw_event_handler(self, params, _DW_EVENT_ITEM_CONTEXT);
+    free([params pointerAtIndex:0]);
+
+    if(window && [window popupMenu])
+    {
+        __block UIMenu *popupmenu = [[[window popupMenu] menu] retain];
+        config = [UIContextMenuConfiguration configurationWithIdentifier:nil
+                                                         previewProvider:nil
+                                                          actionProvider:^(NSArray* suggestedAction){return popupmenu;}];
+        [window setPopupMenu:nil];
+    }
+    return config;
+}
 -(void)treeView:(DWTree *)treeView moveTreeItem:(DWTreeItem *)treeItem to:(DWTreeItem *)to {}
 -(BOOL)treeView:(DWTree *)treeView queryExpandableInTreeItem:(DWTreeItem *)treeItem { return YES; }
 -(void)treeView:(DWTree *)treeView removeTreeItem:(DWTreeItem *)treeItem {}
 -(NSInteger)treeView:(DWTree *)treeView rowForTreeItem:(DWTreeItem *)treeItem {  return [[_rootNode visibleNodes] indexOfObject:treeItem]; }
--(void)treeView:(DWTree *)treeView treeItem:(DWTreeItem *)treeItem expanded:(BOOL)expanded {}
+-(void)treeView:(DWTree *)treeView treeItem:(DWTreeItem *)treeItem expanded:(BOOL)expanded
+{
+    if(treeItem)
+        _dw_event_handler(treeView, (void *)treeItem, _DW_EVENT_TREE_EXPAND);
+}
 - (DWTreeItem *)treeView:(DWTree *)treeView treeItemForRow:(NSInteger)row { return [[_rootNode visibleNodes] objectAtIndex:row]; }
 #pragma mark - UITableViewDataSource
 -(NSInteger)numberOfSectionsInTableView:(UITableView *)tableView { return 1; }
@@ -3050,29 +3099,41 @@ static CGFloat _DW_TREE_XOFFSET = 3;
         return;
     DWTreeItem *srcNode = [self treeItemForIndexPath:fromIndexPath];
     DWTreeItem *targetNode = [self treeItemForIndexPath:toIndexPath];
-    [srcNode moveToDestination:targetNode];
-    
-    if([_treeViewDelegate respondsToSelector:@selector(treeView:moveTreeItem:to:)])
-        [_treeViewDelegate treeView:self moveTreeItem:srcNode to:targetNode];
-    
-    [self reloadData];
-    [self resetSelection:NO];
+
+    if(srcNode && targetNode)
+    {
+        [srcNode moveToDestination:targetNode];
+
+        if([_treeViewDelegate respondsToSelector:@selector(treeView:moveTreeItem:to:)])
+            [_treeViewDelegate treeView:self moveTreeItem:srcNode to:targetNode];
+
+        [self reloadData];
+        [self resetSelection:NO];
+    }
 }
 -(BOOL)tableView:(UITableView *)tableView canMoveRowAtIndexPath:(NSIndexPath *)indexPath
 {
     DWTreeItem *treeItem = [self treeItemForIndexPath:indexPath];
-    if([_treeViewDelegate respondsToSelector:@selector(treeView:canMoveTreeItem:)])
+    if(treeItem && [_treeViewDelegate respondsToSelector:@selector(treeView:canMoveTreeItem:)])
         return [_treeViewDelegate treeView:self canMoveTreeItem:treeItem];
-    else
-        return (treeItem.isRoot == NO);
+    return NO;
 }
 #pragma mark - DWTableViewDelegate
 -(void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath
 {
     DWTreeItem *treeItem = [self treeItemForIndexPath:indexPath];
-    if([_treeViewDelegate respondsToSelector:@selector(treeView:didSelectForTreeItem:)])
+    if(treeItem && [_treeViewDelegate respondsToSelector:@selector(treeView:didSelectForTreeItem:)])
         [_treeViewDelegate treeView:self didSelectForTreeItem:treeItem];
     _selectedNode = treeItem;
+}
+-(UIContextMenuConfiguration *)tableView:(UITableView *)tableView contextMenuConfigurationForRowAtIndexPath:(NSIndexPath *)indexPath point:(CGPoint)point
+{
+    UIContextMenuConfiguration *config = nil;
+    DWTreeItem *treeItem = [self treeItemForIndexPath:indexPath];
+    if(treeItem && [_treeViewDelegate respondsToSelector:@selector(treeView:contextMenuConfigurationForTreeItem:point:)])
+        config = [_treeViewDelegate treeView:self contextMenuConfigurationForTreeItem:treeItem point:point];
+
+    return config;
 }
 -(NSIndexPath *)tableView:(UITableView *)tableView targetIndexPathForMoveFromRowAtIndexPath:(NSIndexPath *)sourceIndexPath toProposedIndexPath:(NSIndexPath *)proposedDestinationIndexPath
 {
