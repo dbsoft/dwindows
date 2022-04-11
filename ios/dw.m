@@ -567,25 +567,16 @@ int _dw_event_handler1(id object, id event, int message)
 
                 if([object isKindOfClass:[UITableView class]] && event)
                 {
-                    /* Event will be NSPointerArray for Containers */
+                    
                     if([event isKindOfClass:[NSPointerArray class]])
                     {
+                       /* The NSPointerArray count will be 2 for Containers */
                         text = [event pointerAtIndex:0];
                         user = [event pointerAtIndex:1];
-                    }
-                    else
-                    {
-                        /* Event should be DWTreeItem for Trees */
-                        const char *title = [[item title] UTF8String];
-                        int retval;
 
-                        text = strdup(title ? title : "");
-                        user = [item data];
-                        item = event;
-
-                        retval = treeselectfunc(handler->window, item, text, handler->data, user);
-                        free(text);
-                        return retval;
+                        /* The NSPointerArray count will be 3 for Trees */
+                        if([event count] > 2)
+                            item = [event pointerAtIndex:2];
                     }
                 }
 
@@ -3005,7 +2996,16 @@ static CGFloat _DW_TREE_XOFFSET = 3;
 -(void)treeView:(DWTree *)treeView didSelectForTreeItem:(DWTreeItem *)treeItem
 {
     if(treeItem)
-        _dw_event_handler(treeView, (void *)treeItem, _DW_EVENT_ITEM_SELECT);
+    {
+        const char *title = [[treeItem title] UTF8String];
+        NSPointerArray *params = [NSPointerArray pointerArrayWithOptions:NSPointerFunctionsOpaqueMemory];
+
+        [params addPointer:strdup(title ? title : "")];
+        [params addPointer:[treeItem data]];
+        [params addPointer:treeItem];
+        _dw_event_handler(treeView, params, _DW_EVENT_ITEM_SELECT);
+        free([params pointerAtIndex:0]);
+    }
 }
 -(UIContextMenuConfiguration *)treeView:(DWTree *)treeView contextMenuConfigurationForTreeItem:(DWTreeItem *)treeItem point:(CGPoint)point
 {
