@@ -1,5 +1,6 @@
 // (C) 2021-2022 Brian Smith <brian@dbsoft.org>
-// (C) 2019 Anton Popov
+// (C) 2019 Anton Popov (Color Picker)
+// (C) 2022 Amr Hesham (Tree View)
 package org.dbsoft.dwindows
 
 import android.R
@@ -17,19 +18,23 @@ import android.graphics.*
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
+import android.graphics.pdf.PdfDocument
 import android.media.AudioManager
 import android.media.ToneGenerator
 import android.net.Uri
 import android.os.*
+import android.print.*
+import android.print.pdf.PrintedPdfDocument
 import android.provider.DocumentsContract
 import android.provider.MediaStore
 import android.text.InputFilter
 import android.text.InputFilter.LengthFilter
 import android.text.InputType
 import android.text.method.PasswordTransformationMethod
+import android.util.*
+import android.util.Base64
 import android.view.*
 import android.view.View.OnTouchListener
-import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -60,28 +65,487 @@ import java.util.*
 import java.util.concurrent.locks.ReentrantLock
 import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
-import android.content.Intent
-import android.util.*
-import android.util.Base64
 import kotlin.math.*
-import android.content.ContentUris
-import android.content.DialogInterface
-import android.graphics.pdf.PdfDocument
-import android.print.*
-import android.print.pdf.PrintedPdfDocument
-import android.widget.Checkable
 
-import android.widget.LinearLayout
-import android.graphics.BitmapFactory
-
-import android.graphics.Bitmap
+import androidx.annotation.NonNull
 
 
 
 
+// Tree View section
+class DWTreeItem(value: Any, layoutId: Int) {
+    private var value: Any
+    private var parent: DWTreeItem?
+    private val children: LinkedList<DWTreeItem>
+    private val layoutId: Int
+    private var level: Int
+    private var isExpanded: Boolean
+    private var isSelected: Boolean
+    fun addChild(child: DWTreeItem) {
+        child.setParent(this)
+        child.setLevel(level + 1)
+        children.add(child)
+        updateNodeChildrenDepth(child)
+    }
 
+    fun setValue(value: Any) {
+        this.value = value
+    }
 
+    fun getValue(): Any {
+        return value
+    }
 
+    fun setParent(parent: DWTreeItem?) {
+        this.parent = parent
+    }
+
+    fun getParent(): DWTreeItem? {
+        return parent
+    }
+
+    fun getChildren(): LinkedList<DWTreeItem> {
+        return children
+    }
+
+    fun getLayoutId(): Int {
+        return layoutId
+    }
+
+    fun setLevel(level: Int) {
+        this.level = level
+    }
+
+    fun getLevel(): Int {
+        return level
+    }
+
+    fun setExpanded(expanded: Boolean) {
+        isExpanded = expanded
+    }
+
+    fun isExpanded(): Boolean {
+        return isExpanded
+    }
+
+    fun setSelected(selected: Boolean) {
+        isSelected = selected
+    }
+
+    fun isSelected(): Boolean {
+        return isSelected
+    }
+
+    private fun updateNodeChildrenDepth(node: DWTreeItem) {
+        if (node.getChildren().isEmpty()) return
+        for (child in node.getChildren()) {
+            child.setLevel(node.getLevel() + 1)
+        }
+    }
+
+    init {
+        this.value = value
+        parent = null
+        children = LinkedList()
+        this.layoutId = layoutId
+        level = 0
+        isExpanded = false
+        isSelected = false
+    }
+}
+class DWTreeItemManager {
+    // Collection to save the current tree nodes
+    private val rootsNodes: LinkedList<DWTreeItem>
+
+    // Get DWTreeItem from the current nodes by index
+    // @param index of node to get it
+    // @return DWTreeItem from by index from current tree nodes if exists
+    operator fun get(index: Int): DWTreeItem {
+        return rootsNodes[index]
+    }
+
+    // Add new node to the current tree nodes
+    // @param node to add it to the current tree nodes
+    // @return true of this node is added
+    fun addItem(node: DWTreeItem): Boolean {
+        return rootsNodes.add(node)
+    }
+
+    // Clear the current nodes and insert new nodes
+    // @param newNodes to update the current nodes with them
+    fun updateItems(newNodes: List<DWTreeItem>?) {
+        rootsNodes.clear()
+        rootsNodes.addAll(newNodes!!)
+    }
+
+    // Delete one node from the visible nodes
+    // @param node to delete it from the current nodes
+    // @return true of this node is deleted
+    fun removeItem(node: DWTreeItem): Boolean {
+        return rootsNodes.remove(node)
+    }
+
+    // Clear the current nodes
+    fun clearItems() {
+        rootsNodes.clear()
+    }
+
+    // Get the current number of visible nodes
+    // @return the size of visible nodes
+    fun size(): Int {
+        return rootsNodes.size
+    }
+
+    // Collapsing node and all of his children
+    // @param node The node to collapse it
+    // @return the index of this node if it exists in the list
+    fun collapseItem(node: DWTreeItem): Int {
+        val position = rootsNodes.indexOf(node)
+        if (position != -1 && node.isExpanded()) {
+            node.setExpanded(false)
+            val deletedParents: LinkedList<DWTreeItem> =
+                LinkedList(node.getChildren())
+            rootsNodes.removeAll(node.getChildren())
+            for (i in position + 1 until rootsNodes.size) {
+                val iNode: DWTreeItem = rootsNodes[i]
+                if (deletedParents.contains(iNode.getParent())) {
+                    deletedParents.add(iNode)
+                    deletedParents.addAll(iNode.getChildren())
+                }
+            }
+            rootsNodes.removeAll(deletedParents)
+        }
+        return position
+    }
+
+    // Expanding node and all of his children
+    // @param node The node to expand it
+    // @return the index of this node if it exists in the list
+    fun expandItem(node: DWTreeItem): Int {
+        val position = rootsNodes.indexOf(node)
+        if (position != -1 && !node.isExpanded()) {
+            node.setExpanded(true)
+            rootsNodes.addAll(position + 1, node.getChildren())
+            for (child in node.getChildren()) {
+                if (child.isExpanded()) updateExpandedItemChildren(child)
+            }
+        }
+        return position
+    }
+
+    // Update the list for expanded node
+    // to expand any child of his children that is already expanded before
+    // @param node that just expanded now
+    private fun updateExpandedItemChildren(node: DWTreeItem) {
+        val position = rootsNodes.indexOf(node)
+        if (position != -1 && node.isExpanded()) {
+            rootsNodes.addAll(position + 1, node.getChildren())
+            for (child in node.getChildren()) {
+                if (child.isExpanded()) updateExpandedItemChildren(child)
+            }
+        }
+    }
+
+    // @param  node The node to collapse the branch of it
+    // @return the index of this node if it exists in the list
+    fun collapseItemBranch(node: DWTreeItem): Int {
+        val position = rootsNodes.indexOf(node)
+        if (position != -1 && node.isExpanded()) {
+            node.setExpanded(false)
+            for (child in node.getChildren()) {
+                if (!child.getChildren().isEmpty()) collapseItemBranch(child)
+                rootsNodes.remove(child)
+            }
+        }
+        return position
+    }
+
+    // Expanding node full branches
+    // @param  node The node to expand the branch of it
+    // @return the index of this node if it exists in the list
+    fun expandItemBranch(node: DWTreeItem): Int {
+        val position = rootsNodes.indexOf(node)
+        if (position != -1 && !node.isExpanded()) {
+            node.setExpanded(true)
+            var index = position + 1
+            for (child in node.getChildren()) {
+                val before: Int = rootsNodes.size
+                rootsNodes.add(index, child)
+                expandItemBranch(child)
+                val after: Int = rootsNodes.size
+                val diff = after - before
+                index += diff
+            }
+        }
+        return position
+    }
+
+    // Expanding one node branch to until specific level
+    // @param node to expand branch of it until level
+    // @param level to expand node branches to it
+    fun expandItemToLevel(node: DWTreeItem, level: Int) {
+        if (node.getLevel() <= level) expandItem(node)
+        for (child in node.getChildren()) {
+            expandItemToLevel(child, level)
+        }
+    }
+
+    //Expanding all tree nodes branches to until specific level
+    //@param level to expand all nodes branches to it
+    fun expandItemsAtLevel(level: Int) {
+        for (i in 0 until rootsNodes.size) {
+            val node: DWTreeItem = rootsNodes[i]
+            expandItemToLevel(node, level)
+        }
+    }
+
+    // Collapsing all nodes in the tree with their children
+    fun collapseAll() {
+        val treeItems: MutableList<DWTreeItem> = LinkedList()
+        for (i in 0 until rootsNodes.size) {
+            val root: DWTreeItem = rootsNodes[i]
+            if (root.getLevel() === 0) {
+                collapseItemBranch(root)
+                treeItems.add(root)
+            } else {
+                root.setExpanded(false)
+            }
+        }
+        updateItems(treeItems)
+    }
+
+    // Expanding all nodes in the tree with their children
+    fun expandAll() {
+        for (i in 0 until rootsNodes.size) {
+            val root: DWTreeItem = rootsNodes[i]
+            expandItemBranch(root)
+        }
+    }
+
+    // Simple constructor
+    init {
+        rootsNodes = LinkedList()
+    }
+}
+
+open class DWTreeViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+    // Return the current DWTreeItem padding value
+    // @return The current padding value
+
+    // Modify the current node padding value
+    // @param padding the new padding value
+
+    // The default padding value for the DWTreeItem item
+    var nodePadding = 50
+
+    // Bind method that provide padding and bind DWTreeItem to the view list item
+    // @param node the current DWTreeItem
+    fun bindTreeItem(node: DWTreeItem) {
+        val padding: Int = node.getLevel() * nodePadding
+        itemView.setPadding(
+            padding,
+            itemView.paddingTop,
+            itemView.paddingRight,
+            itemView.paddingBottom
+        )
+    }
+}
+
+interface DWTreeViewHolderFactory {
+    // Provide a TreeViewHolder class depend on the current view
+    // @param view The list item view
+    // @param layout The layout xml file id for current view
+    // @return A TreeViewHolder instance
+    fun getTreeViewHolder(view: View?, layout: Int): DWTreeViewHolder
+}
+
+class DWTreeCustomViewHolder(itemView: View) : DWTreeViewHolder(itemView) {
+    fun bindTreeNode(node: DWTreeItem) {
+        super.bindTreeItem(node)
+        // Here you can bind your node and check if it selected or not
+    }
+}
+
+class DWTreeViewAdapter : RecyclerView.Adapter<DWTreeViewHolder> {
+    // Interface definition for a callback to be invoked when a DWTreeItem has been clicked and held.
+    interface OnTreeItemClickListener {
+        // Called when a DWTreeItem has been clicked.
+        // @param treeItem The current clicked node
+        // @param view The view that was clicked and held.
+        fun onTreeItemClick(treeItem: DWTreeItem?, view: View?)
+    }
+
+    // Interface definition for a callback to be invoked when a DWTreeItem has been clicked and held.
+    interface OnTreeItemLongClickListener {
+        // Called when a TreeItem has been clicked and held.
+        // @param treeItem The current clicked node
+        // @param view The view that was clicked and held.
+        // @return true if the callback consumed the long click, false otherwise.
+        fun onTreeItemLongClick(treeItem: DWTreeItem?, view: View?): Boolean
+    }
+
+    // Manager class for TreeItems to easily apply operations on them
+    // and to make it easy for testing and extending
+    private val treeItemManager: DWTreeItemManager
+
+    // A ViewHolder Factory to get DWTreeViewHolder object that mapped with layout
+    private val treeViewHolderFactory: DWTreeViewHolderFactory
+
+    // The current selected Tree Item
+    private var currentSelectedItem: DWTreeItem? = null
+
+    // Custom OnClickListener to be invoked when a DWTreeItem has been clicked.
+    private var treeItemClickListener: OnTreeItemClickListener? = null
+
+    // Custom OnLongClickListener to be invoked when a DWTreeItem has been clicked and hold.
+    private var treeItemLongClickListener: OnTreeItemLongClickListener? = null
+
+    // Simple constructor
+    // @param factory a View Holder Factory mapped with layout id's
+    constructor(factory: DWTreeViewHolderFactory) {
+        treeViewHolderFactory = factory
+        treeItemManager = DWTreeItemManager()
+    }
+
+    // Constructor used to accept user custom DWTreeItemManager class
+    // @param factory a View Holder Factory mapped with layout id's
+    // @param manager a custom tree node manager class
+    constructor(factory: DWTreeViewHolderFactory, manager: DWTreeItemManager) {
+        treeViewHolderFactory = factory
+        treeItemManager = manager
+    }
+
+    override fun onCreateViewHolder(parent: ViewGroup, layoutId: Int): DWTreeViewHolder {
+        val view = LayoutInflater.from(parent.context).inflate(layoutId, parent, false)
+        return treeViewHolderFactory.getTreeViewHolder(view, layoutId)
+    }
+
+    override fun onBindViewHolder(holder: DWTreeViewHolder, position: Int) {
+        val currentNode: DWTreeItem = treeItemManager.get(position)
+        holder.bindTreeItem(currentNode)
+        holder.itemView.setOnClickListener { v ->
+            // Handle node selection
+            currentNode.setSelected(true)
+            currentSelectedItem?.setSelected(false)
+            currentSelectedItem = currentNode
+
+            // Handle node expand and collapse event
+            if (!currentNode.getChildren().isEmpty()) {
+                val isNodeExpanded: Boolean = currentNode.isExpanded()
+                if (isNodeExpanded) collapseNode(currentNode) else expandNode(currentNode)
+                currentNode.setExpanded(!isNodeExpanded)
+            }
+            notifyDataSetChanged()
+
+            // Handle DWTreeItem click listener event
+            if (treeItemClickListener != null) treeItemClickListener!!.onTreeItemClick(
+                currentNode,
+                v
+            )
+        }
+
+        // Handle DWTreeItem long click listener event
+        holder.itemView.setOnLongClickListener { v ->
+            if (treeItemLongClickListener != null) {
+                return@setOnLongClickListener treeItemLongClickListener!!.onTreeItemLongClick(
+                    currentNode,
+                    v
+                )
+            }
+            true
+        }
+    }
+
+    override fun getItemViewType(position: Int): Int {
+        return treeItemManager.get(position).getLayoutId()
+    }
+
+    override fun getItemCount(): Int {
+        return treeItemManager.size()
+    }
+
+    // Collapsing node and all of his children
+    // @param node The node to collapse it
+    fun collapseNode(node: DWTreeItem) {
+        val position: Int = treeItemManager.collapseItem(node)
+        if (position != -1) {
+            notifyDataSetChanged()
+        }
+    }
+
+    // Expanding node and all of his children
+    // @param node The node to expand it
+    fun expandNode(node: DWTreeItem) {
+        val position: Int = treeItemManager.expandItem(node)
+        if (position != -1) {
+            notifyDataSetChanged()
+        }
+    }
+
+    // Collapsing full node branches
+    // @param node The node to collapse it
+    fun collapseNodeBranch(node: DWTreeItem) {
+        treeItemManager.collapseItemBranch(node)
+        notifyDataSetChanged()
+    }
+
+    // Expanding node full branches
+    // @param node The node to expand it
+    fun expandNodeBranch(node: DWTreeItem) {
+        treeItemManager.expandItemBranch(node)
+        notifyDataSetChanged()
+    }
+
+    // Expanding one node branch to until specific level
+    // @param node to expand branch of it until level
+    // @param level to expand node branches to it
+    fun expandNodeToLevel(node: DWTreeItem, level: Int) {
+        treeItemManager.expandItemToLevel(node, level)
+        notifyDataSetChanged()
+    }
+
+    // Expanding all tree nodes branches to until specific level
+    // @param level to expand all nodes branches to it
+    fun expandNodesAtLevel(level: Int) {
+        treeItemManager.expandItemsAtLevel(level)
+        notifyDataSetChanged()
+    }
+
+    // Collapsing all nodes in the tree with their children
+    fun collapseAll() {
+        treeItemManager.collapseAll()
+        notifyDataSetChanged()
+    }
+
+    // Expanding all nodes in the tree with their children
+    fun expandAll() {
+        treeItemManager.expandAll()
+        notifyDataSetChanged()
+    }
+
+    // Update the list of tree nodes
+    // @param treeItems The new tree nodes
+    fun updateTreeItems(treeItems: List<DWTreeItem>) {
+        treeItemManager.updateItems(treeItems)
+        notifyItemRangeInserted(0, treeItems.size)
+    }
+
+    // Register a callback to be invoked when this DWTreeItem is clicked
+    // @param listener The callback that will run
+    fun setTreeItemClickListener(listener: OnTreeItemClickListener?) {
+        treeItemClickListener = listener
+    }
+
+    // Register a callback to be invoked when this DWTreeItem is clicked and held
+    // @param listener The callback that will run
+    fun setTreeItemLongClickListener(listener: OnTreeItemLongClickListener?) {
+        treeItemLongClickListener = listener
+    }
+
+    // @return The current selected DWTreeItem
+    val selectedNode: DWTreeItem?
+        get() = currentSelectedItem
+}
 
 // Color Wheel section
 private val HUE_COLORS = intArrayOf(
@@ -4024,6 +4488,22 @@ class DWindows : AppCompatActivity() {
         }
         return combobox
     }
+
+    /*fun treeNew(cid: Int): RecyclerView?
+    {
+        var tree: RecyclerView? = null
+
+        waitOnUiThread {
+            tree = RecyclerView(this)
+            if(tree != null) {
+                val factory = DWTreeViewHolderFactory { v: View?, layout: Int -> DWTreeCustomViewHolder(v!!) }
+                val treeViewAdapter = DWTreeViewAdapter(factory)
+                tree!!.id = cid
+                tree!!.adapter = treeViewAdapter
+            }
+        }
+        return tree
+    }*/
 
     fun containerNew(cid: Int, multi: Int): ListView?
     {
