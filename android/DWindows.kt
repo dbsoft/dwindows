@@ -4489,21 +4489,25 @@ class DWindows : AppCompatActivity() {
         return combobox
     }
 
-    /*fun treeNew(cid: Int): RecyclerView?
+    fun treeNew(cid: Int): RecyclerView?
     {
         var tree: RecyclerView? = null
 
         waitOnUiThread {
             tree = RecyclerView(this)
             if(tree != null) {
-                val factory = DWTreeViewHolderFactory { v: View?, layout: Int -> DWTreeCustomViewHolder(v!!) }
+                val factory = object : DWTreeViewHolderFactory {
+                    override fun getTreeViewHolder(view: View?, layout: Int): DWTreeViewHolder {
+                        return DWTreeCustomViewHolder(view!!)
+                    }
+                }
                 val treeViewAdapter = DWTreeViewAdapter(factory)
                 tree!!.id = cid
                 tree!!.adapter = treeViewAdapter
             }
         }
         return tree
-    }*/
+    }
 
     fun containerNew(cid: Int, multi: Int): ListView?
     {
