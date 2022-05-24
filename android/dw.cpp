@@ -3284,7 +3284,19 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
  */
 HWND API dw_tree_new(ULONG cid)
 {
-    /* TODO: Implement the tree if possible. */
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID treeNew = env->GetMethodID(clazz, "treeNew",
+                                             "(I)Landroidx/recyclerview/widget/RecyclerView;");
+        // Call the method on the object
+        jobject result = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, treeNew, (int)cid), _DW_REFERENCE_WEAK);
+        return result;
+    }
     return nullptr;
 }
 
