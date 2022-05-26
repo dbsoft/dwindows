@@ -67,10 +67,6 @@ import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
 import kotlin.math.*
 
-import androidx.annotation.NonNull
-
-
-
 
 // Tree View section
 class DWTreeItem(value: Any, layoutId: Int) {
@@ -545,6 +541,18 @@ class DWTreeViewAdapter : RecyclerView.Adapter<DWTreeViewHolder> {
     // @return The current selected DWTreeItem
     val selectedNode: DWTreeItem?
         get() = currentSelectedItem
+}
+
+class DWTree(context: Context) : RecyclerView(context)
+{
+    var roots: MutableList<DWTreeItem> = ArrayList()
+
+    fun updateTree()
+    {
+        val treeViewAdapter = this.adapter as DWTreeViewAdapter
+
+        treeViewAdapter.updateTreeItems(roots)
+    }
 }
 
 // Color Wheel section
@@ -4489,24 +4497,43 @@ class DWindows : AppCompatActivity() {
         return combobox
     }
 
-    fun treeNew(cid: Int): RecyclerView?
+    fun treeNew(cid: Int): DWTree?
     {
-        var tree: RecyclerView? = null
+        var tree: DWTree? = null
 
         waitOnUiThread {
-            tree = RecyclerView(this)
+            tree = DWTree(this)
             if(tree != null) {
+                val dataArrayMap = SimpleArrayMap<String, Long>()
                 val factory = object : DWTreeViewHolderFactory {
                     override fun getTreeViewHolder(view: View?, layout: Int): DWTreeViewHolder {
                         return DWTreeCustomViewHolder(view!!)
                     }
                 }
                 val treeViewAdapter = DWTreeViewAdapter(factory)
+                tree!!.tag = dataArrayMap
                 tree!!.id = cid
                 tree!!.adapter = treeViewAdapter
             }
         }
         return tree
+    }
+
+    fun treeInsertAfter(tree: DWTree, title: String, icon: Drawable, parent: DWTreeItem?, itemdata: Long): DWTreeItem?
+    {
+        var treeitem: DWTreeItem? = null
+
+        waitOnUiThread {
+            var treeViewAdapter = tree.adapter as DWTreeViewAdapter
+
+            treeitem = DWTreeItem(title, 0)
+            if(parent == null) {
+                tree.roots.add(treeitem!!)
+            } else {
+                parent.addChild(treeitem!!)
+            }
+        }
+        return treeitem
     }
 
     fun containerNew(cid: Int, multi: Int): ListView?
