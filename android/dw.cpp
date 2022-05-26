@@ -3292,7 +3292,7 @@ HWND API dw_tree_new(ULONG cid)
         jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
         // Get the method that you want to call
         jmethodID treeNew = env->GetMethodID(clazz, "treeNew",
-                                             "(I)Landroidx/recyclerview/widget/RecyclerView;");
+                                             "(I)Lorg/dbsoft/dwindows/DWTree;");
         // Call the method on the object
         jobject result = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, treeNew, (int)cid), _DW_REFERENCE_WEAK);
         return result;
