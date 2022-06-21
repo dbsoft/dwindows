@@ -780,7 +780,7 @@ struct _dw_unix_shm {
     int size;
 };
 typedef void *HSHM;
-typedef void *HTREEITEM;
+typedef jobject HTREEITEM;
 typedef HWND HMENUI;
 typedef jobject HICN;
 
