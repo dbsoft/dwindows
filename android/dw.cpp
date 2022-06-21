@@ -402,7 +402,7 @@ int _dw_event_handler2(void **params)
                 char *text = (char *)params[1];
                 void *user = params[7];
 
-                retval = treeselectfunc(handler->window, params[0], text, handler->data, user);
+                retval = treeselectfunc(handler->window, (jobject)params[0], text, handler->data, user);
                 break;
             }
                 /* Set Focus event */
@@ -3314,7 +3314,22 @@ HWND API dw_tree_new(ULONG cid)
  */
 HTREEITEM API dw_tree_insert_after(HWND handle, HTREEITEM item, const char *title, HICN icon, HTREEITEM parent, void *itemdata)
 {
-    /* TODO: Implement the tree if possible. */
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // Construct the string
+        jstring jstr = env->NewStringUTF(title);
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID treeInsertAfter = env->GetMethodID(clazz, "treeInsertAfter",
+                                                     "(Lorg/dbsoft/dwindows/DWTree;Lorg/dbsoft/dwindows/DWTreeItem;Ljava/lang/String;Landroid/graphics/drawable/Drawable;Lorg/dbsoft/dwindows/DWTreeItem;J)Lorg/dbsoft/dwindows/DWTreeItem;");
+        // Call the method on the object
+        jobject result = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, treeInsertAfter, handle, item,
+                                                                         jstr, icon, parent, (jlong)itemdata), _DW_REFERENCE_WEAK);
+        return result;
+    }
     return nullptr;
 }
 
@@ -3331,8 +3346,7 @@ HTREEITEM API dw_tree_insert_after(HWND handle, HTREEITEM item, const char *titl
  */
 HTREEITEM API dw_tree_insert(HWND handle, const char *title, HICN icon, HTREEITEM parent, void *itemdata)
 {
-    /* TODO: Implement the tree if possible. */
-    return nullptr;
+    return dw_tree_insert_after(handle, nullptr, title, icon, parent, itemdata);
 }
 
 /*

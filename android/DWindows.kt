@@ -77,6 +77,10 @@ class DWTreeItem(value: Any, layoutId: Int) {
     private var level: Int
     private var isExpanded: Boolean
     private var isSelected: Boolean
+    var itemData: Long = 0
+    var itemIcon: Drawable? = null
+    var parentItem: DWTreeItem? = null
+
     fun addChild(child: DWTreeItem) {
         child.setParent(this)
         child.setLevel(level + 1)
@@ -4519,7 +4523,7 @@ class DWindows : AppCompatActivity() {
         return tree
     }
 
-    fun treeInsertAfter(tree: DWTree, title: String, icon: Drawable, parent: DWTreeItem?, itemdata: Long): DWTreeItem?
+    fun treeInsertAfter(tree: DWTree, item: DWTreeItem?, title: String, icon: Drawable, parent: DWTreeItem?, itemdata: Long): DWTreeItem?
     {
         var treeitem: DWTreeItem? = null
 
@@ -4531,7 +4535,10 @@ class DWindows : AppCompatActivity() {
                 tree.roots.add(treeitem!!)
             } else {
                 parent.addChild(treeitem!!)
+                treeitem!!.parentItem = parent
             }
+            treeitem!!.itemData = itemdata
+            treeitem!!.itemIcon = icon
         }
         return treeitem
     }
