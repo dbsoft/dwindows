@@ -69,17 +69,15 @@ import kotlin.math.*
 
 
 // Tree View section
-class DWTreeItem(value: Any, layoutId: Int) {
-    private var value: Any
+class DWTreeItem(title: String, icon: Drawable?, data: Long, parent: DWTreeItem?) {
+    private var title: String
     private var parent: DWTreeItem?
     private val children: LinkedList<DWTreeItem>
-    private val layoutId: Int
     private var level: Int
     private var isExpanded: Boolean
     private var isSelected: Boolean
-    var itemData: Long = 0
-    var itemIcon: Drawable? = null
-    var parentItem: DWTreeItem? = null
+    private var data: Long = 0
+    private var icon: Drawable? = null
 
     fun addChild(child: DWTreeItem) {
         child.setParent(this)
@@ -88,28 +86,40 @@ class DWTreeItem(value: Any, layoutId: Int) {
         updateNodeChildrenDepth(child)
     }
 
-    fun setValue(value: Any) {
-        this.value = value
+    fun setTitle(title: String) {
+        this.title = title
     }
 
-    fun getValue(): Any {
-        return value
+    fun getTitle(): String {
+        return title
     }
 
-    fun setParent(parent: DWTreeItem?) {
-        this.parent = parent
+    fun setIcon(icon: Drawable?) {
+        this.icon = icon
+    }
+
+    fun getIcon(): Drawable? {
+        return icon
+    }
+
+    fun setData(data: Long) {
+        this.data = data
+    }
+
+    fun getData(): Long {
+        return data
     }
 
     fun getParent(): DWTreeItem? {
         return parent
     }
 
-    fun getChildren(): LinkedList<DWTreeItem> {
-        return children
+    fun setParent(parent: DWTreeItem?) {
+        this.parent = parent
     }
 
-    fun getLayoutId(): Int {
-        return layoutId
+    fun getChildren(): LinkedList<DWTreeItem> {
+        return children
     }
 
     fun setLevel(level: Int) {
@@ -144,15 +154,17 @@ class DWTreeItem(value: Any, layoutId: Int) {
     }
 
     init {
-        this.value = value
-        parent = null
+        this.title = title
+        this.icon = icon
+        this.data = data
+        this.parent = parent
         children = LinkedList()
-        this.layoutId = layoutId
         level = 0
         isExpanded = false
         isSelected = false
     }
 }
+
 class DWTreeItemManager {
     // Collection to save the current tree nodes
     private val rootsNodes: LinkedList<DWTreeItem>
@@ -457,7 +469,8 @@ class DWTreeViewAdapter : RecyclerView.Adapter<DWTreeViewHolder> {
     }
 
     override fun getItemViewType(position: Int): Int {
-        return treeItemManager.get(position).getLayoutId()
+        // TODO: Fix this with no layoutId
+        return 0
     }
 
     override fun getItemCount(): Int {
@@ -528,6 +541,11 @@ class DWTreeViewAdapter : RecyclerView.Adapter<DWTreeViewHolder> {
     fun updateTreeItems(treeItems: List<DWTreeItem>) {
         treeItemManager.updateItems(treeItems)
         notifyItemRangeInserted(0, treeItems.size)
+    }
+
+    // Clear all the items from the tree
+    fun clear() {
+        treeItemManager.clearItems()
     }
 
     // Register a callback to be invoked when this DWTreeItem is clicked
@@ -4530,17 +4548,96 @@ class DWindows : AppCompatActivity() {
         waitOnUiThread {
             var treeViewAdapter = tree.adapter as DWTreeViewAdapter
 
-            treeitem = DWTreeItem(title, 0)
+            treeitem = DWTreeItem(title, icon, itemdata, parent)
             if(parent == null) {
                 tree.roots.add(treeitem!!)
             } else {
                 parent.addChild(treeitem!!)
-                treeitem!!.parentItem = parent
             }
-            treeitem!!.itemData = itemdata
-            treeitem!!.itemIcon = icon
         }
         return treeitem
+    }
+
+    fun treeGetTitle(tree: DWTree, item: DWTreeItem): String?
+    {
+        var retval: String? = null
+
+        waitOnUiThread {
+            retval = item.getTitle()
+        }
+        return retval
+    }
+
+    fun treeGetParent(tree: DWTree, item: DWTreeItem): DWTreeItem?
+    {
+        var retval: DWTreeItem? = null
+
+        waitOnUiThread {
+            retval = item.getParent()
+        }
+        return retval
+    }
+
+    fun treeItemChange(tree: DWTree, item: DWTreeItem, title: String?, icon: Drawable?)
+    {
+        waitOnUiThread {
+            if(title != null) {
+                item.setTitle(title)
+            }
+            if(icon != null) {
+                item.setIcon(icon)
+            }
+        }
+    }
+
+    fun treeItemSetData(tree: DWTree, item: DWTreeItem, data: Long)
+    {
+        waitOnUiThread {
+            item.setData(data)
+        }
+    }
+
+    fun treeItemGetData(tree: DWTree, item: DWTreeItem): Long
+    {
+        var retval: Long = 0
+
+        waitOnUiThread {
+            retval = item.getData()
+        }
+        return retval
+    }
+
+    fun treeItemSelect(tree: DWTree, item: DWTreeItem)
+    {
+        waitOnUiThread {
+            item.setSelected(true)
+        }
+    }
+
+    fun treeItemExpand(tree: DWTree, item: DWTreeItem, state: Int)
+    {
+        waitOnUiThread {
+            val treeViewAdapter = tree.adapter as DWTreeViewAdapter
+
+            if(state != 0) {
+                treeViewAdapter.expandNode(item)
+            } else {
+                treeViewAdapter.collapseNode(item)
+            }
+        }
+    }
+
+    fun treeItemDelete(tree: DWTree, item: DWTreeItem)
+    {
+        // TODO: Implement this
+    }
+
+    fun treeClear(tree: DWTree)
+    {
+        waitOnUiThread {
+            val treeViewAdapter = tree.adapter as DWTreeViewAdapter
+            treeViewAdapter.clear()
+        }
     }
 
     fun containerNew(cid: Int, multi: Int): ListView?

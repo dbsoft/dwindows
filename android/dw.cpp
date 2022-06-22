@@ -3316,7 +3316,7 @@ HTREEITEM API dw_tree_insert_after(HWND handle, HTREEITEM item, const char *titl
 {
     JNIEnv *env;
 
-    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    if(handle && title && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
         // Construct the string
         jstring jstr = env->NewStringUTF(title);
@@ -3359,7 +3359,24 @@ HTREEITEM API dw_tree_insert(HWND handle, const char *title, HICN icon, HTREEITE
  */
 char * API dw_tree_get_title(HWND handle, HTREEITEM item)
 {
-    /* TODO: Implement the tree if possible. */
+    JNIEnv *env;
+
+    if(handle && item && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        const char *utf8 = nullptr;
+
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID treeGetTitle = env->GetMethodID(clazz, "treeGetTitle",
+                                                   "(Lorg/dbsoft/dwindows/DWTree;Lorg/dbsoft/dwindows/DWTreeItem;)Ljava/lang/String;");
+        // Call the method on the object
+        jstring result = (jstring)_dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, treeGetTitle, handle, item), _DW_REFERENCE_NONE);
+        // Get the UTF8 string result
+        if(result)
+            utf8 = env->GetStringUTFChars(result, nullptr);
+        return utf8 ? strdup(utf8) : nullptr;
+    }
     return nullptr;
 }
 
@@ -3373,7 +3390,19 @@ char * API dw_tree_get_title(HWND handle, HTREEITEM item)
  */
 HTREEITEM API dw_tree_get_parent(HWND handle, HTREEITEM item)
 {
-    /* TODO: Implement the tree if possible. */
+    JNIEnv *env;
+
+    if(handle && item && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID treeGetParent = env->GetMethodID(clazz, "treeGetParent",
+                                                  "(Lorg/dbsoft/dwindows/DWTree;Lorg/dbsoft/dwindows/DWTreeItem;)Lorg/dbsoft/dwindows/DWTreeItem;");
+        // Call the method on the object
+        jobject result = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, treeGetParent, handle, item), _DW_REFERENCE_WEAK);
+        return result;
+    }
     return nullptr;
 }
 
@@ -3387,7 +3416,20 @@ HTREEITEM API dw_tree_get_parent(HWND handle, HTREEITEM item)
  */
 void API dw_tree_item_change(HWND handle, HTREEITEM item, const char *title, HICN icon)
 {
-    /* TODO: Implement the tree if possible. */
+    JNIEnv *env;
+
+    if(handle && item && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // Construct the string
+        jstring jstr = title ? env->NewStringUTF(title) : nullptr;
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID treeItemChange = env->GetMethodID(clazz, "treeItemChange",
+                                                    "(Lorg/dbsoft/dwindows/DWTree;Lorg/dbsoft/dwindows/DWTreeItem;Ljava/lang/String;Landroid/graphics/drawable/Drawable;)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, treeItemChange, handle, item, jstr, icon);
+    }
 }
 
 /*
@@ -3399,7 +3441,19 @@ void API dw_tree_item_change(HWND handle, HTREEITEM item, const char *title, HIC
  */
 void API dw_tree_item_set_data(HWND handle, HTREEITEM item, void *itemdata)
 {
-    /* TODO: Implement the tree if possible. */
+    JNIEnv *env;
+
+    if(handle && item && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        jlong data = (jlong)itemdata;
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID treeItemSetData = env->GetMethodID(clazz, "treeItemSetData",
+                                                     "(Lorg/dbsoft/dwindows/DWTree;Lorg/dbsoft/dwindows/DWTreeItem;J)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, treeItemSetData, handle, item, data);
+    }
 }
 
 /*
@@ -3412,8 +3466,20 @@ void API dw_tree_item_set_data(HWND handle, HTREEITEM item, void *itemdata)
  */
 void * API dw_tree_item_get_data(HWND handle, HTREEITEM item)
 {
-    /* TODO: Implement the tree if possible. */
-    return nullptr;
+    JNIEnv *env;
+    void *retval = nullptr;
+
+    if(handle && item && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID treeItemGetData = env->GetMethodID(clazz, "treeItemGetData",
+                                                     "(Lorg/dbsoft/dwindows/DWTree;Lorg/dbsoft/dwindows/DWTreeItem;)J");
+        // Call the method on the object
+        retval = (void *)env->CallLongMethod(_dw_obj, treeItemGetData, handle, item);
+    }
+    return retval;
 }
 
 /*
@@ -3424,7 +3490,18 @@ void * API dw_tree_item_get_data(HWND handle, HTREEITEM item)
  */
 void API dw_tree_item_select(HWND handle, HTREEITEM item)
 {
-    /* TODO: Implement the tree if possible. */
+    JNIEnv *env;
+
+    if(handle && item && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID treeItemSelect = env->GetMethodID(clazz, "treeItemSelect",
+                                                    "(Lorg/dbsoft/dwindows/DWTree;Lorg/dbsoft/dwindows/DWTreeItem;)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, treeItemSelect, handle, item);
+    }
 }
 
 /*
@@ -3434,7 +3511,35 @@ void API dw_tree_item_select(HWND handle, HTREEITEM item)
  */
 void API dw_tree_clear(HWND handle)
 {
-    /* TODO: Implement the tree if possible. */
+    JNIEnv *env;
+
+    if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID treeClear = env->GetMethodID(clazz, "treeClear",
+                                               "(Lorg/dbsoft/dwindows/DWTree;)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, treeClear, handle);
+    }
+}
+
+/* Internal function to set the expanded state */
+void _dw_tree_item_set_expanded(HWND handle, HTREEITEM item, jint state)
+{
+    JNIEnv *env;
+
+    if(handle && item && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID treeItemExpand = env->GetMethodID(clazz, "treeItemExpand",
+                                                    "(Lorg/dbsoft/dwindows/DWTree;Lorg/dbsoft/dwindows/DWTreeItem;I)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, treeItemExpand, handle, item, state);
+    }
 }
 
 /*
@@ -3445,7 +3550,7 @@ void API dw_tree_clear(HWND handle)
  */
 void API dw_tree_item_expand(HWND handle, HTREEITEM item)
 {
-    /* TODO: Implement the tree if possible. */
+    _dw_tree_item_set_expanded(handle, item, TRUE);
 }
 
 /*
@@ -3456,7 +3561,7 @@ void API dw_tree_item_expand(HWND handle, HTREEITEM item)
  */
 void API dw_tree_item_collapse(HWND handle, HTREEITEM item)
 {
-    /* TODO: Implement the tree if possible. */
+    _dw_tree_item_set_expanded(handle, item, FALSE);
 }
 
 /*
@@ -3467,6 +3572,18 @@ void API dw_tree_item_collapse(HWND handle, HTREEITEM item)
  */
 void API dw_tree_item_delete(HWND handle, HTREEITEM item)
 {
+    JNIEnv *env;
+
+    if(handle && item && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID treeItemDelete = env->GetMethodID(clazz, "treeItemDelete",
+                                                    "(Lorg/dbsoft/dwindows/DWTree;Lorg/dbsoft/dwindows/DWTreeItem;)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, treeItemDelete, handle, item);
+    }
 }
 
 /*
