@@ -2,64 +2,59 @@
 
 !if ![cmd /c os2\svnrev.cmd]
 !include SVN.REV
-!endif        
+!endif
 
 .all: \
-    .\dw.dll \
-    .\dwcompat.dll \
-    .\dwtest.exe
+	.\dw.dll \
+	.\dwcompat.dll \
+	.\dwtest.exe
 
 .c.obj:
-  icc.exe  /DOS2 /DTCPV40HDRS /DBUILD_DLL /DUNICODE /DVER_REV=$(VERREV) /I. /Tm+ /Tdc /Ss /V"Dynamic Windows Compatibility" /Ti /Gm /Gd- /G5 /Ge- /C /W3 %s
+	icc.exe  /DOS2 /DTCPV40HDRS /DBUILD_DLL /DUNICODE /DVER_REV=$(VERREV) /I. /Tm+ /Tdc /Ss /V"Dynamic Windows Compatibility" /Ti /Gm /Gd- /G5 /Ge- /C /W3 %s
 
 .\dw.dll: \
-    .\os2\dw.obj
-    @echo " Link::Linker "
-    icc.exe @<<
-    /B" /NOE /de /ST:32768 /nologo /li"
-    /Fe"dw.dll" os2\dw.def
-    .\dw.obj
-   so32dll.lib
-   tcp32dll.lib
-   libuls.lib
-   libconv.lib
-   unikbd.lib
+	.\os2\dw.obj
+	@echo " Link::Linker "
+	icc.exe @<<
+	/B" /NOE /de /ST:32768 /nologo /li"
+	/Fe"dw.dll" os2\dw.def
+	.\dw.obj
+	so32dll.lib
+	tcp32dll.lib
+	libuls.lib
+	libconv.lib
+	unikbd.lib
 <<
-  IMPLIB DW.LIB OS2\DW.DEF
-  copy dw.lib lib\dw.lib
-  copy dw.dll dll\dw.dll
+	IMPLIB DW.LIB OS2\DW.DEF
 
 .\dwcompat.dll: \
-    .\os2\dirent.obj \
-    .\dwcompat.obj
-    @echo " Link::Linker "
-    icc.exe @<<
-    /B" /NOE /de /ST:32768 /nologo /li"
-    /Fe"dwcompat.dll" os2\dwcompat.def
-    .\dirent.obj
-    .\dwcompat.obj
-   so32dll.lib
-   tcp32dll.lib
+	.\os2\dirent.obj \
+	.\dwcompat.obj
+	@echo " Link::Linker "
+	icc.exe @<<
+	/B" /NOE /de /ST:32768 /nologo /li"
+	/Fe"dwcompat.dll" os2\dwcompat.def
+	.\dirent.obj
+	.\dwcompat.obj
+	so32dll.lib
+	tcp32dll.lib
 <<
-  IMPLIB DWCOMPAT.LIB OS2\DWCOMPAT.DEF
-  copy dwcompat.lib lib\dwcompat.lib
-  copy dwcompat.dll dll\dwcompat.dll
+	IMPLIB DWCOMPAT.LIB OS2\DWCOMPAT.DEF
 
 dwtest.obj:
 	icc /Ti /DOS2 /DTCPV40HDRS /Sp1 /I. /Sm /Ss /Q /Gm /Gt /C dwtest.c
 dwtest.exe:  dwtest.obj
 	icc @<<
-	 /B" /DE /optfunc /pm:pm"
-	 /Fedwtest.exe
-	 lib\dw.lib lib\dwcompat.lib
-	 dwtest.obj
-	 os2\dwtest.def
+	/B" /DE /optfunc /pm:pm"
+	/Fedwtest.exe
+	dw.lib dwcompat.lib
+	dwtest.obj
+	os2\dwtest.def
 <<
 clean :
-        @if exist *.obj del *.obj
-        @if exist *.map del *.map
-        @if exist *.lib del *.lib
-        @if exist *.dll del *.dll
-        @if exist *.exe del *.exe
-        @if exist *.REV del *.REV
-
+	@if exist *.obj del *.obj
+	@if exist *.map del *.map
+	@if exist *.lib del *.lib
+	@if exist *.dll del *.dll
+	@if exist *.exe del *.exe
+	@if exist *.REV del *.REV

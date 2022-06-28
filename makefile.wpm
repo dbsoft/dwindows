@@ -17,22 +17,18 @@ all:	dw.dll dwcompat.dll dwtest.exe
 
 dwcompat.dll: dirent.obj dwcompat.obj
 	wlink @os2\dwcompat.lnk name dwcompat.dll system os2v2_dll d a library $(TLKTLIB)\so32dll,$(TLKTLIB)\tcp32dll option implib=dwcompat option map option symf f $[@ f dwcompat
-	copy dwcompat.lib lib
-        copy dwcompat.dll dll
 
 dirent.obj:
 	wcc386 $(CFLAGS) os2\dirent.c
 
 dw.dll: dw.obj
 	wlink @os2\dw.lnk name dw.dll system os2v2_dll d a library $(TLKTLIB)\libuls,$(TLKTLIB)\libconv,$(TLKTLIB)\unikbd option implib=dw option map option symf f $[@
-	copy dw.lib lib
-        copy dw.dll dll
 
 dw.obj: os2\dw.c
 	wcc386 $(CFLAGS) os2\dw.c
 
 dwtest.exe: dwtest.obj
-	wlink name dwtest.exe system os2v2_pm d a library lib\dw.lib option map option symf f $[@
+	wlink name dwtest.exe system os2v2_pm d a library dw.lib option map option symf f $[@
 
 dwtest.obj:
 	wcc386 /DOS2 -i=os2 -i=$(OS22_H) -bm -bt=OS2 -zq -d2 -sg dwtest.c
@@ -44,5 +40,4 @@ clean:
 	@if exist *.lib del *.lib
 	@if exist *.dll del *.dll
 	@if exist *.exe del *.exe
-	@if exist lib\*.lib del lib\*.lib
 

@@ -31,16 +31,12 @@ dw.dll:  os2\dw.c os2\dw.def
 
 dw.lib: os2\dw.def
 	emximp -o dw.lib os2\dw.def
-	copy dw.dll dll
-	copy dw.lib lib
 
 dwcompat.dll:  $(COMPATOBJECTS) os2\dwcompat.def
 	$(CC) $(CFLAGS) $(DEFS) -o dwcompat.dll $(COMPATOBJECTS) $(LDFLAGS) -lsocket os2/dwcompat.def
 
 dwcompat.lib: os2\dwcompat.def
 	emximp -o dwcompat.lib os2\dwcompat.def
-	copy dwcompat.dll dll
-	copy dwcompat.lib lib
 
 dwtest.exe: dwtest.o dw.lib dwcompat.lib
 	$(CC) $(CFLAGS) -Zomf -Zmt -static-libgcc -Zlinker /pm:pm -o dwtest.exe dwtest.o -Llib -ldw -ldwcompat os2/dwtest.def

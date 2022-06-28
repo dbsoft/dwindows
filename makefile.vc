@@ -6,23 +6,6 @@ VER = $(DW_MAJOR_VERSION)$(DW_MINOR_VERSION)
 VERDOT = $(DW_MAJOR_VERSION).$(DW_MINOR_VERSION)
 VERREV = 0
 
-#
-# Setup the source and destination directories
-#
-!if "$(DWINDOWS_SRCDIR)" == ""
-SRCDIR=.
-!else
-SRCDIR=$(DWINDOWS_SRCDIR)
-!endif
-
-!if "$(DWLIBDIR)" == ""
-DWLIBDIR=.\lib
-!endif
-
-!if "$(DWDLLDIR)" == ""
-DWDLLDIR=.\dll
-!endif
-
 # Configure alternate compiler based on Clang/LLVM
 !if "$(CLANG)" == "Y"
 WLIB=llvm-lib.exe
@@ -50,6 +33,19 @@ TARGET_CPU=$(VSCMD_ARG_TGT_ARCH)
 !endif
 !endif
 
+#
+# Setup the source and destination directories
+#
+!if "$(DWINDOWS_SRCDIR)" == ""
+SRCDIR=.
+!else
+SRCDIR=$(DWINDOWS_SRCDIR)
+!endif
+
+!if "$(DWLIBDIR)" == ""
+DWLIBDIR=$(SRCDIR)
+!endif
+
 !if "$(TARGET_CPU)" == "x86"
 PLATFORM_DEF = -DWIN32
 PLATFORM_NAME = win32
@@ -75,14 +71,12 @@ LINK_DEBUG = -release
 !message Revision is [$(VERREV)]
 SVNVERSION=-DVER_REV=$(VERREV)
 !else
-
 # Check the Mercurial revision number if possible
 !if ![hg log -r . --template="VER_REV={rev}" > HG.REV]
 !include HG.REV
 !message Revision is [$(VER_REV)]
 SVNVERSION=-DVER_REV=$(VER_REV)
 !endif
-
 !endif
 
 #
@@ -133,14 +127,13 @@ OBJS2 = dwcompat.obj dirent.obj
 
 all: dw dwcompat dwtest
 
-
-
 clean:
 	-erase *.dll
 	-erase *.exe
 	-erase *.opt
 	-erase *.lib
 	-erase *.obj
+	-erase *.o
 	-erase *.map
 	-erase *.pdb
 	-erase *.ilk
@@ -148,11 +141,14 @@ clean:
 	-erase *.REV
 	-erase *~
 
+distclean: clean
+	-rd /s /q  $(DWLIBDIR)\x86
+	-rd /s /q  $(DWLIBDIR)\x64
+	-erase readme-win.txt
+
 dw: dw.dll
 
 dw.dll: $(OBJS) $(DEFFILE)
-	-md $(DWLIBDIR)
-	-md $(DWDLLDIR)
 	$(LINK) @<<
 -out:$(@) -def:$(DEFFILE)
 $(LINKFLAGS) $(DLLLINKFLAGS)
@@ -162,8 +158,12 @@ $(LIBS)
 	$(WLIB) -def:$(DEFFILE) -machine:$(TARGET_CPU) -out:dw.lib
 	mt.exe -manifest dw.dll.manifest $(SRCDIR)\win\dw.dll.$(TARGET_CPU).manifest -outputresource:dw.dll;2
 	-erase dw.dll.manifest
-	copy dw.lib $(DWLIBDIR)\dw.lib
-	copy dw.dll $(DWDLLDIR)\dw.dll
+	-md $(DWLIBDIR)\$(TARGET_CPU)
+	copy dw.lib $(DWLIBDIR)\$(TARGET_CPU)\dw.lib
+	copy dw.dll $(DWLIBDIR)\$(TARGET_CPU)\dw.dll
+!if exists($(WEBVIEW2LOADER))
+	copy $(WEBVIEW2LOADER) $(DWLIBDIR)\$(TARGET_CPU)\WebView2Loader.dll
+!endif
 
 dwcompat: dwcompat.dll
 
@@ -177,11 +177,9 @@ $(LIBS)
 	$(WLIB) -def:$(DEFFILE2) -machine:$(TARGET_CPU) -out:dwcompat.lib
 	mt.exe -manifest dwcompat.dll.manifest -outputresource:dwcompat.dll;2
 	-erase dwcompat.dll.manifest
-	copy dwcompat.lib $(DWLIBDIR)\dwcompat.lib
-	copy dwcompat.dll $(DWDLLDIR)\dwcompat.dll
-!if exists($(WEBVIEW2LOADER))
-	copy $(WEBVIEW2LOADER) $(DWDLLDIR)\WebView2Loader.dll
-!endif
+	-md $(DWLIBDIR)\$(TARGET_CPU)
+	copy dwcompat.lib $(DWLIBDIR)\$(TARGET_CPU)\dwcompat.lib
+	copy dwcompat.dll $(DWLIBDIR)\$(TARGET_CPU)\dwcompat.dll
 
 dw.obj: $(SRCDIR)\win\dw.c
 	$(CC) $(CFLAGS) $(CFLAGS_DEBUG) $(SRCDIR)\win\dw.c
@@ -219,4 +217,4 @@ dwtest.exe: dwtest.obj
 
 zip: dw.dll
 	copy win\readme-win.txt .
-	zip dwindows-$(PLATFORM_NAME)-$(VERDOT).zip readme-win.txt readme.txt dw.dll dwcompat.dll dw.lib dwcompat.lib dw.h dwcompat.h
+	zip dwindows-win-$(VERDOT).zip readme-win.txt readme.txt x64\dw.dll x64\dwcompat.dll x64\dw.lib x64\dwcompat.lib x86\dw.dll x86\dwcompat.dll x86\dw.lib x86\dwcompat.lib dw.h dwcompat.h
