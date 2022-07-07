@@ -391,11 +391,11 @@ open class DWTreeViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) 
         val padding: Int = node.getLevel() * nodePadding
         val treeItemView = itemView as DWTreeItemView
 
-        itemView.setPadding(
+        treeItemView.setPadding(
             padding,
-            itemView.paddingTop,
-            itemView.paddingRight,
-            itemView.paddingBottom
+            treeItemView.paddingTop,
+            treeItemView.paddingRight,
+            treeItemView.paddingBottom
         )
         treeItemView.textView.text = node.getTitle()
         treeItemView.iconView.setImageDrawable(node.getIcon())
@@ -477,7 +477,6 @@ class DWTreeViewAdapter : RecyclerView.Adapter<DWTreeViewHolder> {
 
     override fun onCreateViewHolder(parent: ViewGroup, layoutId: Int): DWTreeViewHolder {
         val view = DWTreeItemView(parent.context)
-        parent.addView(view)
         return treeViewHolderFactory.getTreeViewHolder(view, layoutId)
     }
 
@@ -518,8 +517,7 @@ class DWTreeViewAdapter : RecyclerView.Adapter<DWTreeViewHolder> {
     }
 
     override fun getItemViewType(position: Int): Int {
-        // TODO: Fix this with no layoutId
-        return 0
+        return 1
     }
 
     override fun getItemCount(): Int {
@@ -595,6 +593,7 @@ class DWTreeViewAdapter : RecyclerView.Adapter<DWTreeViewHolder> {
     // Clear all the items from the tree
     fun clear() {
         treeItemManager.clearItems()
+        notifyDataSetChanged()
     }
 
     // Register a callback to be invoked when this DWTreeItem is clicked
@@ -623,6 +622,7 @@ class DWTree(context: Context) : RecyclerView(context)
         val treeViewAdapter = this.adapter as DWTreeViewAdapter
 
         treeViewAdapter.updateTreeItems(roots)
+        treeViewAdapter.notifyDataSetChanged()
     }
 }
 
@@ -4604,7 +4604,7 @@ class DWindows : AppCompatActivity() {
             } else {
                 parent.addChild(treeitem!!)
             }
-            treeViewAdapter.notifyDataSetChanged()
+            tree.updateTree()
         }
         return treeitem
     }
@@ -4683,7 +4683,6 @@ class DWindows : AppCompatActivity() {
             } else {
                 treeViewAdapter.collapseNode(item)
             }
-            treeViewAdapter.notifyDataSetChanged()
         }
     }
 
@@ -4697,7 +4696,6 @@ class DWindows : AppCompatActivity() {
         waitOnUiThread {
             val treeViewAdapter = tree.adapter as DWTreeViewAdapter
             treeViewAdapter.clear()
-            treeViewAdapter.notifyDataSetChanged()
         }
     }
 
