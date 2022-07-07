@@ -52,6 +52,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.view.MenuCompat
+import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.tabs.TabLayout
@@ -476,6 +477,7 @@ class DWTreeViewAdapter : RecyclerView.Adapter<DWTreeViewHolder> {
 
     override fun onCreateViewHolder(parent: ViewGroup, layoutId: Int): DWTreeViewHolder {
         val view = DWTreeItemView(parent.context)
+        parent.addView(view)
         return treeViewHolderFactory.getTreeViewHolder(view, layoutId)
     }
 
@@ -4583,6 +4585,7 @@ class DWindows : AppCompatActivity() {
                 tree!!.tag = dataArrayMap
                 tree!!.id = cid
                 tree!!.adapter = treeViewAdapter
+                tree!!.layoutManager = LinearLayoutManager(this)
             }
         }
         return tree
@@ -4601,6 +4604,7 @@ class DWindows : AppCompatActivity() {
             } else {
                 parent.addChild(treeitem!!)
             }
+            treeViewAdapter.notifyDataSetChanged()
         }
         return treeitem
     }
@@ -4628,11 +4632,19 @@ class DWindows : AppCompatActivity() {
     fun treeItemChange(tree: DWTree, item: DWTreeItem, title: String?, icon: Drawable?)
     {
         waitOnUiThread {
+            var changed = false
+
             if(title != null) {
                 item.setTitle(title)
+                changed = true
             }
             if(icon != null) {
                 item.setIcon(icon)
+                changed = true
+            }
+            if(changed == true) {
+                var treeViewAdapter = tree.adapter as DWTreeViewAdapter
+                treeViewAdapter.notifyDataSetChanged()
             }
         }
     }
@@ -4671,6 +4683,7 @@ class DWindows : AppCompatActivity() {
             } else {
                 treeViewAdapter.collapseNode(item)
             }
+            treeViewAdapter.notifyDataSetChanged()
         }
     }
 
@@ -4684,6 +4697,7 @@ class DWindows : AppCompatActivity() {
         waitOnUiThread {
             val treeViewAdapter = tree.adapter as DWTreeViewAdapter
             treeViewAdapter.clear()
+            treeViewAdapter.notifyDataSetChanged()
         }
     }
 
