@@ -165,6 +165,40 @@ class DWTreeItem(title: String, icon: Drawable?, data: Long, parent: DWTreeItem?
     }
 }
 
+
+class DWTreeItemView : LinearLayout {
+    var expandCollapseView: ImageView = ImageView(context)
+    var iconView: ImageView = ImageView(context)
+    var textView: TextView = TextView(context)
+
+    fun setup(context: Context?) {
+        var params = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+        this.orientation = LinearLayout.HORIZONTAL
+        params.gravity = Gravity.CENTER
+        expandCollapseView.layoutParams = params
+        expandCollapseView.id = View.generateViewId()
+        this.addView(expandCollapseView)
+        iconView.layoutParams = params
+        iconView.id = View.generateViewId()
+        this.addView(iconView)
+        params = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+        params.gravity = Gravity.CENTER
+        textView.layoutParams = params
+        textView.id = View.generateViewId()
+        this.addView(textView)
+    }
+
+    constructor(context: Context?) : super(context) {
+        setup(context)
+    }
+    constructor(context: Context?, attrs: AttributeSet?) : super(context, attrs) {
+        setup(context)
+    }
+    constructor(context: Context?, attrs: AttributeSet?, defStyle: Int) : super(context, attrs, defStyle) {
+        setup(context)
+    }
+}
+
 class DWTreeItemManager {
     // Collection to save the current tree nodes
     private val rootsNodes: LinkedList<DWTreeItem>
@@ -354,12 +388,25 @@ open class DWTreeViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) 
     // @param node the current DWTreeItem
     fun bindTreeItem(node: DWTreeItem) {
         val padding: Int = node.getLevel() * nodePadding
+        val treeItemView = itemView as DWTreeItemView
+
         itemView.setPadding(
             padding,
             itemView.paddingTop,
             itemView.paddingRight,
             itemView.paddingBottom
         )
+        treeItemView.textView.text = node.getTitle()
+        treeItemView.iconView.setImageDrawable(node.getIcon())
+        if(node.getChildren().size == 0) {
+            treeItemView.expandCollapseView.setImageDrawable(null)
+        } else {
+            if(node.isExpanded()) {
+                treeItemView.expandCollapseView.setImageResource(R.drawable.star_on)
+            } else {
+                treeItemView.expandCollapseView.setImageResource(R.drawable.star_off)
+            }
+        }
     }
 }
 
@@ -428,7 +475,7 @@ class DWTreeViewAdapter : RecyclerView.Adapter<DWTreeViewHolder> {
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, layoutId: Int): DWTreeViewHolder {
-        val view = LayoutInflater.from(parent.context).inflate(layoutId, parent, false)
+        val view = DWTreeItemView(parent.context)
         return treeViewHolderFactory.getTreeViewHolder(view, layoutId)
     }
 
