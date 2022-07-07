@@ -403,9 +403,9 @@ open class DWTreeViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) 
             treeItemView.expandCollapseView.setImageDrawable(null)
         } else {
             if(node.isExpanded()) {
-                treeItemView.expandCollapseView.setImageResource(R.drawable.star_on)
+                treeItemView.expandCollapseView.setImageResource(R.drawable.ic_menu_more)
             } else {
-                treeItemView.expandCollapseView.setImageResource(R.drawable.star_off)
+                treeItemView.expandCollapseView.setImageResource(R.drawable.ic_menu_add)
             }
         }
     }
