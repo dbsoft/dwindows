@@ -167,10 +167,34 @@ class DWTreeItem(title: String, icon: Drawable?, data: Long, parent: DWTreeItem?
 }
 
 
-class DWTreeItemView : LinearLayout {
+class DWTreeItemView : LinearLayout, Checkable {
+    private var mChecked = false
+    private var colorSelection = Color.DKGRAY
     var expandCollapseView: ImageView = ImageView(context)
     var iconView: ImageView = ImageView(context)
     var textView: TextView = TextView(context)
+
+    fun updateBackground() {
+        if(mChecked) {
+            this.setBackgroundColor(colorSelection)
+        } else {
+            this.setBackgroundColor(Color.TRANSPARENT)
+        }
+    }
+
+    override fun setChecked(b: Boolean) {
+        mChecked = b
+        updateBackground()
+    }
+
+    override fun isChecked(): Boolean {
+        return mChecked
+    }
+
+    override fun toggle() {
+        mChecked = !mChecked
+        updateBackground()
+    }
 
     fun setup(context: Context?) {
         var params = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT)
@@ -187,6 +211,7 @@ class DWTreeItemView : LinearLayout {
         textView.layoutParams = params
         textView.id = View.generateViewId()
         this.addView(textView)
+        colorSelection = context?.let { getPlatformSelectionColor(it) }!!
     }
 
     constructor(context: Context?) : super(context) {
@@ -427,23 +452,6 @@ class DWTreeCustomViewHolder(itemView: View) : DWTreeViewHolder(itemView) {
 }
 
 class DWTreeViewAdapter : RecyclerView.Adapter<DWTreeViewHolder> {
-    // Interface definition for a callback to be invoked when a DWTreeItem has been clicked and held.
-    interface OnTreeItemClickListener {
-        // Called when a DWTreeItem has been clicked.
-        // @param treeItem The current clicked node
-        // @param view The view that was clicked and held.
-        fun onTreeItemClick(treeItem: DWTreeItem?, view: View?)
-    }
-
-    // Interface definition for a callback to be invoked when a DWTreeItem has been clicked and held.
-    interface OnTreeItemLongClickListener {
-        // Called when a TreeItem has been clicked and held.
-        // @param treeItem The current clicked node
-        // @param view The view that was clicked and held.
-        // @return true if the callback consumed the long click, false otherwise.
-        fun onTreeItemLongClick(treeItem: DWTreeItem?, view: View?): Boolean
-    }
-
     // Manager class for TreeItems to easily apply operations on them
     // and to make it easy for testing and extending
     private val treeItemManager: DWTreeItemManager
@@ -455,10 +463,13 @@ class DWTreeViewAdapter : RecyclerView.Adapter<DWTreeViewHolder> {
     private var currentSelectedItem: DWTreeItem? = null
 
     // Custom OnClickListener to be invoked when a DWTreeItem has been clicked.
-    private var treeItemClickListener: OnTreeItemClickListener? = null
+    private var treeItemClickListener: ((DWTreeItem?, View?) -> Boolean)? = null
 
     // Custom OnLongClickListener to be invoked when a DWTreeItem has been clicked and hold.
-    private var treeItemLongClickListener: OnTreeItemLongClickListener? = null
+    private var treeItemLongClickListener: ((DWTreeItem?, View?) -> Boolean)? = null
+
+    // Custom OnListener to be invoked when a DWTreeItem has been expanded.
+    private var treeItemExpandListener: ((DWTreeItem?, View?) -> Boolean)? = null
 
     // Simple constructor
     // @param factory a View Holder Factory mapped with layout id's
@@ -494,11 +505,16 @@ class DWTreeViewAdapter : RecyclerView.Adapter<DWTreeViewHolder> {
                 val isNodeExpanded: Boolean = currentNode.isExpanded()
                 if (isNodeExpanded) collapseNode(currentNode) else expandNode(currentNode)
                 currentNode.setExpanded(!isNodeExpanded)
+                // Handle DWTreeItem expand listener event
+                if (!isNodeExpanded && treeItemExpandListener != null) treeItemExpandListener!!(
+                    currentNode,
+                    v
+                )
             }
             notifyDataSetChanged()
 
             // Handle DWTreeItem click listener event
-            if (treeItemClickListener != null) treeItemClickListener!!.onTreeItemClick(
+            if (treeItemClickListener != null) treeItemClickListener!!(
                 currentNode,
                 v
             )
@@ -507,7 +523,7 @@ class DWTreeViewAdapter : RecyclerView.Adapter<DWTreeViewHolder> {
         // Handle DWTreeItem long click listener event
         holder.itemView.setOnLongClickListener { v ->
             if (treeItemLongClickListener != null) {
-                return@setOnLongClickListener treeItemLongClickListener!!.onTreeItemLongClick(
+                return@setOnLongClickListener treeItemLongClickListener!!(
                     currentNode,
                     v
                 )
@@ -598,14 +614,20 @@ class DWTreeViewAdapter : RecyclerView.Adapter<DWTreeViewHolder> {
 
     // Register a callback to be invoked when this DWTreeItem is clicked
     // @param listener The callback that will run
-    fun setTreeItemClickListener(listener: OnTreeItemClickListener?) {
+    fun setTreeItemClickListener(listener: (DWTreeItem?, View?) -> Boolean) {
         treeItemClickListener = listener
     }
 
     // Register a callback to be invoked when this DWTreeItem is clicked and held
     // @param listener The callback that will run
-    fun setTreeItemLongClickListener(listener: OnTreeItemLongClickListener?) {
+    fun setTreeItemLongClickListener(listener: (DWTreeItem?, View?) -> Boolean) {
         treeItemLongClickListener = listener
+    }
+
+    // Register a callback to be invoked when this DWTreeItem is expanded
+    // @param listener The callback that will run
+    fun setTreeItemExpandListener(listener: (DWTreeItem?, View?) -> Boolean) {
+        treeItemExpandListener = listener
     }
 
     // @return The current selected DWTreeItem
@@ -4586,6 +4608,26 @@ class DWindows : AppCompatActivity() {
                 tree!!.id = cid
                 tree!!.adapter = treeViewAdapter
                 tree!!.layoutManager = LinearLayoutManager(this)
+                treeViewAdapter.setTreeItemLongClickListener { treeitem: DWTreeItem?, view: View? ->
+                    if(treeitem != null) {
+                        eventHandlerTree(tree!!, DWEvent.ITEM_CONTEXT, treeitem,
+                            treeitem.getTitle(), treeitem.getData())
+                    }
+                    true
+                }
+                treeViewAdapter.setTreeItemClickListener { treeitem: DWTreeItem?, view: View? ->
+                    if(treeitem != null) {
+                        eventHandlerTree(tree!!, DWEvent.ITEM_SELECT, treeitem,
+                            treeitem.getTitle(), treeitem.getData())
+                    }
+                    true
+                }
+                treeViewAdapter.setTreeItemExpandListener { treeitem: DWTreeItem?, view: View? ->
+                    if(treeitem != null) {
+                        eventHandlerTreeItem(tree!!, DWEvent.TREE_EXPAND, treeitem)
+                    }
+                    true
+                }
             }
         }
         return tree
@@ -6469,6 +6511,8 @@ class DWindows : AppCompatActivity() {
     external fun eventHandlerTimer(sigfunc: Long, data: Long): Int
     external fun eventHandlerHTMLResult(obj1: View, message: Int, result: String, data: Long)
     external fun eventHandlerContainer(obj1: View, message: Int, title: String?, x: Int, y: Int, data: Long)
+    external fun eventHandlerTree(obj1: View, message: Int, item: DWTreeItem?, title: String?, data: Long)
+    external fun eventHandlerTreeItem(obj1: View, message: Int, item: DWTreeItem?)
     external fun eventHandlerKey(obj1: View, message: Int, character: Int, vk: Int, modifiers: Int, str: String)
 
     companion object
