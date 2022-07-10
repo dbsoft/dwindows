@@ -610,10 +610,10 @@ Java_org_dbsoft_dwindows_DWindows_eventHandler(JNIEnv* env, jobject obj, jobject
     const char *utf81 = str1 ? env->GetStringUTFChars(str1, nullptr) : nullptr;
     const char *utf82 = str2 ? env->GetStringUTFChars(str2, nullptr) : nullptr;
 #endif
-    void *params[_DW_EVENT_PARAM_SIZE] = { (void *)obj2, (void *)utf81, (void *)utf82,
-                                            DW_INT_TO_POINTER(inta), DW_INT_TO_POINTER(intb),
-                                            DW_INT_TO_POINTER(intc), DW_INT_TO_POINTER(intd), nullptr,
-                                            DW_INT_TO_POINTER(message), nullptr };
+    void *params[_DW_EVENT_PARAM_SIZE] = { DW_POINTER(obj2), DW_POINTER(utf81), DW_POINTER(utf82),
+                                           DW_INT_TO_POINTER(inta), DW_INT_TO_POINTER(intb),
+                                           DW_INT_TO_POINTER(intc), DW_INT_TO_POINTER(intd), nullptr,
+                                           DW_INT_TO_POINTER(message), nullptr };
 
     return _dw_event_handler(obj1, params);
 }
@@ -775,7 +775,30 @@ Java_org_dbsoft_dwindows_DWindows_eventHandlerContainer(JNIEnv* env, jobject obj
     const char *title = jtitle ? env->GetStringUTFChars(jtitle, nullptr) : nullptr;
 #endif
     void *params[_DW_EVENT_PARAM_SIZE] = { nullptr, DW_POINTER(title), nullptr, DW_INT_TO_POINTER(x), DW_INT_TO_POINTER(y),
-                                           nullptr, nullptr, (void *)data, DW_INT_TO_POINTER(message), nullptr };
+                                           nullptr, nullptr, DW_POINTER(data), DW_INT_TO_POINTER(message), nullptr };
+
+    _dw_event_handler(obj1, params);
+}
+
+JNIEXPORT void JNICALL
+Java_org_dbsoft_dwindows_DWindows_eventHandlerTree(JNIEnv* env, jobject obj, jobject obj1,
+                                                   jint message, jobject item, jstring jtitle, jlong data) {
+#ifdef _DW_EVENT_THREADING
+    char *title = jtitle ? strdup(env->GetStringUTFChars(jtitle, nullptr)) : nullptr;
+#else
+    const char *title = jtitle ? env->GetStringUTFChars(jtitle, nullptr) : nullptr;
+#endif
+    void *params[_DW_EVENT_PARAM_SIZE] = { DW_POINTER(item), DW_POINTER(title), nullptr, nullptr, nullptr,
+                                           nullptr, nullptr, DW_POINTER(data), DW_INT_TO_POINTER(message), nullptr };
+
+    _dw_event_handler(obj1, params);
+}
+
+JNIEXPORT void JNICALL
+Java_org_dbsoft_dwindows_DWindows_eventHandlerTreeItem(JNIEnv* env, jobject obj, jobject obj1,
+                                                   jint message, jobject item) {
+    void *params[_DW_EVENT_PARAM_SIZE] = { DW_POINTER(item), nullptr, nullptr, nullptr, nullptr,
+                                           nullptr, nullptr, nullptr, DW_INT_TO_POINTER(message), nullptr };
 
     _dw_event_handler(obj1, params);
 }
