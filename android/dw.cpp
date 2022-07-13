@@ -1278,7 +1278,52 @@ char * API dw_file_browse(const char *title, const char *defpath, const char *ex
         // Call the method on the object
         jstring jresult = (jstring)_dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, fileBrowse, jstr, path, jext, flags), _DW_REFERENCE_NONE);
         if(jresult)
-            retval = strdup(env->GetStringUTFChars(jresult, nullptr));
+        {
+            const char *str = env->GetStringUTFChars(jresult, nullptr);
+            if(str)
+            {
+                size_t len = strlen(str);
+
+                // Allocate a string with an extra two bytes... so we can
+                // check for the trailing \n in dw_file_open() without a
+                // memory violation.
+                if((retval = (char *)calloc(1, len + 2)))
+                {
+                    char *tmp;
+
+                    strncpy(retval, str, len);
+                    // If we have a URI encoded, find the double \n and replace the
+                    // first \n with NULL so the string still looks like a normal path.
+                    tmp = strstr(retval, "\n\n");
+                    if (tmp)
+                        *tmp = 0;
+                }
+            }
+        }
+    }
+    return retval;
+}
+
+int API dw_file_open(const char *path, int mode)
+{
+    JNIEnv *env;
+    int retval = -1;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // dw_file_browse saves a second string with the URI after the path
+        // So find the end of the string and check for a trailing \n
+        // The URI will be after that if found.
+        const char *uri = strchr(path, 0);
+        jstring jstr = env->NewStringUTF((uri && *(uri+1) == '\n') ? (uri+2) : path);
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID fileOpen = env->GetMethodID(clazz, "fileOpen",
+                                              "(Ljava/lang/String;I)I");
+        // Call the method on the object
+        retval = (int)env->CallIntMethod(_dw_obj, fileOpen, jstr, (jint)mode);
+        _dw_jni_check_exception(env);
     }
     return retval;
 }
@@ -5736,7 +5781,7 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
         jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
         // Get the method that you want to call
         jmethodID windowSetStyle = env->GetMethodID(clazz, "windowSetStyle",
-                                                    "(Landroid/view/View;II)V");
+                                                    "(Ljava/lang/Object;II)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, windowSetStyle, handle, (jint)style, (jint)mask);
         _dw_jni_check_exception(env);

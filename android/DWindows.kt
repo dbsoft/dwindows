@@ -28,6 +28,7 @@ import android.print.*
 import android.print.pdf.PrintedPdfDocument
 import android.provider.DocumentsContract
 import android.provider.MediaStore
+import android.system.OsConstants
 import android.text.InputFilter
 import android.text.InputFilter.LengthFilter
 import android.text.InputType
@@ -60,10 +61,7 @@ import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayout.OnTabSelectedListener
 import com.google.android.material.tabs.TabLayoutMediator
-import java.io.BufferedInputStream
-import java.io.File
-import java.io.FileOutputStream
-import java.io.IOException
+import java.io.*
 import java.util.*
 import java.util.concurrent.locks.ReentrantLock
 import java.util.zip.ZipEntry
@@ -2857,8 +2855,9 @@ class DWindows : AppCompatActivity() {
         }
     }
 
-    fun windowSetStyle(window: View, style: Int, mask: Int)
+    fun windowSetStyle(window: Any, style: Int, mask: Int)
     {
+        // TODO: Need to handle menu items and others
         waitOnUiThread {
             if (window is TextView && window !is EditText) {
                 val ourmask = (Gravity.HORIZONTAL_GRAVITY_MASK or Gravity.VERTICAL_GRAVITY_MASK) and mask
@@ -6100,10 +6099,34 @@ class DWindows : AppCompatActivity() {
         return null
     }
 
+    fun fileOpen(filename: String, mode: Int): Int
+    {
+        var retval: Int = -1
+        var uri = Uri.parse(filename)
+        var smode: String = "r"
+        var fd: ParcelFileDescriptor? = null
+
+        if((mode and OsConstants.O_WRONLY) == OsConstants.O_WRONLY) {
+            smode = "w"
+        } else if((mode and OsConstants.O_RDWR) == OsConstants.O_RDWR) {
+            smode = "rw"
+        }
+        try {
+            fd = contentResolver.openFileDescriptor(uri, smode)
+        } catch (e: FileNotFoundException) {
+            fd = null
+        }
+        if (fd != null) {
+            retval = fd.fd
+        }
+        return retval
+    }
+
     // Defpath does not seem to be supported on Android using the ACTION_GET_CONTENT Intent
     fun fileBrowseNew(title: String, defpath: String?, ext: String?, flags: Int): String?
     {
         var retval: String? = null
+        var uristr: String? = null
         var permission = Manifest.permission.WRITE_EXTERNAL_STORAGE
         var permissions: Int = -1
 
@@ -6136,6 +6159,9 @@ class DWindows : AppCompatActivity() {
                 // Wait until the intent finishes.
                 fileCond.await()
                 fileLock.unlock()
+
+                // Save the URI string for later use
+                uristr = fileURI.toString()
 
                 if (DocumentsContract.isDocumentUri(this, fileURI)) {
                     // ExternalStorageProvider
@@ -6193,6 +6219,9 @@ class DWindows : AppCompatActivity() {
                 fileLock.unlock()
                 retval = fileBrowse(title, defpath, ext, flags)
             }
+        }
+        if(retval != null && uristr != null) {
+            return retval + "\n\n" + uristr
         }
         return retval
     }
