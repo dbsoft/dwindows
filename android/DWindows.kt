@@ -3,6 +3,7 @@
 // (C) 2022 Amr Hesham (Tree View)
 package org.dbsoft.dwindows
 
+import android.Manifest
 import android.R
 import android.annotation.SuppressLint
 import android.app.Activity
@@ -41,6 +42,7 @@ import android.webkit.WebViewClient
 import android.widget.*
 import android.widget.AdapterView.OnItemClickListener
 import android.widget.SeekBar.OnSeekBarChangeListener
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.AppCompatEditText
@@ -50,6 +52,7 @@ import androidx.constraintlayout.widget.ConstraintSet
 import androidx.constraintlayout.widget.Placeholder
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.view.MenuCompat
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -1504,6 +1507,7 @@ class DWTabViewPagerAdapter : RecyclerView.Adapter<DWTabViewPagerAdapter.DWEvent
 
 private class DWWebViewClient : WebViewClient() {
     //Implement shouldOverrideUrlLoading//
+    @Deprecated("Deprecated in Java")
     override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
         // We always want to load in our own WebView,
         // to match the behavior on the other platforms
@@ -2016,7 +2020,7 @@ class DWMenu {
             }
 
             // Enable group dividers for separators
-            MenuCompat.setGroupDividerEnabled(menu, true)
+            MenuCompat.setGroupDividerEnabled(menu!!, true)
 
             for (menuitem in children) {
                 // Submenus on Android can't have submenus, so stop at depth 1
@@ -2589,7 +2593,7 @@ class DWindows : AppCompatActivity() {
         }
     }
 
-    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
         if(windowLayout != null) {
             val index = windowLayout!!.currentItem
             val count = windowMenuBars.count()
@@ -2608,7 +2612,7 @@ class DWindows : AppCompatActivity() {
         return false
     }
 
-    override fun onPrepareOptionsMenu(menu: Menu?): Boolean {
+    override fun onPrepareOptionsMenu(menu: Menu): Boolean {
         if(windowLayout != null) {
             val index = windowLayout!!.currentItem
             val count = windowMenuBars.count()
@@ -6062,6 +6066,7 @@ class DWindows : AppCompatActivity() {
         Log.d(appID, text)
     }
 
+    @Deprecated("Deprecated in Java")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if(requestCode == 100) {
@@ -6100,6 +6105,16 @@ class DWindows : AppCompatActivity() {
     fun fileBrowseNew(title: String, defpath: String?, ext: String?, flags: Int): String?
     {
         var retval: String? = null
+        var permission = Manifest.permission.WRITE_EXTERNAL_STORAGE
+        var permissions: Int = -1
+
+        // Handle requesting permissions if necessary
+        permissions = ContextCompat.checkSelfPermission(this, permission)
+        if(permissions == -1) //PERMISSION_DENIED
+        {
+            // You can directly ask for the permission.
+            requestPermissions(arrayOf(permission), 100)
+        }
 
         // This can't be called from the main thread
         if(Looper.getMainLooper() != Looper.myLooper()) {
