@@ -567,7 +567,6 @@ int _dw_event_handler1(id object, id event, int message)
 
                 if([object isKindOfClass:[UITableView class]] && event)
                 {
-                    
                     if([event isKindOfClass:[NSPointerArray class]])
                     {
                        /* The NSPointerArray count will be 2 for Containers */
@@ -1092,6 +1091,9 @@ API_AVAILABLE(ios(13.0))
 -(void)setDialog:(DWDialog *)newdialog;
 @end
 
+#define _DW_URL_LIMIT 10
+static NSMutableArray *_dw_URLs = nil;
+
 @implementation DWDocumentPickerDelegate
 -(void)documentPicker:(UIDocumentPickerViewController *)controller didPickDocumentsAtURLs:(NSArray<NSURL *> *)urls
 {
@@ -1102,8 +1104,28 @@ API_AVAILABLE(ios(13.0))
     {
         const char *tmp = [url fileSystemRepresentation];
 
-        if(tmp)
+        if(tmp && [url startAccessingSecurityScopedResource])
+        {
+            /* We need to allow access to the returned URLs on iOS 13
+             * but we have no way of knowing when it is no longer needed...
+             * since the C API we are connected to does not have that information.
+             * So maintain a list of URLs, and when the list exceeds the limit...
+             * revoke access to the oldest URL.
+             */
+            if(!_dw_URLs)
+                _dw_URLs = [[[NSMutableArray alloc] init] retain];
+            if(_dw_URLs)
+            {
+                if([_dw_URLs count] >= _DW_URL_LIMIT)
+                {
+                    NSURL *oldurl = [_dw_URLs firstObject];
+                    [oldurl stopAccessingSecurityScopedResource];
+                    [_dw_URLs removeObject:oldurl];
+                }
+                [_dw_URLs addObject:url];
+            }
             file = strdup(tmp);
+        }
     }
     dw_dialog_dismiss(dialog, file);
 }
