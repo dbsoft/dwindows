@@ -4028,9 +4028,14 @@ char *dw_user_dir(void)
 
     if(!_user_dir[0])
     {
-        char *home = getenv("HOME");
+        NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory,
+                                                             NSUserDomainMask, YES);
+        NSString *nshome = [paths firstObject];
+        const char *home;
 
-        if(home)
+        if(nshome && (home = [nshome UTF8String]))
+            strncpy(_user_dir, home, PATH_MAX);
+        else if((nshome = NSHomeDirectory()) && (home = [nshome UTF8String]))
             strncpy(_user_dir, home, PATH_MAX);
         else
             strcpy(_user_dir, "/");
