@@ -2163,6 +2163,11 @@ int API dw_messagebox(const char *title, int flags, const char *format, ...);
 void API dw_environment_query(DWEnv *env);
 int API dw_exec(const char *program, int type, char **params);
 int API dw_browse(const char *url);
+#if defined(__ANDROID__)
+int API dw_file_open(const char *path, int mode);
+#else
+#define dw_file_open(a, b) open(a, b)
+#endif
 char * API dw_file_browse(const char *title, const char *defpath, const char *ext, int flags);
 char * API dw_user_dir(void);
 char * API dw_app_dir(void);
