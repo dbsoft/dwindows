@@ -9564,7 +9564,8 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, text, char *)
     else if([object isMemberOfClass:[DWWindow class]])
     {
         DWWindow *window = object;
-        NSArray *array = [window subviews];
+        UIView *view = [[window rootViewController] view];
+        NSArray *array = [view subviews];
         NSString *nstr = [NSString stringWithUTF8String:text];
 
         [window setLargeContentTitle:nstr];
