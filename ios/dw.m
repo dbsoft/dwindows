@@ -801,14 +801,11 @@ API_AVAILABLE(ios(13.0))
 @interface DWWindow : UIWindow
 {
     DWMenu *windowmenu, *popupmenu;
-    int redraw;
     int shown;
     void *userdata;
 }
 -(void)sendEvent:(UIEvent *)theEvent;
 -(void)keyDown:(UIKey *)key API_AVAILABLE(ios(13.4));
--(int)redraw;
--(void)setRedraw:(int)val;
 -(int)shown;
 -(void)setShown:(int)val;
 -(void)layoutSubviews;
@@ -832,8 +829,6 @@ API_AVAILABLE(ios(13.0))
       [super sendEvent:theEvent];
 }
 -(void)keyDown:(UIKey *)key { }
--(int)redraw { return redraw; }
--(void)setRedraw:(int)val { redraw = val; }
 -(int)shown { return shown; }
 -(void)setShown:(int)val { shown = val; }
 -(void)layoutSubviews { }
@@ -9851,9 +9846,18 @@ int API dw_window_minimize(HWND handle)
 void API dw_window_redraw(HWND handle)
 {
     DWWindow *window = handle;
-    [window setRedraw:YES];
+    NSArray *array = [[[window rootViewController] view] subviews];
+
+    for(id obj in array)
+    {
+        if([obj isMemberOfClass:[DWView class]])
+        {
+            DWView *view = obj;
+            [view showWindow];
+        }
+    }
+
     [window setShown:YES];
-    [window setRedraw:NO];
 }
 
 /*
