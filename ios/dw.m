@@ -9508,30 +9508,36 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
     DW_FUNCTION_INIT;
     id object = _dw_text_handle(handle);
     id control = handle;
+    NSString *nsstr = nil;
     char *retval = NULL;
 
     if([control isKindOfClass:[UIButton class]])
     {
-        NSString *nsstr = [control titleForState:UIControlStateNormal];
-
-        retval = strdup([nsstr UTF8String]);
+        nsstr = [control titleForState:UIControlStateNormal];
     }
     else if([object isKindOfClass:[UILabel class]] || [object isKindOfClass:[UITextField class]])
     {
-        NSString *nsstr = [object text];
-
-        retval = strdup([nsstr UTF8String]);
+        nsstr = [object text];
     }
-#ifdef DW_INCLUDE_DEPRECATED
-    else if([object isKindOfClass:[UIControl class]])
+    else if([object isMemberOfClass:[DWWindow class]])
     {
-        UIControl *control = object;
-        NSString *nsstr = [control text];
+        DWWindow *window = object;
+        UIView *view = [[window rootViewController] view];
+        NSArray *array = [view subviews];
 
-        if(nsstr && [nsstr length] > 0)
-            retval = strdup([nsstr UTF8String]);
+        for(id obj in array)
+        {
+            if([obj isMemberOfClass:[UINavigationBar class]])
+            {
+                UINavigationBar *nav = obj;
+                UINavigationItem *item = [[nav items] firstObject];
+
+                nsstr = [item title];
+            }
+        }
     }
-#endif
+    if(nsstr && [nsstr length] > 0)
+        retval = strdup([nsstr UTF8String]);
     DW_FUNCTION_RETURN_THIS(retval);
 }
 
@@ -9581,14 +9587,6 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, text, char *)
             }
         }
     }
-#ifdef DW_INCLUDE_DEPRECATED
-    else if([object isKindOfClass:[UIControl class]])
-    {
-        UIControl *control = object;
-        [control setText:[NSString stringWithUTF8String:text]];
-        item = _dw_box_item(handle);
-    }
-#endif
     /* If we changed the text...
      * Check to see if any of the sizes need to be recalculated
      */
