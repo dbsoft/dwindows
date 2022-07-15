@@ -6126,7 +6126,6 @@ class DWindows : AppCompatActivity() {
     fun fileBrowseNew(title: String, defpath: String?, ext: String?, flags: Int): String?
     {
         var retval: String? = null
-        var uristr: String? = null
         var permission = Manifest.permission.WRITE_EXTERNAL_STORAGE
         var permissions: Int = -1
 
@@ -6161,57 +6160,61 @@ class DWindows : AppCompatActivity() {
                 fileLock.unlock()
 
                 // Save the URI string for later use
-                uristr = fileURI.toString()
+                retval = fileURI.toString()
 
-                if (DocumentsContract.isDocumentUri(this, fileURI)) {
-                    // ExternalStorageProvider
-                    if (fileURI?.authority == "com.android.externalstorage.documents") {
-                        val docId = DocumentsContract.getDocumentId(fileURI)
-                        val split = docId.split(":").toTypedArray()
-                        retval = Environment.getExternalStorageDirectory().toString() + "/" + split[1]
-                    } else if (fileURI?.authority == "com.android.providers.downloads.documents") {
-                        val id = DocumentsContract.getDocumentId(fileURI)
-                        val contentUri = ContentUris.withAppendedId(
-                            Uri.parse("content://downloads/public_downloads"),
-                            java.lang.Long.valueOf(id)
-                        )
-                        retval = getDataColumn(this, contentUri, null, null)
-                    } else if (fileURI?.authority == "com.android.providers.media.documents") {
-                        val docId = DocumentsContract.getDocumentId(fileURI)
-                        val split = docId.split(":").toTypedArray()
-                        val type = split[0]
-                        var contentUri: Uri? = null
-                        if ("image" == type) {
-                            contentUri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI
-                        } else if ("video" == type) {
-                            contentUri = MediaStore.Video.Media.EXTERNAL_CONTENT_URI
-                        } else if ("audio" == type) {
-                            contentUri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+                // If DW_DIRECTORY_OPEN or DW_FILE_PATH ... use the path not URI
+                if((flags and 65535) == 2 || ((flags shr 16) and 1) == 1) {
+                    if (DocumentsContract.isDocumentUri(this, fileURI)) {
+                        // ExternalStorageProvider
+                        if (fileURI?.authority == "com.android.externalstorage.documents") {
+                            val docId = DocumentsContract.getDocumentId(fileURI)
+                            val split = docId.split(":").toTypedArray()
+                            retval = Environment.getExternalStorageDirectory()
+                                .toString() + "/" + split[1]
+                        } else if (fileURI?.authority == "com.android.providers.downloads.documents") {
+                            val id = DocumentsContract.getDocumentId(fileURI)
+                            val contentUri = ContentUris.withAppendedId(
+                                Uri.parse("content://downloads/public_downloads"),
+                                java.lang.Long.valueOf(id)
+                            )
+                            retval = getDataColumn(this, contentUri, null, null)
+                        } else if (fileURI?.authority == "com.android.providers.media.documents") {
+                            val docId = DocumentsContract.getDocumentId(fileURI)
+                            val split = docId.split(":").toTypedArray()
+                            val type = split[0]
+                            var contentUri: Uri? = null
+                            if ("image" == type) {
+                                contentUri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+                            } else if ("video" == type) {
+                                contentUri = MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+                            } else if ("audio" == type) {
+                                contentUri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+                            }
+                            val selection = "_id=?"
+                            val selectionArgs = arrayOf<String?>(
+                                split[1]
+                            )
+                            retval = getDataColumn(this, contentUri, selection, selectionArgs)
                         }
-                        val selection = "_id=?"
-                        val selectionArgs = arrayOf<String?>(
-                            split[1]
-                        )
-                        retval = getDataColumn(this, contentUri, selection, selectionArgs)
+                    } else if (fileURI?.scheme == "content") {
+                        retval = getDataColumn(this, fileURI, null, null)
                     }
-                } else if (fileURI?.scheme == "content") {
-                    retval = getDataColumn(this, fileURI, null, null)
-                }
-                // File
-                else if (fileURI?.scheme == "file") {
-                    retval = fileURI?.path
-                }
+                    // File
+                    else if (fileURI?.scheme == "file") {
+                        retval = fileURI?.path
+                    }
 
-                // If we are opening a directory DW_DIRECTORY_OPEN
-                if(retval != null && flags == 2) {
-                    val split = retval.split("/")
-                    val filename = split.last()
+                    // If we are opening a directory DW_DIRECTORY_OPEN
+                    if (retval != null && (flags and 65535) == 2) {
+                        val split = retval.split("/")
+                        val filename = split.last()
 
-                    if(filename != null) {
-                        val pathlen = retval.length
-                        val filelen = filename.length
+                        if (filename != null) {
+                            val pathlen = retval.length
+                            val filelen = filename.length
 
-                        retval = retval.substring(0, pathlen - filelen - 1)
+                            retval = retval.substring(0, pathlen - filelen - 1)
+                        }
                     }
                 }
             } else {
@@ -6219,9 +6222,6 @@ class DWindows : AppCompatActivity() {
                 fileLock.unlock()
                 retval = fileBrowse(title, defpath, ext, flags)
             }
-        }
-        if(retval != null && uristr != null) {
-            return retval + "\n\n" + uristr
         }
         return retval
     }

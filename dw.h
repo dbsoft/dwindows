@@ -12,6 +12,13 @@ extern "C" {
 #define DW_MINOR_VERSION 3
 #define DW_SUB_VERSION 0
 
+/* General application type defines */
+#if defined(__IOS__) || defined(__ANDROID__)
+#define __DW_MOBILE__ 1
+#else
+#define __DW_DESKTOP__ 1
+#endif
+
 #define DW_HOME_URL "http://dwindows.netlabs.org"
 
 /* Support for API deprecation in supported compilers */
@@ -1701,6 +1708,12 @@ typedef void *HPRINT;
 #define DW_FILE_OPEN      0
 #define DW_FILE_SAVE      1
 #define DW_DIRECTORY_OPEN 2
+#ifdef __ANDROID__
+#define DW_FILE_PATH      (1 << 16)
+#else
+#define DW_FILE_PATH      0
+#endif
+#define DW_FILE_MASK      (0x0000FFFF)
 
 #define DW_HORZ 0
 #define DW_VERT 1
