@@ -3198,10 +3198,13 @@ class DWindows : AppCompatActivity() {
         }
     }
 
-    fun windowDestroy(window: View): Int {
+    fun windowDestroy(window: Any): Int {
         var retval: Int = 1 // DW_ERROR_GENERAL
 
-        if(windowLayout != null) {
+        if(window is DWMenu) {
+            menuDestroy(window as DWMenu)
+            retval = 0 // DW_ERROR_NONE
+        } else if(windowLayout != null && window is View) {
             waitOnUiThread {
                 val adapter: DWTabViewPagerAdapter = windowLayout!!.adapter as DWTabViewPagerAdapter
                 val index = adapter.viewList.indexOf(window)

@@ -5963,7 +5963,7 @@ int API dw_window_destroy(HWND handle)
         jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
         // Get the method that you want to call
         jmethodID windowDestroy = env->GetMethodID(clazz, "windowDestroy",
-                                                   "(Landroid/view/View;)I");
+                                                   "(Ljava/lang/Object;)I");
         // Call the method on the object
         retval = env->CallIntMethod(_dw_obj, windowDestroy, handle);
         _dw_jni_check_exception(env);
