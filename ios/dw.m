@@ -2858,6 +2858,10 @@ static CGFloat _DW_TREE_XOFFSET = 3;
         DWButton *arrowImageButton = [[DWButton alloc] initWithFrame:CGRectMake(0, 0,
                                                                                 _DW_TREE_IMG_HEIGHT_WIDTH,
                                                                                 _DW_TREE_IMG_HEIGHT_WIDTH)];
+        [arrowImageButton addTarget:arrowImageButton
+                             action:@selector(buttonClicked:)
+                   forControlEvents:UIControlEventTouchUpInside];
+
         [arrowImageButton setType:_DW_BUTTON_TYPE_TREE];
         [arrowImageButton setDidCheckedChanged:^(BOOL checked) {
             _expanded = checked;
