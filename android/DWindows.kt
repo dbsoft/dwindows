@@ -166,7 +166,6 @@ class DWTreeItem(title: String, icon: Drawable?, data: Long, parent: DWTreeItem?
     }
 }
 
-
 class DWTreeItemView : LinearLayout, Checkable {
     private var mChecked = false
     private var colorSelection = Color.DKGRAY
@@ -4743,6 +4742,7 @@ class DWindows : AppCompatActivity() {
         waitOnUiThread {
             val treeViewAdapter = tree.adapter as DWTreeViewAdapter
             treeViewAdapter.clear()
+            tree.roots.clear()
         }
     }
 
