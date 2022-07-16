@@ -432,6 +432,7 @@ open class DWTreeViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) 
                 treeItemView.expandCollapseView.setImageResource(R.drawable.ic_menu_add)
             }
         }
+        treeItemView.isChecked = node.isSelected()
     }
 }
 
@@ -460,6 +461,9 @@ class DWTreeViewAdapter : RecyclerView.Adapter<DWTreeViewHolder> {
 
     // The current selected Tree Item
     private var currentSelectedItem: DWTreeItem? = null
+
+    // The current selected Tree Item
+    private var currentSelectedItemView: DWTreeItemView? = null
 
     // Custom OnClickListener to be invoked when a DWTreeItem has been clicked.
     private var treeItemClickListener: ((DWTreeItem?, View?) -> Boolean)? = null
@@ -496,8 +500,12 @@ class DWTreeViewAdapter : RecyclerView.Adapter<DWTreeViewHolder> {
         holder.itemView.setOnClickListener { v ->
             // Handle node selection
             currentNode.setSelected(true)
+            val treeItemView = holder.itemView as DWTreeItemView
+            treeItemView.isChecked = true
             currentSelectedItem?.setSelected(false)
+            currentSelectedItemView?.isChecked = false
             currentSelectedItem = currentNode
+            currentSelectedItemView = treeItemView
 
             // Handle node expand and collapse event
             if (!currentNode.getChildren().isEmpty()) {
