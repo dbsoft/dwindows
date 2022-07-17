@@ -36,12 +36,6 @@ inline pid_t getsid(pid_t pid)
 extern "C" {
 #endif
 
-/* Define this to enable threading for events...
- * most Android events don't handle return values, so
- * we can launch a new thread to handle the event.
- * #define _DW_EVENT_THREADING
- */
-/* #define _DW_EVENT_THREADING */
 #define DW_CLASS_NAME "org/dbsoft/dwindows/DWindows"
 
 /* Dynamic Windows internal variables */
@@ -459,22 +453,12 @@ int _dw_event_handler2(void **params)
             }
         }
     }
-#ifdef _DW_EVENT_THREADING
-    /* Free the memory we allocated for this tread */
-    if(params[1])
-        free(params[1]);
-    if(params[2])
-        free(params[2]);
-    free(params);
-#endif
     return retval;
 }
 
-/* If we aren't using threading, we create a queue of events...
- * the oldest event indexed by _dw_event_head, the newest by
- * _dw_event_tail.
+/* We create a queue of events... the oldest event indexed by
+ * _dw_event_head, the newest by _dw_event_tail.
  */
-#ifndef _DW_EVENT_THREADING
 #define _DW_EVENT_QUEUE_LENGTH 10
 void *_dw_event_queue[_DW_EVENT_QUEUE_LENGTH][_DW_EVENT_PARAM_SIZE];
 int _dw_event_head = -1, _dw_event_tail = -1, _dw_main_active = TRUE;
@@ -559,7 +543,6 @@ int _dw_dequeue_event(void **params)
     dw_mutex_unlock(_dw_event_mutex);
     return retval;
 }
-#endif
 
 int _dw_event_handler(jobject object, void **params)
 {
@@ -576,16 +559,8 @@ int _dw_event_handler(jobject object, void **params)
          */
         if(DW_POINTER_TO_INT(params[8]) != _DW_EVENT_EXPOSE)
         {
-#ifdef _DW_EVENT_THREADING
-            /* Make a copy of the params so it isn't allocated from the stack */
-            void *newparams = calloc(_DW_EVENT_PARAM_SIZE, sizeof(void *));
-
-            memcpy(newparams, params, _DW_EVENT_PARAM_SIZE * sizeof(void *));
-            dw_thread_new((void *) _dw_event_handler2, newparams, 0);
-#else
             /* Push the new event onto the queue if it fits */
             _dw_queue_event(params);
-#endif
         }
         else
             return _dw_event_handler2(params);
@@ -603,13 +578,8 @@ JNIEXPORT jint JNICALL
 Java_org_dbsoft_dwindows_DWindows_eventHandler(JNIEnv* env, jobject obj, jobject obj1, jobject obj2,
                                                       jint message, jstring str1, jstring str2,
                                                       jint inta, jint intb, jint intc, jint intd) {
-#ifdef _DW_EVENT_THREADING
-    char *utf81 = str1 ? strdup(env->GetStringUTFChars(str1, nullptr)) : nullptr;
-    char *utf82 = str2 ? strdup(env->GetStringUTFChars(str2, nullptr)) : nullptr;
-#else
     const char *utf81 = str1 ? env->GetStringUTFChars(str1, nullptr) : nullptr;
     const char *utf82 = str2 ? env->GetStringUTFChars(str2, nullptr) : nullptr;
-#endif
     void *params[_DW_EVENT_PARAM_SIZE] = { DW_POINTER(obj2), DW_POINTER(utf81), DW_POINTER(utf82),
                                            DW_INT_TO_POINTER(inta), DW_INT_TO_POINTER(intb),
                                            DW_INT_TO_POINTER(intc), DW_INT_TO_POINTER(intd), nullptr,
@@ -643,11 +613,7 @@ Java_org_dbsoft_dwindows_DWindows_eventHandlerNotebook(JNIEnv* env, jobject obj,
 JNIEXPORT void JNICALL
 Java_org_dbsoft_dwindows_DWindows_eventHandlerHTMLResult(JNIEnv* env, jobject obj, jobject obj1,
                                                jint message, jstring htmlResult, jlong data) {
-#ifdef _DW_EVENT_THREADING
-    char *result = strdup(env->GetStringUTFChars(htmlResult, nullptr));
-#else
     const char *result = env->GetStringUTFChars(htmlResult, nullptr);
-#endif
     void *params[_DW_EVENT_PARAM_SIZE] = { nullptr, DW_POINTER(result), nullptr, nullptr, nullptr, nullptr, nullptr,
                                            DW_INT_TO_POINTER(data), DW_INT_TO_POINTER(message), nullptr };
 
@@ -657,11 +623,7 @@ Java_org_dbsoft_dwindows_DWindows_eventHandlerHTMLResult(JNIEnv* env, jobject ob
 JNIEXPORT void JNICALL
 Java_org_dbsoft_dwindows_DWWebViewClient_eventHandlerHTMLChanged(JNIEnv* env, jobject obj, jobject obj1,
                                                          jint message, jstring URI, jint status) {
-#ifdef _DW_EVENT_THREADING
-    char *uri = strdup(env->GetStringUTFChars(URI, nullptr));
-#else
     const char *uri = env->GetStringUTFChars(URI, nullptr);
-#endif
     void *params[_DW_EVENT_PARAM_SIZE] = { nullptr, DW_POINTER(uri), nullptr, DW_INT_TO_POINTER(status),
                                            nullptr, nullptr, nullptr, nullptr, DW_INT_TO_POINTER(message), nullptr };
 
@@ -769,11 +731,7 @@ Java_org_dbsoft_dwindows_DWRender_eventHandlerInt(JNIEnv* env, jobject obj, jint
 JNIEXPORT void JNICALL
 Java_org_dbsoft_dwindows_DWindows_eventHandlerContainer(JNIEnv* env, jobject obj, jobject obj1,
                                                   jint message, jstring jtitle, jint x, jint y, jlong data) {
-#ifdef _DW_EVENT_THREADING
-    char *title = jtitle ? strdup(env->GetStringUTFChars(jtitle, nullptr)) : nullptr;
-#else
     const char *title = jtitle ? env->GetStringUTFChars(jtitle, nullptr) : nullptr;
-#endif
     void *params[_DW_EVENT_PARAM_SIZE] = { nullptr, DW_POINTER(title), nullptr, DW_INT_TO_POINTER(x), DW_INT_TO_POINTER(y),
                                            nullptr, nullptr, DW_POINTER(data), DW_INT_TO_POINTER(message), nullptr };
 
@@ -783,11 +741,7 @@ Java_org_dbsoft_dwindows_DWindows_eventHandlerContainer(JNIEnv* env, jobject obj
 JNIEXPORT void JNICALL
 Java_org_dbsoft_dwindows_DWindows_eventHandlerTree(JNIEnv* env, jobject obj, jobject obj1,
                                                    jint message, jobject item, jstring jtitle, jlong data) {
-#ifdef _DW_EVENT_THREADING
-    char *title = jtitle ? strdup(env->GetStringUTFChars(jtitle, nullptr)) : nullptr;
-#else
     const char *title = jtitle ? env->GetStringUTFChars(jtitle, nullptr) : nullptr;
-#endif
     void *params[_DW_EVENT_PARAM_SIZE] = { DW_POINTER(item), DW_POINTER(title), nullptr, nullptr, nullptr,
                                            nullptr, nullptr, DW_POINTER(data), DW_INT_TO_POINTER(message), nullptr };
 
@@ -806,11 +760,7 @@ Java_org_dbsoft_dwindows_DWindows_eventHandlerTreeItem(JNIEnv* env, jobject obj,
 JNIEXPORT void JNICALL
 Java_org_dbsoft_dwindows_DWindows_eventHandlerKey(JNIEnv *env, jobject obj, jobject obj1, jint message, jint ch,
                                                   jint vk, jint modifiers, jstring str) {
-#ifdef _DW_EVENT_THREADING
-    char *cstr = str ? strdup(env->GetStringUTFChars(str, nullptr)) : nullptr;
-#else
     const char *cstr = str ? env->GetStringUTFChars(str, nullptr) : nullptr;
-#endif
     void *params[_DW_EVENT_PARAM_SIZE] = { nullptr, DW_POINTER(cstr), nullptr, DW_INT_TO_POINTER(ch), DW_INT_TO_POINTER(vk),
                                            DW_INT_TO_POINTER(modifiers), nullptr, nullptr, DW_INT_TO_POINTER(message), nullptr };
 
@@ -966,14 +916,6 @@ void API dw_main(void)
         _dw_jni_check_exception(env);
     }
 
-#ifdef _DW_EVENT_THREADING
-    /* We don't actually run a loop here,
-     * we launched a new thread to run the loop there.
-     * Just wait for dw_main_quit() on the DWMainEvent.
-     */
-    dw_event_wait(_dw_main_event, DW_TIMEOUT_INFINITE);
-#else
-
     /* Save our thread ID, so we know if we should handle
      * events in callback dw_main_sleep/iteration() calls.
      */
@@ -996,7 +938,6 @@ void API dw_main(void)
 
     } while(_dw_main_active);
     _dw_main_thread = -1;
-#endif
 }
 
 /*
@@ -1004,9 +945,7 @@ void API dw_main(void)
  */
 void API dw_main_quit(void)
 {
-#ifndef _DW_EVENT_THREADING
     _dw_main_active = FALSE;
-#endif
     dw_event_post(_dw_main_event);
 }
 
@@ -1019,7 +958,6 @@ void API dw_main_sleep(int milliseconds)
 {
     JNIEnv *env;
 
-#ifndef _DW_EVENT_THREADING
     /* If we are in an event callback from dw_main() ...
      * we need to continue handling events from the UI.
      */
@@ -1050,9 +988,7 @@ void API dw_main_sleep(int milliseconds)
 
         } while(_dw_main_active && (difference = ((tv.tv_sec - start.tv_sec)*1000) + ((tv.tv_usec - start.tv_usec)/1000)) <= milliseconds);
     }
-    else
-#endif
-    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    else if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
         // First get the class that contains the method you need to call
         jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
@@ -1070,7 +1006,6 @@ void API dw_main_sleep(int milliseconds)
  */
 void API dw_main_iteration(void)
 {
-#ifndef _DW_EVENT_THREADING
     if(_dw_main_thread == dw_thread_id())
     {
         void *params[_DW_EVENT_PARAM_SIZE];
@@ -1080,11 +1015,10 @@ void API dw_main_iteration(void)
             _dw_event_handler2(params);
     }
     else
-#endif
     /* If we sleep for 0 milliseconds... we will drop out
      * of the loop at the first idle moment
      */
-    dw_main_sleep(0);
+        dw_main_sleep(0);
 }
 
 /*
