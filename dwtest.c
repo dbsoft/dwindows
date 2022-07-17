@@ -7,6 +7,10 @@
 #include <string.h>
 #include <stdio.h>
 #include <errno.h>
+#ifdef __ANDROID__
+#include <fcntl.h>
+#include <unistd.h>
+#endif
 #include "dw.h"
 /* For snprintf, strdup etc on old Windows SDK */
 #if defined(__WIN32__) || defined(__OS2__)
@@ -297,8 +301,18 @@ int DWSIGNAL text_expose(HWND hwnd, DWExpose *exp, void *data)
 char *read_file(char *filename)
 {
     char *errors = NULL;
+#ifdef __ANDROID__
+    int fd = -1;
 
-    fp = fopen(filename, "r");
+    /* Special way to open for URIs on Android */
+    if(strstr(filename, "://"))
+    {
+        fd = dw_file_open(filename, O_RDONLY);
+        fp = fdopen(fd, "r");
+    }
+    else
+#endif
+        fp = fopen(filename, "r");
     if(!fp)
         errors = strerror(errno);
     else
@@ -326,6 +340,10 @@ char *read_file(char *filename)
         dw_scrollbar_set_range(vscrollbar, num_lines, rows);
         dw_scrollbar_set_pos(vscrollbar, 0);
     }
+#ifdef __ANDROID__
+    if(fd != -1)
+        close(fd);
+#endif
     return errors;
 }
 
