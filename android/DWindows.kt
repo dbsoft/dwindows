@@ -497,27 +497,35 @@ class DWTreeViewAdapter : RecyclerView.Adapter<DWTreeViewHolder> {
     override fun onBindViewHolder(holder: DWTreeViewHolder, position: Int) {
         val currentNode: DWTreeItem = treeItemManager.get(position)
         holder.bindTreeItem(currentNode)
-        holder.itemView.setOnClickListener { v ->
-            // Handle node selection
-            currentNode.setSelected(true)
-            val treeItemView = holder.itemView as DWTreeItemView
-            treeItemView.isChecked = true
-            currentSelectedItem?.setSelected(false)
-            currentSelectedItemView?.isChecked = false
-            currentSelectedItem = currentNode
-            currentSelectedItemView = treeItemView
+        val treeItemView = holder.itemView as DWTreeItemView
 
+        // Handle touch on the expand/collapse image
+        treeItemView.expandCollapseView.setOnClickListener { v ->
             // Handle node expand and collapse event
             if (!currentNode.getChildren().isEmpty()) {
                 val isNodeExpanded: Boolean = currentNode.isExpanded()
                 if (isNodeExpanded) collapseNode(currentNode) else expandNode(currentNode)
                 currentNode.setExpanded(!isNodeExpanded)
+
+                notifyDataSetChanged()
+
                 // Handle DWTreeItem expand listener event
                 if (!isNodeExpanded && treeItemExpandListener != null) treeItemExpandListener!!(
                     currentNode,
                     v
                 )
             }
+        }
+        // Handle node selection
+        holder.itemView.setOnClickListener { v ->
+            // If touched anywhere else, change the selection
+            currentNode.setSelected(true)
+            treeItemView.isChecked = true
+            currentSelectedItem?.setSelected(false)
+            currentSelectedItemView?.isChecked = false
+            currentSelectedItem = currentNode
+            currentSelectedItemView = treeItemView
+
             notifyDataSetChanged()
 
             // Handle DWTreeItem click listener event
