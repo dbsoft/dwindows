@@ -7900,6 +7900,7 @@ int API dw_feature_get(DWFEATURE feature)
         case DW_FEATURE_UTF8_UNICODE:            /* Supports UTF8 encoded Unicode text */
         case DW_FEATURE_MLE_WORD_WRAP:           /* Supports word wrapping in Multi-line Edit boxes */
         case DW_FEATURE_CONTAINER_STRIPE:        /* Supports striped line display in container widgets */
+        case DW_FEATURE_TREE:                    /* Supports the Tree Widget */
             return DW_FEATURE_ENABLED;
         case DW_FEATURE_DARK_MODE:               /* Supports Dark Mode user interface */
         {
@@ -7938,6 +7939,7 @@ int API dw_feature_set(DWFEATURE feature, int state)
         case DW_FEATURE_UTF8_UNICODE:            /* Supports UTF8 encoded Unicode text */
         case DW_FEATURE_MLE_WORD_WRAP:           /* Supports word wrapping in Multi-line Edit boxes */
         case DW_FEATURE_CONTAINER_STRIPE:        /* Supports striped line display in container widgets */
+        case DW_FEATURE_TREE:                    /* Supports the Tree Widget */
             return DW_ERROR_GENERAL;
         /* These features are supported and configurable */
         case DW_FEATURE_DARK_MODE:               /* Supports Dark Mode user interface */
