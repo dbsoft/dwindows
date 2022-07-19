@@ -3561,7 +3561,12 @@ class DWindows : AppCompatActivity() {
                     params.setMargins(pad, pad, pad, pad)
                 }
                 item.layoutParams = params
-                box.addView(item, index)
+                // If we are out of bounds, pass -1 to add to the end
+                if(index >= box.childCount) {
+                    box.addView(item, -1)
+                } else {
+                    box.addView(item, index)
+                }
                 boxUpdate(box)
             }
         }
