@@ -2883,6 +2883,14 @@ class DWindows : AppCompatActivity() {
 
                     window.gravity = newgravity
                 }
+            } else if(window is ImageButton) {
+                // DW_BS_NOBORDER = 1
+                if((mask and 1) == 1) {
+                    val button = window as ImageButton
+                    if((style and 1) == 1) {
+                        button.background = null
+                    } // TODO: Handle turning border back on if possible
+                }
             }
         }
     }
