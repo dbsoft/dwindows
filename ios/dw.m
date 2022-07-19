@@ -3378,6 +3378,14 @@ API_AVAILABLE(ios(10.0))
 -(void)insert:(NSString *)item atIndex:(int)index { if(item) [dataArray insertObject:item atIndex:index]; }
 -(void)clear { [dataArray removeAllObjects]; }
 -(int)count { return (int)[dataArray count]; }
+-(void)selectIndex:(int)index
+{
+    if(index > -1 && index < (int)[dataArray count])
+    {
+        selectedIndex = index;
+        [self setText:[dataArray objectAtIndex:index]];
+    }
+}
 -(NSString *)getTextAtIndex:(int)index
 {
     if(index > -1 && index < [dataArray count])
@@ -5778,6 +5786,11 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, index, int, DW_UNUSED(state), int)
         [cont selectRowAtIndexPath:ip
                           animated:NO
                     scrollPosition:UITableViewScrollPositionNone];
+    }
+    else if([object isMemberOfClass:[DWComboBox class]])
+    {
+        DWComboBox *combo = handle;
+        [combo selectIndex:index];
     }
     DW_FUNCTION_RETURN_NOTHING;
 }
