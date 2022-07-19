@@ -866,7 +866,7 @@ typedef struct _hpixmap {
 
 #define DW_MLE_CASESENSITIVE     1
 
-#define DW_BS_NOBORDER           0
+#define DW_BS_NOBORDER           1
 
 #define DW_POINTER_DEFAULT       0
 #define DW_POINTER_ARROW         0
