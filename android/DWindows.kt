@@ -2050,6 +2050,11 @@ class DWMenu {
                         menuitem.menuitem!!.isChecked = menuitem.checked
                         menuitem.menuitem!!.isEnabled = menuitem.enabled
                         menuitem.menuitem!!.setOnMenuItemClickListener { item: MenuItem? ->
+                            // Toggle the check automatically
+                            if(menuitem.menuitem!!.isCheckable) {
+                                menuitem.menuitem!!.isChecked = !menuitem.menuitem!!.isChecked
+                                menuitem.checked = menuitem.menuitem!!.isChecked
+                            }
                             eventHandlerSimple(menuitem, DWEvent.CLICKED)
                             true
                         }
@@ -2773,6 +2778,7 @@ class DWindows : AppCompatActivity() {
     {
         for(menuitem in menu.children) {
             if(menuitem.id == cid) {
+                var changed: Boolean = false
                 // Handle DW_MIS_ENABLED/DISABLED
                 if((state and (1 or (1 shl 1))) != 0) {
                     var enabled = false
@@ -2782,11 +2788,9 @@ class DWindows : AppCompatActivity() {
                         enabled = true
                     }
                     menuitem.enabled = enabled
-                    if(menuitem.menuitem != null) {
-                        runOnUiThread {
-                            menuitem.menuitem!!.isEnabled = enabled
-                            invalidateOptionsMenu()
-                        }
+                    if (menuitem.menuitem != null && menuitem.menuitem!!.isEnabled != enabled) {
+                        menuitem.menuitem!!.isEnabled = enabled
+                        changed = true
                     }
                 }
 
@@ -2799,9 +2803,12 @@ class DWindows : AppCompatActivity() {
                         checked = true
                     }
                     menuitem.checked = checked
-                    if(menuitem.menuitem != null) {
+                    if (menuitem.menuitem != null && menuitem.menuitem!!.isChecked != checked) {
+                        menuitem.menuitem!!.isChecked = checked
+                        changed = true
+                    }
+                    if(changed == true) {
                         runOnUiThread {
-                            menuitem.menuitem!!.isChecked = checked
                             invalidateOptionsMenu()
                         }
                     }
@@ -2890,6 +2897,46 @@ class DWindows : AppCompatActivity() {
                     if((style and 1) == 1) {
                         button.background = null
                     } // TODO: Handle turning border back on if possible
+                }
+            } else if(window is DWMenuItem) {
+                var menuitem = window as DWMenuItem
+                var changed: Boolean = false
+
+                // Handle DW_MIS_ENABLED/DISABLED
+                if((mask and (1 or (1 shl 1))) != 0) {
+                    var enabled = false
+
+                    // Handle DW_MIS_ENABLED = 1 or DW_MIS_DISABLED = 0
+                    if (((mask and 1) != 0 && (style and 1) != 0) ||
+                        ((mask and (1 shl 1) != 0 && (style and (1 shl 1) == 0)))) {
+                        enabled = true
+                    }
+                    menuitem.enabled = enabled
+                    if(menuitem.menuitem != null && menuitem.menuitem!!.isEnabled != enabled) {
+                        menuitem.menuitem!!.isEnabled = enabled
+                        changed = true
+                    }
+                }
+
+                // Handle DW_MIS_CHECKED/UNCHECKED
+                if((mask and ((1 shl 2) or (1 shl 3))) != 0) {
+                    var checked = false
+
+                    // Handle DW_MIS_CHECKED = 1 or DW_MIS_UNCHECKED = 0
+                    if (((mask and (1 shl 2)) != 0 && (style and (1 shl 2)) != 0) ||
+                        ((mask and (1 shl 3) != 0 && (style and (1 shl 3) == 0)))) {
+                        checked = true
+                    }
+                    menuitem.checked = checked
+                    if (menuitem.menuitem != null && menuitem.menuitem!!.isChecked != checked) {
+                        menuitem.menuitem!!.isChecked = checked
+                        changed = true
+                    }
+                }
+                if(changed == true) {
+                    runOnUiThread {
+                        invalidateOptionsMenu()
+                    }
                 }
             }
         }
