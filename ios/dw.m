@@ -715,6 +715,7 @@ API_AVAILABLE(ios(13.0))
     NSMutableArray *children;
     NSString *title;
     unsigned long tag;
+    UIWindow *window;
 }
 -(id)initWithTag:(unsigned long)newtag;
 -(void)setTitle:(NSString *)input;
@@ -813,6 +814,7 @@ API_AVAILABLE(ios(13.0))
 -(void)setPopupMenu:(DWMenu *)input;
 -(DWMenu *)menu;
 -(DWMenu *)popupMenu;
+-(void)updateMenu;
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
 @end
@@ -834,6 +836,29 @@ API_AVAILABLE(ios(13.0))
 -(void)layoutSubviews { }
 -(void)setMenu:(DWMenu *)input { [windowmenu release]; windowmenu = input; [windowmenu retain]; }
 -(void)setPopupMenu:(DWMenu *)input { [popupmenu release]; popupmenu = input; [popupmenu retain]; }
+-(void)updateMenu
+{
+    if(windowmenu)
+    {
+        NSArray *array = [[[self rootViewController] view] subviews];
+        UINavigationBar *nav = nil;
+
+        for(id obj in array)
+        {
+            if([obj isMemberOfClass:[UINavigationBar class]])
+                nav = obj;
+        }
+        if(nav)
+        {
+            UINavigationItem *item = [[nav items] firstObject];
+
+            if (@available(iOS 14.0, *)) {
+                if(item && item.rightBarButtonItem && item.rightBarButtonItem.menu)
+                    [item.rightBarButtonItem setMenu:[windowmenu menu]];
+            }
+        }
+    }
+}
 -(DWMenu *)menu { return windowmenu; }
 -(DWMenu *)popupMenu { return popupmenu; }
 -(void)closeWindow:(id)sender
@@ -1845,6 +1870,7 @@ BOOL _dw_is_dark(void)
         else
             menu = [UIMenu menuWithTitle:@"" children:menuchildren];
     }
+    [menu retain];
     if(oldmenu)
         [oldmenu release];
     return menu;
@@ -1870,7 +1896,12 @@ BOOL _dw_is_dark(void)
     }
     return nil;
 }
--(void)dealloc { [super dealloc]; }
+-(void)dealloc
+{
+    if(menu)
+        [menu release];
+    [super dealloc];
+}
 @end
 
 @implementation DWImage
@@ -8593,7 +8624,17 @@ HWND API dw_menu_append_item(HMENUI menux, const char *title, ULONG itemid, ULON
 
         item = [DWMenuItem actionWithTitle:nstr image:nil identifier:nil
                                     handler:^(__kindof UIAction * _Nonnull action) {
+            if(check)
+            {
+                UIMenuElementState state = [item state] == UIMenuElementStateOn ? UIMenuElementStateOff : UIMenuElementStateOn;
+                [item setState:state];
+            }
             [DWObj menuHandler:item];
+            if(check)
+            {
+                for(id obj in _dw_toplevel_windows)
+                    [obj updateMenu];
+            }
         }];
         /* Don't set the tag if the ID is 0 or -1 */
         if(itemid != DW_MENU_AUTO && itemid != DW_MENU_POPUP)
@@ -8635,10 +8676,15 @@ void API dw_menu_item_set_check(HMENUI menux, unsigned long itemid, int check)
 
     if(menuitem != nil)
     {
-        if(check)
-            [menuitem setState:UIMenuElementStateOn];
-        else
-            [menuitem setState:UIMenuElementStateOff];
+        UIMenuElementState newstate = check ? UIMenuElementStateOn : UIMenuElementStateOff;
+
+        /* Only force the menus to repopulate if something changed */
+        if(newstate != [menuitem state])
+        {
+            [menuitem setState:newstate];
+            for(id obj in _dw_toplevel_windows)
+                [obj updateMenu];
+        }
     }
 }
 
@@ -8678,21 +8724,23 @@ void API dw_menu_item_set_state(HMENUI menux, unsigned long itemid, unsigned lon
 
     if(menuitem != nil)
     {
+        UIMenuElementState oldstate = [menuitem state];
+        BOOL oldenabled = [menuitem enabled];
+
         if(state & DW_MIS_CHECKED)
-        {
             [menuitem setState:UIMenuElementStateOn];
-        }
         else if(state & DW_MIS_UNCHECKED)
-        {
             [menuitem setState:UIMenuElementStateOff];
-        }
         if(state & DW_MIS_ENABLED)
-        {
             [menuitem setEnabled:YES];
-        }
         else if(state & DW_MIS_DISABLED)
-        {
             [menuitem setEnabled:NO];
+
+        /* Only force the menus to repopulate if something changed */
+        if(oldstate != [menuitem state] || oldenabled != [menuitem enabled])
+        {
+            for(id obj in _dw_toplevel_windows)
+                [obj updateMenu];
         }
     }
 }
@@ -9197,6 +9245,8 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, style, ULONG, mask, ULONG)
     else if([object isMemberOfClass:[DWMenuItem class]])
     {
         DWMenuItem *menuitem = object;
+        UIMenuElementState oldstate = [menuitem state];
+        BOOL oldenabled = [menuitem enabled];
 
         if(mask & (DW_MIS_CHECKED | DW_MIS_UNCHECKED))
         {
@@ -9211,6 +9261,12 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, style, ULONG, mask, ULONG)
                 [menuitem setEnabled:YES];
             else if(style & DW_MIS_DISABLED)
                 [menuitem setEnabled:NO];
+        }
+        /* Only force the menus to repopulate if something changed */
+        if(oldstate != [menuitem state] || oldenabled != [menuitem enabled])
+        {
+            for(id obj in _dw_toplevel_windows)
+                [obj updateMenu];
         }
     }
     DW_FUNCTION_RETURN_NOTHING;
