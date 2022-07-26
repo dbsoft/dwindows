@@ -78,7 +78,10 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *pjvm, void *reserved)
 
 jclass _dw_find_class(JNIEnv *env, const char* name)
 {
-    return static_cast<jclass>(env->CallObjectMethod(_dw_class_loader, _dw_class_method, env->NewStringUTF(name)));
+    jstring jname = env->NewStringUTF(name);
+    jclass clazz = static_cast<jclass>(env->CallObjectMethod(_dw_class_loader, _dw_class_method, jname));
+    env->DeleteLocalRef(jname);
+    return clazz;
 }
 
 // Do a quick check if an exception occurred...
@@ -159,7 +162,7 @@ void _dw_main_launch(char *arg)
 JNIEXPORT void JNICALL
 Java_org_dbsoft_dwindows_DWindows_dwindowsInit(JNIEnv* env, jobject obj, jstring apppath, jstring appcache, jstring appID)
 {
-    char *arg = strdup(env->GetStringUTFChars((jstring)apppath, nullptr));
+    const char *arg = env->GetStringUTFChars((jstring)apppath, nullptr);
     const char *cache = env->GetStringUTFChars((jstring)appcache, nullptr);
     const char *appid = env->GetStringUTFChars((jstring)appID, nullptr);
     char *home = getenv("HOME");
@@ -185,6 +188,7 @@ Java_org_dbsoft_dwindows_DWindows_dwindowsInit(JNIEnv* env, jobject obj, jstring
     {
         /* Store the passed in path for dw_app_dir() */
         strncpy(_dw_exec_dir, cache, MAX_PATH);
+        env->ReleaseStringUTFChars(appcache, cache);
     }
     /* Store the best path for dw_user_dir() */
     if(home)
@@ -197,10 +201,14 @@ Java_org_dbsoft_dwindows_DWindows_dwindowsInit(JNIEnv* env, jobject obj, jstring
     {
         /* Store our reported Android AppID */
         strncpy(_dw_app_id, appid, _DW_APP_ID_SIZE);
+        env->ReleaseStringUTFChars(appID, appid);
     }
 
     /* Launch the new thread to execute dwmain() */
-    dw_thread_new((void *) _dw_main_launch, arg, 0);
+    dw_thread_new((void *) _dw_main_launch, strdup(arg ? arg : ""), 0);
+
+    if(arg)
+        env->ReleaseStringUTFChars(apppath, arg);
 }
 
 typedef struct _dwsighandler
@@ -308,6 +316,8 @@ int _dw_event_handler2(void **params)
                 int vk = DW_POINTER_TO_INT(params[4]), special = DW_POINTER_TO_INT(params[5]);
 
                 retval = keypressfunc(handler->window, ch, (int)vk, special, handler->data, utf8);
+                if(utf8)
+                    free(utf8);
                 break;
             }
                 /* Button press and release event */
@@ -363,8 +373,11 @@ int _dw_event_handler2(void **params)
             case _DW_EVENT_ITEM_ENTER:
             {
                 int (*containerselectfunc)(HWND, char *, void *, void *) =(int (* API)(HWND, char *, void *, void *)) handler->signalfunction;
+                char *text = (char *)params[1];
 
-                retval = containerselectfunc(handler->window, (char *)params[1], handler->data, params[7]);
+                retval = containerselectfunc(handler->window, text, handler->data, params[7]);
+                if(text)
+                    free(text);
                 break;
             }
                 /* Container context menu event */
@@ -377,6 +390,8 @@ int _dw_event_handler2(void **params)
                 int y = DW_POINTER_TO_INT(params[4]);
 
                 retval = containercontextfunc(handler->window, text, x, y, handler->data, user);
+                if(text)
+                    free(text);
                 break;
             }
                 /* Generic selection changed event for several classes */
@@ -397,6 +412,8 @@ int _dw_event_handler2(void **params)
                 void *user = params[7];
 
                 retval = treeselectfunc(handler->window, (jobject)params[0], text, handler->data, user);
+                if(text)
+                    free(text);
                 break;
             }
                 /* Set Focus event */
@@ -440,6 +457,8 @@ int _dw_event_handler2(void **params)
                 char *result = (char *)params[1];
 
                 retval = htmlresultfunc(handler->window, result ? DW_ERROR_NONE : DW_ERROR_UNKNOWN, result, params[7], handler->data);
+                if(result)
+                    free(result);
                 break;
             }
                 /* HTML changed event */
@@ -449,6 +468,8 @@ int _dw_event_handler2(void **params)
                 char *uri = (char *)params[1];
 
                 retval = htmlchangedfunc(handler->window, DW_POINTER_TO_INT(params[3]), uri, handler->data);
+                if(uri)
+                    free(uri);
                 break;
             }
         }
@@ -580,12 +601,18 @@ Java_org_dbsoft_dwindows_DWindows_eventHandler(JNIEnv* env, jobject obj, jobject
                                                       jint inta, jint intb, jint intc, jint intd) {
     const char *utf81 = str1 ? env->GetStringUTFChars(str1, nullptr) : nullptr;
     const char *utf82 = str2 ? env->GetStringUTFChars(str2, nullptr) : nullptr;
-    void *params[_DW_EVENT_PARAM_SIZE] = { DW_POINTER(obj2), DW_POINTER(utf81), DW_POINTER(utf82),
+    void *params[_DW_EVENT_PARAM_SIZE] = { DW_POINTER(obj2), DW_POINTER(utf81 ? strdup(utf81) : nullptr),
+                                           DW_POINTER(utf82 ? strdup(utf82) : nullptr),
                                            DW_INT_TO_POINTER(inta), DW_INT_TO_POINTER(intb),
                                            DW_INT_TO_POINTER(intc), DW_INT_TO_POINTER(intd), nullptr,
                                            DW_INT_TO_POINTER(message), nullptr };
 
-    return _dw_event_handler(obj1, params);
+    int retval = _dw_event_handler(obj1, params);
+    if(utf81)
+        env->ReleaseStringUTFChars(str1, utf81);
+    if(utf82)
+        env->ReleaseStringUTFChars(str2, utf82);
+    return retval;
 }
 
 /* A more simple method for quicker calls */
@@ -614,20 +641,26 @@ JNIEXPORT void JNICALL
 Java_org_dbsoft_dwindows_DWindows_eventHandlerHTMLResult(JNIEnv* env, jobject obj, jobject obj1,
                                                jint message, jstring htmlResult, jlong data) {
     const char *result = env->GetStringUTFChars(htmlResult, nullptr);
-    void *params[_DW_EVENT_PARAM_SIZE] = { nullptr, DW_POINTER(result), nullptr, nullptr, nullptr, nullptr, nullptr,
-                                           DW_INT_TO_POINTER(data), DW_INT_TO_POINTER(message), nullptr };
+    void *params[_DW_EVENT_PARAM_SIZE] = { nullptr, DW_POINTER(result ? strdup(result) : nullptr), nullptr,
+                                           nullptr, nullptr, nullptr, nullptr, DW_INT_TO_POINTER(data),
+                                           DW_INT_TO_POINTER(message), nullptr };
 
     _dw_event_handler(obj1, params);
+    if(result)
+        env->ReleaseStringUTFChars(htmlResult, result);
 }
 
 JNIEXPORT void JNICALL
 Java_org_dbsoft_dwindows_DWWebViewClient_eventHandlerHTMLChanged(JNIEnv* env, jobject obj, jobject obj1,
                                                          jint message, jstring URI, jint status) {
     const char *uri = env->GetStringUTFChars(URI, nullptr);
-    void *params[_DW_EVENT_PARAM_SIZE] = { nullptr, DW_POINTER(uri), nullptr, DW_INT_TO_POINTER(status),
-                                           nullptr, nullptr, nullptr, nullptr, DW_INT_TO_POINTER(message), nullptr };
+    void *params[_DW_EVENT_PARAM_SIZE] = { nullptr, DW_POINTER(uri ? strdup(uri) : nullptr), nullptr,
+                                           DW_INT_TO_POINTER(status), nullptr, nullptr, nullptr, nullptr,
+                                           DW_INT_TO_POINTER(message), nullptr };
 
     _dw_event_handler(obj1, params);
+    if(uri)
+        env->ReleaseStringUTFChars(URI, uri);
 }
 
 typedef struct _dwprint
@@ -732,20 +765,26 @@ JNIEXPORT void JNICALL
 Java_org_dbsoft_dwindows_DWindows_eventHandlerContainer(JNIEnv* env, jobject obj, jobject obj1,
                                                   jint message, jstring jtitle, jint x, jint y, jlong data) {
     const char *title = jtitle ? env->GetStringUTFChars(jtitle, nullptr) : nullptr;
-    void *params[_DW_EVENT_PARAM_SIZE] = { nullptr, DW_POINTER(title), nullptr, DW_INT_TO_POINTER(x), DW_INT_TO_POINTER(y),
-                                           nullptr, nullptr, DW_POINTER(data), DW_INT_TO_POINTER(message), nullptr };
+    void *params[_DW_EVENT_PARAM_SIZE] = { nullptr, DW_POINTER(title ? strdup(title) : nullptr), nullptr,
+                                           DW_INT_TO_POINTER(x), DW_INT_TO_POINTER(y), nullptr, nullptr,
+                                           DW_POINTER(data), DW_INT_TO_POINTER(message), nullptr };
 
     _dw_event_handler(obj1, params);
+    if(title)
+        env->ReleaseStringUTFChars(jtitle, title);
 }
 
 JNIEXPORT void JNICALL
 Java_org_dbsoft_dwindows_DWindows_eventHandlerTree(JNIEnv* env, jobject obj, jobject obj1,
                                                    jint message, jobject item, jstring jtitle, jlong data) {
     const char *title = jtitle ? env->GetStringUTFChars(jtitle, nullptr) : nullptr;
-    void *params[_DW_EVENT_PARAM_SIZE] = { DW_POINTER(item), DW_POINTER(title), nullptr, nullptr, nullptr,
-                                           nullptr, nullptr, DW_POINTER(data), DW_INT_TO_POINTER(message), nullptr };
+    void *params[_DW_EVENT_PARAM_SIZE] = { DW_POINTER(item), DW_POINTER(title ? strdup(title) : nullptr),
+                                           nullptr, nullptr, nullptr, nullptr, nullptr, DW_POINTER(data),
+                                           DW_INT_TO_POINTER(message), nullptr };
 
     _dw_event_handler(obj1, params);
+    if(title)
+        env->ReleaseStringUTFChars(jtitle, title);
 }
 
 JNIEXPORT void JNICALL
@@ -761,10 +800,13 @@ JNIEXPORT void JNICALL
 Java_org_dbsoft_dwindows_DWindows_eventHandlerKey(JNIEnv *env, jobject obj, jobject obj1, jint message, jint ch,
                                                   jint vk, jint modifiers, jstring str) {
     const char *cstr = str ? env->GetStringUTFChars(str, nullptr) : nullptr;
-    void *params[_DW_EVENT_PARAM_SIZE] = { nullptr, DW_POINTER(cstr), nullptr, DW_INT_TO_POINTER(ch), DW_INT_TO_POINTER(vk),
-                                           DW_INT_TO_POINTER(modifiers), nullptr, nullptr, DW_INT_TO_POINTER(message), nullptr };
+    void *params[_DW_EVENT_PARAM_SIZE] = { nullptr, DW_POINTER(cstr ? strdup(cstr) : nullptr), nullptr,
+                                           DW_INT_TO_POINTER(ch), DW_INT_TO_POINTER(vk), DW_INT_TO_POINTER(modifiers),
+                                           nullptr, nullptr, DW_INT_TO_POINTER(message), nullptr };
 
     _dw_event_handler(obj1, params);
+    if(cstr)
+        env->ReleaseStringUTFChars(str, cstr);
 }
 
 /* Handler for Timer events */
@@ -1129,6 +1171,7 @@ void API dw_debug(const char *format, ...)
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, debugMessage, jstr);
         _dw_jni_check_exception(env);
+        env->DeleteLocalRef(jstr);
     }
     else {
         /* Output to stderr, if there is another way to send it
@@ -1173,6 +1216,8 @@ int API dw_messagebox(const char *title, int flags, const char *format, ...)
         // Call the method on the object
         retval = env->CallIntMethod(_dw_obj, messageBox, jstrtitle, jstr, flags);
         _dw_jni_check_exception(env);
+        env->DeleteLocalRef(jstr);
+        env->DeleteLocalRef(jstrtitle);
     }
     return retval;
 }
@@ -1217,6 +1262,11 @@ char * API dw_file_browse(const char *title, const char *defpath, const char *ex
             if(str)
                 retval = strdup(str);
         }
+        env->DeleteLocalRef(jstr);
+        if(path)
+            env->DeleteLocalRef(path);
+        if(jext)
+            env->DeleteLocalRef(jext);
     }
     return retval;
 }
@@ -1247,6 +1297,7 @@ int API dw_file_open(const char *path, int mode)
             // Call the method on the object
             retval = (int) env->CallIntMethod(_dw_obj, fileOpen, jstr, (jint) mode);
             _dw_jni_check_exception(env);
+            env->DeleteLocalRef(jstr);
         }
     }
     return retval;
@@ -1267,6 +1318,7 @@ char * API dw_clipboard_get_text()
     if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
         const char *utf8 = nullptr;
+        char *retval = nullptr;
 
         // First get the class that contains the method you need to call
         jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
@@ -1278,7 +1330,12 @@ char * API dw_clipboard_get_text()
         // Get the UTF8 string result
         if(result)
             utf8 = env->GetStringUTFChars(result, nullptr);
-        return utf8 ? strdup(utf8) : nullptr;
+        if(utf8)
+        {
+            retval = strdup(utf8);
+            env->ReleaseStringUTFChars(result, utf8);
+        }
+        return retval;
     }
     return nullptr;
 }
@@ -1305,6 +1362,7 @@ void API dw_clipboard_set_text(const char *str, int len)
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, clipboardSetText, jstr);
         _dw_jni_check_exception(env);
+        env->DeleteLocalRef(jstr);
     }
 }
 
@@ -1418,6 +1476,8 @@ HWND API dw_groupbox_new(int type, int pad, const char *title)
                                                  "(IILjava/lang/String;)Landroid/widget/LinearLayout;");
         // Call the method on the object
         jobject result = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, groupBoxNew, type, pad, jstr), _DW_REFERENCE_WEAK);
+        if(jstr)
+            env->DeleteLocalRef(jstr);
         return result;
     }
     return nullptr;
@@ -1647,6 +1707,7 @@ HWND API dw_button_new(const char *text, ULONG cid)
                                                "(Ljava/lang/String;I)Landroid/widget/Button;");
         // Call the method on the object
         jobject result = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, buttonNew, jstr, (int)cid), _DW_REFERENCE_WEAK);
+        env->DeleteLocalRef(jstr);
         return result;
     }
     return nullptr;
@@ -1667,6 +1728,7 @@ HWND _dw_entryfield_new(const char *text, ULONG cid, int password)
                                                    "(Ljava/lang/String;II)Landroid/widget/EditText;");
         // Call the method on the object
         jobject result = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, entryfieldNew, jstr, (int)cid, password), _DW_REFERENCE_WEAK);
+        env->DeleteLocalRef(jstr);
         return result;
     }
     return nullptr;
@@ -1743,6 +1805,7 @@ HWND API dw_bitmapbutton_new(const char *text, ULONG resid)
                                                      "(Ljava/lang/String;I)Landroid/widget/ImageButton;");
         // Call the method on the object
         jobject result = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, bitmapButtonNew, jstr, (int)resid), _DW_REFERENCE_WEAK);
+        env->DeleteLocalRef(jstr);
         return result;
     }
     return nullptr;
@@ -1767,7 +1830,7 @@ HWND API dw_bitmapbutton_new_from_file(const char *text, unsigned long cid, cons
     {
         // Construct a String
         jstring jstr = env->NewStringUTF(text);
-        jstring path = env->NewStringUTF(text);
+        jstring path = env->NewStringUTF(filename);
         // First get the class that contains the method you need to call
         jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
         // Get the method that you want to call
@@ -1775,6 +1838,8 @@ HWND API dw_bitmapbutton_new_from_file(const char *text, unsigned long cid, cons
                                                              "(Ljava/lang/String;ILjava/lang/String;)Landroid/widget/ImageButton;");
         // Call the method on the object
         jobject result = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, bitmapButtonNewFromFile, jstr, (int)cid, path), _DW_REFERENCE_WEAK);
+        env->DeleteLocalRef(jstr);
+        env->DeleteLocalRef(path);
         return result;
     }
     return nullptr;
@@ -1809,8 +1874,9 @@ HWND API dw_bitmapbutton_new_from_data(const char *text, unsigned long cid, cons
                                                              "(Ljava/lang/String;I[BI)Landroid/widget/ImageButton;");
         // Call the method on the object
         jobject result = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, bitmapButtonNewFromData, jstr, (int)cid, bytearray, len), _DW_REFERENCE_WEAK);
-        // Clean up after the array now that we are finished
+        // TODO: Clean up after the array now that we are finished
         //env->ReleaseByteArrayElements(bytearray, (jbyte *) data, 0);
+        env->DeleteLocalRef(jstr);
         return result;
     }
     return nullptr;
@@ -1839,6 +1905,7 @@ HWND API dw_spinbutton_new(const char *text, ULONG cid)
                                                    "(Ljava/lang/String;I)Lorg/dbsoft/dwindows/DWSpinButton;");
         // Call the method on the object
         jobject result = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, spinButtonNew, jstr, (int)cid), _DW_REFERENCE_WEAK);
+        env->DeleteLocalRef(jstr);
         return result;
     }
     return nullptr;
@@ -1941,6 +2008,7 @@ HWND API dw_radiobutton_new(const char *text, ULONG cid)
                                                     "(Ljava/lang/String;I)Landroid/widget/RadioButton;");
         // Call the method on the object
         jobject result = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, radioButtonNew, jstr, (int)cid), _DW_REFERENCE_WEAK);
+        env->DeleteLocalRef(jstr);
         return result;
     }
     return nullptr;
@@ -2155,6 +2223,7 @@ HWND API dw_checkbox_new(const char *text, ULONG cid)
                                                  "(Ljava/lang/String;I)Landroid/widget/CheckBox;");
         // Call the method on the object
         jobject result = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, checkboxNew, jstr, (int)cid), _DW_REFERENCE_WEAK);
+        env->DeleteLocalRef(jstr);
         return result;
     }
     return nullptr;
@@ -2258,6 +2327,7 @@ void API dw_listbox_append(HWND handle, const char *text)
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, listOrComboBoxAppend, handle, jstr);
         _dw_jni_check_exception(env);
+        env->DeleteLocalRef(jstr);
     }
 }
 
@@ -2284,6 +2354,7 @@ void API dw_listbox_insert(HWND handle, const char *text, int pos)
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, listOrComboBoxInsert, handle, jstr, pos);
         _dw_jni_check_exception(env);
+        env->DeleteLocalRef(jstr);
     }
 }
 
@@ -2401,7 +2472,11 @@ void API dw_listbox_get_text(HWND handle, unsigned int index, char *buffer, unsi
         {
             const char *utf8 = env->GetStringUTFChars(result, nullptr);
 
-            strncpy(buffer, utf8, length);
+            if(utf8)
+            {
+                strncpy(buffer, utf8, length);
+                env->ReleaseStringUTFChars(result, utf8);
+            }
         }
     }
 }
@@ -2429,6 +2504,7 @@ void API dw_listbox_set_text(HWND handle, unsigned int index, const char *buffer
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, listOrComboBoxSetText, handle, index, jstr);
         _dw_jni_check_exception(env);
+        env->DeleteLocalRef(jstr);
     }
 }
 
@@ -2557,6 +2633,7 @@ HWND API dw_combobox_new(const char *text, ULONG cid)
                                                  "(Ljava/lang/String;I)Lorg/dbsoft/dwindows/DWComboBox;");
         // Call the method on the object
         jobject result = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, comboBoxNew, jstr, (int)cid), _DW_REFERENCE_WEAK);
+        env->DeleteLocalRef(jstr);
         return result;
     }
     return nullptr;
@@ -2614,6 +2691,7 @@ unsigned int API dw_mle_import(HWND handle, const char *buffer, int startpoint)
         retval = env->CallIntMethod(_dw_obj, mleImport, handle, jstr, startpoint);
         if(_dw_jni_check_exception(env))
             retval = 0;
+        env->DeleteLocalRef(jstr);
     }
     return retval;
 }
@@ -2868,6 +2946,7 @@ int API dw_mle_search(HWND handle, const char *text, int point, unsigned long fl
         retval = env->CallIntMethod(_dw_obj, mleSearch, handle, jstr, point, (jint)flags);
         if(_dw_jni_check_exception(env))
             retval = DW_ERROR_UNKNOWN;
+        env->DeleteLocalRef(jstr);
     }
     return retval;
 }
@@ -2907,6 +2986,7 @@ HWND _dw_text_new(const char *text, ULONG cid, int status)
                                              "(Ljava/lang/String;II)Landroid/widget/TextView;");
         // Call the method on the object
         jobject result = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, textNew, jstr, (int)cid, status), _DW_REFERENCE_WEAK);
+        env->DeleteLocalRef(jstr);
         return result;
     }
     return nullptr;
@@ -3128,6 +3208,7 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, const char *tex
                             pixmap ? pixmap->typeface : nullptr, pixmap ? pixmap->fontsize : 0,
                             pixmap ? pixmap->handle : nullptr, fgcolor, bgcolor);
         _dw_jni_check_exception(env);
+        env->DeleteLocalRef(jstr);
     }
 }
 
@@ -3162,6 +3243,7 @@ void API dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, const char *text,
             *width = dimensions & 0xFFFF;
         if(height)
             *height = (dimensions >> 32) & 0xFFFF;
+        env->DeleteLocalRef(jstr);
     }
 }
 
@@ -3320,6 +3402,7 @@ HTREEITEM API dw_tree_insert_after(HWND handle, HTREEITEM item, const char *titl
         // Call the method on the object
         jobject result = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, treeInsertAfter, handle, item,
                                                                          jstr, icon, parent, (jlong)itemdata), _DW_REFERENCE_WEAK);
+        env->DeleteLocalRef(jstr);
         return result;
     }
     return nullptr;
@@ -3356,6 +3439,7 @@ char * API dw_tree_get_title(HWND handle, HTREEITEM item)
     if(handle && item && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
         const char *utf8 = nullptr;
+        char *retval = nullptr;
 
         // First get the class that contains the method you need to call
         jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
@@ -3367,7 +3451,11 @@ char * API dw_tree_get_title(HWND handle, HTREEITEM item)
         // Get the UTF8 string result
         if(result)
             utf8 = env->GetStringUTFChars(result, nullptr);
-        return utf8 ? strdup(utf8) : nullptr;
+        if(utf8)
+        {
+            retval = strdup(utf8);
+            env->ReleaseStringUTFChars(result, utf8);
+        }
     }
     return nullptr;
 }
@@ -3421,6 +3509,8 @@ void API dw_tree_item_change(HWND handle, HTREEITEM item, const char *title, HIC
                                                     "(Lorg/dbsoft/dwindows/DWTree;Lorg/dbsoft/dwindows/DWTreeItem;Ljava/lang/String;Landroid/graphics/drawable/Drawable;)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, treeItemChange, handle, item, jstr, icon);
+        _dw_jni_check_exception(env);
+        env->DeleteLocalRef(jstr);
     }
 }
 
@@ -3643,6 +3733,7 @@ int API dw_container_setup(HWND handle, unsigned long *flags, char **titles, int
                 env->CallVoidMethod(_dw_obj, containerNew, handle, jstr, (int)flags[z]);
                 if(_dw_jni_check_exception(env))
                     retval = DW_ERROR_GENERAL;
+                env->DeleteLocalRef(jstr);
             }
         }
     }
@@ -3761,6 +3852,7 @@ void API _dw_container_change_item(HWND handle, int column, int row, void *data)
                 // Call the method on the object
                 env->CallVoidMethod(_dw_obj, containerChangeItem, handle, column, row, jstr);
                 _dw_jni_check_exception(env);
+                env->DeleteLocalRef(jstr);
             }
         }
         else if((columntype & DW_CFA_ULONG))
@@ -4046,6 +4138,7 @@ void API dw_container_change_row_title(HWND handle, int row, const char *title)
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, containerChangeRowTitle, handle, row, jstr);
         _dw_jni_check_exception(env);
+        env->DeleteLocalRef(jstr);
     }
 }
 
@@ -4171,13 +4264,19 @@ char * API dw_container_query_start(HWND handle, unsigned long flags)
             jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
             // Get the method that you want to call
             jmethodID containerGetTitleStart = env->GetMethodID(clazz, "containerGetTitleStart",
-                                                               "(Landroid/widget/ListView;I)Ljava/lang/String;");
+                                                    "(Landroid/widget/ListView;I)Ljava/lang/String;");
             // Call the method on the object
             jstring jstr = (jstring)_dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, containerGetTitleStart, handle, (jint)flags), _DW_REFERENCE_NONE);
-            char *str;
+            if(jstr)
+            {
+                const char *str = env->GetStringUTFChars(jstr, nullptr);
 
-            if(jstr && (str = (char *)env->GetStringUTFChars(jstr, nullptr)))
-                retval = strdup(str);
+                if(str)
+                {
+                    retval = strdup(str);
+                    env->ReleaseStringUTFChars(jstr, str);
+                }
+            }
         }
     }
     return retval;
@@ -4218,10 +4317,16 @@ char * API dw_container_query_next(HWND handle, unsigned long flags)
                                                                "(Landroid/widget/ListView;I)Ljava/lang/String;");
             // Call the method on the object
             jstring jstr = (jstring)_dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, containerGetTitleNext, handle, (jint)flags), _DW_REFERENCE_NONE);
-            char *str;
+            if(jstr)
+            {
+                const char *str = env->GetStringUTFChars(jstr, nullptr);
 
-            if(jstr && (str = (char *)env->GetStringUTFChars(jstr, nullptr)))
-                retval = strdup(str);
+                if(str)
+                {
+                    retval = strdup(str);
+                    env->ReleaseStringUTFChars(jstr, str);
+                }
+            }
         }
     }
     return retval;
@@ -4249,6 +4354,8 @@ void API dw_container_cursor(HWND handle, const char *text)
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, containerCursor, handle, jstr);
         _dw_jni_check_exception(env);
+        if(jstr)
+            env->DeleteLocalRef(jstr);
     }
 }
 
@@ -4297,6 +4404,8 @@ void API dw_container_delete_row(HWND handle, const char *text)
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, containerRowDeleteByTitle, handle, jstr);
         _dw_jni_check_exception(env);
+        if(jstr)
+            env->DeleteLocalRef(jstr);
     }
 }
 
@@ -4379,9 +4488,11 @@ HICN _dw_icon_load(const char *filename, const char *data, int len, int resid)
         // Call the method on the object
         jobject result = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, iconNew,
                                               file, bytearray, len, resid), _DW_REFERENCE_STRONG);
-        // Clean up after the array now that we are finished
+        // TODO: Clean up after the array now that we are finished
         //if(bytearray)
         //env->ReleaseByteArrayElements(bytearray, (jbyte *) data, 0);
+        if(file)
+            env->DeleteLocalRef(file);
         return result;
     }
     return nullptr;
@@ -4569,10 +4680,6 @@ jobject _dw_jbitmap_new(unsigned long width, unsigned long height, const char *f
 
     if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
-        // Construct a string
-        jstring file = nullptr;
-        if(filename)
-            file = env->NewStringUTF(filename);
         // Construct a byte array
         jbyteArray bytearray = nullptr;
         if(data && len > 0)
@@ -4582,6 +4689,10 @@ jobject _dw_jbitmap_new(unsigned long width, unsigned long height, const char *f
         }
         if(!_dw_jni_check_exception(env))
         {
+            // Construct a string
+            jstring file = nullptr;
+            if(filename)
+                file = env->NewStringUTF(filename);
             // First get the class that contains the method you need to call
             jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
             // Get the method that you want to call
@@ -4594,9 +4705,11 @@ jobject _dw_jbitmap_new(unsigned long width, unsigned long height, const char *f
                                                                              file, bytearray, len,
                                                                              resid),
                                                   _DW_REFERENCE_STRONG);
-            // Clean up after the array now that we are finished
+            // TODO: Clean up after the array now that we are finished
             //if(bytearray)
             //env->ReleaseByteArrayElements(bytearray, (jbyte *) data, 0);
+            if(file)
+                env->DeleteLocalRef(file);
             return result;
         }
     }
@@ -4791,6 +4904,7 @@ int API dw_pixmap_set_font(HPIXMAP pixmap, const char *fontname)
                 env->DeleteGlobalRef(oldtypeface);
             pixmap->fontsize = atoi(fontname);
         }
+        env->DeleteLocalRef(jstr);
         return DW_ERROR_NONE;
     }
     return DW_ERROR_GENERAL;
@@ -5003,6 +5117,7 @@ void API dw_html_action(HWND handle, int action)
 int API dw_html_raw(HWND handle, const char *string)
 {
     JNIEnv *env;
+    int retval = DW_ERROR_GENERAL;
 
     if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
@@ -5016,9 +5131,10 @@ int API dw_html_raw(HWND handle, const char *string)
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, htmlRaw, handle, jstr);
         if(!_dw_jni_check_exception(env))
-            return DW_ERROR_NONE;
+            retval = DW_ERROR_NONE;
+        env->DeleteLocalRef(jstr);
     }
-    return DW_ERROR_GENERAL;
+    return retval;
 }
 
 /*
@@ -5033,6 +5149,7 @@ int API dw_html_raw(HWND handle, const char *string)
 int API dw_html_url(HWND handle, const char *url)
 {
     JNIEnv *env;
+    int retval = DW_ERROR_GENERAL;
 
     if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
@@ -5046,9 +5163,10 @@ int API dw_html_url(HWND handle, const char *url)
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, htmlLoadURL, handle, jstr);
         if(!_dw_jni_check_exception(env))
-            return DW_ERROR_NONE;
+            retval = DW_ERROR_NONE;
+        env->DeleteLocalRef(jstr);
     }
-    return DW_ERROR_GENERAL;
+    return retval;
 }
 
 /*
@@ -5064,6 +5182,7 @@ int API dw_html_url(HWND handle, const char *url)
 int API dw_html_javascript_run(HWND handle, const char *script, void *scriptdata)
 {
     JNIEnv *env;
+    int retval = DW_ERROR_GENERAL;
 
     if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
@@ -5077,9 +5196,10 @@ int API dw_html_javascript_run(HWND handle, const char *script, void *scriptdata
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, htmlJavascriptRun, handle, jstr, (jlong)scriptdata);
         if(!_dw_jni_check_exception(env))
-            return DW_ERROR_NONE;
+            retval = DW_ERROR_NONE;
+        env->DeleteLocalRef(jstr);
     }
-    return DW_ERROR_UNKNOWN;
+    return retval;
 }
 
 /*
@@ -5310,6 +5430,7 @@ HWND API dw_menu_append_item(HMENUI menux, const char *title, ULONG itemid, ULON
                                                     "(Lorg/dbsoft/dwindows/DWMenu;Ljava/lang/String;IIIILorg/dbsoft/dwindows/DWMenu;)Lorg/dbsoft/dwindows/DWMenuItem;");
         // Call the method on the object
         jobject result = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, menuAppendItem, menux, jstr, (int)itemid, (int)flags, end, check, submenux), _DW_REFERENCE_WEAK);
+        env->DeleteLocalRef(jstr);
         return result;
     }
     return nullptr;
@@ -5502,6 +5623,7 @@ void API dw_notebook_page_set_text(HWND handle, ULONG pageid, const char *text)
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, notebookPageSetText, handle, (jlong)pageid, jstr);
         _dw_jni_check_exception(env);
+        env->DeleteLocalRef(jstr);
     }
 }
 
@@ -5564,6 +5686,7 @@ HWND API dw_window_new(HWND hwndOwner, const char *title, ULONG flStyle)
                                                "(Ljava/lang/String;I)Landroid/widget/LinearLayout;");
         // Call the method on the object
         jobject result = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, windowNew, jstr, (int)flStyle), _DW_REFERENCE_WEAK);
+        env->DeleteLocalRef(jstr);
         return result;
     }
     return nullptr;
@@ -5812,6 +5935,7 @@ void API dw_window_reparent(HWND handle, HWND newparent)
 int API dw_window_set_font(HWND handle, const char *fontname)
 {
     JNIEnv *env;
+    int retval = DW_ERROR_GENERAL;
 
     if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
@@ -5825,9 +5949,10 @@ int API dw_window_set_font(HWND handle, const char *fontname)
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, windowSetFont, handle, jstr);
         if(!_dw_jni_check_exception(env))
-            return DW_ERROR_NONE;
+            retval = DW_ERROR_NONE;
+        env->DeleteLocalRef(jstr);
     }
-    return DW_ERROR_GENERAL;
+    return retval;
 }
 
 /*
@@ -5853,7 +5978,15 @@ char * API dw_window_get_font(HWND handle)
         jstring jstr = (jstring)_dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, windowGetFont, handle), _DW_REFERENCE_NONE);
 
         if(jstr)
-            fontname = strdup(env->GetStringUTFChars(jstr, nullptr));
+        {
+            const char *str = env->GetStringUTFChars(jstr, nullptr);
+
+            if(str)
+            {
+                fontname = strdup(str);
+                env->ReleaseStringUTFChars(jstr, str);
+            }
+        }
     }
     return fontname;
 }
@@ -5919,6 +6052,7 @@ char * API dw_window_get_text(HWND handle)
     if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
         const char *utf8 = nullptr;
+        char *retval = nullptr;
 
         // First get the class that contains the method you need to call
         jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
@@ -5930,7 +6064,11 @@ char * API dw_window_get_text(HWND handle)
         // Get the UTF8 string result
         if(result)
             utf8 = env->GetStringUTFChars(result, nullptr);
-        return utf8 ? strdup(utf8) : nullptr;
+        if(utf8)
+        {
+            retval = strdup(utf8);
+            env->ReleaseStringUTFChars(result, utf8);
+        }
     }
     return nullptr;
 }
@@ -5957,6 +6095,7 @@ void API dw_window_set_text(HWND handle, const char *text)
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, windowSetText, handle, jstr);
         _dw_jni_check_exception(env);
+        env->DeleteLocalRef(jstr);
     }
 }
 
@@ -6075,6 +6214,8 @@ void API dw_window_set_bitmap(HWND handle, unsigned long resid, const char *file
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, windowSetBitmapFromData, handle, (int)resid, jstr);
         _dw_jni_check_exception(env);
+        if(jstr)
+            env->DeleteLocalRef(jstr);
     }
 }
 
@@ -6345,6 +6486,7 @@ void API dw_environment_query(DWEnv *env)
     {
         JNIEnv *jenv;
         const char *release = nullptr;
+        jstring jstr = nullptr;
 
         if((jenv = (JNIEnv *)pthread_getspecific(_dw_env_key)))
         {
@@ -6354,13 +6496,15 @@ void API dw_environment_query(DWEnv *env)
             jmethodID androidGetRelease = jenv->GetMethodID(clazz, "androidGetRelease",
                                                            "()Ljava/lang/String;");
             // Call the method on the object
-            jstring jstr = (jstring)_dw_jni_check_result(jenv, jenv->CallObjectMethod(_dw_obj, androidGetRelease), _DW_REFERENCE_NONE);
+            jstr = (jstring)_dw_jni_check_result(jenv, jenv->CallObjectMethod(_dw_obj, androidGetRelease), _DW_REFERENCE_NONE);
 
             if(jstr)
                 release = jenv->GetStringUTFChars(jstr, nullptr);
         }
         snprintf(osName, _DW_ENV_STRING_SIZE-1, "Android%s%s",
                  release ? " " : "", release ? release : "");
+        if(release)
+            jenv->ReleaseStringUTFChars(jstr, release);
     }
     memset(env, '\0', sizeof(DWEnv));
 
@@ -6430,6 +6574,7 @@ void API dw_window_set_data(HWND window, const char *dataname, void *data)
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, windowSetData, window, jstr, (jlong)data);
         _dw_jni_check_exception(env);
+        env->DeleteLocalRef(jstr);
     }
 }
 
@@ -6459,6 +6604,7 @@ void * API dw_window_get_data(HWND window, const char *dataname)
         retval = (void *)env->CallLongMethod(_dw_obj, windowGetData, window, jstr);
         if(_dw_jni_check_exception(env))
             retval = nullptr;
+        env->DeleteLocalRef(jstr);
     }
     return retval;
 }
@@ -7571,6 +7717,8 @@ int API dw_init(int newthread, int argc, char *argv[])
         _dw_android_api = env->CallIntMethod(_dw_obj, dwInit, appid, appname);
         if(_dw_jni_check_exception(env))
             _dw_android_api = 0;
+        env->DeleteLocalRef(appid);
+        env->DeleteLocalRef(appname);
     }
     return DW_ERROR_NONE;
 }
@@ -7674,6 +7822,7 @@ int API dw_browse(const char *url)
         retval = env->CallIntMethod(_dw_obj, browseURL, jstr);
         if(_dw_jni_check_exception(env))
             retval = DW_ERROR_UNKNOWN;
+        env->DeleteLocalRef(jstr);
     }
     return retval;
 }
@@ -7735,6 +7884,7 @@ int API dw_print_run(HPRINT pr, unsigned long flags)
         print->printjob = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, printRun, (jlong)pr, (jint)print->flags, jstr, (jint)print->pages, (jint)flags), _DW_REFERENCE_WEAK);
         if(print->printjob)
             retval = DW_ERROR_NONE;
+        env->DeleteLocalRef(jstr);
     }
     return retval;
 }
@@ -7815,6 +7965,8 @@ HWND API dw_notification_new(const char *title, const char *imagepath, const cha
                                                      "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Landroidx/core/app/NotificationCompat$Builder;");
         // Call the method on the object
         jobject result = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, notificationNew, ntitle, image, ndesc, appid), _DW_REFERENCE_WEAK);
+        env->DeleteLocalRef(appid);
+        env->DeleteLocalRef(ntitle);
         return result;
     }
     return nullptr;
