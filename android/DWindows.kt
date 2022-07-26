@@ -3000,15 +3000,15 @@ class DWindows : AppCompatActivity() {
 
                 if(ib.drawable != null) {
                     if(state) {
-                        ib.drawable.setColorFilter(null)
+                        ib.drawable.colorFilter = null
                     } else {
-                        ib.drawable.setColorFilter(Color.LTGRAY, PorterDuff.Mode.SRC_IN)
+                        ib.drawable.colorFilter = PorterDuffColorFilter(Color.LTGRAY, PorterDuff.Mode.SRC_IN)
                     }
                     if(ib.background != null) {
                         if(state) {
-                            ib.background.setColorFilter(null)
+                            ib.background.colorFilter = null
                         } else {
-                            ib.background.setColorFilter(Color.LTGRAY, PorterDuff.Mode.SRC_IN)
+                            ib.background.colorFilter = PorterDuffColorFilter(Color.LTGRAY, PorterDuff.Mode.SRC_IN)
                         }
                     }
                 }
