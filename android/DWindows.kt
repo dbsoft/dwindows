@@ -2994,7 +2994,25 @@ class DWindows : AppCompatActivity() {
 
     fun windowSetEnabled(window: View, state: Boolean) {
         waitOnUiThread {
-            window.setEnabled(state)
+            window.isEnabled = state
+            if(window is ImageButton) {
+                val ib = window as ImageButton
+
+                if(ib.drawable != null) {
+                    if(state) {
+                        ib.drawable.setColorFilter(null)
+                    } else {
+                        ib.drawable.setColorFilter(Color.LTGRAY, PorterDuff.Mode.SRC_IN)
+                    }
+                    if(ib.background != null) {
+                        if(state) {
+                            ib.background.setColorFilter(null)
+                        } else {
+                            ib.background.setColorFilter(Color.LTGRAY, PorterDuff.Mode.SRC_IN)
+                        }
+                    }
+                }
+            }
         }
     }
 
