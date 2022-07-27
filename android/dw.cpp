@@ -343,6 +343,8 @@ int _dw_event_handler2(void **params)
             {
                 int (* API closefunc)(HWND, void *) = (int (* API)(HWND, void *))handler->signalfunction;
                 retval = closefunc(handler->window, handler->data);
+                if(retval < 1)
+                    dw_window_destroy(handler->window);
                 break;
             }
             /* Window expose/draw event */
