@@ -335,9 +335,9 @@ void _##func(NSPointerArray *_args) {
         void *tmp = [_args pointerAtIndex:[_args count]-1]; \
         rettype myreturn = *((rettype *)tmp); \
         free(tmp); \
-        return myreturn; } \
-    [_args release]; \
-    DW_LOCAL_POOL_OUT; } \
+        [_args release]; \
+        DW_LOCAL_POOL_OUT; \
+        return myreturn; }} \
 void _##func(NSPointerArray *_args) {
 #define DW_FUNCTION_RETURN_THIS(_retvar) { void *_myreturn = malloc(sizeof(_retvar)); \
     memcpy(_myreturn, (void *)&_retvar, sizeof(_retvar)); \
