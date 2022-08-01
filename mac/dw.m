@@ -3108,7 +3108,7 @@ void _dw_table_cell_view_layout(NSTableCellView *result)
 }
 -(void)insertTab:(id)sender { if([[self window] firstResponder] == self) [[self window] selectNextKeyView:self]; }
 -(void)insertBacktab:(id)sender { if([[self window] firstResponder] == self) [[self window] selectPreviousKeyView:self]; }
--(void)dealloc { UserData *root = userdata; _dw_remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [scrollview release]; [super dealloc]; }
+-(void)dealloc { UserData *root = userdata; _dw_remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [self clear]; [scrollview release]; [super dealloc]; }
 @end
 
 /* Dive into the tree freeing all desired child nodes */
@@ -6398,17 +6398,18 @@ DW_FUNCTION_RETURN(dw_mle_import, unsigned int)
 DW_FUNCTION_RESTORE_PARAM3(handle, HWND, buffer, const char *, startpoint, int)
 {
     DW_FUNCTION_INIT;
+    DW_LOCAL_POOL_IN;
     DWMLE *mle = handle;
     unsigned int retval;
     NSTextStorage *ts = [mle textStorage];
     NSString *nstr = [NSString stringWithUTF8String:buffer];
     NSColor *fgcolor = [ts foregroundColor];
     NSFont *font = [ts font];
-    NSMutableDictionary *attributes = [[NSMutableDictionary alloc] init];
+    NSMutableDictionary *attributes = [[[NSMutableDictionary alloc] init] autorelease];
     [attributes setObject:(fgcolor ? fgcolor : [NSColor textColor]) forKey:NSForegroundColorAttributeName];
     if(font)
         [attributes setObject:font forKey:NSFontAttributeName];
-    NSAttributedString *nastr = [[NSAttributedString alloc] initWithString:nstr attributes:attributes];
+    NSAttributedString *nastr = [[[NSAttributedString alloc] initWithString:nstr attributes:attributes] autorelease];
     NSUInteger length = [ts length];
     if(startpoint < 0)
         startpoint = 0;
@@ -6416,6 +6417,7 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, buffer, const char *, startpoint, int)
         startpoint = (int)length;
     [ts insertAttributedString:nastr atIndex:startpoint];
     retval = (unsigned int)strlen(buffer) + startpoint;
+    DW_LOCAL_POOL_OUT;
     DW_FUNCTION_RETURN_THIS(retval);
 }
 
