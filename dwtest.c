@@ -1235,6 +1235,8 @@ void text_add(void)
         dw_pixmap_set_transparent_color(image, DW_CLR_WHITE);
 
     dw_messagebox(utf8string ? utf8string : "DWTest", DW_MB_OK|DW_MB_INFORMATION, "Width: %d Height: %d\n", font_width, font_height);
+    if(utf8string)
+        dw_free(utf8string);
     dw_draw_rect(0, text1pm, DW_DRAW_FILL | DW_DRAW_NOAA, 0, 0, font_width*width1, font_height*rows);
     dw_draw_rect(0, text2pm, DW_DRAW_FILL | DW_DRAW_NOAA, 0, 0, font_width*cols, font_height*rows);
     dw_signal_connect(textbox1, DW_SIGNAL_BUTTON_PRESS, DW_SIGNAL_FUNC(context_menu_event), NULL);
