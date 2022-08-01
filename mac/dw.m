@@ -5239,6 +5239,7 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
             {
                 [object retain];
                 [object removeFromSuperview];
+                [object retain];
 
                 if(thisbox->count > 1)
                 {
@@ -5305,6 +5306,7 @@ DW_FUNCTION_RESTORE_PARAM2(box, HWND, index, int)
             {
                 [object retain];
                 [object removeFromSuperview];
+                [object retain];
             }
 
             if(thisbox->count > 1)
