@@ -2281,7 +2281,7 @@ DWObject *DWObj;
 -(void)setUserdata:(void *)input { userdata = input; }
 -(id)scrollview { return scrollview; }
 -(void)setScrollview:(id)input { scrollview = input; }
--(void)dealloc { UserData *root = userdata; _dw_remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
+-(void)dealloc { UserData *root = userdata; _dw_remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [scrollview release]; [super dealloc]; }
 @end
 
 #ifndef DW_USE_NSVIEW
@@ -3108,7 +3108,7 @@ void _dw_table_cell_view_layout(NSTableCellView *result)
 }
 -(void)insertTab:(id)sender { if([[self window] firstResponder] == self) [[self window] selectNextKeyView:self]; }
 -(void)insertBacktab:(id)sender { if([[self window] firstResponder] == self) [[self window] selectPreviousKeyView:self]; }
--(void)dealloc { UserData *root = userdata; _dw_remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
+-(void)dealloc { UserData *root = userdata; _dw_remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [scrollview release]; [super dealloc]; }
 @end
 
 /* Dive into the tree freeing all desired child nodes */
@@ -4685,7 +4685,7 @@ DW_FUNCTION_RETURN(dw_box_new, HWND)
 DW_FUNCTION_RESTORE_PARAM2(type, int, pad, int)
 {
     DW_FUNCTION_INIT;
-    DWBox *view = [[DWBox alloc] init];
+    DWBox *view = [[[DWBox alloc] init] retain];
     Box *newbox = [view box];
     memset(newbox, 0, sizeof(Box));
     newbox->pad = pad;
@@ -4702,7 +4702,7 @@ DW_FUNCTION_RESTORE_PARAM2(type, int, pad, int)
  */
 HWND API dw_groupbox_new(int type, int pad, const char *title)
 {
-    NSBox *groupbox = [[DWGroupBox alloc] init];
+    NSBox *groupbox = [[[DWGroupBox alloc] init] retain];
     DWBox *thisbox = dw_box_new(type, pad);
     Box *box = [thisbox box];
 
@@ -4712,6 +4712,7 @@ HWND API dw_groupbox_new(int type, int pad, const char *title)
     [groupbox setTitle:[NSString stringWithUTF8String:title]];
     box->grouphwnd = groupbox;
     [groupbox setContentView:thisbox];
+    [thisbox release];
     [thisbox autorelease];
     return groupbox;
 }
@@ -4724,7 +4725,7 @@ HWND API dw_groupbox_new(int type, int pad, const char *title)
  */
 HWND API dw_scrollbox_new( int type, int pad )
 {
-    DWScrollBox *scrollbox = [[DWScrollBox alloc] init];
+    DWScrollBox *scrollbox = [[[DWScrollBox alloc] init] retain];
     DWBox *box = dw_box_new(type, pad);
     DWBox *tmpbox = dw_box_new(DW_VERT, 0);
     dw_box_pack_start(tmpbox, box, 1, 1, TRUE, TRUE, 0);
@@ -4734,6 +4735,7 @@ HWND API dw_scrollbox_new( int type, int pad )
     [scrollbox setDrawsBackground:NO];
     [scrollbox setBox:box];
     [scrollbox setDocumentView:tmpbox];
+    [tmpbox release];
     [tmpbox autorelease];
     return scrollbox;
 }
@@ -5161,6 +5163,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
 
     /* Add the item to the box */
     [view addSubview:this];
+    [this release];
     /* Enable autorelease on the item...
      * so it will get destroyed when the parent is.
      */
@@ -5390,7 +5393,7 @@ void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, 
 /* Internal function to create a basic button, used by all button types */
 HWND _dw_button_new(const char *text, ULONG cid)
 {
-    DWButton *button = [[DWButton alloc] init];
+    DWButton *button = [[[DWButton alloc] init] retain];
     if(text)
     {
         [button setTitle:[ NSString stringWithUTF8String:text ]];
@@ -5434,7 +5437,7 @@ HWND API dw_button_new(const char *text, ULONG cid)
  */
 HWND API dw_entryfield_new(const char *text, ULONG cid)
 {
-    DWEntryField *entry = [[DWEntryField alloc] init];
+    DWEntryField *entry = [[[DWEntryField alloc] init] retain];
     [entry setStringValue:[ NSString stringWithUTF8String:text ]];
     [entry setTag:cid];
     [[entry cell] setScrollable:YES];
@@ -5450,7 +5453,7 @@ HWND API dw_entryfield_new(const char *text, ULONG cid)
  */
 HWND API dw_entryfield_password_new(const char *text, ULONG cid)
 {
-    DWEntryFieldPassword *entry = [[DWEntryFieldPassword alloc] init];
+    DWEntryFieldPassword *entry = [[[DWEntryFieldPassword alloc] init] retain];
     [entry setStringValue:[ NSString stringWithUTF8String:text ]];
     [entry setTag:cid];
     [[entry cell] setScrollable:YES];
@@ -5560,7 +5563,7 @@ HWND API dw_bitmapbutton_new_from_data(const char *text, unsigned long cid, cons
  */
 HWND API dw_spinbutton_new(const char *text, ULONG cid)
 {
-    DWSpinButton *spinbutton = [[DWSpinButton alloc] init];
+    DWSpinButton *spinbutton = [[[DWSpinButton alloc] init] retain];
     NSStepper *stepper = [spinbutton stepper];
     NSTextField *textfield = [spinbutton textfield];
     [stepper setIncrement:1];
@@ -5636,7 +5639,7 @@ HWND API dw_radiobutton_new(const char *text, ULONG cid)
  */
 HWND API dw_slider_new(int vertical, int increments, ULONG cid)
 {
-    DWSlider *slider = [[DWSlider alloc] init];
+    DWSlider *slider = [[[DWSlider alloc] init] retain];
     [slider setMaxValue:(double)increments];
     [slider setMinValue:0];
     [slider setContinuous:YES];
@@ -5682,12 +5685,12 @@ HWND API dw_scrollbar_new(int vertical, ULONG cid)
     DWScrollbar *scrollbar;
     if(vertical)
     {
-        scrollbar = [[DWScrollbar alloc] init];
+        scrollbar = [[[DWScrollbar alloc] init] retain];
         [scrollbar setVertical:YES];
     }
     else
     {
-        scrollbar = [[DWScrollbar alloc] initWithFrame:NSMakeRect(0,0,100,5)];
+        scrollbar = [[[DWScrollbar alloc] initWithFrame:NSMakeRect(0,0,100,5)] retain];
     }
 #ifndef BUILDING_FOR_YOSEMITE
     [scrollbar setArrowsPosition:NSScrollerArrowsDefaultSetting];
@@ -5751,7 +5754,7 @@ void API dw_scrollbar_set_range(HWND handle, unsigned int range, unsigned int vi
  */
 HWND API dw_percent_new(ULONG cid)
 {
-    DWPercent *percent = [[DWPercent alloc] init];
+    DWPercent *percent = [[[DWPercent alloc] init] retain];
     [percent setStyle:DWProgressIndicatorStyleBar];
     [percent setBezeled:YES];
     [percent setMaxValue:100];
@@ -5848,8 +5851,8 @@ void API dw_checkbox_set(HWND handle, int value)
 /* Internal common function to create containers and listboxes */
 HWND _dw_cont_new(ULONG cid, int multi)
 {
-    DWFocusRingScrollView *scrollview  = [[DWFocusRingScrollView alloc] init];
-    DWContainer *cont = [[DWContainer alloc] init];
+    DWFocusRingScrollView *scrollview  = [[[DWFocusRingScrollView alloc] init] retain];
+    DWContainer *cont = [[[DWContainer alloc] init] retain];
 
     [cont setScrollview:scrollview];
     [scrollview setBorderType:NSBezelBorder];
@@ -6342,7 +6345,7 @@ DW_FUNCTION_RETURN(dw_combobox_new, HWND)
 DW_FUNCTION_RESTORE_PARAM2(text, const char *, cid, ULONG)
 {
     DW_FUNCTION_INIT;
-    DWComboBox *combo = [[DWComboBox alloc] init];
+    DWComboBox *combo = [[[DWComboBox alloc] init] retain];
     [combo setStringValue:[NSString stringWithUTF8String:text]];
     [combo setDelegate:combo];
     [combo setTag:cid];
@@ -6356,8 +6359,8 @@ DW_FUNCTION_RESTORE_PARAM2(text, const char *, cid, ULONG)
  */
 HWND API dw_mle_new(ULONG cid)
 {
-    DWMLE *mle = [[DWMLE alloc] init];
-    NSScrollView *scrollview  = [[NSScrollView alloc] init];
+    DWMLE *mle = [[[DWMLE alloc] init] retain];
+    NSScrollView *scrollview  = [[[NSScrollView alloc] init] retain];
     NSSize size = [mle maxSize];
 
     size.width = size.height;
@@ -6689,7 +6692,7 @@ void API dw_mle_thaw(HWND handle)
  */
 HWND API dw_status_text_new(const char *text, ULONG cid)
 {
-    NSBox *border = [[NSBox alloc] init];
+    NSBox *border = [[[NSBox alloc] init] retain];
     NSTextField *textfield = dw_text_new(text, cid);
 
 #ifndef BUILDING_FOR_CATALINA
@@ -6697,6 +6700,7 @@ HWND API dw_status_text_new(const char *text, ULONG cid)
 #endif
     [border setTitlePosition:NSNoTitle];
     [border setContentView:textfield];
+    [textfield release];
     [border setContentViewMargins:NSMakeSize(1.5,1.5)];
     [textfield autorelease];
     [textfield setBackgroundColor:[NSColor clearColor]];
@@ -6712,7 +6716,7 @@ HWND API dw_status_text_new(const char *text, ULONG cid)
  */
 HWND API dw_text_new(const char *text, ULONG cid)
 {
-    DWText *textfield = [[DWText alloc] init];
+    DWText *textfield = [[[DWText alloc] init] retain];
     [textfield setEditable:NO];
     [textfield setSelectable:NO];
     [textfield setBordered:NO];
@@ -6736,7 +6740,7 @@ HWND API dw_text_new(const char *text, ULONG cid)
  */
 HWND API dw_render_new(unsigned long cid)
 {
-    DWRender *render = [[DWRender alloc] init];
+    DWRender *render = [[[DWRender alloc] init] retain];
     [render setTag:cid];
     return render;
 }
@@ -7400,7 +7404,7 @@ DW_FUNCTION_RETURN(dw_tree_new, HWND)
 DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
 {
     DW_FUNCTION_INIT;
-    NSScrollView *scrollview  = [[NSScrollView alloc] init];
+    NSScrollView *scrollview  = [[[NSScrollView alloc] init] retain];
     DWTree *tree = [[DWTree alloc] init];
 
     [tree setScrollview:scrollview];
@@ -8671,7 +8675,7 @@ HWND API dw_mdi_new(unsigned long cid)
      * when the application is deactivated to simulate
      * similar behavior.
      */
-    DWMDI *mdi = [[DWMDI alloc] init];
+    DWMDI *mdi = [[[DWMDI alloc] init] retain];
     /* [mdi setTag:cid]; Why doesn't this work? */
     return mdi;
 }
@@ -8692,14 +8696,16 @@ DW_FUNCTION_RESTORE_PARAM4(type, int, topleft, HWND, bottomright, HWND, cid, uns
 {
     DW_FUNCTION_INIT;
     id tmpbox = dw_box_new(DW_VERT, 0);
-    DWSplitBar *split = [[DWSplitBar alloc] init];
+    DWSplitBar *split = [[[DWSplitBar alloc] init] retain];
     [split setDelegate:split];
     dw_box_pack_start(tmpbox, topleft, 0, 0, TRUE, TRUE, 0);
     [split addSubview:tmpbox];
+    [tmpbox release];
     [tmpbox autorelease];
     tmpbox = dw_box_new(DW_VERT, 0);
     dw_box_pack_start(tmpbox, bottomright, 0, 0, TRUE, TRUE, 0);
     [split addSubview:tmpbox];
+    [tmpbox release];
     [tmpbox autorelease];
     if(type == DW_VERT)
     {
@@ -8824,7 +8830,7 @@ DW_FUNCTION_RETURN(dw_bitmap_new, HWND)
 DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
 {
     DW_FUNCTION_INIT;
-    NSImageView *bitmap = [[NSImageView alloc] init];
+    NSImageView *bitmap = [[[NSImageView alloc] init] retain];
     [bitmap setImageFrameStyle:NSImageFrameNone];
     [bitmap setImageScaling:NSImageScaleNone];
     [bitmap setEditable:NO];
@@ -9197,7 +9203,7 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
  */
 HWND API dw_calendar_new(ULONG cid)
 {
-    DWCalendar *calendar = [[DWCalendar alloc] init];
+    DWCalendar *calendar = [[[DWCalendar alloc] init] retain];
     [calendar setDatePickerMode:DWDatePickerModeSingle];
     [calendar setDatePickerStyle:DWDatePickerStyleClockAndCalendar];
     [calendar setDatePickerElements:DWDatePickerElementFlagYearMonthDay];
@@ -9365,7 +9371,7 @@ DW_FUNCTION_RETURN(dw_html_new, HWND)
 DW_FUNCTION_RESTORE_PARAM1(DW_UNUSED(cid), ULONG)
 {
     DW_FUNCTION_INIT;
-    DWWebView *web = [[DWWebView alloc] init];
+    DWWebView *web = [[[DWWebView alloc] init] retain];
 #if WK_API_ENABLED
     web.navigationDelegate = web;
 #else
@@ -9697,7 +9703,7 @@ DWNotebookPage *_dw_notepage_from_id(DWNotebook *notebook, unsigned long pageid)
  */
 HWND API dw_notebook_new(ULONG cid, int top)
 {
-    DWNotebook *notebook = [[DWNotebook alloc] init];
+    DWNotebook *notebook = [[[DWNotebook alloc] init] retain];
     [notebook setDelegate:notebook];
     /* [notebook setTag:cid]; Why doesn't this work? */
     return notebook;
@@ -9826,6 +9832,7 @@ void API dw_notebook_pack(HWND handle, ULONG pageid, HWND page)
 
         dw_box_pack_start(tmpbox, page, 0, 0, TRUE, TRUE, 0);
         [notepage setView:box];
+        [box release];
         [box autorelease];
     }
 }
