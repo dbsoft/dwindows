@@ -1871,6 +1871,7 @@ BOOL _dw_is_dark(void)
             menu = [UIMenu menuWithTitle:@"" children:menuchildren];
     }
     [menu retain];
+    [menuchildren release];
     if(oldmenu)
         [oldmenu release];
     return menu;
@@ -4740,10 +4741,8 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
 
     /* Add the item to the box */
     [view addSubview:this];
-    /* Enable autorelease on the item...
-     * so it will get destroyed when the parent is.
-     */
-    [this autorelease];
+    [this release];
+
     /* If we are packing a button... */
     if([this isMemberOfClass:[DWButton class]])
     {
@@ -9491,10 +9490,6 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
         [_dw_toplevel_windows removeObject:window];
         [[[window rootViewController] view] removeFromSuperview];
         [window setRootViewController:nil];
-        /* Releasing the window is causing crashes....
-         * TODO: Figure out if this is needed... or why it is crashing.
-         * [window release];
-         */
     }
     /* Handle removing menu items from menus */
     else if([object isMemberOfClass:[DWMenuItem class]])
