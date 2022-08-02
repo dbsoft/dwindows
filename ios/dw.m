@@ -2771,6 +2771,9 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
         for (DWTreeItem *child in _children)
             [allElements addObjectsFromArray:[child visibleNodes]];
     }
+    if(_flattenedTreeCache)
+        [_flattenedTreeCache release];
+    _flattenedTreeCache = allElements;
     return allElements;
 }
 -(void)insertChildAfter:(DWTreeItem *)treeItem
