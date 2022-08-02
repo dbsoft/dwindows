@@ -1392,6 +1392,11 @@ static NSMutableArray *_dw_URLs = nil;
             [self performSelectorOnMainThread:sel withObject:param waitUntilDone:YES];
     }
 }
+-(void)updateMenu:(id)param
+{
+    for(id obj in _dw_toplevel_windows)
+        [obj updateMenu];
+}
 -(void)doBitBlt:(id)param
 {
     NSValue *bi = (NSValue *)param;
@@ -2156,6 +2161,7 @@ BOOL _dw_is_dark(void)
     UserData *root = userdata;
     _dw_remove_userdata(&root, NULL, TRUE);
     dw_signal_disconnect_by_window(self);
+    [tabs removeFromSuperview];
     [tabs release];
     [views release];
     [super dealloc];
@@ -2260,7 +2266,22 @@ BOOL _dw_is_dark(void)
         _dw_handle_resize_events(box);
     }
 }
--(void)dealloc { UserData *root = userdata; _dw_remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
+-(void)dealloc
+{
+    UserData *root = userdata; _dw_remove_userdata(&root, NULL, TRUE);
+    dw_signal_disconnect_by_window(self);
+    if(topleft)
+    {
+        [topleft removeFromSuperview];
+        [topleft release];
+    }
+    if(bottomright)
+    {
+        [bottomright removeFromSuperview];
+        [bottomright release];
+    }
+    [super dealloc];
+}
 @end
 
 /* Subclass for a slider type */
@@ -8661,10 +8682,7 @@ HWND API dw_menu_append_item(HMENUI menux, const char *title, ULONG itemid, ULON
             }
             [DWObj menuHandler:item];
             if(check)
-            {
-                for(id obj in _dw_toplevel_windows)
-                    [obj updateMenu];
-            }
+                [DWObj safeCall:@selector(updateMenu:) withObject:nil];
         }];
         /* Don't set the tag if the ID is 0 or -1 */
         if(itemid != DW_MENU_AUTO && itemid != DW_MENU_POPUP)
@@ -8712,8 +8730,7 @@ void API dw_menu_item_set_check(HMENUI menux, unsigned long itemid, int check)
         if(newstate != [menuitem state])
         {
             [menuitem setState:newstate];
-            for(id obj in _dw_toplevel_windows)
-                [obj updateMenu];
+            [DWObj safeCall:@selector(updateMenu:) withObject:nil];
         }
     }
 }
@@ -8768,10 +8785,7 @@ void API dw_menu_item_set_state(HMENUI menux, unsigned long itemid, unsigned lon
 
         /* Only force the menus to repopulate if something changed */
         if(oldstate != [menuitem state] || oldenabled != [menuitem enabled])
-        {
-            for(id obj in _dw_toplevel_windows)
-                [obj updateMenu];
-        }
+            [DWObj safeCall:@selector(updateMenu:) withObject:nil];
     }
 }
 
@@ -9293,10 +9307,7 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, style, ULONG, mask, ULONG)
         }
         /* Only force the menus to repopulate if something changed */
         if(oldstate != [menuitem state] || oldenabled != [menuitem enabled])
-        {
-            for(id obj in _dw_toplevel_windows)
-                [obj updateMenu];
-        }
+            [DWObj safeCall:@selector(updateMenu:) withObject:nil];
     }
     DW_FUNCTION_RETURN_NOTHING;
 }
@@ -9518,6 +9529,11 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
         DWWindow *window = handle;
         [window setHidden:YES];
         [_dw_toplevel_windows removeObject:window];
+        for(id object in [[[window rootViewController] view] subviews])
+        {
+            [object removeFromSuperview];
+            [object release];
+        }
         [[[window rootViewController] view] removeFromSuperview];
         [window setRootViewController:nil];
     }
@@ -9630,7 +9646,7 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
             }
         }
     }
-    if(nsstr && [nsstr length] > 0)
+    if(nsstr)
         retval = strdup([nsstr UTF8String]);
     DW_FUNCTION_RETURN_THIS(retval);
 }
