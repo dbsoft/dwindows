@@ -12621,24 +12621,28 @@ int API dw_init(int newthread, int argc, char *argv[])
     if(!_dw_bundle_path[0])
         getcwd(_dw_bundle_path, PATH_MAX);
 
-    /* Get the operating system version */
-    NSString *version = [[NSProcessInfo processInfo] operatingSystemVersionString];
-    const char *versionstr = [version UTF8String];
-    sscanf(versionstr, "Version %d.%d.%d", &DWOSMajor, &DWOSMinor, &DWOSBuild);
-    /* Set the locale... if it is UTF-8 pass it
+	/* Set the locale... if it is UTF-8 pass it
      * directly, otherwise specify UTF-8 explicitly.
      */
     setlocale(LC_ALL, lang && strstr(lang, ".UTF-8") ? lang : "UTF-8");
-    /* Create the application object */
-    _dw_app_init();
-    /* Create object for handling timers */
-    DWHandler = [[DWTimerHandler alloc] init];
+
     /* If we aren't using garbage collection we need autorelease pools */
 #if !defined(GARBAGE_COLLECT)
     pthread_key_create(&_dw_pool_key, NULL);
     NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
     pthread_setspecific(_dw_pool_key, pool);
 #endif
+
+    /* Get the operating system version */
+    NSString *version = [[NSProcessInfo processInfo] operatingSystemVersionString];
+    const char *versionstr = [version UTF8String];
+    sscanf(versionstr, "Version %d.%d.%d", &DWOSMajor, &DWOSMinor, &DWOSBuild);
+
+    /* Create the application object */
+    _dw_app_init();
+    /* Create object for handling timers */
+    DWHandler = [[DWTimerHandler alloc] init];
+
     pthread_key_create(&_dw_fg_color_key, NULL);
     pthread_key_create(&_dw_bg_color_key, NULL);
     _dw_init_colors();
