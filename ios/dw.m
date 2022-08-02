@@ -791,6 +791,18 @@ API_AVAILABLE(ios(13.0))
     free(box);
     _dw_remove_userdata(&root, NULL, TRUE);
     dw_signal_disconnect_by_window(self);
+    for(id object in [self subviews])
+    {
+        NSUInteger rc = [object retainCount];
+        [object removeFromSuperview];
+        /* TODO: Fix the cause of this...
+         * DWButtons have a lower retain count than the other widgets...
+         * so this release causes a crash. Figure out why it is lower...
+         * and make the others that way too.
+         */
+        if(rc > 2)
+            [object release];
+    }
     [super dealloc];
 }
 -(Box *)box { return box; }
@@ -2005,7 +2017,7 @@ BOOL _dw_is_dark(void)
 -(void)setUserdata:(void *)input { userdata = input; }
 -(void)setBox:(void *)input { box = input; }
 -(id)box { return box; }
--(void)dealloc { UserData *root = userdata; _dw_remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
+-(void)dealloc { UserData *root = userdata; _dw_remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [box removeFromSuperview]; [box release]; [super dealloc]; }
 @end
 
 /* Subclass for a entryfield type */
@@ -2199,15 +2211,14 @@ BOOL _dw_is_dark(void)
 {
     topleft = input;
     [self addSubview:topleft];
-    [topleft autorelease];
+    [topleft release];
 }
 -(id)bottomRight { return bottomright; }
 -(void)setBottomRight:(id)input
 {
     bottomright = input;
     [self addSubview:bottomright];
-    [bottomright autorelease];
-
+    [bottomright release];
 }
 -(int)type { return splittype; }
 -(void)setType:(int)input { splittype = input; }
@@ -2302,7 +2313,7 @@ BOOL _dw_is_dark(void)
   */
 UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
 {
-    UITableViewCell *browsercell = [[[UITableViewCell alloc] init] autorelease];
+    UITableViewCell *browsercell = [[UITableViewCell alloc] init];
     [browsercell setAutoresizesSubviews:YES];
 
     if(icon)
@@ -3298,9 +3309,9 @@ static CGFloat _DW_TREE_XOFFSET = 3;
 
     if(self)
     {
-        textfield = [[[UITextField alloc] init] autorelease];
+        textfield = [[UITextField alloc] init];
         [self addSubview:textfield];
-        stepper = [[[DWStepper alloc] init] autorelease];
+        stepper = [[DWStepper alloc] init];
         [self addSubview:stepper];
         [stepper setParent:self];
         [stepper setTextfield:textfield];
@@ -3327,7 +3338,16 @@ static CGFloat _DW_TREE_XOFFSET = 3;
     _dw_event_handler(self, DW_INT_TO_POINTER((int)[stepper value]), _DW_EVENT_VALUE_CHANGED);
 }
 -(void)setClickDefault:(id)input { clickDefault = input; }
--(void)dealloc { UserData *root = userdata; _dw_remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
+-(void)dealloc
+{
+    UserData *root = userdata; _dw_remove_userdata(&root, NULL, TRUE);
+    dw_signal_disconnect_by_window(self);
+    [textfield removeFromSuperview];
+    [textfield release];
+    [stepper removeFromSuperview];
+    [stepper release];
+    [super dealloc];
+}
 @end
 
 API_AVAILABLE(ios(10.0))
@@ -3373,6 +3393,7 @@ API_AVAILABLE(ios(10.0))
     NSMutableArray* dataArray;
     UIBarStyle toolbarStyle;
     int selectedIndex;
+    void *userdata;
 }
 -(void)setToolbarStyle:(UIBarStyle)style;
 -(void)append:(NSString *)item;
@@ -3383,6 +3404,8 @@ API_AVAILABLE(ios(10.0))
 -(void)setText:(NSString *)item atIndex:(int)index;
 -(void)deleteAtIndex:(int)index;
 -(int)selectedIndex;
+-(void *)userdata;
+-(void)setUserdata:(void *)input;
 @end
 
 @implementation DWComboBox
@@ -3523,6 +3546,15 @@ API_AVAILABLE(ios(10.0))
     return [super becomeFirstResponder];
 }
 -(int)selectedIndex { return selectedIndex; }
+-(void *)userdata { return userdata; }
+-(void)setUserdata:(void *)input { userdata = input; }
+-(void)dealloc
+{
+    UserData *root = userdata; _dw_remove_userdata(&root, NULL, TRUE);
+    dw_signal_disconnect_by_window(self);
+    [dataArray release];
+    [super dealloc];
+}
 @end
 
 /* Subclass for a MDI type
@@ -4177,7 +4209,7 @@ int API dw_messagebox(const char *title, int flags, const char *format, ...)
     }
 
     va_start(args, format);
-    mtext = [[[NSString alloc] initWithFormat:[NSString stringWithUTF8String:format] arguments:args] autorelease];
+    mtext = [[NSString alloc] initWithFormat:[NSString stringWithUTF8String:format] arguments:args];
     va_end(args);
 
     params = [NSMutableArray arrayWithObjects:mtitle, mtext, [NSNumber numberWithInteger:mstyle], button1, button2, button3, nil];
@@ -4370,7 +4402,7 @@ DW_FUNCTION_RESTORE_PARAM2(type, int, pad, int)
     [scrollbox setBox:box];
     [scrollbox addSubview:tmpbox];
     [scrollbox setScrollEnabled:YES];
-    [tmpbox autorelease];
+    [tmpbox release];
     DW_FUNCTION_RETURN_THIS(scrollbox);
 }
 
@@ -5436,7 +5468,6 @@ HWND _dw_cont_new(ULONG cid, int multi)
     [cont setDataSource:cont];
     [cont setDelegate:cont];
     [cont setTag:cid];
-    [cont autorelease];
     [cont setRowBgOdd:DW_RGB_TRANSPARENT andEven:DW_RGB_TRANSPARENT];
     return cont;
 }
@@ -5870,7 +5901,7 @@ DW_FUNCTION_ADD_PARAM2(text, cid)
 DW_FUNCTION_RETURN(dw_combobox_new, HWND)
 DW_FUNCTION_RESTORE_PARAM2(text, const char *, cid, ULONG)
 {
-    DWComboBox *combo = [[DWComboBox alloc] init];
+    DWComboBox *combo = [[[DWComboBox alloc] init] retain];
     if(text)
         [combo setText:[NSString stringWithUTF8String:text]];
     [combo setTag:cid];
@@ -5900,7 +5931,6 @@ DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
     [mle setAutoresizingMask:UIViewAutoresizingFlexibleHeight|UIViewAutoresizingFlexibleWidth];
     [mle setScrollEnabled:YES];
     [mle setTag:cid];
-    [mle autorelease];
     DW_FUNCTION_RETURN_THIS(mle);
 }
 
@@ -6700,7 +6730,6 @@ DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
     DW_FUNCTION_INIT;
     DWTree *tree = [[[DWTree alloc] init] retain];
     [tree setTag:cid];
-    [tree autorelease];
     DW_FUNCTION_RETURN_THIS(tree);
 }
 
@@ -6736,7 +6765,6 @@ DW_FUNCTION_RESTORE_PARAM6(handle, HWND, item, HTREEITEM, title, char *, icon, H
     }
     else
         [tree insertTreeItem:treeitem];
-    [treeitem autorelease];
     DW_FUNCTION_RETURN_THIS(treeitem);
 }
 
@@ -8043,7 +8071,7 @@ HPIXMAP API dw_pixmap_new_from_file(HWND handle, const char *filename)
 {
     HPIXMAP pixmap;
     DW_LOCAL_POOL_IN;
-    char *ext = _dw_get_image_extension( filename );
+    char *ext = _dw_get_image_extension(filename);
 
     if(!(pixmap = calloc(1,sizeof(struct _hpixmap))))
     {
@@ -8051,11 +8079,11 @@ HPIXMAP API dw_pixmap_new_from_file(HWND handle, const char *filename)
         return NULL;
     }
     NSString *nstr = [ NSString stringWithUTF8String:filename ];
-    UIImage *tmpimage = [[[UIImage alloc] initWithContentsOfFile:nstr] autorelease];
+    UIImage *tmpimage = [[UIImage alloc] initWithContentsOfFile:nstr];
     if(!tmpimage && ext)
     {
         nstr = [nstr stringByAppendingString: [NSString stringWithUTF8String:ext]];
-        tmpimage = [[[UIImage alloc] initWithContentsOfFile:nstr] autorelease];
+        tmpimage = [[UIImage alloc] initWithContentsOfFile:nstr];
     }
     if(!tmpimage)
     {
@@ -8064,7 +8092,7 @@ HPIXMAP API dw_pixmap_new_from_file(HWND handle, const char *filename)
     }
     pixmap->width = [tmpimage size].width;
     pixmap->height = [tmpimage size].height;
-    pixmap->image = [[DWImage alloc] initWithUIImage:tmpimage];
+    pixmap->image = [[[DWImage alloc] initWithUIImage:tmpimage] retain];
     pixmap->handle = handle;
     DW_LOCAL_POOL_OUT;
     return pixmap;
@@ -8091,7 +8119,7 @@ HPIXMAP API dw_pixmap_new_from_data(HWND handle, const char *data, int len)
         return NULL;
     }
     NSData *thisdata = [NSData dataWithBytes:data length:len];
-    UIImage *tmpimage = [[[UIImage alloc] initWithData:thisdata] autorelease];
+    UIImage *tmpimage = [[UIImage alloc] initWithData:thisdata];
     if(!tmpimage)
     {
         DW_LOCAL_POOL_OUT;
@@ -8099,7 +8127,7 @@ HPIXMAP API dw_pixmap_new_from_data(HWND handle, const char *data, int len)
     }
     pixmap->width = [tmpimage size].width;
     pixmap->height = [tmpimage size].height;
-    pixmap->image = [[DWImage alloc] initWithUIImage:tmpimage];
+    pixmap->image = [[[DWImage alloc] initWithUIImage:tmpimage] retain];
     pixmap->handle = handle;
     DW_LOCAL_POOL_OUT;
     return pixmap;
@@ -8327,7 +8355,7 @@ DW_FUNCTION_RESTORE_PARAM4(handle, HWND, year, unsigned int, month, unsigned int
 
     snprintf(buffer, 100, "%04d-%02d-%02d", year, month, day);
 
-    NSDateFormatter *dateFormatter = [[[NSDateFormatter alloc] init] autorelease];
+    NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];
     dateFormatter.dateFormat = @"yyyy-MM-dd";
 
     date = [dateFormatter dateFromString:[NSString stringWithUTF8String:buffer]];
@@ -8794,7 +8822,7 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, DW_UNUSED(flags), ULONG, front, int)
 {
     DWNotebook *notebook = handle;
     NSInteger page = [notebook pageid];
-    DWNotebookPage *notepage = [[[DWNotebookPage alloc] init] retain];
+    DWNotebookPage *notepage = [[DWNotebookPage alloc] init];
     NSMutableArray<DWNotebookPage *> *views = [notebook views];
     unsigned long retval;
 
@@ -8810,7 +8838,6 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, DW_UNUSED(flags), ULONG, front, int)
         [views addObject:notepage];
     }
     [notebook addSubview:notepage];
-    [notepage autorelease];
     [notebook setPageid:(int)(page+1)];
 
     if([views count] != 1)
@@ -9526,6 +9553,7 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
             if(index != -1)
             {
                 [object removeFromSuperview];
+                [object release];
 
                 if(thisbox->count > 1)
                 {
@@ -9772,7 +9800,7 @@ void API dw_window_set_bitmap_from_data(HWND handle, unsigned long cid, const ch
         {
             DW_LOCAL_POOL_IN;
             NSData *thisdata = [NSData dataWithBytes:data length:len];
-            UIImage *pixmap = [[[UIImage alloc] initWithData:thisdata] autorelease];
+            UIImage *pixmap = [[UIImage alloc] initWithData:thisdata];
 
             if(pixmap)
             {
@@ -9828,12 +9856,12 @@ void API dw_window_set_bitmap(HWND handle, unsigned long resid, const char *file
             char *ext = _dw_get_image_extension( filename );
             NSString *nstr = [ NSString stringWithUTF8String:filename ];
 
-            bitmap = [[[UIImage alloc] initWithContentsOfFile:nstr] autorelease];
+            bitmap = [[UIImage alloc] initWithContentsOfFile:nstr];
 
             if(!bitmap && ext)
             {
                 nstr = [nstr stringByAppendingString: [NSString stringWithUTF8String:ext]];
-                bitmap = [[[UIImage alloc] initWithContentsOfFile:nstr] autorelease];
+                bitmap = [[UIImage alloc] initWithContentsOfFile:nstr];
             }
         }
         if(!bitmap && resid > 0 && resid < 65536)
