@@ -1658,6 +1658,12 @@ typedef enum
 #define DW_DARK_MODE_FULL     2
 #define DW_DARK_MODE_FORCED   3
 
+/* Mobile alternate container modes */
+#define DW_CONTAINER_MODE_DEFAULT 0    /* Displays only the main column on mobile platforms */
+#define DW_CONTAINER_MODE_EXTRA   1    /* Displays the main column, and the rest on a second line */
+#define DW_CONTAINER_MODE_MULTI   2    /* Displays every display column on a separate line plus buttons */
+#define DW_CONTAINER_MODE_MAX     3
+
 /* Application ID support lengths */
 #define _DW_APP_ID_SIZE 100
 
@@ -1827,6 +1833,7 @@ typedef enum
     DW_FEATURE_TASK_BAR,                /* Supports icons in the taskbar or similar system widget */
     DW_FEATURE_TREE,                    /* Supports the Tree Widget */
     DW_FEATURE_WINDOW_PLACEMENT,        /* Supports arbitrary window placement */
+    DW_FEATURE_CONTAINER_MODE,          /* Supports alternate container view modes */
     DW_FEATURE_MAX
 } DWFEATURE;
 
