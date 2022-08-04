@@ -280,6 +280,7 @@ static int DWOSMajor, DWOSMinor, DWOSBuild;
 static char _dw_bundle_path[PATH_MAX+1] = { 0 };
 static char _dw_app_id[_DW_APP_ID_SIZE+1]= {0};
 static int _dw_dark_mode_state = DW_FEATURE_UNSUPPORTED;
+static int _dw_container_mode = DW_CONTAINER_MODE_DEFAULT;
 static CGPoint _dw_event_point = {0};
 static NSMutableArray *_dw_toplevel_windows;
 
@@ -2329,12 +2330,20 @@ BOOL _dw_is_dark(void)
 -(void)dealloc { UserData *root = userdata; _dw_remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
- /* TODO: UITableView does not support variable columns...
-  * also OutlineView does not exist in iOS.
-  */
-UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
+/* Subclass UITableViewCell so we can support multiple columns...
+ * Enabled via the DW_FEATURE_CONTAINER_MODE feature setting.
+ */
+@interface DWTableViewCell : UITableViewCell {}
+@end
+
+@implementation DWTableViewCell
+-(void)dealloc { [super dealloc]; }
+@end
+
+ /* Create a tableview cell for containers using DW_CONTAINER_MODE_* or listboxes */
+DWTableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
 {
-    UITableViewCell *browsercell = [[UITableViewCell alloc] init];
+    DWTableViewCell *browsercell = [[DWTableViewCell alloc] init];
     [browsercell setAutoresizesSubviews:YES];
 
     if(icon)
@@ -2408,9 +2417,9 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
     id celldata = [data objectAtIndex:index];
 
     /* The data is already a NSTableCellView so just return that */
-    if([celldata isMemberOfClass:[UITableViewCell class]])
+    if([celldata isMemberOfClass:[DWTableViewCell class]])
     {
-        UITableViewCell *result = celldata;
+        DWTableViewCell *result = celldata;
         
         /* Copy the alignment setting from the column,
          * and set the text color from the container.
@@ -2664,7 +2673,7 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
 
             for(x=0;x<rowcount;x++)
             {
-                UITableViewCell *cell = [data objectAtIndex:(x*colcount)];
+                DWTableViewCell *cell = [data objectAtIndex:(x*colcount)];
                 int thiswidth = 4, thisheight = 0;
                 
                 if([cell imageView])
@@ -5742,7 +5751,7 @@ DW_FUNCTION_RESTORE_PARAM4(handle, HWND, index, unsigned int, buffer, char *, le
         }
         else
         {
-            UITableViewCell *cell = [cont getRow:index and:0];
+            DWTableViewCell *cell = [cont getRow:index and:0];
             NSString *nstr = [[cell textLabel] text];
 
             strncpy(buffer, [nstr UTF8String], length - 1);
@@ -5780,7 +5789,7 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, index, unsigned int, buffer, char *)
         if(index <= count)
         {
             NSString *nstr = [NSString stringWithUTF8String:buffer];
-            UITableViewCell *cell = [cont getRow:index and:0];
+            DWTableViewCell *cell = [cont getRow:index and:0];
 
             [[cell textLabel] setText:nstr];
             [cont reloadData];
@@ -7217,9 +7226,9 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pointer, void *, column, int, row, int,
     id object = [cont getRow:(row+lastadd) and:column];
     
     /* If it is a cell, change the content of the cell */
-    if([object isMemberOfClass:[UITableViewCell class]])
+    if([object isMemberOfClass:[DWTableViewCell class]])
     {
-        UITableViewCell *cell = object;
+        DWTableViewCell *cell = object;
 
         if(icon)
             [[cell imageView] setImage:icon];
@@ -7298,9 +7307,9 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pointer, void *, row, int, filename, ch
     id object = [cont getRow:(row+lastadd) and:0];
     
     /* If it is a cell, change the content of the cell */
-    if([object isMemberOfClass:[UITableViewCell class]])
+    if([object isMemberOfClass:[DWTableViewCell class]])
     {
-        UITableViewCell *cell = object;
+        DWTableViewCell *cell = object;
 
         if(icon)
             [[cell imageView] setImage:icon];
@@ -11931,6 +11940,8 @@ int API dw_feature_get(DWFEATURE feature)
         case DW_FEATURE_UTF8_UNICODE:
         case DW_FEATURE_TREE:
             return DW_FEATURE_ENABLED;
+        case DW_FEATURE_CONTAINER_MODE:
+            return _dw_container_mode;
         case DW_FEATURE_DARK_MODE:
         {
             if(DWObj)
@@ -11979,6 +11990,15 @@ int API dw_feature_set(DWFEATURE feature, int state)
         case DW_FEATURE_UTF8_UNICODE:
         case DW_FEATURE_TREE:
             return DW_ERROR_GENERAL;
+        case DW_FEATURE_CONTAINER_MODE:
+        {
+            if(state >= DW_CONTAINER_MODE_DEFAULT && state < DW_CONTAINER_MODE_MAX)
+            {
+                _dw_container_mode = state;
+                return DW_ERROR_NONE;
+            }
+            return DW_ERROR_GENERAL;
+        }
         case DW_FEATURE_DARK_MODE:
         {
             /* Make sure DWObj is initialized */
@@ -11996,6 +12016,7 @@ int API dw_feature_set(DWFEATURE feature, int state)
             }
             else /* Save the requested state for dw_init() */
                 _dw_dark_mode_state = state;
+            return DW_ERROR_NONE;
         }
         default:
             return DW_FEATURE_UNSUPPORTED;
