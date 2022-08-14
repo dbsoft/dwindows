@@ -3,6 +3,10 @@
 #ifndef _DWCOMPAT_H
 #define _DWCOMPAT_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* This header includes and defines everything needed for a given OS/compiler */
 #if defined(__UNIX__) || defined(__MAC__) || defined(__IOS__) || defined(__ANDROID__)
 /* iOS and Android currently don't use autoconf */
@@ -476,5 +480,9 @@ char * API locale_string(char *default_text, int message);
 void API nice_strformat(char *dest, long double val, int dec);
 void API initdir(int argc, char *argv[]);
 int API setpath(char *path);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
