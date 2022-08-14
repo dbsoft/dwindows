@@ -12621,7 +12621,7 @@ int API dw_init(int newthread, int argc, char *argv[])
     if(!_dw_bundle_path[0])
         getcwd(_dw_bundle_path, PATH_MAX);
 
-	/* Set the locale... if it is UTF-8 pass it
+    /* Set the locale... if it is UTF-8 pass it
      * directly, otherwise specify UTF-8 explicitly.
      */
     setlocale(LC_ALL, lang && strstr(lang, ".UTF-8") ? lang : "UTF-8");
