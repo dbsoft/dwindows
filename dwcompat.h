@@ -275,7 +275,7 @@ static int _dw_snprintf(char *str, size_t size, const char *format, ...)
 #include <signal.h>
 #include <fcntl.h>
 
-#if !defined(_MSC_VER)
+#if !defined(_MSC_VER) && !defined(__MINGW32__)
 #ifndef __WATCOMC__
 #include <sys/time.h>
 #endif
