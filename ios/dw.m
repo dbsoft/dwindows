@@ -2333,15 +2333,22 @@ BOOL _dw_is_dark(void)
 /* Subclass UITableViewCell so we can support multiple columns...
  * Enabled via the DW_FEATURE_CONTAINER_MODE feature setting.
  */
-@interface DWTableViewCell : UITableViewCell {}
+@interface DWTableViewCell : UITableViewCell
+{
+    NSMutableArray *columndata;
+}
+-(void)setColumnData:(NSMutableArray *)input;
+-(NSMutableArray *)columnData;
 @end
 
 @implementation DWTableViewCell
--(void)dealloc { [super dealloc]; }
+-(void)setColumnData:(NSMutableArray *)input { [columndata release]; columndata = input; [columndata retain]; }
+-(NSMutableArray *)columnData { return columndata; }
+-(void)dealloc { [columndata release]; [super dealloc]; }
 @end
 
  /* Create a tableview cell for containers using DW_CONTAINER_MODE_* or listboxes */
-DWTableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
+DWTableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text, NSMutableArray *columndata)
 {
     DWTableViewCell *browsercell = [[DWTableViewCell alloc] init];
     [browsercell setAutoresizesSubviews:YES];
@@ -2350,6 +2357,8 @@ DWTableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
         [[browsercell imageView] setImage:icon];
     if(text)
         [[browsercell textLabel] setText:text];
+    if(columndata)
+        [browsercell setColumnData:columndata];
     return browsercell;
 }
 
@@ -2380,13 +2389,14 @@ DWTableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
 -(void)setUserdata:(void *)input;
 -(void)setFilesystem:(int)input;
 -(int)filesystem;
--(int)addRow:(NSArray *)input;
+-(int)addRow:(DWTableViewCell *)input;
 -(int)addRows:(int)number;
--(void)editCell:(id)input at:(int)row and:(int)col;
+-(void)editCell:(id)input at:(int)row;
 -(void)removeRow:(int)row;
 -(void)setRow:(int)row title:(const char *)input;
 -(void *)getRowTitle:(int)row;
--(id)getRow:(int)row and:(int)col;
+-(id)getRow:(int)row;
+-(NSMutableArray *)getColumns;
 -(int)cellType:(int)col;
 -(int)lastAddPoint;
 -(int)lastQueryPoint;
@@ -2402,18 +2412,13 @@ DWTableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
 {
     /* Ignoring section for now, everything in one section */
     if(tvcols && data)
-    {
-        int cols = (int)[tvcols count];
-        int total = (int)[data count];
-        if(cols && total)
-            return total / cols;
-    }
+        return [data count];
     return 0;
 }
 -(UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
 {
     /* Not reusing cell views, so get the cell from our array */
-    int index = (int)(indexPath.row * [tvcols count]);
+    int index = (int)indexPath.row;
     id celldata = [data objectAtIndex:index];
 
     /* The data is already a NSTableCellView so just return that */
@@ -2520,30 +2525,27 @@ DWTableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
         [self refreshColors];
 }
 -(void)viewDidChangeEffectiveAppearance { [self checkDark]; }
--(int)insertRow:(NSArray *)input at:(int)index
+-(int)insertRow:(DWTableViewCell *)input at:(int)index
 {
     if(data)
     {
-        unsigned long start = [tvcols count] * index;
-        NSIndexSet *set = [[NSIndexSet alloc] initWithIndexesInRange:NSMakeRange(start, start + [tvcols count])];
         if(index < iLastAddPoint)
         {
             iLastAddPoint++;
         }
-        [data insertObjects:input atIndexes:set];
+        [data insertObject:input atIndex:index];
         [titles insertPointer:NULL atIndex:index];
         [rowdatas insertPointer:NULL atIndex:index];
-        [set release];
         return (int)[titles count];
     }
     return 0;
 }
--(int)addRow:(NSArray *)input
+-(int)addRow:(DWTableViewCell *)input
 {
     if(data)
     {
         iLastAddPoint = (int)[titles count];
-        [data addObjectsFromArray:input];
+        [data addObject:input];
         [titles addPointer:NULL];
         [rowdatas addPointer:NULL];
         return (int)[titles count];
@@ -2554,17 +2556,13 @@ DWTableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
 {
     if(tvcols)
     {
-        int count = (int)(number * [tvcols count]);
         int z;
 
         iLastAddPoint = (int)[titles count];
 
-        for(z=0;z<count;z++)
-        {
-            [data addObject:[NSNull null]];
-        }
         for(z=0;z<number;z++)
         {
+            [data addObject:[NSNull null]];
             [titles addPointer:NULL];
             [rowdatas addPointer:NULL];
         }
@@ -2572,16 +2570,15 @@ DWTableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
     }
     return 0;
 }
--(void)editCell:(id)input at:(int)row and:(int)col
+-(void)editCell:(id)input at:(int)row
 {
     if(tvcols)
     {
-        int index = (int)(row * [tvcols count]) + col;
-        if(index < [data count])
+        if(row < [data count])
         {
             if(!input)
                 input = [NSNull null];
-            [data replaceObjectAtIndex:index withObject:input];
+            [data replaceObjectAtIndex:row withObject:input];
         }
     }
 }
@@ -2589,17 +2586,9 @@ DWTableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
 {
     if(tvcols)
     {
-        int z, start, end;
-        int count = (int)[tvcols count];
         void *oldtitle;
 
-        start = (count * row);
-        end = start + count;
-
-        for(z=start;z<end;z++)
-        {
-            [data removeObjectAtIndex:start];
-        }
+        [data removeObjectAtIndex:row];
         oldtitle = [titles pointerAtIndex:row];
         [titles removePointerAtIndex:row];
         [rowdatas removePointerAtIndex:row];
@@ -2625,7 +2614,8 @@ DWTableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
 -(void)setRowData:(int)row title:(void *)input { if(rowdatas && input) { [rowdatas replacePointerAtIndex:row withPointer:input]; } }
 -(void *)getRowTitle:(int)row { if(titles && row > -1) { return [titles pointerAtIndex:row]; } return NULL; }
 -(void *)getRowData:(int)row { if(rowdatas && row > -1) { return [rowdatas pointerAtIndex:row]; } return NULL; }
--(id)getRow:(int)row and:(int)col { if(data && [data count]) { int index = (int)(row * [tvcols count]) + col; return [data objectAtIndex:index]; } return nil; }
+-(id)getRow:(int)row { if(data && [data count]) {  return [data objectAtIndex:row]; } return nil; }
+-(NSMutableArray *)getColumns { return tvcols; }
 -(int)cellType:(int)col { return [[types objectAtIndex:col] intValue]; }
 -(int)lastAddPoint { return iLastAddPoint; }
 -(int)lastQueryPoint { return iLastQueryPoint; }
@@ -5544,9 +5534,8 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, text, char *)
     {
         DWContainer *cont = handle;
         NSString *nstr = [NSString stringWithUTF8String:text];
-        NSArray *newrow = [NSArray arrayWithObject:_dw_table_cell_view_new(nil, nstr)];
 
-        [cont addRow:newrow];
+        [cont addRow:_dw_table_cell_view_new(nil, nstr, nil)];
         [cont reloadData];
         [cont setNeedsDisplay];
     }
@@ -5578,9 +5567,8 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, text, const char *, pos, int)
     {
         DWContainer *cont = handle;
         NSString *nstr = [NSString stringWithUTF8String:text];
-        NSArray *newrow = [NSArray arrayWithObject:_dw_table_cell_view_new(nil, nstr)];
 
-        [cont insertRow:newrow at:pos];
+        [cont insertRow:_dw_table_cell_view_new(nil, nstr, nil) at:pos];
         [cont reloadData];
         [cont setNeedsDisplay];
     }
@@ -5622,9 +5610,8 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, text, char **, count, int)
         for(z=0;z<count;z++)
         {
             NSString *nstr = [NSString stringWithUTF8String:text[z]];
-            NSArray *newrow = [NSArray arrayWithObjects:_dw_table_cell_view_new(nil, nstr),nil];
 
-            [cont addRow:newrow];
+            [cont addRow:_dw_table_cell_view_new(nil, nstr, nil)];
         }
         [cont reloadData];
         [cont setNeedsDisplay];
@@ -5751,7 +5738,7 @@ DW_FUNCTION_RESTORE_PARAM4(handle, HWND, index, unsigned int, buffer, char *, le
         }
         else
         {
-            DWTableViewCell *cell = [cont getRow:index and:0];
+            DWTableViewCell *cell = [cont getRow:index];
             NSString *nstr = [[cell textLabel] text];
 
             strncpy(buffer, [nstr UTF8String], length - 1);
@@ -5789,7 +5776,7 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, index, unsigned int, buffer, char *)
         if(index <= count)
         {
             NSString *nstr = [NSString stringWithUTF8String:buffer];
-            DWTableViewCell *cell = [cont getRow:index and:0];
+            DWTableViewCell *cell = [cont getRow:index];
 
             [[cell textLabel] setText:nstr];
             [cont reloadData];
@@ -7182,7 +7169,7 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pointer, void *, column, int, row, int,
         else if(type & DW_CFA_STRING)
         {
             char *str = *((char **)data);
-            text = [ NSString stringWithUTF8String:str ];
+            text = [NSString stringWithUTF8String:str];
         }
         else
         {
@@ -7199,7 +7186,7 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pointer, void *, column, int, row, int,
                 struct tm curtm;
                 CDATE cdate = *((CDATE *)data);
 
-                memset( &curtm, 0, sizeof(curtm) );
+                memset(&curtm, 0, sizeof(curtm));
                 curtm.tm_mday = cdate.day;
                 curtm.tm_mon = cdate.month - 1;
                 curtm.tm_year = cdate.year - 1900;
@@ -7219,24 +7206,53 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pointer, void *, column, int, row, int,
                 strftime(textbuffer, 100, "%X", &curtm);
             }
             if(textbuffer[0])
-                text = [ NSString stringWithUTF8String:textbuffer ];
+                text = [NSString stringWithUTF8String:textbuffer];
         }
     }
 
-    id object = [cont getRow:(row+lastadd) and:column];
-    
+    id object = [cont getRow:(row+lastadd)];
+    NSUInteger capacity = [[cont getColumns] count];
+
     /* If it is a cell, change the content of the cell */
     if([object isMemberOfClass:[DWTableViewCell class]])
     {
         DWTableViewCell *cell = object;
 
-        if(icon)
-            [[cell imageView] setImage:icon];
-        else
-            [[cell textLabel] setText:text];
+        if(column == 0)
+        {
+            if(icon)
+                [[cell imageView] setImage:icon];
+            else
+                [[cell textLabel] setText:text];
+        }
+        else if(icon || text)
+        {
+            NSMutableArray *cd = [cell columnData];
+
+            if(column >= capacity)
+                capacity = column + 1;
+
+            if(!cd)
+            {
+                cd = [NSMutableArray arrayWithCapacity:capacity];
+                [cell setColumnData:cd];
+            }
+            if(cd)
+            {
+                while([cd count] <= column)
+                    [cd addObject:[NSNull null]];
+                [cd replaceObjectAtIndex:column withObject:(text ? text : icon)];
+            }
+        }
     }
-    else /* Otherwise replace it with a new cell */
-        [cont editCell:_dw_table_cell_view_new(icon, text) at:(row+lastadd) and:column];
+    else
+    {
+        NSMutableArray *cd  = [NSMutableArray arrayWithCapacity:(capacity > column ? capacity : column + 1)];
+        if(cd)
+            [cd replaceObjectAtIndex:column withObject:(text ? text : icon)];
+        /* Otherwise replace it with a new cell */
+        [cont editCell:_dw_table_cell_view_new(icon, text, cd) at:(row+lastadd)];
+    }
     [cont setNeedsDisplay];
     DW_FUNCTION_RETURN_NOTHING;
 }
@@ -7304,7 +7320,7 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pointer, void *, row, int, filename, ch
     if(pointer)
         lastadd = [cont lastAddPoint];
 
-    id object = [cont getRow:(row+lastadd) and:0];
+    id object = [cont getRow:(row+lastadd)];
     
     /* If it is a cell, change the content of the cell */
     if([object isMemberOfClass:[DWTableViewCell class]])
@@ -7317,7 +7333,7 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pointer, void *, row, int, filename, ch
             [[cell textLabel] setText:text];
     }
     else /* Otherwise replace it with a new cell */
-        [cont editCell:_dw_table_cell_view_new(icon, text) at:(row+lastadd) and:0];
+        [cont editCell:_dw_table_cell_view_new(icon, text, nil) at:(row+lastadd)];
     [cont setNeedsDisplay];
     DW_FUNCTION_RETURN_NOTHING;
 }
