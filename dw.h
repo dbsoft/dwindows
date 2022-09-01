@@ -14,9 +14,7 @@ extern "C" {
 
 /* General application type defines */
 #if defined(__IOS__) || defined(__ANDROID__)
-#define __DW_MOBILE__ 1
-#else
-#define __DW_DESKTOP__ 1
+#define DW_MOBILE 1
 #endif
 
 #define DW_HOME_URL "http://dwindows.netlabs.org"
