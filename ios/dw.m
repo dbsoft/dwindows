@@ -2336,15 +2336,105 @@ BOOL _dw_is_dark(void)
 @interface DWTableViewCell : UITableViewCell
 {
     NSMutableArray *columndata;
+    UIStackView *stack;
 }
 -(void)setColumnData:(NSMutableArray *)input;
 -(NSMutableArray *)columnData;
 @end
 
 @implementation DWTableViewCell
--(void)setColumnData:(NSMutableArray *)input { [columndata release]; columndata = input; [columndata retain]; }
+-(void)setColumnData:(NSMutableArray *)input
+{
+    if(columndata != input)
+    {
+        NSMutableArray *olddata = columndata;
+        columndata = input;
+        [columndata retain];
+        [olddata release];
+    }
+    /* If we have columndata and are not in default mode */
+    if(columndata && _dw_container_mode > DW_CONTAINER_MODE_DEFAULT)
+    {
+        /* If we don't have a stack, create one */
+        if(!stack)
+        {
+            stack = [[[UIStackView alloc] init] retain];
+            [stack setTranslatesAutoresizingMaskIntoConstraints:NO];
+            [stack setSpacing:5.0];
+            [[self contentView] addSubview:stack];
+        }
+        /* Extra mode creates a horizontal stack with all the column data */
+        if(_dw_container_mode == DW_CONTAINER_MODE_EXTRA)
+        {
+            id subviews = [stack arrangedSubviews];
+            int index = 0;
+
+            [stack setAxis:UILayoutConstraintAxisHorizontal];
+            /* Create the stack using columndata, reusing objects when possible */
+            for(id object in columndata)
+            {
+                if([object isKindOfClass:[NSString class]])
+                {
+                    UILabel *label = nil;
+
+                    if(index < [subviews count])
+                    {
+                        id oldview = [subviews objectAtIndex:index];
+
+                        if([oldview isMemberOfClass:[UILabel class]])
+                            label = oldview;
+                        else
+                            [stack removeArrangedSubview:oldview];
+                    }
+                    if(!label)
+                    {
+                        label = [[UILabel alloc] init];
+
+                        [label setTranslatesAutoresizingMaskIntoConstraints:NO];
+                        [label setTextAlignment:NSTextAlignmentCenter];
+
+                        if(index < [subviews count])
+                            [stack insertArrangedSubview:label atIndex:index];
+                        else
+                            [stack addArrangedSubview:label];
+                    }
+                    [label setText:object];
+                    index++;
+                }
+                else if([object isMemberOfClass:[UIImage class]])
+                {
+                    UIImageView *image = nil;
+
+                    if(index < [subviews count])
+                    {
+                        id oldview = [subviews objectAtIndex:index];
+
+                        if([oldview isMemberOfClass:[UIImageView class]])
+                            image = oldview;
+                        else
+                            [stack removeArrangedSubview:oldview];
+                    }
+                    if(!image)
+                    {
+                        image = [[UIImageView alloc] initWithImage:object];
+
+                        [image setTranslatesAutoresizingMaskIntoConstraints:NO];
+
+                        if(index < [subviews count])
+                            [stack insertArrangedSubview:image atIndex:index];
+                        else
+                            [stack addArrangedSubview:image];
+                    }
+                    else
+                        [image setImage:object];
+                    index++;
+                }
+            }
+        }
+    }
+}
 -(NSMutableArray *)columnData { return columndata; }
--(void)dealloc { [columndata release]; [super dealloc]; }
+-(void)dealloc { [columndata release]; [super dealloc]; [stack removeFromSuperview]; [stack release]; }
 @end
 
  /* Create a tableview cell for containers using DW_CONTAINER_MODE_* or listboxes */
@@ -7233,16 +7323,14 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pointer, void *, column, int, row, int,
                 capacity = column + 1;
 
             if(!cd)
-            {
                 cd = [NSMutableArray arrayWithCapacity:capacity];
-                [cell setColumnData:cd];
-            }
             if(cd)
             {
                 while([cd count] <= column)
                     [cd addObject:[NSNull null]];
                 [cd replaceObjectAtIndex:column withObject:(text ? text : icon)];
             }
+            [cell setColumnData:cd];
         }
     }
     else
