@@ -30,6 +30,8 @@ Known problems:
 
 Boxes with no expandable items will have their contents centered on 
     GTK2 instead of top or left justified on the other platforms.
+    Pack an expandable NULL item at the end of the box to keep the
+    same appearance as other platforms. 
 GTK3/4 due to changes in the core architecture does not support
     widgets that are smaller than what is contained within them,
     unless they use scrolled windows. GTK2 and other platforms do.
@@ -39,20 +41,14 @@ In Unicode mode on OS/2 there are some bugs in the input controls,
     minor bugs in entryfield based controls and major bugs in the MLE.
     The text displays properly but the cursor and selection jumps
     around oddly when passing over multibyte characters.
+System scaling on Windows versions earlier than 10 will scale the
+    individual controls, but will not scale the top-level window size.
+    Windows 10 and higher will scale both the controls and window.
 
 Known limitations:
 
 It is not safe on all platforms to operate on widgets before they
 are packed.  For portability pack widgets before operating on them.
-
-Future features:
-
-OS/2 is currently missing the HTML widget because the system does 
-not support it by default. Looking into importing functionality 
-from available libraries (Firefox, Webkit, Qt, etc).
-OS/2 is also missing a notification system, so the new notification
-APIs are not yet supported on OS/2.  May implement our own system 
-if a popular notification system is not already in existance.
 
 Changes from version 3.2:
 Added tree widget/control support for iOS and Android.
@@ -60,7 +56,11 @@ Removed the lib and dll directories previously used on Windows and OS/2.
     On Windows x86 and x64 subdirectories are created automatically
     This allows platform specific versions to be accessible without a 
     rebuild. Also removed the DWDLLDIR variable on Windows. If you have
-    DWLIBDIR pointing to the "lib" subdirectly please remove "\lib".
+    DWLIBDIR pointing to the "lib" subdirectory please remove "\lib".
+Added DW_FEATURE_CONTAINER_MODE on Mobile platforms: iOS and Android.
+    DW_CONTAINER_MODE_DEFAULT: Minimal container; icon and text only.
+    DW_CONTAINER_MODE_EXTRA: Extra columns displayed on a second line.
+    DW_CONTAINER_MODE_MULTI: A separate clickable line for each column.
 
 
 Dynamic Windows Documentation is available at:
