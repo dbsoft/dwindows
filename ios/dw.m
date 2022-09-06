@@ -2358,65 +2358,99 @@ BOOL _dw_is_dark(void)
         /* If we don't have a stack, create one */
         if(!stack)
         {
+            NSLayoutConstraint *constraint;
+
             stack = [[[UIStackView alloc] init] retain];
             [stack setTranslatesAutoresizingMaskIntoConstraints:NO];
             [stack setSpacing:5.0];
             [[self contentView] addSubview:stack];
+
+            /* Leading */
+            constraint = [NSLayoutConstraint constraintWithItem:stack attribute:NSLayoutAttributeLeft
+                                                      relatedBy:NSLayoutRelationEqual toItem:[self contentView]
+                                                      attribute:NSLayoutAttributeLeft multiplier: 1.0 constant:0.0];
+            [[self contentView] addConstraint:constraint];
+
+            /* Top */
+            constraint = [NSLayoutConstraint constraintWithItem:stack attribute:NSLayoutAttributeTop
+                                                      relatedBy:NSLayoutRelationEqual toItem:[self textLabel]
+                                                      attribute:NSLayoutAttributeBottom multiplier:1.0 constant:0.0];
+            [[self contentView] addConstraint:constraint];
         }
-        /* Extra mode creates a horizontal stack with all the column data */
-        if(_dw_container_mode == DW_CONTAINER_MODE_EXTRA)
+        /* Extra and Multi modes create a stack with all the column data */
+        if(_dw_container_mode > DW_CONTAINER_MODE_DEFAULT)
         {
+            bool extra = _dw_container_mode == DW_CONTAINER_MODE_EXTRA;
             id subviews = [stack arrangedSubviews];
             int index = 0;
 
-            [stack setAxis:UILayoutConstraintAxisHorizontal];
+            /* Extra mode stack is horizontal, multi stack is vertical */
+            [stack setAxis:(extra ? UILayoutConstraintAxisHorizontal : UILayoutConstraintAxisVertical)];
+
             /* Create the stack using columndata, reusing objects when possible */
             for(id object in columndata)
             {
                 if([object isKindOfClass:[NSString class]])
                 {
-                    UILabel *label = nil;
+                    id label = nil;
 
+                    /* Check if we already have a view, reuse it if possible.. */
                     if(index < [subviews count])
                     {
                         id oldview = [subviews objectAtIndex:index];
 
-                        if([oldview isMemberOfClass:[UILabel class]])
+                        if([oldview isMemberOfClass:(extra ? [UILabel class] : [UIButton class])])
+                        {
                             label = oldview;
+                            /* If we are reusing a button, make sure the image is not set */
+                            if(!extra)
+                                [label setImage:nil forState:UIControlStateNormal];
+                        }
                         else
                             [stack removeArrangedSubview:oldview];
                     }
                     if(!label)
                     {
-                        label = [[UILabel alloc] init];
+                        label = extra ? [[UILabel alloc] init] : [UIButton buttonWithType:UIButtonTypeCustom];
 
                         [label setTranslatesAutoresizingMaskIntoConstraints:NO];
-                        [label setTextAlignment:NSTextAlignmentCenter];
+                        if(extra)
+                            [label setTextAlignment:NSTextAlignmentCenter];
 
                         if(index < [subviews count])
                             [stack insertArrangedSubview:label atIndex:index];
-                        else
+                        else /* Remove the view if it won't work */
                             [stack addArrangedSubview:label];
                     }
-                    [label setText:object];
+                    /* Set the label or button text/title */
+                    if(extra)
+                        [label setText:object];
+                    else
+                        [label setTitle:object forState:UIControlStateNormal];
                     index++;
                 }
                 else if([object isMemberOfClass:[UIImage class]])
                 {
-                    UIImageView *image = nil;
+                    id image = nil;
 
+                    /* Check if we already have a view, reuse it if possible.. */
                     if(index < [subviews count])
                     {
                         id oldview = [subviews objectAtIndex:index];
 
-                        if([oldview isMemberOfClass:[UIImageView class]])
+                        if([oldview isMemberOfClass:(extra ? [UIImageView class] : [UIButton class])])
+                        {
                             image = oldview;
-                        else
+                            /* If we are reusing a button, make sure the text is not set */
+                            if(!extra)
+                                [image setTitle:nil forState:UIControlStateNormal];
+                        }
+                        else /* Remove the view if it won't work */
                             [stack removeArrangedSubview:oldview];
                     }
                     if(!image)
                     {
-                        image = [[UIImageView alloc] initWithImage:object];
+                        image = extra ? [[UIImageView alloc] init] : [UIButton buttonWithType:UIButtonTypeCustom];
 
                         [image setTranslatesAutoresizingMaskIntoConstraints:NO];
 
@@ -2425,8 +2459,12 @@ BOOL _dw_is_dark(void)
                         else
                             [stack addArrangedSubview:image];
                     }
-                    else
+                    /* Set the image view or button image */
+                    if(extra)
                         [image setImage:object];
+                    else
+                        [image setImage:image forState:UIControlStateNormal];
+
                     index++;
                 }
             }
