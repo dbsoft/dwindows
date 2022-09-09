@@ -2337,12 +2337,55 @@ BOOL _dw_is_dark(void)
 {
     NSMutableArray *columndata;
     UIStackView *stack;
+    UILabel *label;
+    UIImageView *image;
 }
 -(void)setColumnData:(NSMutableArray *)input;
 -(NSMutableArray *)columnData;
+-(UIImageView *)image;
+-(UILabel *)label;
 @end
 
 @implementation DWTableViewCell
+-(id)init {
+    self = [super init];
+
+    image = [[[UIImageView alloc] init] retain];
+    [image setTranslatesAutoresizingMaskIntoConstraints:NO];
+    [[self contentView] addSubview:image];
+
+    label = [[[UILabel alloc] init] retain];
+    [label setTranslatesAutoresizingMaskIntoConstraints:NO];
+    [[self contentView] addSubview:label];
+
+    stack = [[[UIStackView alloc] init] retain];
+    [stack setTranslatesAutoresizingMaskIntoConstraints:NO];
+    [stack setSpacing:5.0];
+    [[self contentView] addSubview:stack];
+
+    /* Let's use the default margins */
+    UILayoutGuide *g = [[self contentView] layoutMarginsGuide];
+
+    [NSLayoutConstraint activateConstraints:@[
+        /* Constrain label Top/Leading/Trailing to content margins guide */
+        [image.topAnchor constraintEqualToAnchor:g.topAnchor constant:0.0],
+        [image.leadingAnchor constraintEqualToAnchor:g.leadingAnchor constant:0.0],
+        [image.trailingAnchor constraintEqualToAnchor:label.leadingAnchor constant:-4.0],
+        [label.topAnchor constraintEqualToAnchor:g.topAnchor constant:0.0],
+        [label.leadingAnchor constraintEqualToAnchor:image.trailingAnchor constant:4.0],
+        /* No Height, because we'll use the label's intrinsic size */
+
+        /* Constrain stack view Top to label bottom plus 8-points */
+        [stack.topAnchor constraintEqualToAnchor:label.bottomAnchor constant:0.0],
+        /* Leading/Trailing/Bottom to content margins guide */
+        [stack.leadingAnchor constraintEqualToAnchor:g.leadingAnchor constant:0.0],
+        [stack.bottomAnchor constraintEqualToAnchor:g.bottomAnchor constant:0.0],
+        /* No Height, because we'll use the arranged subviews heights */
+    ]];
+    return self;
+}
+-(UILabel *)label { return label; }
+-(UIImageView *)image { return image; }
 -(void)setColumnData:(NSMutableArray *)input
 {
     if(columndata != input)
@@ -2355,124 +2398,108 @@ BOOL _dw_is_dark(void)
     /* If we have columndata and are not in default mode */
     if(columndata && _dw_container_mode > DW_CONTAINER_MODE_DEFAULT)
     {
-        /* If we don't have a stack, create one */
-        if(!stack)
+        bool extra = _dw_container_mode == DW_CONTAINER_MODE_EXTRA;
+        id subviews = [stack arrangedSubviews];
+        int index = 0;
+
+        /* Extra mode stack is horizontal, multi stack is vertical */
+        [stack setAxis:(extra ? UILayoutConstraintAxisHorizontal : UILayoutConstraintAxisVertical)];
+
+        /* Create the stack using columndata, reusing objects when possible */
+        for(id object in columndata)
         {
-            NSLayoutConstraint *constraint;
-
-            stack = [[[UIStackView alloc] init] retain];
-            [stack setTranslatesAutoresizingMaskIntoConstraints:NO];
-            [stack setSpacing:5.0];
-            [[self contentView] addSubview:stack];
-
-            /* Leading */
-            constraint = [NSLayoutConstraint constraintWithItem:stack attribute:NSLayoutAttributeLeft
-                                                      relatedBy:NSLayoutRelationEqual toItem:[self contentView]
-                                                      attribute:NSLayoutAttributeLeft multiplier: 1.0 constant:0.0];
-            [[self contentView] addConstraint:constraint];
-
-            /* Top */
-            constraint = [NSLayoutConstraint constraintWithItem:stack attribute:NSLayoutAttributeTop
-                                                      relatedBy:NSLayoutRelationEqual toItem:[self textLabel]
-                                                      attribute:NSLayoutAttributeBottom multiplier:1.0 constant:0.0];
-            [[self contentView] addConstraint:constraint];
-        }
-        /* Extra and Multi modes create a stack with all the column data */
-        if(_dw_container_mode > DW_CONTAINER_MODE_DEFAULT)
-        {
-            bool extra = _dw_container_mode == DW_CONTAINER_MODE_EXTRA;
-            id subviews = [stack arrangedSubviews];
-            int index = 0;
-
-            /* Extra mode stack is horizontal, multi stack is vertical */
-            [stack setAxis:(extra ? UILayoutConstraintAxisHorizontal : UILayoutConstraintAxisVertical)];
-
-            /* Create the stack using columndata, reusing objects when possible */
-            for(id object in columndata)
+            if([object isKindOfClass:[NSString class]])
             {
-                if([object isKindOfClass:[NSString class]])
+                id label = nil;
+
+                /* Check if we already have a view, reuse it if possible.. */
+                if(index < [subviews count])
                 {
-                    id label = nil;
+                    id oldview = [subviews objectAtIndex:index];
 
-                    /* Check if we already have a view, reuse it if possible.. */
-                    if(index < [subviews count])
+                    if([oldview isMemberOfClass:(extra ? [UILabel class] : [UIButton class])])
                     {
-                        id oldview = [subviews objectAtIndex:index];
-
-                        if([oldview isMemberOfClass:(extra ? [UILabel class] : [UIButton class])])
-                        {
-                            label = oldview;
-                            /* If we are reusing a button, make sure the image is not set */
-                            if(!extra)
-                                [label setImage:nil forState:UIControlStateNormal];
-                        }
-                        else
-                            [stack removeArrangedSubview:oldview];
+                        label = oldview;
+                        /* If we are reusing a button, make sure the image is not set */
+                        if(!extra)
+                            [label setImage:nil forState:UIControlStateNormal];
                     }
-                    if(!label)
-                    {
-                        label = extra ? [[UILabel alloc] init] : [UIButton buttonWithType:UIButtonTypeCustom];
-
-                        [label setTranslatesAutoresizingMaskIntoConstraints:NO];
-                        if(extra)
-                            [label setTextAlignment:NSTextAlignmentCenter];
-
-                        if(index < [subviews count])
-                            [stack insertArrangedSubview:label atIndex:index];
-                        else /* Remove the view if it won't work */
-                            [stack addArrangedSubview:label];
-                    }
-                    /* Set the label or button text/title */
-                    if(extra)
-                        [label setText:object];
                     else
-                        [label setTitle:object forState:UIControlStateNormal];
-                    index++;
+                        [stack removeArrangedSubview:oldview];
                 }
-                else if([object isMemberOfClass:[UIImage class]])
+                if(!label)
                 {
-                    id image = nil;
+                    label = extra ? [[UILabel alloc] init] : [UIButton buttonWithType:UIButtonTypeCustom];
 
-                    /* Check if we already have a view, reuse it if possible.. */
-                    if(index < [subviews count])
-                    {
-                        id oldview = [subviews objectAtIndex:index];
-
-                        if([oldview isMemberOfClass:(extra ? [UIImageView class] : [UIButton class])])
-                        {
-                            image = oldview;
-                            /* If we are reusing a button, make sure the text is not set */
-                            if(!extra)
-                                [image setTitle:nil forState:UIControlStateNormal];
-                        }
-                        else /* Remove the view if it won't work */
-                            [stack removeArrangedSubview:oldview];
-                    }
-                    if(!image)
-                    {
-                        image = extra ? [[UIImageView alloc] init] : [UIButton buttonWithType:UIButtonTypeCustom];
-
-                        [image setTranslatesAutoresizingMaskIntoConstraints:NO];
-
-                        if(index < [subviews count])
-                            [stack insertArrangedSubview:image atIndex:index];
-                        else
-                            [stack addArrangedSubview:image];
-                    }
-                    /* Set the image view or button image */
+                    [label setTranslatesAutoresizingMaskIntoConstraints:NO];
                     if(extra)
-                        [image setImage:object];
-                    else
-                        [image setImage:image forState:UIControlStateNormal];
+                        [label setTextAlignment:NSTextAlignmentCenter];
 
-                    index++;
+                    if(index < [subviews count])
+                        [stack insertArrangedSubview:label atIndex:index];
+                    else /* Remove the view if it won't work */
+                        [stack addArrangedSubview:label];
                 }
+                /* Set the label or button text/title */
+                if(extra)
+                    [label setText:object];
+                else
+                    [label setTitle:object forState:UIControlStateNormal];
+                index++;
+            }
+            else if([object isMemberOfClass:[UIImage class]])
+            {
+                id image = nil;
+
+                /* Check if we already have a view, reuse it if possible.. */
+                if(index < [subviews count])
+                {
+                    id oldview = [subviews objectAtIndex:index];
+
+                    if([oldview isMemberOfClass:(extra ? [UIImageView class] : [UIButton class])])
+                    {
+                        image = oldview;
+                        /* If we are reusing a button, make sure the text is not set */
+                        if(!extra)
+                            [image setTitle:nil forState:UIControlStateNormal];
+                    }
+                    else /* Remove the view if it won't work */
+                        [stack removeArrangedSubview:oldview];
+                }
+                if(!image)
+                {
+                    image = extra ? [[UIImageView alloc] init] : [UIButton buttonWithType:UIButtonTypeCustom];
+
+                    [image setTranslatesAutoresizingMaskIntoConstraints:NO];
+
+                    if(index < [subviews count])
+                        [stack insertArrangedSubview:image atIndex:index];
+                    else
+                        [stack addArrangedSubview:image];
+                }
+                /* Set the image view or button image */
+                if(extra)
+                    [image setImage:object];
+                else
+                    [image setImage:image forState:UIControlStateNormal];
+
+                index++;
             }
         }
     }
 }
 -(NSMutableArray *)columnData { return columndata; }
--(void)dealloc { [columndata release]; [super dealloc]; [stack removeFromSuperview]; [stack release]; }
+-(void)dealloc
+{
+    [columndata release];
+    [image removeFromSuperview];
+    [image release];
+    [label removeFromSuperview];
+    [label release];
+    [stack removeFromSuperview];
+    [stack release];
+    [super dealloc];
+}
 @end
 
  /* Create a tableview cell for containers using DW_CONTAINER_MODE_* or listboxes */
@@ -2482,9 +2509,9 @@ DWTableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text, NSMutabl
     [browsercell setAutoresizesSubviews:YES];
 
     if(icon)
-        [[browsercell imageView] setImage:icon];
+        [[browsercell image] setImage:icon];
     if(text)
-        [[browsercell textLabel] setText:text];
+        [[browsercell label] setText:text];
     if(columndata)
         [browsercell setColumnData:columndata];
     return browsercell;
@@ -2549,7 +2576,7 @@ DWTableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text, NSMutabl
     int index = (int)indexPath.row;
     id celldata = [data objectAtIndex:index];
 
-    /* The data is already a NSTableCellView so just return that */
+    /* The data is already a DWTableViewCell so just return that */
     if([celldata isMemberOfClass:[DWTableViewCell class]])
     {
         DWTableViewCell *result = celldata;
@@ -2558,7 +2585,7 @@ DWTableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text, NSMutabl
          * and set the text color from the container.
          */
         if(fgcolor)
-            [[result textLabel] setTextColor:fgcolor];
+            [[result label] setTextColor:fgcolor];
 
         /* Return the result */
         return result;
@@ -2581,6 +2608,24 @@ DWTableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text, NSMutabl
         else
             [cell setBackgroundColor:[UIColor clearColor]];
     }
+}
+-(CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath
+{
+    int index = (int)indexPath.row;
+    id cell = [data objectAtIndex:index];
+    CGFloat height = 0.0;
+
+    /* The data is already a DWTableViewCell so just return that */
+    if([cell isMemberOfClass:[DWTableViewCell class]])
+    {
+        height = [[cell contentView] systemLayoutSizeFittingSize:UILayoutFittingCompressedSize].height;
+        NSLog(@"Calculated height %f\n", (float)height);
+    }
+    return height > 0.0 ? height : UITableViewAutomaticDimension;
+}
+-(CGFloat)tableView:(UITableView *)tableView estimatedHeightForRowAtIndexPath:(NSIndexPath *)indexPath
+{
+    return _dw_container_mode > DW_CONTAINER_MODE_DEFAULT ? 85.0 : 44.0;
 }
 -(UIContextMenuConfiguration *)tableView:(UITableView *)tableView contextMenuConfigurationForRowAtIndexPath:(NSIndexPath *)indexPath point:(CGPoint)point
 {
@@ -2796,13 +2841,13 @@ DWTableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text, NSMutabl
                 
                 if([cell imageView])
                 {
-                    thiswidth += [[cell imageView] image].size.width;
-                    thisheight = [[cell imageView] image].size.height;
+                    thiswidth += [[cell image] image].size.width;
+                    thisheight = [[cell image] image].size.height;
                 }
                 if([cell textLabel])
                 {
-                    int textheight = [[cell textLabel] intrinsicContentSize].width;
-                    thiswidth += [[cell textLabel] intrinsicContentSize].width;
+                    int textheight = [[cell label] intrinsicContentSize].width;
+                    thiswidth += [[cell label] intrinsicContentSize].width;
                     if(textheight > thisheight)
                         thisheight = textheight;
                 }
@@ -5616,6 +5661,8 @@ HWND _dw_cont_new(ULONG cid, int multi)
     [cont setDataSource:cont];
     [cont setDelegate:cont];
     [cont setTag:cid];
+    [cont setRowHeight:UITableViewAutomaticDimension];
+    [cont setEstimatedRowHeight:(_dw_container_mode > DW_CONTAINER_MODE_DEFAULT ? 85.0 : 44.0)];
     [cont setRowBgOdd:DW_RGB_TRANSPARENT andEven:DW_RGB_TRANSPARENT];
     return cont;
 }
@@ -5867,7 +5914,7 @@ DW_FUNCTION_RESTORE_PARAM4(handle, HWND, index, unsigned int, buffer, char *, le
         else
         {
             DWTableViewCell *cell = [cont getRow:index];
-            NSString *nstr = [[cell textLabel] text];
+            NSString *nstr = [[cell label] text];
 
             strncpy(buffer, [nstr UTF8String], length - 1);
         }
@@ -5906,7 +5953,7 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, index, unsigned int, buffer, char *)
             NSString *nstr = [NSString stringWithUTF8String:buffer];
             DWTableViewCell *cell = [cont getRow:index];
 
-            [[cell textLabel] setText:nstr];
+            [[cell label] setText:nstr];
             [cont reloadData];
             [cont setNeedsDisplay];
         }
@@ -7349,9 +7396,9 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pointer, void *, column, int, row, int,
         if(column == 0)
         {
             if(icon)
-                [[cell imageView] setImage:icon];
+                [[cell image] setImage:icon];
             else
-                [[cell textLabel] setText:text];
+                [[cell label] setText:text];
         }
         else if(icon || text)
         {
@@ -7454,9 +7501,9 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pointer, void *, row, int, filename, ch
         DWTableViewCell *cell = object;
 
         if(icon)
-            [[cell imageView] setImage:icon];
+            [[cell image] setImage:icon];
         if(text)
-            [[cell textLabel] setText:text];
+            [[cell label] setText:text];
     }
     else /* Otherwise replace it with a new cell */
         [cont editCell:_dw_table_cell_view_new(icon, text, nil) at:(row+lastadd)];
