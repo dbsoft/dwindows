@@ -2404,6 +2404,9 @@ BOOL _dw_is_dark(void)
 
         /* Extra mode stack is horizontal, multi stack is vertical */
         [stack setAxis:(extra ? UILayoutConstraintAxisHorizontal : UILayoutConstraintAxisVertical)];
+        /* For Multi-line, we don't want fill, we want leading */
+        if(!extra)
+            [stack setAlignment:UIStackViewAlignmentLeading];
 
         /* Create the stack using columndata, reusing objects when possible */
         for(id object in columndata)
@@ -2418,12 +2421,7 @@ BOOL _dw_is_dark(void)
                     id oldview = [subviews objectAtIndex:index];
 
                     if([oldview isMemberOfClass:(extra ? [UILabel class] : [UIButton class])])
-                    {
                         label = oldview;
-                        /* If we are reusing a button, make sure the image is not set */
-                        if(!extra)
-                            [label setImage:nil forState:UIControlStateNormal];
-                    }
                     else
                         [stack removeArrangedSubview:oldview];
                 }
@@ -2456,19 +2454,14 @@ BOOL _dw_is_dark(void)
                 {
                     id oldview = [subviews objectAtIndex:index];
 
-                    if([oldview isMemberOfClass:(extra ? [UIImageView class] : [UIButton class])])
-                    {
+                    if([oldview isMemberOfClass:[UIImageView class]])
                         image = oldview;
-                        /* If we are reusing a button, make sure the text is not set */
-                        if(!extra)
-                            [image setTitle:nil forState:UIControlStateNormal];
-                    }
                     else /* Remove the view if it won't work */
                         [stack removeArrangedSubview:oldview];
                 }
                 if(!image)
                 {
-                    image = extra ? [[UIImageView alloc] init] : [UIButton buttonWithType:UIButtonTypeCustom];
+                    image = [[UIImageView alloc] init];
 
                     [image setTranslatesAutoresizingMaskIntoConstraints:NO];
 
@@ -2478,10 +2471,7 @@ BOOL _dw_is_dark(void)
                         [stack addArrangedSubview:image];
                 }
                 /* Set the image view or button image */
-                if(extra)
-                    [image setImage:object];
-                else
-                    [image setImage:image forState:UIControlStateNormal];
+                [image setImage:object];
 
                 index++;
             }
@@ -2617,10 +2607,7 @@ DWTableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text, NSMutabl
 
     /* The data is already a DWTableViewCell so just return that */
     if([cell isMemberOfClass:[DWTableViewCell class]])
-    {
         height = [[cell contentView] systemLayoutSizeFittingSize:UILayoutFittingCompressedSize].height;
-        NSLog(@"Calculated height %f\n", (float)height);
-    }
     return height > 0.0 ? height : UITableViewAutomaticDimension;
 }
 -(CGFloat)tableView:(UITableView *)tableView estimatedHeightForRowAtIndexPath:(NSIndexPath *)indexPath
