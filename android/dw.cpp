@@ -3729,10 +3729,10 @@ int API dw_container_setup(HWND handle, unsigned long *flags, char **titles, int
                 // First get the class that contains the method you need to call
                 jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
                 // Get the method that you want to call
-                jmethodID containerNew = env->GetMethodID(clazz, "containerAddColumn",
+                jmethodID containerAddColumn = env->GetMethodID(clazz, "containerAddColumn",
                                                           "(Landroid/widget/ListView;Ljava/lang/String;I)V");
                 // Call the method on the object
-                env->CallVoidMethod(_dw_obj, containerNew, handle, jstr, (int)flags[z]);
+                env->CallVoidMethod(_dw_obj, containerAddColumn, handle, jstr, (int)flags[z]);
                 if(_dw_jni_check_exception(env))
                     retval = DW_ERROR_GENERAL;
                 env->DeleteLocalRef(jstr);
@@ -3864,12 +3864,37 @@ void API _dw_container_change_item(HWND handle, int column, int row, void *data)
             jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
             // Get the method that you want to call
             jmethodID containerChangeItem = env->GetMethodID(clazz, "containerChangeItemInt",
-                                                             "(Landroid/widget/ListView;III)V");
+                                                             "(Landroid/widget/ListView;IIJ)V");
             // Call the method on the object
-            env->CallVoidMethod(_dw_obj, containerChangeItem, handle, column, row, (int)num);
+            env->CallVoidMethod(_dw_obj, containerChangeItem, handle, column, row, (jlong)num);
             _dw_jni_check_exception(env);
         }
-        // TODO: Handle DATE and TIME
+        else if((columntype & DW_CFA_DATE))
+        {
+            CDATE cdate = *((CDATE *)data);
+            // First get the class that contains the method you need to call
+            jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+            // Get the method that you want to call
+            jmethodID containerChangeItem = env->GetMethodID(clazz, "containerChangeItemDate",
+                                                             "(Landroid/widget/ListView;IIIII)V");
+            // Call the method on the object
+            env->CallVoidMethod(_dw_obj, containerChangeItem, handle, column, row,
+                                (jint)cdate.year, (jint)cdate.month, (jint)cdate.day);
+            _dw_jni_check_exception(env);
+        }
+        else if((columntype & DW_CFA_TIME))
+        {
+            CTIME ctime = *((CTIME *)data);
+            // First get the class that contains the method you need to call
+            jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+            // Get the method that you want to call
+            jmethodID containerChangeItem = env->GetMethodID(clazz, "containerChangeItemTime",
+                                                             "(Landroid/widget/ListView;IIIII)V");
+            // Call the method on the object
+            env->CallVoidMethod(_dw_obj, containerChangeItem, handle, column, row,
+                                (jint)ctime.hours, (jint)ctime.minutes, (jint)ctime.seconds);
+            _dw_jni_check_exception(env);
+        }
     }
 }
 
