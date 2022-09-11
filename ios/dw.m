@@ -2344,6 +2344,7 @@ BOOL _dw_is_dark(void)
 -(NSMutableArray *)columnData;
 -(UIImageView *)image;
 -(UILabel *)label;
+-(void)columnClicked:(id)sender;
 @end
 
 @implementation DWTableViewCell
@@ -2386,6 +2387,18 @@ BOOL _dw_is_dark(void)
 }
 -(UILabel *)label { return label; }
 -(UIImageView *)image { return image; }
+-(void)columnClicked:(id)sender
+{
+    if([sender isMemberOfClass:[UIButton class]])
+    {
+        id view = [self superview];
+
+        while(view && [view isKindOfClass:[UITableView class]] == NO)
+            view = [view superview];
+
+        _dw_event_handler(view, DW_INT_TO_POINTER([sender tag]+1), _DW_EVENT_COLUMN_CLICK);
+    }
+}
 -(void)setColumnData:(NSMutableArray *)input
 {
     if(columndata != input)
@@ -2429,9 +2442,16 @@ BOOL _dw_is_dark(void)
                 {
                     label = extra ? [[UILabel alloc] init] : [UIButton buttonWithType:UIButtonTypeCustom];
 
+                    [label setTag:index];
                     [label setTranslatesAutoresizingMaskIntoConstraints:NO];
                     if(extra)
                         [label setTextAlignment:NSTextAlignmentCenter];
+                    else
+                    {
+                        [label addTarget:self action:@selector(columnClicked:)
+                                    forControlEvents:UIControlEventTouchUpInside];
+                        [label setTitleColor:[UIColor darkTextColor] forState:UIControlStateNormal];
+                    }
 
                     if(index < [subviews count])
                         [stack insertArrangedSubview:label atIndex:index];
@@ -2463,6 +2483,7 @@ BOOL _dw_is_dark(void)
                 {
                     image = [[UIImageView alloc] init];
 
+                    [image setTag:index];
                     [image setTranslatesAutoresizingMaskIntoConstraints:NO];
 
                     if(index < [subviews count])
