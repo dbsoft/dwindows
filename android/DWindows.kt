@@ -32,6 +32,7 @@ import android.system.OsConstants
 import android.text.InputFilter
 import android.text.InputFilter.LengthFilter
 import android.text.InputType
+import android.text.format.DateFormat
 import android.text.method.PasswordTransformationMethod
 import android.util.*
 import android.util.Base64
@@ -62,6 +63,8 @@ import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayout.OnTabSelectedListener
 import com.google.android.material.tabs.TabLayoutMediator
 import java.io.*
+import java.text.ParseException
+import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.locks.ReentrantLock
 import java.util.zip.ZipEntry
@@ -5113,12 +5116,77 @@ class DWindows : AppCompatActivity() {
         }
     }
 
-    fun containerChangeItemInt(cont: ListView, column: Int, row: Int, num: Int)
+    fun containerChangeItemInt(cont: ListView, column: Int, row: Int, num: Long)
     {
         waitOnUiThread {
             val adapter: DWContainerAdapter = cont.adapter as DWContainerAdapter
 
             adapter.model.setRowAndColumn(row, column, num)
+        }
+    }
+
+    fun timeString(num: Int): String
+    {
+        if(num > 0 && num < 60) {
+            if(num > 9)
+                return num.toString()
+            else
+                return "0" + num.toString()
+        }
+        return "01"
+    }
+
+    fun yearString(year: Int): String
+    {
+        if(year < 100)
+        {
+            if(year < 70)
+                return "19" + year.toString()
+            else
+                return "20" + year.toString()
+        }
+        if(year in 1901..2199)
+            return year.toString()
+        val calendar = Calendar.getInstance()
+        val thisyear = calendar[Calendar.YEAR]
+        return thisyear.toString()
+    }
+
+    fun containerChangeItemDate(cont: ListView, column: Int, row: Int, year: Int, month: Int, day: Int)
+    {
+        waitOnUiThread {
+            val adapter: DWContainerAdapter = cont.adapter as DWContainerAdapter
+            val dateString = timeString(day) + "/" + timeString(month) + "/" + yearString(year)
+            val sdf = SimpleDateFormat("dd/MM/yyyy")
+            var date: Date? = null
+            var s = dateString
+            try {
+                date = sdf.parse(dateString)
+                val dateFormat = DateFormat.getDateFormat(this)
+                s = dateFormat.format(date)
+            } catch (e: ParseException) {
+                // handle exception here !
+            }
+            adapter.model.setRowAndColumn(row, column, s)
+        }
+    }
+
+    fun containerChangeItemTime(cont: ListView, column: Int, row: Int, hour: Int, minute: Int, second: Int)
+    {
+        waitOnUiThread {
+            val adapter: DWContainerAdapter = cont.adapter as DWContainerAdapter
+            val timeStr = timeString(hour) + ":" + timeString(minute) + ":" + timeString(second)
+            val sdf = SimpleDateFormat("hh:mm:ss")
+            var date: Date? = null
+            var s = timeStr
+            try {
+                date = sdf.parse(timeStr)
+                val timeFormat = DateFormat.getTimeFormat(this)
+                s = timeFormat.format(date)
+            } catch (e: ParseException) {
+                // handle exception here !
+            }
+            adapter.model.setRowAndColumn(row, column, s)
         }
     }
 
