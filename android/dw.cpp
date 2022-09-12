@@ -44,6 +44,7 @@ static char _dw_app_name[_DW_APP_ID_SIZE+1]= {0};
 static char _dw_exec_dir[MAX_PATH+1] = {0};
 static char _dw_user_dir[MAX_PATH+1] = {0};
 static int _dw_android_api = 0;
+static int _dw_container_mode = DW_CONTAINER_MODE_DEFAULT;
 
 static pthread_key_t _dw_env_key;
 static pthread_key_t _dw_fgcolor_key;
@@ -8081,6 +8082,8 @@ int API dw_feature_get(DWFEATURE feature)
         case DW_FEATURE_CONTAINER_STRIPE:        /* Supports striped line display in container widgets */
         case DW_FEATURE_TREE:                    /* Supports the Tree Widget */
             return DW_FEATURE_ENABLED;
+        case DW_FEATURE_CONTAINER_MODE:          /* Supports alternate container view modes */
+            return _dw_container_mode;
         case DW_FEATURE_DARK_MODE:               /* Supports Dark Mode user interface */
         {
             /* Dark Mode on Android requires Android 10 (API 29) */
@@ -8121,6 +8124,28 @@ int API dw_feature_set(DWFEATURE feature, int state)
         case DW_FEATURE_TREE:                    /* Supports the Tree Widget */
             return DW_ERROR_GENERAL;
         /* These features are supported and configurable */
+        case DW_FEATURE_CONTAINER_MODE:          /* Supports alternate container view modes */
+        {
+            if(state >= DW_CONTAINER_MODE_DEFAULT && state < DW_CONTAINER_MODE_MAX)
+            {
+                JNIEnv *env;
+
+                if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+                {
+                    // First get the class that contains the method you need to call
+                    jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+                    // Get the method that you want to call
+                    jmethodID setContainerMode = env->GetMethodID(clazz, "setContainerMode",
+                                                                  "(I)V");
+                    _dw_container_mode = state;
+                    // Call the method on the object
+                    env->CallVoidMethod(_dw_obj, setContainerMode, (jint)state);
+                    _dw_jni_check_exception(env);
+                }
+                return DW_ERROR_NONE;
+            }
+            return DW_ERROR_GENERAL;
+        }
         case DW_FEATURE_DARK_MODE:               /* Supports Dark Mode user interface */
         {
             /* Dark Mode on Android requires 10 (API 29) */
