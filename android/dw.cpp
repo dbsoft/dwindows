@@ -4056,6 +4056,7 @@ int API dw_container_get_column_type(HWND handle, int column)
 {
     JNIEnv *env;
     int retval = 0;
+    int mask = (DW_CFA_BITMAPORICON | DW_CFA_STRING | DW_CFA_ULONG | DW_CFA_TIME | DW_CFA_DATE);
 
     if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
@@ -4069,7 +4070,7 @@ int API dw_container_get_column_type(HWND handle, int column)
         if(_dw_jni_check_exception(env))
             retval = 0;
     }
-    return retval;
+    return (retval & mask);
 }
 
 /*
