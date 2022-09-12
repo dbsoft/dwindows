@@ -2117,8 +2117,12 @@ class DWContainerModel {
         if(index > -1 && index < data.size && column < types.size) {
             // Verify the data matches the column type
             if((((types[column] and 1) != 0) && (obj is Drawable)) ||
-                (((types[column] and (1 shl 1)) != 0) && (obj is String)) ||
-                (((types[column] and (1 shl 2)) != 0) && (obj is Int))) {
+                (((types[column] and (1 shl 2)) != 0) && (obj is Int || obj is Long))) {
+                data[index] = obj
+            }
+            // If it isn't one of those special types, image or numeric...use string
+            else if(((types[column] and 1) == 0) && ((types[column] and (1 shl 2)) == 0)
+                        && obj is String) {
                 data[index] = obj
             }
         }
@@ -2292,7 +2296,7 @@ class DWContainerAdapter(c: Context) : BaseAdapter()
     private var context = c
     var model = DWContainerModel()
     var selectedItem: Int = -1
-    var simpleMode: Boolean = true
+    var contMode: Int = 0
     var oddColor: Int? = null
     var evenColor: Int? = null
     var foreColor: Int? = null
@@ -2316,8 +2320,8 @@ class DWContainerAdapter(c: Context) : BaseAdapter()
         var rowView: DWContainerRow? = view as DWContainerRow?
         var displayColumns = model.numberOfColumns()
 
-        // In simple mode, limit the columns to 1 or 2
-        if(simpleMode == true) {
+        // In default mode (0), limit the columns to 1 or 2
+        if(contMode == 0) {
             // If column 1 is bitmap and column 2 is text...
             if(displayColumns > 1 && (model.getColumnType(0) and 1) != 0 &&
                 (model.getColumnType(1) and (1 shl 1)) != 0) {
@@ -2332,6 +2336,12 @@ class DWContainerAdapter(c: Context) : BaseAdapter()
             rowView = DWContainerRow(context)
             rowView.orientation = LinearLayout.HORIZONTAL
 
+            // Handle DW_CONTAINER_MODE_MULTI by setting the orientation vertical
+            if(contMode == 2) {
+                rowView.orientation = LinearLayout.VERTICAL
+                rowView.gravity = Gravity.LEFT
+            }
+
             for(i in 0 until displayColumns) {
                 val content = model.getRowAndColumn(position, i)
 
@@ -2340,7 +2350,10 @@ class DWContainerAdapter(c: Context) : BaseAdapter()
                     val imageview = ImageView(context)
                     val params = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT,
                                                            LinearLayout.LayoutParams.WRAP_CONTENT)
-                    params.gravity = Gravity.CENTER
+                    if(contMode == 2)
+                        params.gravity = Gravity.LEFT
+                    else
+                        params.gravity = Gravity.CENTER
                     imageview.layoutParams = params
                     imageview.id = View.generateViewId()
                     if (content is Drawable) {
@@ -2350,20 +2363,27 @@ class DWContainerAdapter(c: Context) : BaseAdapter()
                 } else  {
                     // Everything else id displayed as text
                     val textview = TextView(context)
-                    val params = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT,
-                                                           LinearLayout.LayoutParams.WRAP_CONTENT)
-                    params.gravity = Gravity.CENTER
+                    var hsize = LinearLayout.LayoutParams.WRAP_CONTENT
+                    if(contMode == 0)
+                        hsize = LinearLayout.LayoutParams.MATCH_PARENT
+                    val params = LinearLayout.LayoutParams(hsize, LinearLayout.LayoutParams.WRAP_CONTENT)
+                    if(contMode == 2)
+                        params.gravity = Gravity.LEFT
+                    else
+                        params.gravity = Gravity.CENTER
+                    // Multi-line (vertical) mode does not require horizontal margins
+                    if(contMode != 2)
+                        params.setMargins(5, 0, 5, 0)
                     textview.layoutParams = params
                     textview.id = View.generateViewId()
                     if (content is String) {
                         textview.text = content
-                    } else if(content is Int) {
+                    } else if(content is Long || content is Int) {
                         textview.text = content.toString()
                     }
                     rowView.addView(textview)
                 }
             }
-            // TODO: Add code to optionally add other columns
         } else {
             // Otherwise we just need to update the existing layout
 
@@ -2384,7 +2404,7 @@ class DWContainerAdapter(c: Context) : BaseAdapter()
                     if (textview is TextView) {
                         if (content is String) {
                             textview.text = content
-                        } else if (content is Int) {
+                        } else if (content is Long || content is Int) {
                             textview.text = content.toString()
                         }
                         if(foreColor != null) {
@@ -2456,6 +2476,7 @@ class DWindows : AppCompatActivity() {
     var threadCond = threadLock.newCondition()
     var notificationID: Int = 0
     var darkMode: Int = -1
+    var contMode: Int = 0
     var lastClickView: View? = null
     var colorSelection: Int = Color.DKGRAY
     private var appID: String? = null
@@ -2673,6 +2694,11 @@ class DWindows : AppCompatActivity() {
     fun darkModeDetected(): Int
     {
         return darkMode
+    }
+
+    fun setContainerMode(mode: Int)
+    {
+        contMode = mode
     }
 
     fun browseURL(url: String): Int {
@@ -4851,6 +4877,8 @@ class DWindows : AppCompatActivity() {
             val dataArrayMap = SimpleArrayMap<String, Long>()
             val adapter = DWContainerAdapter(this)
 
+            // Save the global container mode into the adapter
+            adapter.contMode = contMode
             cont = ListView(this)
             cont!!.tag = dataArrayMap
             cont!!.id = cid
@@ -5125,8 +5153,10 @@ class DWindows : AppCompatActivity() {
         }
     }
 
-    fun timeString(num: Int): String
+    fun timeString(num: Int, zeroAllowed: Boolean): String
     {
+        if(zeroAllowed && num == 0)
+            return "00"
         if(num > 0 && num < 60) {
             if(num > 9)
                 return num.toString()
@@ -5140,10 +5170,10 @@ class DWindows : AppCompatActivity() {
     {
         if(year < 100)
         {
-            if(year < 70)
-                return "19" + year.toString()
+            if(year > 69)
+                return "19" + timeString(year, false)
             else
-                return "20" + year.toString()
+                return "20" + timeString(year, true)
         }
         if(year in 1901..2199)
             return year.toString()
@@ -5156,7 +5186,7 @@ class DWindows : AppCompatActivity() {
     {
         waitOnUiThread {
             val adapter: DWContainerAdapter = cont.adapter as DWContainerAdapter
-            val dateString = timeString(day) + "/" + timeString(month) + "/" + yearString(year)
+            val dateString = timeString(day, false) + "/" + timeString(month, false) + "/" + yearString(year)
             val sdf = SimpleDateFormat("dd/MM/yyyy")
             var date: Date? = null
             var s = dateString
@@ -5175,7 +5205,7 @@ class DWindows : AppCompatActivity() {
     {
         waitOnUiThread {
             val adapter: DWContainerAdapter = cont.adapter as DWContainerAdapter
-            val timeStr = timeString(hour) + ":" + timeString(minute) + ":" + timeString(second)
+            val timeStr = timeString(hour, true) + ":" + timeString(minute, true) + ":" + timeString(second, true)
             val sdf = SimpleDateFormat("hh:mm:ss")
             var date: Date? = null
             var s = timeStr
