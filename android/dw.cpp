@@ -765,6 +765,17 @@ Java_org_dbsoft_dwindows_DWRender_eventHandlerInt(JNIEnv* env, jobject obj, jint
 }
 
 JNIEXPORT void JNICALL
+Java_org_dbsoft_dwindows_DWContainerAdapter_eventHandlerInt(JNIEnv* env, jobject obj, jobject obj1,
+                                                            jint message, jint inta, jint intb, jint intc, jint intd) {
+    void *params[_DW_EVENT_PARAM_SIZE] = { nullptr, nullptr, nullptr,
+                                           DW_INT_TO_POINTER(inta), DW_INT_TO_POINTER(intb),
+                                           DW_INT_TO_POINTER(intc), DW_INT_TO_POINTER(intd), nullptr,
+                                           DW_INT_TO_POINTER(message), nullptr };
+
+    _dw_event_handler(obj1, params);
+}
+
+JNIEXPORT void JNICALL
 Java_org_dbsoft_dwindows_DWindows_eventHandlerContainer(JNIEnv* env, jobject obj, jobject obj1,
                                                   jint message, jstring jtitle, jint x, jint y, jlong data) {
     const char *title = jtitle ? env->GetStringUTFChars(jtitle, nullptr) : nullptr;

@@ -2319,16 +2319,21 @@ class DWContainerAdapter(c: Context) : BaseAdapter()
     override fun getView(position: Int, view: View?, parent: ViewGroup): View {
         var rowView: DWContainerRow? = view as DWContainerRow?
         var displayColumns = model.numberOfColumns()
+        var isFilesystem: Boolean = false
+        var extraColumns: Int = 1
+
+        // If column 1 is bitmap and column 2 is text...
+        if(displayColumns > 1 && (model.getColumnType(0) and 1) != 0 &&
+            (model.getColumnType(1) and (1 shl 1)) != 0) {
+            // We are a filesystem style container...
+            isFilesystem = true
+            extraColumns = 2
+        }
 
         // In default mode (0), limit the columns to 1 or 2
         if(contMode == 0) {
-            // If column 1 is bitmap and column 2 is text...
-            if(displayColumns > 1 && (model.getColumnType(0) and 1) != 0 &&
-                (model.getColumnType(1) and (1 shl 1)) != 0) {
-                displayColumns = 2
-            } else {
-                displayColumns = 1
-            }
+            // depending on if we are filesystem style or not
+            displayColumns = extraColumns
         }
 
         // If the view passed in is null we need to create the layout
@@ -2361,8 +2366,16 @@ class DWContainerAdapter(c: Context) : BaseAdapter()
                     }
                     rowView.addView(imageview)
                 } else  {
-                    // Everything else id displayed as text
-                    val textview = TextView(context)
+                    // Everything else is displayed as text
+                    var textview: TextView? = null
+
+                    // Special case for DW_CONTAINER_MODE_MULTI
+                    if(contMode == 2 && i >= extraColumns) {
+                        // textview will be a text button instead
+                        textview = Button(context)
+                    } else {
+                        textview = TextView(context)
+                    }
                     var hsize = LinearLayout.LayoutParams.WRAP_CONTENT
                     if(contMode == 0)
                         hsize = LinearLayout.LayoutParams.MATCH_PARENT
@@ -2381,6 +2394,14 @@ class DWContainerAdapter(c: Context) : BaseAdapter()
                     } else if(content is Long || content is Int) {
                         textview.text = content.toString()
                     }
+                    textview.setOnClickListener {
+                        var columnClicked: Int = i
+                        if(isFilesystem) {
+                            columnClicked = i - 1
+                        }
+                        eventHandlerInt(parent, DWEvent.COLUMN_CLICK, columnClicked, 0, 0, 0)
+                    }
+
                     rowView.addView(textview)
                 }
             }
@@ -2430,6 +2451,14 @@ class DWContainerAdapter(c: Context) : BaseAdapter()
         }
         return rowView
     }
+    external fun eventHandlerInt(
+        obj1: View,
+        message: Int,
+        inta: Int,
+        intb: Int,
+        intc: Int,
+        intd: Int
+    )
 }
 
 private class DWMLE(c: Context): AppCompatEditText(c) {
