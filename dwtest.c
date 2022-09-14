@@ -2165,6 +2165,7 @@ char *DWFeatureList[] = {
     "Supports icons in the taskbar or similar system widget",
     "Supports the Tree Widget",
     "Supports arbitrary window placement",
+    "Supports alternate container view modes",
     NULL };
 
 /*
