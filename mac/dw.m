@@ -190,11 +190,16 @@
 #define BUILDING_FOR_VENTURA
 #endif
 
+#ifdef __clang__
 #define _DW_ELSE_AVAILABLE  \
     _Pragma("clang diagnostic push") \
     _Pragma("clang diagnostic ignored \"-Wdeprecated-declarations\"")
 
 #define _DW_END_AVAILABLE _Pragma("clang diagnostic pop")
+#else
+#define _DW_ELSE_AVAILABLE
+#define _DW_END_AVAILABLE
+#endif
 
 /* Macros to encapsulate running functions on the main thread
  * on Mojave or later... and locking mutexes on earlier versions.
