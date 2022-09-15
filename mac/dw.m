@@ -165,6 +165,9 @@
 
 /* Handle deprecation of constants in 11.0 (also known as 10.16)... */
 #if (defined(MAC_OS_VERSION_11_0) || defined(MAC_OS_X_VERSION_10_16)) && ((defined(MAC_OS_X_VERSION_MAX_ALLOWED) && MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_VERSION_10_16) || !defined(MAC_OS_X_VERSION_MAX_ALLOWED))
+#import <UniformTypeIdentifiers/UTDefines.h>
+#import <UniformTypeIdentifiers/UTType.h>
+#import <UniformTypeIdentifiers/UTCoreTypes.h>
 #define DWPrintingPaginationModeFit NSPrintingPaginationModeFit
 #define DWDatePickerModeSingle NSDatePickerModeSingle
 #define DWDatePickerStyleClockAndCalendar NSDatePickerStyleClockAndCalendar
@@ -179,9 +182,6 @@
 
 /* Handle deprecation of constants in 12.0 */
 #if defined(MAC_OS_VERSION_12_0) && ((defined(MAC_OS_X_VERSION_MAX_ALLOWED) && MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_VERSION_12_0) || !defined(MAC_OS_X_VERSION_MAX_ALLOWED))
-#import <UniformTypeIdentifiers/UTDefines.h>
-#import <UniformTypeIdentifiers/UTType.h>
-#import <UniformTypeIdentifiers/UTCoreTypes.h>
 #define BUILDING_FOR_MONTEREY
 #endif
 
