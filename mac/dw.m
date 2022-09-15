@@ -177,6 +177,25 @@
 #define DWDatePickerElementFlagYearMonthDay NSYearMonthDayDatePickerElementFlag
 #endif
 
+/* Handle deprecation of constants in 12.0 */
+#if defined(MAC_OS_VERSION_12_0) && ((defined(MAC_OS_X_VERSION_MAX_ALLOWED) && MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_VERSION_12_0) || !defined(MAC_OS_X_VERSION_MAX_ALLOWED))
+#import <UniformTypeIdentifiers/UTDefines.h>
+#import <UniformTypeIdentifiers/UTType.h>
+#import <UniformTypeIdentifiers/UTCoreTypes.h>
+#define BUILDING_FOR_MONTEREY
+#endif
+
+/* Handle deprecation of constants in 13.0 */
+#if defined(MAC_OS_VERSION_13_0) && ((defined(MAC_OS_X_VERSION_MAX_ALLOWED) && MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_VERSION_13_0) || !defined(MAC_OS_X_VERSION_MAX_ALLOWED))
+#define BUILDING_FOR_VENTURA
+#endif
+
+#define _DW_ELSE_AVAILABLE  \
+    _Pragma("clang diagnostic push") \
+    _Pragma("clang diagnostic ignored \"-Wdeprecated-declarations\"")
+
+#define _DW_END_AVAILABLE _Pragma("clang diagnostic pop")
+
 /* Macros to encapsulate running functions on the main thread
  * on Mojave or later... and locking mutexes on earlier versions.
  */
@@ -4484,18 +4503,40 @@ char * API dw_file_browse(const char *title, const char *defpath, const char *ex
         {
             [openDlg setCanChooseFiles:YES];
             [openDlg setCanChooseDirectories:NO];
+
+            /* Handle file types */
+            if(ext && *ext)
+            {
+#ifdef BUILDING_FOR_BIG_SUR
+                if (@available(macOS 11.0, *)) {
+                    UTType *extuti = ext ? [UTType typeWithFilenameExtension:[NSString stringWithUTF8String:ext]] : nil;
+                    NSArray *UTIs;
+                    
+                    /* Try to generate a UTI for our passed extension */
+                    if(extuti)
+                        UTIs = [NSArray arrayWithObjects:extuti, UTTypeText, nil];
+                    else
+                        UTIs = @[UTTypeText];
+                    [openDlg setAllowedContentTypes:UTIs];
+                } else
+#endif
+                {
+                    _DW_ELSE_AVAILABLE
+                    NSArray* fileTypes = [[[NSArray alloc] initWithObjects:[NSString stringWithUTF8String:ext], nil] autorelease];
+                    [openDlg setAllowedFileTypes:fileTypes];
+                    _DW_END_AVAILABLE
+                }
+            }
         }
         else
         {
             [openDlg setCanChooseFiles:NO];
             [openDlg setCanChooseDirectories:YES];
-        }
-
-        /* Handle file types */
-        if(ext && *ext)
-        {
-            NSArray* fileTypes = [[[NSArray alloc] initWithObjects:[NSString stringWithUTF8String:ext], nil] autorelease];
-            [openDlg setAllowedFileTypes:fileTypes];
+#ifdef BUILDING_FOR_BIG_SUR
+            if (@available(macOS 11.0, *)) {
+                [openDlg setAllowedContentTypes:@[UTTypeFolder]];
+            }
+#endif
         }
 
         /* Disable multiple selection */
@@ -4551,8 +4592,25 @@ char * API dw_file_browse(const char *title, const char *defpath, const char *ex
         /* Handle file types */
         if(ext && *ext)
         {
-            NSArray* fileTypes = [[[NSArray alloc] initWithObjects:[NSString stringWithUTF8String:ext], nil] autorelease];
-            [saveDlg setAllowedFileTypes:fileTypes];
+#ifdef BUILDING_FOR_BIG_SUR
+            if (@available(macOS 11.0, *)) {
+                UTType *extuti = ext ? [UTType typeWithFilenameExtension:[NSString stringWithUTF8String:ext]] : nil;
+                NSArray *UTIs;
+                
+                /* Try to generate a UTI for our passed extension */
+                if(extuti)
+                    UTIs = [NSArray arrayWithObjects:extuti, UTTypeText, nil];
+                else
+                    UTIs = @[UTTypeText];
+                [saveDlg setAllowedContentTypes:UTIs];
+            } else
+#endif
+            {
+                _DW_ELSE_AVAILABLE
+                NSArray* fileTypes = [[[NSArray alloc] initWithObjects:[NSString stringWithUTF8String:ext], nil] autorelease];
+                [saveDlg setAllowedFileTypes:fileTypes];
+                _DW_END_AVAILABLE
+            }
         }
 
         /* Display the dialog.  If the OK button was pressed,
@@ -13297,7 +13355,17 @@ int API dw_feature_get(DWFEATURE feature)
                     if([basicAppearance isEqualToString:NSAppearanceNameAqua])
                         return DW_FEATURE_DISABLED;
                 }
-                appearance = [NSAppearance currentAppearance];
+#ifdef BUILDING_FOR_BIG_SUR
+                /* Configure the notification's payload. */
+                if (@available(macOS 11.0, *)) {
+                    appearance = [NSAppearance currentDrawingAppearance];
+                } else
+#endif
+                {
+                    _DW_ELSE_AVAILABLE
+                    appearance = [NSAppearance currentAppearance];
+                    _DW_END_AVAILABLE
+                }
                 basicAppearance = [appearance bestMatchFromAppearancesWithNames:@[NSAppearanceNameAqua,
                                                                                   NSAppearanceNameDarkAqua]];
                 if([basicAppearance isEqualToString:NSAppearanceNameDarkAqua])
