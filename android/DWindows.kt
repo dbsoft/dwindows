@@ -56,6 +56,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.view.MenuCompat
+import androidx.core.view.setMargins
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
@@ -2266,6 +2267,7 @@ class DWContainerRow : RelativeLayout, Checkable {
         val match = RelativeLayout.LayoutParams.MATCH_PARENT
         var lp = RelativeLayout.LayoutParams(wrap, wrap)
         imageview.id = View.generateViewId()
+        lp.setMargins(4)
         this.addView(imageview, lp)
         lp = RelativeLayout.LayoutParams(match, wrap)
         text.id = View.generateViewId()
