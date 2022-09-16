@@ -2276,6 +2276,7 @@ class DWContainerRow : RelativeLayout, Checkable {
         lp = RelativeLayout.LayoutParams(match, wrap)
         stack.id = View.generateViewId()
         stack.orientation = LinearLayout.HORIZONTAL
+        stack.descendantFocusability = LinearLayout.FOCUS_BLOCK_DESCENDANTS
         lp.addRule(RelativeLayout.BELOW, imageview.id);
         lp.addRule(RelativeLayout.BELOW, text.id);
         this.addView(stack, lp)
