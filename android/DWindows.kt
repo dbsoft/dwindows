@@ -2254,17 +2254,41 @@ class DWContainerModel {
     }
 }
 
-class DWContainerRow : LinearLayout, Checkable {
+class DWContainerRow : RelativeLayout, Checkable {
     private var mChecked = false
     private var colorSelection = Color.DKGRAY
+    var imageview: ImageView = ImageView(context)
+    var text: TextView = TextView(context)
+    var stack: LinearLayout = LinearLayout(context)
+
+    fun setup(context: Context?) {
+        val wrap = RelativeLayout.LayoutParams.WRAP_CONTENT
+        val match = RelativeLayout.LayoutParams.MATCH_PARENT
+        var lp = RelativeLayout.LayoutParams(wrap, wrap)
+        imageview.id = View.generateViewId()
+        this.addView(imageview, lp)
+        lp = RelativeLayout.LayoutParams(match, wrap)
+        text.id = View.generateViewId()
+        lp.addRule(RelativeLayout.RIGHT_OF, imageview.id);
+        this.addView(text, lp)
+        lp = RelativeLayout.LayoutParams(match, wrap)
+        stack.id = View.generateViewId()
+        stack.orientation = LinearLayout.HORIZONTAL
+        lp.addRule(RelativeLayout.BELOW, imageview.id);
+        lp.addRule(RelativeLayout.BELOW, text.id);
+        this.addView(stack, lp)
+    }
 
     constructor(context: Context?) : super(context) {
+        setup(context)
         colorSelection = context?.let { getPlatformSelectionColor(it) }!!
     }
     constructor(context: Context?, attrs: AttributeSet?) : super(context, attrs) {
+        setup(context)
         colorSelection = context?.let { getPlatformSelectionColor(it) }!!
     }
     constructor(context: Context?, attrs: AttributeSet?, defStyle: Int) : super(context, attrs, defStyle) {
+        setup(context)
         colorSelection = context?.let { getPlatformSelectionColor(it) }!!
     }
 
@@ -2339,16 +2363,17 @@ class DWContainerAdapter(c: Context) : BaseAdapter()
         // If the view passed in is null we need to create the layout
         if(rowView == null) {
             rowView = DWContainerRow(context)
-            rowView.orientation = LinearLayout.HORIZONTAL
 
             // Handle DW_CONTAINER_MODE_MULTI by setting the orientation vertical
             if(contMode == 2) {
-                rowView.orientation = LinearLayout.VERTICAL
-                rowView.gravity = Gravity.LEFT
+                rowView.stack.orientation = LinearLayout.VERTICAL
+                rowView.stack.gravity = Gravity.LEFT
             }
 
-            for(i in 0 until displayColumns) {
-                val content = model.getRowAndColumn(position, i)
+            // If there are extra columns and we are not in default mode...
+            // Add the columns to the stack (LinearLayout)
+            for(i in extraColumns until displayColumns) {
+                var content = model.getRowAndColumn(position, i)
 
                 // Image
                 if((model.getColumnType(i) and 1) != 0) {
@@ -2364,13 +2389,13 @@ class DWContainerAdapter(c: Context) : BaseAdapter()
                     if (content is Drawable) {
                         imageview.setImageDrawable(content)
                     }
-                    rowView.addView(imageview)
+                    rowView.stack.addView(imageview)
                 } else  {
                     // Everything else is displayed as text
                     var textview: TextView? = null
 
                     // Special case for DW_CONTAINER_MODE_MULTI
-                    if(contMode == 2 && i >= extraColumns) {
+                    if(contMode == 2) {
                         // textview will be a text button instead
                         textview = Button(context)
                     } else {
@@ -2401,26 +2426,24 @@ class DWContainerAdapter(c: Context) : BaseAdapter()
                         }
                         eventHandlerInt(parent, DWEvent.COLUMN_CLICK, columnClicked, 0, 0, 0)
                     }
-
-                    rowView.addView(textview)
+                    rowView.stack.addView(textview)
                 }
             }
         } else {
             // Otherwise we just need to update the existing layout
-
-            for(i in 0 until displayColumns) {
-                val content = model.getRowAndColumn(position, i)
+            for(i in extraColumns until displayColumns) {
+                var content = model.getRowAndColumn(position, i)
 
                 // Image
                 if((model.getColumnType(i) and 1) != 0) {
-                    val imageview = rowView.getChildAt(i)
+                    val imageview = rowView.stack.getChildAt(i - extraColumns)
 
                     if (imageview is ImageView && content is Drawable) {
                         imageview.setImageDrawable(content)
                     }
                 } else {
                     // Text
-                    val textview = rowView.getChildAt(i)
+                    val textview = rowView.stack.getChildAt(i - extraColumns)
 
                     if (textview is TextView) {
                         if (content is String) {
@@ -2435,6 +2458,30 @@ class DWContainerAdapter(c: Context) : BaseAdapter()
                 }
             }
         }
+
+        var content = model.getRowAndColumn(position, 0)
+
+        // Setup the built-in Image and Text based on if we are fileystem mode or not
+        if(isFilesystem) {
+            if(content is Drawable) {
+                rowView.imageview.setImageDrawable(content)
+            }
+            content = model.getRowAndColumn(position, 1)
+            if (content is String) {
+                rowView.text.text = content
+            } else if(content is Long || content is Int) {
+                rowView.text.text = content.toString()
+            }
+        } else {
+            if(content is Drawable) {
+                rowView.imageview.setImageDrawable(content)
+            } else if (content is String) {
+                rowView.text.text = content
+            } else if(content is Long || content is Int) {
+                rowView.text.text = content.toString()
+            }
+        }
+
         // Handle row stripe
         if (position % 2 == 0) {
             if(evenColor != null) {
