@@ -2105,14 +2105,16 @@ BOOL _dw_is_dark(void)
 @end
 
 @implementation DWNotebook
--(id)init {
+-(id)init
+{
     self = [super init];
     tabs = [[[UISegmentedControl alloc] init] retain];
     views = [[[NSMutableArray alloc] init] retain];
     [self addSubview:tabs];
     return self;
 }
--(void)setFrame:(CGRect)frame {
+-(void)setFrame:(CGRect)frame
+{
     [super setFrame:frame];
     frame.size.height = 40;
     [tabs setFrame:frame];
@@ -2158,7 +2160,8 @@ BOOL _dw_is_dark(void)
     else
         visible = nil;
 }
--(void)dealloc {
+-(void)dealloc
+{
     UserData *root = userdata;
     _dw_remove_userdata(&root, NULL, TRUE);
     dw_signal_disconnect_by_window(self);
