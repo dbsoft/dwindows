@@ -2078,6 +2078,7 @@ class DWContainerModel {
     var data = mutableListOf<Any?>()
     var rowdata = mutableListOf<Long>()
     var rowtitle = mutableListOf<String?>()
+    var selected = mutableListOf<Boolean>()
     var querypos: Int = -1
 
     fun numberOfColumns(): Int
@@ -2144,6 +2145,21 @@ class DWContainerModel {
         return 0
     }
 
+    fun changeRowSelected(row: Int, rselected: Boolean)
+    {
+        if(row > -1 && row < selected.size) {
+            selected[row] = rselected
+        }
+    }
+
+    fun getRowSelected(row: Int): Boolean
+    {
+        if(row > -1 && row < selected.size) {
+            return selected[row]
+        }
+        return false
+    }
+
     fun changeRowTitle(row: Int, title: String?)
     {
         if(row > -1 && row < rowtitle.size) {
@@ -2176,11 +2192,13 @@ class DWContainerModel {
                 }
                 rowdata.removeAt(0)
                 rowtitle.removeAt(0)
+                selected.removeAt(0)
             }
         } else {
             data.clear()
             rowdata.clear()
             rowtitle.clear()
+            selected.clear()
         }
     }
 
@@ -2193,6 +2211,7 @@ class DWContainerModel {
                 }
                 rowdata.removeAt(i)
                 rowtitle.removeAt(i)
+                selected.removeAt(i)
             }
         }
     }
@@ -2206,6 +2225,7 @@ class DWContainerModel {
                 }
                 rowdata.removeAt(i)
                 rowtitle.removeAt(i)
+                selected.removeAt(i)
             }
         }
     }
@@ -2243,6 +2263,7 @@ class DWContainerModel {
             }
             rowdata.add(0)
             rowtitle.add(null)
+            selected.add(false)
         }
         return startRow
     }
@@ -2252,12 +2273,14 @@ class DWContainerModel {
         data.clear()
         rowdata.clear()
         rowtitle.clear()
+        selected.clear()
     }
 }
 
 class DWContainerRow : RelativeLayout, Checkable {
     private var mChecked = false
     private var colorSelection = Color.DKGRAY
+    var position: Int = -1
     var imageview: ImageView = ImageView(context)
     var text: TextView = TextView(context)
     var stack: LinearLayout = LinearLayout(context)
@@ -2300,6 +2323,12 @@ class DWContainerRow : RelativeLayout, Checkable {
             this.setBackgroundColor(colorSelection)
         } else {
             this.setBackgroundColor(Color.TRANSPARENT)
+        }
+        if(this.parent is ListView && position != -1) {
+            val cont = this.parent as ListView
+            val adapter = cont.adapter as DWContainerAdapter
+
+            adapter.model.changeRowSelected(position, mChecked)
         }
     }
 
@@ -2367,6 +2396,9 @@ class DWContainerAdapter(c: Context) : BaseAdapter()
         if(rowView == null) {
             rowView = DWContainerRow(context)
 
+            // Save the position for later use
+            rowView.position = position
+
             // Handle DW_CONTAINER_MODE_MULTI by setting the orientation vertical
             if(contMode == 2) {
                 rowView.stack.orientation = LinearLayout.VERTICAL
@@ -2433,6 +2465,12 @@ class DWContainerAdapter(c: Context) : BaseAdapter()
                 }
             }
         } else {
+            // Need to save the position to set the check state
+            rowView.position = position
+
+            // Refresh the selected state from the model
+            rowView.isChecked = model.getRowSelected(position)
+
             // Otherwise we just need to update the existing layout
             for(i in extraColumns until displayColumns) {
                 var content = model.getRowAndColumn(position, i)
@@ -2462,6 +2500,7 @@ class DWContainerAdapter(c: Context) : BaseAdapter()
             }
         }
 
+        // Check the main column content, image or text
         var content = model.getRowAndColumn(position, 0)
 
         // Setup the built-in Image and Text based on if we are fileystem mode or not
@@ -2478,10 +2517,13 @@ class DWContainerAdapter(c: Context) : BaseAdapter()
         } else {
             if(content is Drawable) {
                 rowView.imageview.setImageDrawable(content)
+                rowView.text.text = ""
             } else if (content is String) {
                 rowView.text.text = content
+                rowView.imageview.setImageDrawable(null)
             } else if(content is Long || content is Int) {
                 rowView.text.text = content.toString()
+                rowView.imageview.setImageDrawable(null)
             }
         }
 
@@ -5370,6 +5412,9 @@ class DWindows : AppCompatActivity() {
         waitOnUiThread {
             val adapter: DWContainerAdapter = cont.adapter as DWContainerAdapter
 
+            adapter.lastClick = 0L
+            adapter.lastClickRow = -1
+            adapter.selectedItem = -1
             adapter.model.clear()
         }
     }
