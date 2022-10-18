@@ -2280,11 +2280,17 @@ class DWContainerModel {
 class DWContainerRow : RelativeLayout, Checkable {
     private var mChecked = false
     private var colorSelection = Color.DKGRAY
+    private var colorBackground: Int? = null
     var position: Int = -1
     var imageview: ImageView = ImageView(context)
     var text: TextView = TextView(context)
     var stack: LinearLayout = LinearLayout(context)
     var parent: ListView? = null
+
+    override fun setBackgroundColor(color: Int) {
+        colorBackground = color
+        super.setBackgroundColor(color)
+    }
 
     fun setup(context: Context?) {
         val wrap = RelativeLayout.LayoutParams.WRAP_CONTENT
@@ -2321,9 +2327,14 @@ class DWContainerRow : RelativeLayout, Checkable {
 
     fun updateBackground() {
         if(mChecked) {
-            this.setBackgroundColor(colorSelection)
+            super.setBackgroundColor(colorSelection)
         } else {
-            this.setBackgroundColor(Color.TRANSPARENT)
+            // Preserve the stripe color when toggling selection
+            if(colorBackground != null) {
+                super.setBackgroundColor(colorBackground!!)
+            } else {
+                super.setBackgroundColor(Color.TRANSPARENT)
+            }
         }
         if(parent is ListView && position != -1) {
             val cont = this.parent as ListView
