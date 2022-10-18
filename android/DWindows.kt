@@ -2811,6 +2811,7 @@ class DWindows : AppCompatActivity() {
         return false
     }
 
+    @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
         if(windowLayout != null) {
             val adapter: DWTabViewPagerAdapter = windowLayout!!.adapter as DWTabViewPagerAdapter
