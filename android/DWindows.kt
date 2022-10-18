@@ -2284,6 +2284,7 @@ class DWContainerRow : RelativeLayout, Checkable {
     var imageview: ImageView = ImageView(context)
     var text: TextView = TextView(context)
     var stack: LinearLayout = LinearLayout(context)
+    var parent: ListView? = null
 
     fun setup(context: Context?) {
         val wrap = RelativeLayout.LayoutParams.WRAP_CONTENT
@@ -2324,7 +2325,7 @@ class DWContainerRow : RelativeLayout, Checkable {
         } else {
             this.setBackgroundColor(Color.TRANSPARENT)
         }
-        if(this.parent is ListView && position != -1) {
+        if(parent is ListView && position != -1) {
             val cont = this.parent as ListView
             val adapter = cont.adapter as DWContainerAdapter
 
@@ -2333,8 +2334,10 @@ class DWContainerRow : RelativeLayout, Checkable {
     }
 
     override fun setChecked(b: Boolean) {
-        mChecked = b
-        updateBackground()
+        if(b != mChecked) {
+            mChecked = b
+            updateBackground()
+        }
     }
 
     override fun isChecked(): Boolean {
@@ -2396,8 +2399,9 @@ class DWContainerAdapter(c: Context) : BaseAdapter()
         if(rowView == null) {
             rowView = DWContainerRow(context)
 
-            // Save the position for later use
+            // Save variables for later use
             rowView.position = position
+            rowView.parent = parent as ListView
 
             // Handle DW_CONTAINER_MODE_MULTI by setting the orientation vertical
             if(contMode == 2) {
@@ -2465,8 +2469,9 @@ class DWContainerAdapter(c: Context) : BaseAdapter()
                 }
             }
         } else {
-            // Need to save the position to set the check state
+            // Update the position and parent
             rowView.position = position
+            rowView.parent = parent as ListView
 
             // Refresh the selected state from the model
             rowView.isChecked = model.getRowSelected(position)
@@ -5416,6 +5421,8 @@ class DWindows : AppCompatActivity() {
             adapter.lastClickRow = -1
             adapter.selectedItem = -1
             adapter.model.clear()
+
+            windowSetData(cont, "_dw_rowstart", 0L)
         }
     }
 
