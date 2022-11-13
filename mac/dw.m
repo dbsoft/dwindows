@@ -2467,13 +2467,14 @@ void _dw_table_cell_view_layout(NSTableCellView *result)
         NSImage *icon = [iv image];
         NSTextField *tf = [result textField];
         NSRect rect = result.frame;
-        int width =[icon size].width;
-    
+        CGFloat width = [icon size].width;
+
         [iv setFrame:NSMakeRect(0,0,width,rect.size.height)];
-        
+
         /* Adjust the rect to allow space for the image */
         rect.origin.x += width;
-        rect.size.width -= width;
+        if(rect.size.width)
+            rect.size.width -= width;
         [tf setFrame:rect];
     }
 }
