@@ -10830,12 +10830,17 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
  *       filename: a path to a file (Bitmap on OS/2 or
  *                 Windows and a pixmap on Unix, pass
  *                 NULL if you use the id param)
+ * Returns:
+ *        DW_ERROR_NONE on success.
+ *        DW_ERROR_UNKNOWN if the parameters were invalid.
+ *        DW_ERROR_GENERAL if the bitmap was unable to be loaded.
  */
-void API dw_window_set_bitmap_from_data(HWND handle, unsigned long cid, const char *data, int len)
+int API dw_window_set_bitmap_from_data(HWND handle, unsigned long cid, const char *data, int len)
 {
     id object = handle;
+    int retval = DW_ERROR_UNKNOWN;
 
-    if([ object isKindOfClass:[ NSImageView class ] ] || [ object isKindOfClass:[ NSButton class ]])
+    if([object isKindOfClass:[NSImageView class]] || [object isKindOfClass:[NSButton class]])
     {
         if(data)
         {
@@ -10846,22 +10851,26 @@ void API dw_window_set_bitmap_from_data(HWND handle, unsigned long cid, const ch
             if(pixmap)
             {
                 [object setImage:pixmap];
-            }
-            /* If we changed the bitmap... */
-            Item *item = _dw_box_item(handle);
+                /* If we changed the bitmap... */
+                Item *item = _dw_box_item(handle);
 
-            /* Check to see if any of the sizes need to be recalculated */
-            if(item && (item->origwidth == DW_SIZE_AUTO || item->origheight == DW_SIZE_AUTO))
-            {
-                _dw_control_size(handle, item->origwidth == DW_SIZE_AUTO ? &item->width : NULL, item->origheight == DW_SIZE_AUTO ? &item->height : NULL);
-                /* Queue a redraw on the top-level window */
-                _dw_redraw([object window], TRUE);
+                /* Check to see if any of the sizes need to be recalculated */
+                if(item && (item->origwidth == DW_SIZE_AUTO || item->origheight == DW_SIZE_AUTO))
+                {
+                    _dw_control_size(handle, item->origwidth == DW_SIZE_AUTO ? &item->width : NULL, item->origheight == DW_SIZE_AUTO ? &item->height : NULL);
+                    /* Queue a redraw on the top-level window */
+                    _dw_redraw([object window], TRUE);
+                }
+                retval = DW_ERROR_NONE;
             }
+            else
+                retval = DW_ERROR_GENERAL;
             DW_LOCAL_POOL_OUT;
         }
         else
-            dw_window_set_bitmap(handle, cid, NULL);
+            return dw_window_set_bitmap(handle, cid, NULL);
     }
+    return retval;
 }
 
 /*
@@ -10873,13 +10882,18 @@ void API dw_window_set_bitmap_from_data(HWND handle, unsigned long cid, const ch
  *       filename: a path to a file (Bitmap on OS/2 or
  *                 Windows and a pixmap on Unix, pass
  *                 NULL if you use the id param)
+ * Returns:
+ *        DW_ERROR_NONE on success.
+ *        DW_ERROR_UNKNOWN if the parameters were invalid.
+ *        DW_ERROR_GENERAL if the bitmap was unable to be loaded.
  */
-void API dw_window_set_bitmap(HWND handle, unsigned long resid, const char *filename)
+int API dw_window_set_bitmap(HWND handle, unsigned long resid, const char *filename)
 {
     id object = handle;
+    int retval = DW_ERROR_UNKNOWN;
     DW_LOCAL_POOL_IN;
 
-    if([ object isKindOfClass:[ NSImageView class ] ] || [ object isKindOfClass:[ NSButton class ]])
+    if([object isKindOfClass:[NSImageView class]] || [object isKindOfClass:[NSButton class]])
     {
         NSImage *bitmap = nil;
 
@@ -10895,10 +10909,14 @@ void API dw_window_set_bitmap(HWND handle, unsigned long resid, const char *file
                 nstr = [nstr stringByAppendingString: [NSString stringWithUTF8String:ext]];
                 bitmap = [[[NSImage alloc] initWithContentsOfFile:nstr] autorelease];
             }
+            if(!bitmap)
+                retval = DW_ERROR_GENERAL;
         }
         if(!bitmap && resid > 0 && resid < 65536)
         {
             bitmap = _dw_icon_load(resid);
+            if(!bitmap)
+                retval = DW_ERROR_GENERAL;
         }
 
         if(bitmap)
@@ -10915,9 +10933,11 @@ void API dw_window_set_bitmap(HWND handle, unsigned long resid, const char *file
                 /* Queue a redraw on the top-level window */
                 _dw_redraw([object window], TRUE);
             }
+            retval = DW_ERROR_NONE;
         }
     }
     DW_LOCAL_POOL_OUT;
+    return retval;
 }
 
 /*

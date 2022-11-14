@@ -20,33 +20,26 @@
 /* Select a fixed width font for our platform */
 #ifdef __OS2__
 #define FIXEDFONT "5.System VIO"
-#define FOLDER_ICON_NAME "os2\\folder"
-#define FILE_ICON_NAME "os2\\file"
+#define PLATFORMFOLDER "os2\\"
 #elif defined(__WIN32__)
 #define FIXEDFONT "10.Lucida Console"
-#define FOLDER_ICON_NAME "win\\folder"
-#define FILE_ICON_NAME "win\\file"
+#define PLATFORMFOLDER "win\\"
 #elif defined(__MAC__)
 #define FIXEDFONT "9.Monaco"
-#define FOLDER_ICON_NAME "mac/folder"
-#define FILE_ICON_NAME "mac/file"
+#define PLATFORMFOLDER "mac/"
 #elif defined(__IOS__)
 #define FIXEDFONT "9.Monaco"
-#define FOLDER_ICON_NAME "folder"
-#define FILE_ICON_NAME "file"
 #elif defined(__ANDROID__)
 #define FIXEDFONT "10.Monospace"
-#define FOLDER_ICON_NAME "folder"
-#define FILE_ICON_NAME "file"
 #elif GTK_MAJOR_VERSION > 1
 #define FIXEDFONT "10.monospace"
-#define FOLDER_ICON_NAME "gtk/folder"
-#define FILE_ICON_NAME "gtk/file"
+#define PLATFORMFOLDER "gtk/"
 #else
 #define FIXEDFONT "fixed"
-#define FOLDER_ICON_NAME "gtk/folder"
-#define FILE_ICON_NAME "gtk/file"
 #endif
+
+char fileiconpath[1025] = "file";
+char foldericonpath[1025] = "folder";
 
 #define MAX_WIDGETS 20
 
@@ -698,15 +691,15 @@ int DWSIGNAL bitmap_toggle_callback(HWND window, void *data)
 
     if(isfoldericon)
     {
-       isfoldericon = 0;
-       dw_window_set_bitmap(window, 0, FILE_ICON_NAME);
-       dw_window_set_tooltip(window, "File Icon");
+        isfoldericon = 0;
+        dw_window_set_bitmap(window, 0, fileiconpath);
+        dw_window_set_tooltip(window, "File Icon");
     }
     else
     {
-       isfoldericon = 1;
-       dw_window_set_bitmap_from_data(window, 0, folder_ico, sizeof(folder_ico));
-       dw_window_set_tooltip(window, "Folder Icon");
+        isfoldericon = 1;
+        dw_window_set_bitmap_from_data(window, 0, folder_ico, sizeof(folder_ico));
+        dw_window_set_tooltip(window, "Folder Icon");
     }
     return 0;
 }
@@ -1648,7 +1641,7 @@ void buttons_add(void)
     buttonboxperm = dw_box_new(DW_VERT, 0);
     dw_box_pack_start(buttonsbox, buttonboxperm, 25, 0, FALSE, TRUE, 2);
     dw_window_set_color(buttonboxperm, DW_CLR_WHITE, DW_CLR_WHITE);
-    abutton1 = dw_bitmapbutton_new_from_file("Top Button", 0, FILE_ICON_NAME);
+    abutton1 = dw_bitmapbutton_new_from_file("Top Button", 0, fileiconpath);
     dw_box_pack_start(buttonboxperm, abutton1, 100, 30, FALSE, FALSE, 0 );
     dw_signal_connect(abutton1, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(button_callback), NULL);
     dw_box_pack_start(buttonboxperm, 0, 25, 5, FALSE, FALSE, 0);
@@ -2224,9 +2217,27 @@ int dwmain(int argc, char *argv[])
     notebookbox = dw_box_new(DW_VERT, 5);
     dw_box_pack_start(mainwindow, notebookbox, 0, 0, TRUE, TRUE, 0);
 
-    foldericon = dw_icon_load_from_file(FOLDER_ICON_NAME);
-    fileicon = dw_icon_load_from_file(FILE_ICON_NAME);
-    
+    /* First try the current directory */
+    foldericon = dw_icon_load_from_file(foldericonpath);
+    fileicon = dw_icon_load_from_file(fileiconpath);
+
+#ifdef PLATFORMFOLDER
+    /* In case we are running from the build directory...
+     * also check the appropriate platform subfolder
+     */
+    if(!foldericon)
+    {
+        strncpy(foldericonpath, PLATFORMFOLDER "folder", 1024);
+        foldericon = dw_icon_load_from_file(foldericonpath);
+    }
+    if(!fileicon)
+    {
+        strncpy(foldericonpath, PLATFORMFOLDER "file", 1024);
+        fileicon = dw_icon_load_from_file(fileiconpath);
+    }
+#endif
+
+    /* Finally try from the platform application directory */
     if(!foldericon && !fileicon)
     {
         char *appdir = dw_app_dir();
@@ -2236,10 +2247,14 @@ int dwmain(int argc, char *argv[])
         strncpy(pathbuff, appdir, 1024);
         pathbuff[pos] = DW_DIR_SEPARATOR;
         pos++;
-        strncpy(&pathbuff[pos], FOLDER_ICON_NAME, 1024-pos);
+        strncpy(&pathbuff[pos], "folder", 1024-pos);
         foldericon = dw_icon_load_from_file(pathbuff);
-        strncpy(&pathbuff[pos], FILE_ICON_NAME, 1024-pos);
+        if(foldericon)
+            strncpy(foldericonpath, pathbuff, 1024);
+        strncpy(&pathbuff[pos], "file", 1024-pos);
         fileicon = dw_icon_load_from_file(pathbuff);
+        if(fileicon)
+            strncpy(fileiconpath, pathbuff, 1024);
     }
 
     notebook = dw_notebook_new(1, TRUE);
