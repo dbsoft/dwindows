@@ -2232,7 +2232,7 @@ int dwmain(int argc, char *argv[])
     }
     if(!fileicon)
     {
-        strncpy(foldericonpath, PLATFORMFOLDER "file", 1024);
+        strncpy(fileiconpath, PLATFORMFOLDER "file", 1024);
         fileicon = dw_icon_load_from_file(fileiconpath);
     }
 #endif
