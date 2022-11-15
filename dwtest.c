@@ -344,7 +344,7 @@ char *read_file(char *filename)
 void draw_file(int row, int col, int nrows, int fheight, HPIXMAP hpma)
 {
     HPIXMAP hpm = hpma ? hpma : text2pm;
-    char buf[10];
+    char buf[15] = {0};
     int i,y,fileline;
     char *pLine;
 
@@ -359,12 +359,12 @@ void draw_file(int row, int col, int nrows, int fheight, HPIXMAP hpma)
         {
             fileline = i + row - 1;
             y = i*fheight;
-            dw_color_background_set(1 + (fileline % 15) );
+            dw_color_background_set(1 + (fileline % 15));
             dw_color_foreground_set(fileline < 0 ? DW_CLR_WHITE : fileline % 16);
             if(!hpma)
             {
-                sprintf( buf, "%6.6d", i+row );
-                dw_draw_text( 0, text1pm, 0, y, buf);
+                snprintf(buf, 15, "%6.6d", i+row);
+                dw_draw_text(0, text1pm, 0, y, buf);
             }
             pLine = lp[i+row];
             dw_draw_text(0, hpm, 0, y, pLine+col);
