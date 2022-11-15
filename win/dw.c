@@ -7693,14 +7693,14 @@ void API dw_window_set_icon(HWND handle, HICN icon)
 }
 
 /* Internal function to set bitmap for the next two functions */
-void _dw_window_set_bitmap(HWND handle, HICON icon, HBITMAP hbitmap)
+int _dw_window_set_bitmap(HWND handle, HICON icon, HBITMAP hbitmap)
 {
    HBITMAP oldbitmap = 0;
    HANDLE oldicon = 0;
    TCHAR tmpbuf[100] = {0};
 
    if (!icon && !hbitmap)
-      return;
+      return DW_ERROR_GENERAL;
 
    GetClassName(handle, tmpbuf, 99);
 
@@ -7770,6 +7770,7 @@ void _dw_window_set_bitmap(HWND handle, HICON icon, HBITMAP hbitmap)
          _dw_redraw(_dw_toplevel_window(handle), TRUE);
       }
    }
+   return DW_ERROR_NONE;
 }
 
 /*
@@ -7781,8 +7782,12 @@ void _dw_window_set_bitmap(HWND handle, HICON icon, HBITMAP hbitmap)
  *       filename: a path to a file (Bitmap on OS/2 or
  *                 Windows and a pixmap on Unix, pass
  *                 NULL if you use the id param)
+ * Returns:
+ *        DW_ERROR_NONE on success.
+ *        DW_ERROR_UNKNOWN if the parameters were invalid.
+ *        DW_ERROR_GENERAL if the bitmap was unable to be loaded.
  */
-void API dw_window_set_bitmap(HWND handle, unsigned long id, const char *filename)
+int API dw_window_set_bitmap(HWND handle, unsigned long id, const char *filename)
 {
    HBITMAP hbitmap = 0;
    HANDLE icon = 0;
@@ -7800,8 +7805,10 @@ void API dw_window_set_bitmap(HWND handle, unsigned long id, const char *filenam
       _dw_get_image_handle(filename, &icon, &hbitmap);
 #endif
    }
+   else
+      return DW_ERROR_UNKNOWN;
 
-   _dw_window_set_bitmap(handle, icon, hbitmap);
+   return _dw_window_set_bitmap(handle, icon, hbitmap);
 }
 
 /*
@@ -7814,8 +7821,12 @@ void API dw_window_set_bitmap(HWND handle, unsigned long id, const char *filenam
  *                 Bitmap on Windows and a pixmap on Unix, pass
  *                 NULL if you use the id param)
  *       len: length of data
+ * Returns:
+ *        DW_ERROR_NONE on success.
+ *        DW_ERROR_UNKNOWN if the parameters were invalid.
+ *        DW_ERROR_GENERAL if the bitmap was unable to be loaded.
  */
-void API dw_window_set_bitmap_from_data(HWND handle, unsigned long id, const char *data, int len)
+int API dw_window_set_bitmap_from_data(HWND handle, unsigned long id, const char *data, int len)
 {
    HBITMAP hbitmap=0;
    HICON icon=0;
@@ -7845,21 +7856,23 @@ void API dw_window_set_bitmap_from_data(HWND handle, unsigned long id, const cha
          {
             _unlink( file );
             free( file );
-            return;
+            return DW_ERROR_GENERAL;
          }
          _unlink( file );
          free( file );
       }
       if (icon == 0 && hbitmap == 0)
-         return;
+         return DW_ERROR_GENERAL;
    }
    else if ( id )
    {
       hbitmap = LoadBitmap(_DWInstance, MAKEINTRESOURCE(id));
       icon = LoadImage(_DWInstance, MAKEINTRESOURCE(id), IMAGE_ICON, 0, 0, LR_SHARED);
    }
+   else
+      return DW_ERROR_UNKNOWN;
 
-   _dw_window_set_bitmap(handle, icon, hbitmap);
+   return _dw_window_set_bitmap(handle, icon, hbitmap);
 }
 
 

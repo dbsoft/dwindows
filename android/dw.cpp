@@ -6197,10 +6197,15 @@ void API dw_window_enable(HWND handle)
  *                 Windows and a pixmap on Unix, pass
  *                 nullptr if you use the id param)
  *       len: Length of data passed
+ * Returns:
+ *        DW_ERROR_NONE on success.
+ *        DW_ERROR_UNKNOWN if the parameters were invalid.
+ *        DW_ERROR_GENERAL if the bitmap was unable to be loaded.
  */
-void API dw_window_set_bitmap_from_data(HWND handle, unsigned long cid, const char *data, int len)
+int API dw_window_set_bitmap_from_data(HWND handle, unsigned long cid, const char *data, int len)
 {
     JNIEnv *env;
+    int retval = DW_ERROR_UNKNOWN;
 
     if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
@@ -6215,14 +6220,15 @@ void API dw_window_set_bitmap_from_data(HWND handle, unsigned long cid, const ch
         jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
         // Get the method that you want to call
         jmethodID windowSetBitmapFromData = env->GetMethodID(clazz, "windowSetBitmapFromData",
-                                                             "(Landroid/view/View;I[BI)V");
+                                                             "(Landroid/view/View;I[BI)I");
         // Call the method on the object
-        env->CallVoidMethod(_dw_obj, windowSetBitmapFromData, handle, (int)cid, bytearray, len);
+        retval = env->CallIntMethod(_dw_obj, windowSetBitmapFromData, handle, (int)cid, bytearray, len);
         _dw_jni_check_exception(env);
         // Clean up after the array now that we are finished
         //if(bytearray)
             //env->ReleaseByteArrayElements(bytearray, (jbyte *) data, 0);
     }
+    return retval;
 }
 
 /*
@@ -6234,10 +6240,15 @@ void API dw_window_set_bitmap_from_data(HWND handle, unsigned long cid, const ch
  *       filename: a path to a file (Bitmap on OS/2 or
  *                 Windows and a pixmap on Unix, pass
  *                 nullptr if you use the id param)
+ * Returns:
+ *        DW_ERROR_NONE on success.
+ *        DW_ERROR_UNKNOWN if the parameters were invalid.
+ *        DW_ERROR_GENERAL if the bitmap was unable to be loaded.
  */
-void API dw_window_set_bitmap(HWND handle, unsigned long resid, const char *filename)
+int API dw_window_set_bitmap(HWND handle, unsigned long resid, const char *filename)
 {
     JNIEnv *env;
+    int retval = DW_ERROR_UNKNOWN;
 
     if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
@@ -6250,13 +6261,14 @@ void API dw_window_set_bitmap(HWND handle, unsigned long resid, const char *file
         jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
         // Get the method that you want to call
         jmethodID windowSetBitmapFromData = env->GetMethodID(clazz, "windowSetBitmap",
-                                                             "(Landroid/view/View;ILjava/lang/String;)V");
+                                                             "(Landroid/view/View;ILjava/lang/String;)I");
         // Call the method on the object
-        env->CallVoidMethod(_dw_obj, windowSetBitmapFromData, handle, (int)resid, jstr);
+        retval = env->CallIntMethod(_dw_obj, windowSetBitmapFromData, handle, (int)resid, jstr);
         _dw_jni_check_exception(env);
         if(jstr)
             env->DeleteLocalRef(jstr);
     }
+    return retval;
 }
 
 /*
