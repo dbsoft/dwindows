@@ -44,6 +44,11 @@
 
 #include <gdk-pixbuf/gdk-pixbuf.h>
 
+#ifdef __FreeBSD__
+#include <sys/param.h>
+#include <sys/sysctl.h>
+#endif
+
 #if !GTK_CHECK_VERSION(3,1,0)
 #error GTK 3.0 is no longer supported, please use 3.2 or later.
 #endif
@@ -2032,20 +2037,24 @@ int dw_int_init(DWResources *res, int newthread, int *pargc, char **pargv[])
 }
 #endif
 
-/*
- * Initializes the Dynamic Windows engine.
- * Parameters:
- *           newthread: True if this is the only thread.
- *                      False if there is already a message loop running.
- */
-int dw_init(int newthread, int argc, char *argv[])
+void _dw_init_path(char *arg)
 {
-   /* Setup the private data directory */
-   if(argc > 0 && argv[0])
+   char path[PATH_MAX+1] = {0};
+
+#ifdef __linux__
+   if(readlink("/proc/self/exe", path, PATH_MAX) == -1)
+#elif defined(__FreeBSD__)
+   int name[] = { CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, -1 };
+   size_t length = PATH_MAX;
+
+   if(sysctl(name, 4, exe, &length, NULL, 0) == -1 || length <= 1)
+#endif
+      strncpy(path, arg ? arg : "", PATH_MAX);
+
+   if(path[0])
    {
-      char *pathcopy = strdup(argv[0]);
-      char *pos = strrchr(pathcopy, '/');
-      char *binname = pathcopy;
+      char *pos = strrchr(path, '/');
+      char *binname = path;
 
       /* If we have a / then...
        * the binary name should be at the end.
@@ -2058,10 +2067,10 @@ int dw_init(int newthread, int argc, char *argv[])
 
       if(*binname)
       {
-         char *binpos = strstr(pathcopy, "/bin");
+         char *binpos = strstr(path, "/bin");
 
          if(binpos)
-            strncpy(_dw_share_path, pathcopy, (size_t)(binpos - pathcopy));
+            strncpy(_dw_share_path, path, (size_t)(binpos - path));
          else
             strcpy(_dw_share_path, "/usr/local");
          strcat(_dw_share_path, "/share/");
@@ -2074,12 +2083,22 @@ int dw_init(int newthread, int argc, char *argv[])
          }
 #endif
       }
-      if(pathcopy)
-         free(pathcopy);
    }
    /* If that failed... just get the current directory */
    if(!_dw_share_path[0] && !getcwd(_dw_share_path, PATH_MAX))
       _dw_share_path[0] = '/';
+}
+
+/*
+ * Initializes the Dynamic Windows engine.
+ * Parameters:
+ *           newthread: True if this is the only thread.
+ *                      False if there is already a message loop running.
+ */
+int dw_init(int newthread, int argc, char *argv[])
+{
+   /* Setup the private data directory */
+   _dw_init_path(argc > 0 ? argv[0] : NULL);
 
 #if !GLIB_CHECK_VERSION(2,31,0)
    g_thread_init(NULL);
