@@ -3925,13 +3925,18 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, icon, HICN)
  *       filename: a path to a file (Bitmap on OS/2 or
  *                 Windows and a pixmap on Unix, pass
  *                 NULL if you use the id param)
+ * Returns:
+ *        DW_ERROR_NONE on success.
+ *        DW_ERROR_UNKNOWN if the parameters were invalid.
+ *        DW_ERROR_GENERAL if the bitmap was unable to be loaded.
  */
-DW_FUNCTION_DEFINITION(dw_window_set_bitmap, void, HWND handle, unsigned long id, const char *filename)
+DW_FUNCTION_DEFINITION(dw_window_set_bitmap, int, HWND handle, unsigned long id, const char *filename)
 DW_FUNCTION_ADD_PARAM3(handle, id, filename)
-DW_FUNCTION_NO_RETURN(dw_window_set_bitmap)
+DW_FUNCTION_RETURN(dw_window_set_bitmap, int)
 DW_FUNCTION_RESTORE_PARAM3(handle, HWND, id, ULONG, filename, const char *)
 {
    GdkPixbuf *tmp = NULL;
+   int retval = DW_ERROR_UNKNOWN;
 
    if(id)
       tmp = _dw_find_pixbuf((HICN)id, NULL, NULL);
@@ -3966,12 +3971,20 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, id, ULONG, filename, const char *)
       {
          GtkWidget *pixmap = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_bitmap");
          if(pixmap)
+         {
             gtk_picture_set_pixbuf(GTK_PICTURE(pixmap), tmp);
+            retval = DW_ERROR_NONE;
+         }
       }
       else if(GTK_IS_PICTURE(handle))
+      {
          gtk_picture_set_pixbuf(GTK_PICTURE(handle), tmp);
+         retval = DW_ERROR_NONE;
+      } 
    }
-   DW_FUNCTION_RETURN_NOTHING;
+   else
+   	retval = DW_ERROR_GENERAL;
+   DW_FUNCTION_RETURN_THIS(retval);
 }
 
 /*
@@ -3984,13 +3997,18 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, id, ULONG, filename, const char *)
  *                 Bitmap on Windows and a pixmap on Unix, pass
  *                 NULL if you use the id param)
  *       len: length of data
+ * Returns:
+ *        DW_ERROR_NONE on success.
+ *        DW_ERROR_UNKNOWN if the parameters were invalid.
+ *        DW_ERROR_GENERAL if the bitmap was unable to be loaded.
  */
-DW_FUNCTION_DEFINITION(dw_window_set_bitmap_from_data, void, HWND handle, unsigned long id, const char *data, int len)
+DW_FUNCTION_DEFINITION(dw_window_set_bitmap_from_data, int, HWND handle, unsigned long id, const char *data, int len)
 DW_FUNCTION_ADD_PARAM4(handle, id, data, len)
-DW_FUNCTION_NO_RETURN(dw_window_set_bitmap_from_data)
+DW_FUNCTION_RETURN(dw_window_set_bitmap_from_data, int)
 DW_FUNCTION_RESTORE_PARAM4(handle, HWND, id, ULONG, data, const char *, len, int)
 {
    GdkPixbuf *tmp = NULL;
+   int retval = DW_ERROR_UNKNOWN;
 
    if(data)
    {
@@ -4014,7 +4032,7 @@ DW_FUNCTION_RESTORE_PARAM4(handle, HWND, id, ULONG, data, const char *, len, int
          unlink(template);
       }
    }
-   else if (id)
+   else if(id)
       tmp = _dw_find_pixbuf((HICN)id, NULL, NULL);
 
    if(tmp)
@@ -4024,12 +4042,20 @@ DW_FUNCTION_RESTORE_PARAM4(handle, HWND, id, ULONG, data, const char *, len, int
          GtkWidget *pixmap = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_bitmap");
 
          if(pixmap)
+         {
             gtk_picture_set_pixbuf(GTK_PICTURE(pixmap), tmp);
+            retval = DW_ERROR_NONE;
+         }
       }
       else if(GTK_IS_PICTURE(handle))
+      {
          gtk_picture_set_pixbuf(GTK_PICTURE(handle), tmp);
+         retval = DW_ERROR_NONE;
+      }
    }
-   DW_FUNCTION_RETURN_NOTHING;
+   else
+   	retval = DW_ERROR_GENERAL;
+   DW_FUNCTION_RETURN_THIS(retval);
 }
 
 /*
