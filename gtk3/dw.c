@@ -2047,7 +2047,7 @@ void _dw_init_path(char *arg)
    int name[] = { CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, -1 };
    size_t length = PATH_MAX;
 
-   if(sysctl(name, 4, exe, &length, NULL, 0) == -1 || length <= 1)
+   if(sysctl(name, 4, path, &length, NULL, 0) == -1 || length <= 1)
 #endif
       strncpy(path, arg ? arg : "", PATH_MAX);
 
