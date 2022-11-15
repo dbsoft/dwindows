@@ -11243,7 +11243,7 @@ int dw_event_close(HEV *eve)
    return DW_ERROR_NONE;
 }
 
-struct _seminfo {
+struct _dw_seminfo {
    int fd;
    int waiting;
 };
@@ -11251,7 +11251,7 @@ struct _seminfo {
 static void _dw_handle_sem(int *tmpsock)
 {
    fd_set rd;
-   struct _seminfo *array = (struct _seminfo *)malloc(sizeof(struct _seminfo));
+   struct _dw_seminfo *array = (struct _dw_seminfo *)malloc(sizeof(struct _dw_seminfo));
    int listenfd = tmpsock[0];
    int bytesread, connectcount = 1, maxfd, z, posted = 0;
    char command;
@@ -11297,14 +11297,14 @@ static void _dw_handle_sem(int *tmpsock)
 
       if(FD_ISSET(listenfd, &rd))
       {
-         struct _seminfo *newarray;
+         struct _dw_seminfo *newarray;
             int newfd = accept(listenfd, 0, 0);
 
          if(newfd > -1)
          {
             /* Add new connections to the set */
-            newarray = (struct _seminfo *)malloc(sizeof(struct _seminfo)*(connectcount+1));
-            memcpy(newarray, array, sizeof(struct _seminfo)*(connectcount));
+            newarray = (struct _dw_seminfo *)malloc(sizeof(struct _dw_seminfo)*(connectcount+1));
+            memcpy(newarray, array, sizeof(struct _dw_seminfo)*(connectcount));
 
             newarray[connectcount].fd = newfd;
             newarray[connectcount].waiting = 0;
@@ -11324,19 +11324,19 @@ static void _dw_handle_sem(int *tmpsock)
          {
             if((bytesread = (int)read(array[z].fd, &command, 1)) < 1)
             {
-               struct _seminfo *newarray = NULL;
+               struct _dw_seminfo *newarray = NULL;
 
                /* Remove this connection from the set */
                if(connectcount > 1)
                {
-                   newarray = (struct _seminfo *)malloc(sizeof(struct _seminfo)*(connectcount-1));
+                   newarray = (struct _dw_seminfo *)malloc(sizeof(struct _dw_seminfo)*(connectcount-1));
                    if(!z)
-                       memcpy(newarray, &array[1], sizeof(struct _seminfo)*(connectcount-1));
+                       memcpy(newarray, &array[1], sizeof(struct _dw_seminfo)*(connectcount-1));
                    else
                    {
-                       memcpy(newarray, array, sizeof(struct _seminfo)*z);
+                       memcpy(newarray, array, sizeof(struct _dw_seminfo)*z);
                        if(z!=(connectcount-1))
-                           memcpy(&newarray[z], &array[z+1], sizeof(struct _seminfo)*(z-connectcount-1));
+                           memcpy(&newarray[z], &array[z+1], sizeof(struct _dw_seminfo)*(connectcount-(z+1)));
                    }
                }
                connectcount--;

@@ -7793,7 +7793,7 @@ static void _dw_handle_sem(int *tmpsock)
                {
                   memcpy(newarray, array, sizeof(struct _dw_seminfo)*z);
                   if(z!=(connectcount-1))
-                     memcpy(&newarray[z], &array[z+1], sizeof(struct _dw_seminfo)*(z-connectcount-1));
+                     memcpy(&newarray[z], &array[z+1], sizeof(struct _dw_seminfo)*(connectcount-(z+1)));
                }
                connectcount--;
 
