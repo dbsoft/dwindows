@@ -107,12 +107,12 @@ installbase: $(SYSCONF_LINK_TARGET)
 installdwtest: dwtest
 	$(INSTALL) -d $(prefix)/bin; \
 	$(INSTALL) -d $(prefix)/share/applications; \
-	$(INSTALL) -d $(prefix)/share/dwtest/gtk; \
+	$(INSTALL) -d $(prefix)/share/dwtest; \
 	$(INSTALL) dwtest $(prefix)/bin; \
 	$(INSTALL) org.dbsoft.dwindows.dwtest.desktop $(prefix)/share/applications/; \
-	$(INSTALL) image/test.png $(prefix)/share/dwtest/; \
-	$(INSTALL) gtk/file.xpm $(prefix)/share/dwtest/gtk; \
-	$(INSTALL) gtk/folder.xpm $(prefix)/share/dwtest/gtk
+	$(INSTALL) image/test.png $(prefix)/share/dwtest; \
+	$(INSTALL) gtk/file.xpm $(prefix)/share/dwtest; \
+	$(INSTALL) gtk/folder.xpm $(prefix)/share/dwtest
 
 installdwcompat: $(SYSCONF_LINK_TARGET2)
 	$(INSTALL) -d $(prefix)/lib; \
@@ -140,8 +140,8 @@ uninstall:
 	rm -f $(prefix)/share/applications/org.dbsoft.dwindows.dwtest.desktop
 	rm -f $(prefix)/share/man/man1/dwindows-config.1.gz
 	rm -f $(prefix)/share/dwtest/test.png
-	rm -f $(prefix)/share/dwtest/gtk/file.xpm
-	rm -f $(prefix)/share/dwtest/gtk/folder.xpm
+	rm -f $(prefix)/share/dwtest/file.xpm
+	rm -f $(prefix)/share/dwtest/folder.xpm
 
 deb: dist
 	-rm -fr tmp

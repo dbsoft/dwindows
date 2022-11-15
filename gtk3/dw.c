@@ -4262,8 +4262,8 @@ HWND dw_bitmapbutton_new_from_file(const char *text, unsigned long id, const cha
    bitmap = dw_bitmap_new(id);
    if(bitmap)
    {
-      dw_window_set_bitmap( bitmap, 0, filename );
-      gtk_container_add (GTK_CONTAINER(tmp), bitmap);
+      dw_window_set_bitmap(bitmap, 0, filename);
+      gtk_container_add(GTK_CONTAINER(tmp), bitmap);
       g_object_set_data(G_OBJECT(tmp), "_dw_bitmap", bitmap);
    }
    gtk_widget_show(tmp);
@@ -4298,7 +4298,7 @@ HWND dw_bitmapbutton_new_from_data(const char *text, unsigned long id, const cha
    if(bitmap)
    {
       dw_window_set_bitmap_from_data(bitmap, 0, data, len);
-      gtk_container_add (GTK_CONTAINER(tmp), bitmap);
+      gtk_container_add(GTK_CONTAINER(tmp), bitmap);
       g_object_set_data(G_OBJECT(tmp), "_dw_bitmap", bitmap);
    }
    gtk_widget_show(tmp);
@@ -4549,16 +4549,20 @@ void dw_window_set_icon(HWND handle, HICN icon)
  *       filename: a path to a file (Bitmap on OS/2 or
  *                 Windows and a pixmap on Unix, pass
  *                 NULL if you use the id param)
+ * Returns:
+ *        DW_ERROR_NONE on success.
+ *        DW_ERROR_UNKNOWN if the parameters were invalid.
+ *        DW_ERROR_GENERAL if the bitmap was unable to be loaded.
  */
-void dw_window_set_bitmap(HWND handle, unsigned long id, const char *filename)
+int dw_window_set_bitmap(HWND handle, unsigned long id, const char *filename)
 {
    GdkPixbuf *tmp = NULL;
-   int found_ext = 0;
-   int i;
+   int i, found_ext = 0;
    int _dw_locked_by_me = FALSE;
+   int retval = DW_ERROR_UNKNOWN;
 
    if(!id && !filename)
-      return;
+      return retval;
 
    DW_MUTEX_LOCK;
    if(id)
@@ -4567,53 +4571,56 @@ void dw_window_set_bitmap(HWND handle, unsigned long id, const char *filename)
    {
       char *file = alloca(strlen(filename) + 6);
 
-      if (!file)
+      if(!file)
       {
          DW_MUTEX_UNLOCK;
-         return;
+         return DW_ERROR_GENERAL;
       }
 
       strcpy(file, filename);
 
       /* check if we can read from this file (it exists and read permission) */
-      if ( access(file, 04 ) != 0 )
+      if(access(file, 04) != 0)
       {
          /* Try with various extentions */
-         for ( i = 0; i < NUM_EXTS; i++ )
+         for(i = 0; i < NUM_EXTS; i++)
          {
-            strcpy( file, filename );
-            strcat( file, _dw_image_exts[i] );
-            if ( access( file, 04 ) == 0 )
+            strcpy(file, filename);
+            strcat(file, _dw_image_exts[i]);
+            if(access( file, 04 ) == 0)
             {
                found_ext = 1;
                break;
             }
          }
-         if ( found_ext == 0 )
+         if(found_ext == 0)
          {
             DW_MUTEX_UNLOCK;
-            return;
+            return DW_ERROR_GENERAL;
          }
       }
-      tmp = gdk_pixbuf_new_from_file(file, NULL );
+      tmp = gdk_pixbuf_new_from_file(file, NULL);
    }
 
-   if (tmp)
+   if(tmp)
    {
-      if ( GTK_IS_BUTTON(handle) )
+      if(GTK_IS_BUTTON(handle))
       {
-         GtkWidget *pixmap = (GtkWidget *)g_object_get_data( G_OBJECT(handle), "_dw_bitmap" );
+         GtkWidget *pixmap = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_bitmap");
          if(pixmap)
          {
             gtk_image_set_from_pixbuf(GTK_IMAGE(pixmap), tmp);
+	         retval = DW_ERROR_NONE;
          }
       }
-      else
+      else if(GTK_IS_IMAGE(handle))
       {
          gtk_image_set_from_pixbuf(GTK_IMAGE(handle), tmp);
+         retval = DW_ERROR_NONE;
       }
    }
    DW_MUTEX_UNLOCK;
+   return retval;
 }
 
 /*
@@ -4626,14 +4633,19 @@ void dw_window_set_bitmap(HWND handle, unsigned long id, const char *filename)
  *                 Bitmap on Windows and a pixmap on Unix, pass
  *                 NULL if you use the id param)
  *       len: length of data
+ * Returns:
+ *        DW_ERROR_NONE on success.
+ *        DW_ERROR_UNKNOWN if the parameters were invalid.
+ *        DW_ERROR_GENERAL if the bitmap was unable to be loaded.
  */
-void dw_window_set_bitmap_from_data(HWND handle, unsigned long id, const char *data, int len)
+int dw_window_set_bitmap_from_data(HWND handle, unsigned long id, const char *data, int len)
 {
    GdkPixbuf *tmp = NULL;
    int _dw_locked_by_me = FALSE;
+   int retval = DW_ERROR_UNKNOWN;
 
    if(!id && !data)
-      return;
+      return retval;
 
    DW_MUTEX_LOCK;
    if(data)
@@ -4654,7 +4666,7 @@ void dw_window_set_bitmap_from_data(HWND handle, unsigned long id, const char *d
       if(fd == -1 || written != len)
       {
          DW_MUTEX_UNLOCK;
-         return;
+         return DW_ERROR_GENERAL;
       }
 
       tmp = gdk_pixbuf_new_from_file(template, NULL);
@@ -4671,12 +4683,19 @@ void dw_window_set_bitmap_from_data(HWND handle, unsigned long id, const char *d
          GtkWidget *pixmap = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_bitmap");
 
          if(pixmap)
+         {
             gtk_image_set_from_pixbuf(GTK_IMAGE(pixmap), tmp);
+            retval = DW_ERROR_NONE;
+         }
       }
-      else
+      else if(GTK_IS_IMAGE(handle))
+      {
          gtk_image_set_from_pixbuf(GTK_IMAGE(handle), tmp);
+         retval = DW_ERROR_NONE;
+      }
    }
    DW_MUTEX_UNLOCK;
+   return retval;
 }
 
 /*

@@ -2250,11 +2250,11 @@ int dwmain(int argc, char *argv[])
         strncpy(&pathbuff[pos], "folder", 1024-pos);
         foldericon = dw_icon_load_from_file(pathbuff);
         if(foldericon)
-            strncpy(foldericonpath, pathbuff, 1024);
+            strncpy(foldericonpath, pathbuff, 1025);
         strncpy(&pathbuff[pos], "file", 1024-pos);
         fileicon = dw_icon_load_from_file(pathbuff);
         if(fileicon)
-            strncpy(fileiconpath, pathbuff, 1024);
+            strncpy(fileiconpath, pathbuff, 1025);
     }
 
     notebook = dw_notebook_new(1, TRUE);
