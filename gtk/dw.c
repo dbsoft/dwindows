@@ -46,6 +46,11 @@
 #include <gdk-pixbuf/gdk-pixbuf.h>
 #endif
 
+#ifdef __FreeBSD__
+#include <sys/param.h>
+#include <sys/sysctl.h>
+#endif
+
 #if __STDC_VERSION__ < 199901L
 # if __GNUC__ >= 2
 #  define __func__ __FUNCTION__
@@ -2092,6 +2097,58 @@ int dw_int_init(DWResources *res, int newthread, int *pargc, char **pargv[])
 }
 #endif
 
+void _dw_init_path(char *arg)
+{
+   char path[PATH_MAX+1] = {0};
+
+#ifdef __linux__
+   if(readlink("/proc/self/exe", path, PATH_MAX) == -1)
+#elif defined(__FreeBSD__)
+   int name[] = { CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, -1 };
+   size_t length = PATH_MAX;
+
+   if(sysctl(name, 4, exe, &length, NULL, 0) == -1 || length <= 1)
+#endif
+      strncpy(path, arg ? arg : "", PATH_MAX);
+
+   if(path[0])
+   {
+      char *pos = strrchr(path, '/');
+      char *binname = path;
+
+      /* If we have a / then...
+       * the binary name should be at the end.
+       */
+      if(pos)
+      {
+         binname = pos + 1;
+         *pos = 0;
+      }
+
+      if(*binname)
+      {
+         char *binpos = strstr(path, "/bin");
+
+         if(binpos)
+            strncpy(_dw_share_path, path, (size_t)(binpos - path));
+         else
+            strcpy(_dw_share_path, "/usr/local");
+         strcat(_dw_share_path, "/share/");
+         strcat(_dw_share_path, binname);
+#if GLIB_CHECK_VERSION(2,28,0)
+         if(!_dw_app_id[0])
+         {
+            /* If we have a binary name, use that for the Application ID instead. */
+            snprintf(_dw_app_id, _DW_APP_ID_SIZE, "%s.%s", DW_APP_DOMAIN_DEFAULT, binname);
+         }
+#endif
+      }
+   }
+   /* If that failed... just get the current directory */
+   if(!_dw_share_path[0] && !getcwd(_dw_share_path, PATH_MAX))
+      _dw_share_path[0] = '/';
+}
+
 /*
  * Initializes the Dynamic Windows engine.
  * Parameters:
@@ -2109,45 +2166,7 @@ int dw_init(int newthread, int argc, char *argv[])
    
 
    /* Setup the private data directory */
-   if(argc > 0 && argv[0])
-   {
-      char *pathcopy = strdup(argv[0]);
-      char *pos = strrchr(pathcopy, '/');
-      char *binname = pathcopy;
-
-      /* If we have a / then...
-       * the binary name should be at the end.
-       */
-      if(pos)
-      {
-         binname = pos + 1;
-         *pos = 0;
-      }
-
-      if(*binname)
-      {
-         char *binpos = strstr(pathcopy, "/bin");
-
-         if(binpos)
-            strncpy(_dw_share_path, pathcopy, (size_t)(binpos - pathcopy));
-         else
-            strcpy(_dw_share_path, "/usr/local");
-         strcat(_dw_share_path, "/share/");
-         strcat(_dw_share_path, binname);
-#if GLIB_CHECK_VERSION(2,28,0)
-         if(!_dw_app_id[0])
-         {
-            /* If we have a binary name, use that for the Application ID instead. */
-            snprintf(_dw_app_id, _DW_APP_ID_SIZE, "%s.%s", DW_APP_DOMAIN_DEFAULT, binname);
-         }
-#endif
-      }
-      if(pathcopy)
-         free(pathcopy);
-   }
-   /* If that failed... just get the current directory */
-   if(!_dw_share_path[0] && !getcwd(_dw_share_path, PATH_MAX))
-      _dw_share_path[0] = '/';
+   _dw_init_path(argc > 0 ? argv[0] : NULL);
 
    gtk_set_locale();
 #if !GLIB_CHECK_VERSION(2,32,0)
