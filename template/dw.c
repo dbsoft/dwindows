@@ -2862,9 +2862,14 @@ void API dw_window_enable(HWND handle)
  *                 Windows and a pixmap on Unix, pass
  *                 NULL if you use the id param)
  *       len: Length of data passed
+ * Returns:
+ *        DW_ERROR_NONE on success.
+ *        DW_ERROR_UNKNOWN if the parameters were invalid.
+ *        DW_ERROR_GENERAL if the bitmap was unable to be loaded.
  */
-void API dw_window_set_bitmap_from_data(HWND handle, unsigned long cid, const char *data, int len)
+int API dw_window_set_bitmap_from_data(HWND handle, unsigned long cid, const char *data, int len)
 {
+   return DW_ERROR_UNKNOWN;
 }
 
 /*
@@ -2876,9 +2881,14 @@ void API dw_window_set_bitmap_from_data(HWND handle, unsigned long cid, const ch
  *       filename: a path to a file (Bitmap on OS/2 or
  *                 Windows and a pixmap on Unix, pass
  *                 NULL if you use the id param)
+ * Returns:
+ *        DW_ERROR_NONE on success.
+ *        DW_ERROR_UNKNOWN if the parameters were invalid.
+ *        DW_ERROR_GENERAL if the bitmap was unable to be loaded.
  */
-void API dw_window_set_bitmap(HWND handle, unsigned long resid, const char *filename)
+int API dw_window_set_bitmap(HWND handle, unsigned long resid, const char *filename)
 {
+   return DW_ERROR_UNKNOWN;
 }
 
 /*

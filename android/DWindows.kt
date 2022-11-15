@@ -5782,8 +5782,10 @@ class DWindows : AppCompatActivity() {
         return imageview
     }
 
-    fun windowSetBitmap(window: View, resID: Int, file: String?)
+    fun windowSetBitmap(window: View, resID: Int, file: String?): Int
     {
+        var retval: Int = -1
+
         waitOnUiThread {
             var filename: String? = file
 
@@ -5794,10 +5796,12 @@ class DWindows : AppCompatActivity() {
                     val button = window
 
                     button.setImageResource(resID)
+                    retval = 0
                 } else if (window is ImageView) {
                     val imageview = window
 
                     imageview.setImageResource(resID)
+                    retval = 0
                 }
             }
             if(filename != null) {
@@ -5812,48 +5816,64 @@ class DWindows : AppCompatActivity() {
                                 val button = window
 
                                 button.setImageBitmap(b)
+                                retval = 0
                             } else if (window is ImageView) {
                                 val imageview = window
 
                                 imageview.setImageBitmap(b)
+                                retval = 0
                             }
                             break
+                        } else {
+                            retval = 1
                         }
                     } catch (e: IOException) {
                     }
                 }
             }
         }
+        return retval
     }
 
-    fun windowSetBitmapFromData(window: View, resID: Int, data: ByteArray?, length: Int)
+    fun windowSetBitmapFromData(window: View, resID: Int, data: ByteArray?, length: Int): Int
     {
+        var retval: Int = -1
+
         waitOnUiThread {
             if(resID != 0) {
                 if (window is ImageButton) {
                     val button = window
 
                     button.setImageResource(resID)
+                    retval = 0
                 } else if (window is ImageView) {
                     val imageview = window
 
                     imageview.setImageResource(resID)
+                    retval = 0
                 }
             }
             if(data != null) {
                 val b = BitmapFactory.decodeByteArray(data, 0, length)
 
-                if (window is ImageButton) {
-                    val button = window
+                if(b != null) {
+                    if (window is ImageButton) {
+                        val button = window
 
-                    button.setImageBitmap(b)
-                } else if (window is ImageView) {
-                    val imageview = window
+                        button.setImageBitmap(b)
+                        retval = 0
+                    } else if (window is ImageView) {
+                        val imageview = window
 
-                    imageview.setImageBitmap(b)
+                        imageview.setImageBitmap(b)
+                        retval = 0
+                    }
+                } else {
+                    retval = 1
                 }
             }
         }
+        return retval
     }
 
     fun iconNew(file: String?, data: ByteArray?, length: Int, resID: Int): Drawable?

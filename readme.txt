@@ -61,6 +61,9 @@ Added DW_FEATURE_CONTAINER_MODE on Mobile platforms: iOS and Android.
     DW_CONTAINER_MODE_DEFAULT: Minimal container; icon and text only.
     DW_CONTAINER_MODE_EXTRA: Extra columns displayed on a second line.
     DW_CONTAINER_MODE_MULTI: A separate clickable line for each column.
+Added return values to several functions previously returning void.
+    Previous code should just be able to ignore the new return values.
+    Currently affected: dw_window_set_bitmap(_from_data)
 
 
 Dynamic Windows Documentation is available at:
