@@ -7443,7 +7443,7 @@ int _dw_load_bitmap_file(char *file, HWND handle, HBITMAP *hbm, HDC *hdc, HPS *h
 }
 
 /* Internal function to change the button bitmap */
-void _dw_window_set_bitmap(HWND handle, HBITMAP hbm, HDC hdc, HPS hps, unsigned long width, unsigned long height, int depth, HPOINTER icon)
+int _dw_window_set_bitmap(HWND handle, HBITMAP hbm, HDC hdc, HPS hps, unsigned long width, unsigned long height, int depth, HPOINTER icon)
 {
    char tmpbuf[100] = {0};
 
@@ -7486,6 +7486,8 @@ void _dw_window_set_bitmap(HWND handle, HBITMAP hbm, HDC hdc, HPS hps, unsigned 
        WinQueryWindowRect(handle, &rect);
        WinInvalidateRect(handle, &rect, TRUE);
    }
+   else
+      return DW_ERROR_UNKNOWN;
 
    /* If we changed the bitmap... */
    {
@@ -7499,6 +7501,7 @@ void _dw_window_set_bitmap(HWND handle, HBITMAP hbm, HDC hdc, HPS hps, unsigned 
          _dw_redraw(_dw_toplevel_window(handle), TRUE);
       }
    }
+   return DW_ERROR_NONE;
 }
 
 /*
@@ -7510,8 +7513,12 @@ void _dw_window_set_bitmap(HWND handle, HBITMAP hbm, HDC hdc, HPS hps, unsigned 
  *       filename: a path to a file (Bitmap on OS/2 or
  *                 Windows and a pixmap on Unix, pass
  *                 NULL if you use the id param)
+ * Returns:
+ *        DW_ERROR_NONE on success.
+ *        DW_ERROR_UNKNOWN if the parameters were invalid.
+ *        DW_ERROR_GENERAL if the bitmap was unable to be loaded.
  */
-void API dw_window_set_bitmap(HWND handle, unsigned long id, const char *filename)
+int API dw_window_set_bitmap(HWND handle, unsigned long id, const char *filename)
 {
    HBITMAP hbm = 0;
    HPS     hps = 0;
@@ -7524,18 +7531,18 @@ void API dw_window_set_bitmap(HWND handle, unsigned long id, const char *filenam
    _dw_free_bitmap(handle);
 
    /* If id is non-zero use the resource */
-   if ( id )
+   if(id)
    {
-      hps = WinGetPS( handle );
-      hbm = GpiLoadBitmap( hps, NULLHANDLE, id, 0, 0 );
+      hps = WinGetPS(handle);
+      hbm = GpiLoadBitmap(hps, NULLHANDLE, id, 0, 0);
       WinReleasePS(hps);
    }
-   else if ( filename )
+   else if(filename)
    {
       char *file = alloca(strlen(filename) + 6);
 
       if(!file)
-         return;
+         return DW_ERROR_GENERAL;
 
       strcpy(file, filename);
 
@@ -7563,7 +7570,7 @@ void API dw_window_set_bitmap(HWND handle, unsigned long id, const char *filenam
       }
       else
       {
-         int len = strlen( file );
+         int len = strlen(file);
          if(len > 4)
          {
             if(stricmp(file + len - 4, ".ico") == 0)
@@ -7574,7 +7581,7 @@ void API dw_window_set_bitmap(HWND handle, unsigned long id, const char *filenam
       }
 
       if(!hdc && !icon)
-         return;
+         return DW_ERROR_GENERAL;
 
       dw_window_set_data(handle, "_dw_hps", (void *)hps);
       dw_window_set_data(handle, "_dw_hdc", (void *)hdc);
@@ -7582,11 +7589,11 @@ void API dw_window_set_bitmap(HWND handle, unsigned long id, const char *filenam
       dw_window_set_data(handle, "_dw_height", (void *)height);
    }
    else
-      return;
+      return DW_ERROR_UNKNOWN;
 
    dw_window_set_data(handle, "_dw_bitmap", (void *)hbm);
 
-   _dw_window_set_bitmap(handle, hbm, hdc, hps, width, height, depth, icon);
+   return _dw_window_set_bitmap(handle, hbm, hdc, hps, width, height, depth, icon);
 }
 
 /*
@@ -7598,8 +7605,12 @@ void API dw_window_set_bitmap(HWND handle, unsigned long id, const char *filenam
  *       filename: a path to a file (Bitmap on OS/2 or
  *                 Windows and a pixmap on Unix, pass
  *                 NULL if you use the id param)
+ * Returns:
+ *        DW_ERROR_NONE on success.
+ *        DW_ERROR_UNKNOWN if the parameters were invalid.
+ *        DW_ERROR_GENERAL if the bitmap was unable to be loaded.
  */
-void API dw_window_set_bitmap_from_data(HWND handle, unsigned long id, const char *data, int len)
+int API dw_window_set_bitmap_from_data(HWND handle, unsigned long id, const char *data, int len)
 {
    HBITMAP hbm;
    HPS     hps;
@@ -7612,29 +7623,29 @@ void API dw_window_set_bitmap_from_data(HWND handle, unsigned long id, const cha
    /* Destroy any old bitmap data */
    _dw_free_bitmap(handle);
 
-   if ( data )
+   if(data)
    {
-      file = tmpnam( NULL );
-      if ( file != NULL )
+      file = tmpnam(NULL);
+      if(file != NULL)
       {
-         fp = fopen( file, "wb" );
-         if ( fp != NULL )
+         fp = fopen(file, "wb");
+         if(fp != NULL)
          {
-            fwrite( data, 1, len, fp );
-            fclose( fp );
+            fwrite(data, 1, len, fp);
+            fclose(fp);
             if(!_dw_load_bitmap_file(file, handle, &hbm, &hdc, &hps, &width, &height, &depth, DW_CLR_DEFAULT))
             {
                /* can't use ICO ? */
-               unlink( file );
-               return;
+               unlink(file);
+               return DW_ERROR_GENERAL;
             }
          }
          else
          {
-            unlink( file );
-            return;
+            unlink(file);
+            return DW_ERROR_GENERAL;
          }
-         unlink( file );
+         unlink(file);
       }
 
       dw_window_set_data(handle, "_dw_hps", (void *)hps);
@@ -7643,18 +7654,18 @@ void API dw_window_set_bitmap_from_data(HWND handle, unsigned long id, const cha
       dw_window_set_data(handle, "_dw_height", (void *)height);
    }
    /* If id is non-zero use the resource */
-   else if ( id )
+   else if(id)
    {
-      hps = WinGetPS( handle );
+      hps = WinGetPS(handle);
       hbm = GpiLoadBitmap( hps, NULLHANDLE, id, 0, 0 );
       WinReleasePS(hps);
    }
    else
-      return;
+      return DW_ERROR_UNKNOWN;
 
    dw_window_set_data(handle, "_dw_bitmap", (void *)hbm);
 
-   _dw_window_set_bitmap(handle, hbm, hdc, hps, width, height, depth, 0);
+   return _dw_window_set_bitmap(handle, hbm, hdc, hps, width, height, depth, 0);
 }
 
 /*
