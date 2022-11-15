@@ -2048,6 +2048,12 @@ void _dw_init_path(char *arg)
    size_t length = PATH_MAX;
 
    if(sysctl(name, 4, path, &length, NULL, 0) == -1 || length <= 1)
+#elif defined(__sun__)
+   char procpath[101] = {0};
+
+   snprintf(procpath, 100, "/proc/%d/path/a.out", getpid());
+
+   if(readlink(procpath, path, PATH_MAX) == -1)
 #endif
       strncpy(path, arg ? arg : "", PATH_MAX);
 
