@@ -2247,7 +2247,11 @@ int dw_init(int newthread, int argc, char *argv[])
     * we generate an application ID based on the binary name or PID
     * instead of passing NULL to enable full application support.
     */
+#if GLIB_CHECK_VERSION(2,74,0)
+   _DWApp = g_application_new(_dw_app_id, G_APPLICATION_DEFAULT_FLAGS);
+#else
    _DWApp = g_application_new(_dw_app_id, G_APPLICATION_FLAGS_NONE);
+#endif
    if(g_application_register(_DWApp, NULL, NULL))
    {
 #if GLIB_CHECK_VERSION(2,40,0)
