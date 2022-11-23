@@ -1599,7 +1599,11 @@ int API dw_init(int newthread, int argc, char *argv[])
     * we generate an application ID based on the binary name or PID
     * instead of passing NULL to enable full application support.
     */
+#if GLIB_CHECK_VERSION(2,74,0)
+   _DWApp = g_application_new(_dw_app_id, G_APPLICATION_DEFAULT_FLAGS);
+#else
    _DWApp = g_application_new(_dw_app_id, G_APPLICATION_FLAGS_NONE);
+#endif
    if(_DWApp && g_application_register(_DWApp, NULL, NULL))
    {
       /* Creat our notification handler for any notifications */
@@ -2779,7 +2783,11 @@ DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
 {
    GtkWidget *tmp = gtk_picture_new();
    gtk_picture_set_can_shrink(GTK_PICTURE(tmp), TRUE);
+#if GTK_CHECK_VERSION(4,8,0)
+   gtk_picture_set_content_fit(GTK_PICTURE(tmp), GTK_CONTENT_FIT_CONTAIN);
+#else
    gtk_picture_set_keep_aspect_ratio(GTK_PICTURE(tmp), TRUE);
+#endif
    gtk_widget_set_halign(GTK_WIDGET(tmp), GTK_ALIGN_CENTER);
    gtk_widget_set_valign(GTK_WIDGET(tmp), GTK_ALIGN_CENTER);
    gtk_widget_show(tmp);
