@@ -3,15 +3,15 @@ PLATFORM=`uname -s`
 
 if [ $PLATFORM = "Darwin" ]
 then
-    mkdir -p dwtest.app/Contents/MacOS
-    mkdir -p dwtest.app/Contents/Resources
+    mkdir -p $2.app/Contents/MacOS
+    mkdir -p $2.app/Contents/Resources
 
-    cp -f $1/mac/Info.plist dwtest.app/Contents
-    cp -f $1/mac/PkgInfo dwtest.app/Contents 
-    cp -f $1/mac/file.png dwtest.app/Contents/Resources
-    cp -f $1/mac/folder.png dwtest.app/Contents/Resources
-    cp -f $1/image/test.png dwtest.app/Contents/Resources
-    cp -f dwtest dwtest.app/Contents/MacOS
+    cat $1/mac/Info.plist | sed s/APPNAME/$2/ >  $2.app/Contents/Info.plist
+    cp -f $1/mac/PkgInfo $2.app/Contents 
+    cp -f $1/mac/file.png $2.app/Contents/Resources
+    cp -f $1/mac/folder.png $2.app/Contents/Resources
+    cp -f $1/image/test.png $2.app/Contents/Resources
+    cp -f $2 $2.app/Contents/MacOS
     # Check if there is a certificate to sign with...
     if [ ! -f mac/key.crt ]; then
        if [ -f mac/key.rsa ]; then
@@ -22,11 +22,11 @@ then
           certtool i mac/key.crt k="`pwd`/mac/key.keychain" r=mac/key.rsa c p=moof
        else
            echo "No key pair found, cannot generate certificate... signing AdHoc."
-           codesign -s "-" dwtest.app/Contents/MacOS/dwtest
+           codesign -s "-" $2.app/Contents/MacOS/$2
        fi
     fi
     if [ -f mac/key.keychain ]; then
         echo "Signing the apllication with certificate in mac/key.crt"
-        codesign -s my-signing-identity --keychain mac/key.keychain dwtest.app/Contents/MacOS/dwtest
+        codesign -s my-signing-identity --keychain mac/key.keychain $2.app/Contents/MacOS/$2
     fi
 fi
