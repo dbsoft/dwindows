@@ -1,41 +1,45 @@
 srcdir=@srcdir@
 mandir=@mandir@
 CC	=	@CC@
-PLATCCFLAGS = @PLATCCFLAGS@
+CXX	=	@CXX@
+PLATCCFLAGS =	@PLATCCFLAGS@
 MLFLAGS	=	-L.
 include $(srcdir)/Version
-CCFLAGS = @CFLAGS@ $(PLATCCFLAGS) @ARCH@ -D@DW_DEFINE@ -DBUILD_DLL -DDW_RESOURCES -DVER_REV=$(VER_REV)
+CCFLAGS = 	@CFLAGS@ $(PLATCCFLAGS) @ARCH@ -D@DW_DEFINE@ -DBUILD_DLL -DDW_RESOURCES -DVER_REV=$(VER_REV)
 LFLAGS	=	@LIBS@ @ARCH@
-ARFLAGS = @ARFLAGS@
+ARFLAGS =	@ARFLAGS@
 INSTALL =	@INSTALL@
 DW_SRC  =	@DW_SRC@
 DW_DIR  =	@DW_DIR@
 INCPATH	=	-I.. -I. -I$(srcdir)
 TARGET	=	@TARGET@
 SRCS	=	$(srcdir)/$(DW_DIR)/$(DW_SRC)
-BROWSER_OBJECT=@BROWSER_OBJECT@
-COMPAT_OBJECT =@COMPAT_OBJECT@
-INSTALL_COMPAT=@INSTALL_COMPAT@
-INSTALL_TEST  =@INSTALL_TEST@
+BROWSER_OBJECT=	@BROWSER_OBJECT@
+COMPAT_OBJECT =	@COMPAT_OBJECT@
+INSTALL_COMPAT=	@INSTALL_COMPAT@
+INSTALL_TEST =	@INSTALL_TEST@
 OBJECTS	=	dw.o $(BROWSER_OBJECT)
 SRCS2	=	$(srcdir)dwcompat.c
 OBJECTS2=	$(COMPAT_OBJECT)
 TARGET2=	@TARGET2@
-TARGETS = @TARGETS@
+TARGETS =	@TARGETS@
 VER_MAJ	=	$(DW_MAJOR_VERSION)
 VER_MIN	=	$(DW_MINOR_VERSION)
 VER_REV =	@SVNVERSION@
 SOSUFFIX=	@SOSUFFIX@
-SONAME=	@SONAME@
-LIBPREFIX = @LIBPREFIX@
-LIBSUFFIX = @LIBSUFFIX@
+SONAME	=	@SONAME@
+LIBPREFIX =	@LIBPREFIX@
+LIBSUFFIX =	@LIBSUFFIX@
 prefix	=	$(DESTDIR)@prefix@
 SRCDIR=dwindows-$(VER_MAJ).$(VER_MIN)
 
-#.SUFFIXES:	.c .h
+#.SUFFIXES:	.c .cpp .h .hpp
 
 #.c.o:
 #	$(CC) -c $(CCFLAGS) $(INCPATH) -o $@ $<
+
+#.cpp.o:
+#	$(CXX) -c $(CCFLAGS) $(INCPATH) -o $@ $<
 
 
 # Link flags shared objects
@@ -195,7 +199,7 @@ dwtest: dwtest.o
 	-$(srcdir)/mac/finishup.sh $(srcdir) dwtest
 
 dwtestoo.o: $(srcdir)/dwtestoo.cpp $(srcdir)/dw.h $(srcdir)/dw.hpp
-	$(CC) -c $(INCPATH) $(CCFLAGS) -o $@ $(srcdir)/dwtestoo.cpp
+	$(CXX) -c $(INCPATH) $(CCFLAGS) -o $@ $(srcdir)/dwtestoo.cpp
 
 dwtestoo: dwtestoo.o
 	$(CC) -o dwtestoo dwtestoo.o $(MLFLAGS) -l$(TARGET) $(LFLAGS)
