@@ -125,6 +125,7 @@ PLATLIBS=""
 SONAME=""
 PLATCCFLAGS="-g -O2 -fPIC -Wall"
 ARFLAGS="cqs"
+ARCH=""
 
 case "$target" in
    *cygwin*)

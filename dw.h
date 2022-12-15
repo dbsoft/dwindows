@@ -1231,8 +1231,16 @@ typedef struct _box {
 } Box;
 
 #else
+
+/* GTK Cannot be included in an extern "C" section */
+#ifdef __cplusplus
+}
+#endif
+
 /* GTK Specific section */
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 #include <gtk/gtk.h>
 #if GTK_MAJOR_VERSION < 4
 #ifdef GDK_WINDOWING_X11
@@ -1243,10 +1251,13 @@ typedef struct _box {
 #include <gdk/gdkprivate.h>
 #endif
 #include <gdk/gdkkeysyms.h>
-#include <pthread.h>
-#if !defined(GDK_WINDOWING_WIN32)
-# include <dlfcn.h>
+
+#ifdef __cplusplus
+extern "C" {
 #endif
+
+#include <pthread.h>
+# include <dlfcn.h>
 
 #define DW_DT_LEFT               1
 #define DW_DT_UNDERSCORE         (1 << 1)
