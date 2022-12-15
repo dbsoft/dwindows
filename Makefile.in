@@ -81,7 +81,7 @@ SYSCONF_LINK_LIB = $(SYSCONF_LINK_LIB_SHARED)
 SYSCONF_LINK_TARGET2 = $(SYSCONF_LINK_TARGET_SHARED2)
 SYSCONF_LINK_LIB2 = $(SYSCONF_LINK_LIB_SHARED2)
 
-all: $(TARGETS) dwtest
+all: $(TARGETS) dwtest dwtestoo
 
 install: installbase $(INSTALL_COMPAT) $(INSTALL_TEST)
 
@@ -109,6 +109,7 @@ installdwtest: dwtest
 	$(INSTALL) -d $(prefix)/share/applications; \
 	$(INSTALL) -d $(prefix)/share/dwtest; \
 	$(INSTALL) dwtest $(prefix)/bin; \
+	$(INSTALL) dwtestoo $(prefix)/bin; \
 	$(INSTALL) org.dbsoft.dwindows.dwtest.desktop $(prefix)/share/applications/; \
 	$(INSTALL) image/test.png $(prefix)/share/dwtest; \
 	$(INSTALL) gtk/file.xpm $(prefix)/share/dwtest; \
@@ -134,6 +135,7 @@ uninstall:
 	rm -f $(prefix)/lib/pkgconfig/dwindows.pc
 	rm -f $(prefix)/bin/dwindows-config
 	rm -f $(prefix)/bin/dwtest
+	rm -f $(prefix)/bin/dwtestoo
 	rm -f $(prefix)/include/dwcompat.h
 	rm -f $(prefix)/include/dwconfig.h
 	rm -f $(prefix)/include/dw.h
@@ -163,6 +165,8 @@ clean:
 	rm -f $(DW_DIR)/*.o
 	rm -f dwtest
 	rm -rf dwtest.app
+	rm -f dwtestoo
+	rm -rf dwtestoo.app
 
 $(SYSCONF_LINK_TARGET2): $(OBJECTS2)
 	$(SYSCONF_LINK_LIB2)
@@ -188,7 +192,15 @@ dwtest.o: $(srcdir)/dwtest.c $(srcdir)/dw.h
 dwtest: dwtest.o
 	$(CC) -o dwtest dwtest.o $(MLFLAGS) -l$(TARGET) $(LFLAGS)
 	-chmod +x $(srcdir)/mac/finishup.sh
-	-$(srcdir)/mac/finishup.sh $(srcdir)
+	-$(srcdir)/mac/finishup.sh $(srcdir) dwtest
+
+dwtestoo.o: $(srcdir)/dwtestoo.cpp $(srcdir)/dw.h $(srcdir)/dw.hpp
+	$(CC) -c $(INCPATH) $(CCFLAGS) -o $@ $(srcdir)/dwtestoo.cpp
+
+dwtestoo: dwtestoo.o
+	$(CC) -o dwtestoo dwtestoo.o $(MLFLAGS) -l$(TARGET) $(LFLAGS)
+	-chmod +x $(srcdir)/mac/finishup.sh
+	-$(srcdir)/mac/finishup.sh $(srcdir) dwtestoo
 
 zip:
 	zip dwindows$(VER_MAJ)$(VER_MIN).zip $(srcdir)/*.txt $(srcdir)/makefile.* $(srcdir)/*.c $(srcdir)/dw.h  $(srcdir)/dwcompat.h \
