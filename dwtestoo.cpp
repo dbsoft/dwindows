@@ -1,20 +1,22 @@
 #include <dw.hpp>
 
+DW::App *app;
+
 class MyWindow : public DW::Window
 {
 public:
-  MyWindow();
+  MyWindow() {
+	SetText("Basic application");
+	SetSize(200, 200);
+	}
+protected:
+	virtual int OnDelete() { app->MainQuit(); return FALSE; }
+	virtual int OnConfigure(int width, int height)  { return FALSE; }
 };
-
-MyWindow::MyWindow()
-{
-  SetText("Basic application");
-  SetSize(200, 200);
-}
 
 int dwmain(int argc, char* argv[])
 {
-  DW::App *app = new DW::App(argc, argv, "org.dbsoft.dwindows.dwtestoo");
+  app = new DW::App(argc, argv, "org.dbsoft.dwindows.dwtestoo");
   MyWindow *window = new MyWindow();
 
   window->Show();
