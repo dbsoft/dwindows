@@ -61,19 +61,30 @@ protected:
 
 class App
 {
+protected:
+	App() { }
+	static App *_app;
 public:
-	App() { dw_init(TRUE, 0, NULL); }
-	App(const char *appid) { dw_app_id_set(appid, NULL); dw_init(TRUE, 0, NULL); }
-	App(const char *appid, const char *appname) { dw_app_id_set(appid, appname); dw_init(TRUE, 0, NULL); }
-	App(int argc, char *argv[]) { dw_init(TRUE, argc, argv); }
-	App(int argc, char *argv[], const char *appid) { dw_app_id_set(appid, NULL); dw_init(TRUE, argc, argv); }
-	App(int argc, char *argv[], const char *appid, const char *appname) { dw_app_id_set(appid, appname); dw_init(TRUE, argc, argv); }
+	// Singletons should not be cloneable.
+	App(App &other) = delete;
+	// Singletons should not be assignable.
+	void operator=(const App &) = delete;
+	// Initialization functions for creating App
+	static App *Init() { if(!_app) { _app = new App; dw_init(TRUE, 0, NULL); } return _app; }
+	static App *Init(const char *appid) { if(!_app) { _app = new App(); dw_app_id_set(appid, NULL); dw_init(TRUE, 0, NULL); } return _app; }
+	static App *Init(const char *appid, const char *appname) { if(!_app) { _app = new App(); dw_app_id_set(appid, appname); dw_init(TRUE, 0, NULL); } return _app; }
+	static App *Init(int argc, char *argv[]) { if(!_app) { _app = new App(); dw_init(TRUE, argc, argv); } return _app; }
+	static App *Init(int argc, char *argv[], const char *appid) { if(!_app) { _app = new App(); dw_app_id_set(appid, NULL); dw_init(TRUE, argc, argv); } return _app; }
+	static App *Init(int argc, char *argv[], const char *appid, const char *appname) { if(!_app) { _app = new App(); dw_app_id_set(appid, appname); dw_init(TRUE, argc, argv); } return _app; }
 
 	void Main() { dw_main(); }
 	void MainIteration() { dw_main_iteration(); }
 	void MainQuit() { dw_main_quit(); }
 	void Exit(int exitcode) { dw_exit(exitcode); }
 };
+
+// Static singleton reference declared outside of the class
+App* App::_app = nullptr;
 
 #if 0
 // Class that allows drawing, either to screen or picture (pixmap)

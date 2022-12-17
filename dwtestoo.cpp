@@ -1,7 +1,5 @@
 #include <dw.hpp>
 
-DW::App *app;
-
 class MyWindow : public DW::Window
 {
 public:
@@ -10,13 +8,13 @@ public:
 	SetSize(200, 200);
 	}
 protected:
-	virtual int OnDelete() { app->MainQuit(); return FALSE; }
+	virtual int OnDelete() { DW::App *app = DW::App::Init(); app->MainQuit(); return FALSE; }
 	virtual int OnConfigure(int width, int height)  { return FALSE; }
 };
 
 int dwmain(int argc, char* argv[])
 {
-  app = new DW::App(argc, argv, "org.dbsoft.dwindows.dwtestoo");
+  DW::App *app = DW::App::Init(argc, argv, "org.dbsoft.dwindows.dwtestoo");
   MyWindow *window = new MyWindow();
 
   window->Show();
