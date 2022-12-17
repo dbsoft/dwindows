@@ -6,6 +6,7 @@ PLATCCFLAGS =	@PLATCCFLAGS@
 MLFLAGS	=	-L.
 include $(srcdir)/Version
 CCFLAGS = 	@CFLAGS@ $(PLATCCFLAGS) @ARCH@ -D@DW_DEFINE@ -DBUILD_DLL -DDW_RESOURCES -DVER_REV=$(VER_REV)
+CXXFLAGS=	-std=c++11 
 LFLAGS	=	@LIBS@ @ARCH@
 ARFLAGS =	@ARFLAGS@
 INSTALL =	@INSTALL@
@@ -39,7 +40,7 @@ SRCDIR=dwindows-$(VER_MAJ).$(VER_MIN)
 #	$(CC) -c $(CCFLAGS) $(INCPATH) -o $@ $<
 
 #.cpp.o:
-#	$(CXX) -c $(CCFLAGS) $(INCPATH) -o $@ $<
+#	$(CXX) -c $(CXXFLAGS) $(CCFLAGS) $(INCPATH) -o $@ $<
 
 
 # Link flags shared objects
@@ -199,7 +200,7 @@ dwtest: dwtest.o
 	-$(srcdir)/mac/finishup.sh $(srcdir) dwtest
 
 dwtestoo.o: $(srcdir)/dwtestoo.cpp $(srcdir)/dw.h $(srcdir)/dw.hpp
-	$(CXX) -c $(INCPATH) $(CCFLAGS) -o $@ $(srcdir)/dwtestoo.cpp
+	$(CXX) -c $(INCPATH) $(CXXFLAGS) $(CCFLAGS) -o $@ $(srcdir)/dwtestoo.cpp
 
 dwtestoo: dwtestoo.o
 	$(CC) -o dwtestoo dwtestoo.o $(MLFLAGS) -l$(TARGET) $(LFLAGS) -lstdc++
