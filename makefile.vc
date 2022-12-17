@@ -125,7 +125,7 @@ OBJS = dw.obj browser.obj XBrowseForFolder.obj $(WEBVIEW2OBJ) $(WINTOASTOBJ)
 
 OBJS2 = dwcompat.obj dirent.obj
 
-all: dw dwcompat dwtest
+all: dw dwcompat dwtest dwtestoo
 
 clean:
 	-erase *.dll
@@ -205,7 +205,7 @@ dirent.obj: $(SRCDIR)\win\dirent.c
 dwcompat.obj: $(SRCDIR)\dwcompat.c
 	$(CC) $(CFLAGS) $(CFLAGS_DEBUG) $(SRCDIR)\dwcompat.c
 
-dwtest.obj: $(SRCDIR)\dwtest.c
+dwtest.obj: $(SRCDIR)\dwtest.c $(SRCDIR)\dw.h
 	$(CC) $(CFLAGS) $(CFLAGS_DEBUG) $(SRCDIR)\dwtest.c
 
 dwtest: dwtest.exe
@@ -214,6 +214,16 @@ dwtest.exe: dwtest.obj
 	$(LINK) $(LINKFLAGS) /out:dwtest.exe dwtest.obj /subsystem:windows $(DWLIBDIR)\dwcompat.lib $(DWLIBDIR)\dw.lib $(LIBS)
 	mt.exe /manifest dwtest.exe.manifest $(SRCDIR)\win\dwtest.exe.$(TARGET_CPU).manifest /outputresource:dwtest.exe;1
 	-erase dwtest.exe.manifest
+
+dwtestoo.obj: $(SRCDIR)\dwtestoo.cpp $(SRCDIR)\dw.h
+	$(CC) $(CFLAGS) $(CFLAGS_DEBUG) $(SRCDIR)\dwtestoo.cpp
+
+dwtestoo: dwtestoo.exe
+
+dwtestoo.exe: dwtestoo.obj
+	$(LINK) $(LINKFLAGS) /out:dwtestoo.exe dwtestoo.obj /subsystem:windows $(DWLIBDIR)\dwcompat.lib $(DWLIBDIR)\dw.lib $(LIBS)
+	mt.exe /manifest dwtestoo.exe.manifest $(SRCDIR)\win\dwtest.exe.$(TARGET_CPU).manifest /outputresource:dwtestoo.exe;1
+	-erase dwtestoo.exe.manifest
 
 zip: dw.dll
 	copy win\readme-win.txt .

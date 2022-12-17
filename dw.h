@@ -1949,7 +1949,6 @@ int _dwmain(a, b)
 #elif defined(__WIN32__)
 #define dwmain(a, b) \
 _dwmain(a, b); \
-char ** API _dw_convertargs(int *count, char *start, HINSTANCE hInstance); \
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {\
    int argc; \
    char **argv = _dw_convertargs(&argc, lpCmdLine, hInstance); \
@@ -2248,6 +2247,10 @@ int API dw_feature_set(DWFEATURE feature, int state);
 /* Exported for language bindings */
 void API _dw_init_thread(void);
 void API _dw_deinit_thread(void);
+/* Exported for WinMain handing macro on Windows */
+#ifdef __WIN32__
+char ** API _dw_convertargs(int *count, char *start, HINSTANCE hInstance);
+#endif
 
 #ifdef __cplusplus
 }

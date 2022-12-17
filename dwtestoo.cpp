@@ -12,7 +12,7 @@ MyWindow::MyWindow()
   SetSize(200, 200);
 }
 
-int main(int argc, char* argv[])
+int dwmain(int argc, char* argv[])
 {
   DW::App *app = new DW::App(argc, argv, "org.dbsoft.dwindows.dwtestoo");
   MyWindow *window = new MyWindow();
