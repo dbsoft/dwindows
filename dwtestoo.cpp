@@ -1,15 +1,14 @@
 #include <dw.hpp>
 
-class MyWindow : public DW::Window
+class MyWindow : public DW::Window<MyWindow>
 {
 public:
   MyWindow() {
 	SetText("Basic application");
 	SetSize(200, 200);
 	}
-protected:
-	virtual int OnDelete() { DW::App *app = DW::App::Init(); app->MainQuit(); return FALSE; }
-	virtual int OnConfigure(int width, int height)  { return FALSE; }
+	virtual int OnDelete() override { DW::App *app = DW::App::Init(); app->MainQuit(); return FALSE; }
+	virtual int OnConfigure(int width, int height) override { return FALSE; }
 };
 
 int dwmain(int argc, char* argv[])

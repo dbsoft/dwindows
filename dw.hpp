@@ -1,5 +1,6 @@
 /* Dynamic Windows C++ Language Bindings 
  * Copyright 2022 Brian Smith
+ * Requires a C++11 compatible compiler.
  */
 
 #ifndef _HPP_DW
@@ -35,11 +36,20 @@ class Box : public Widget
 };
 	
 // Top-level window class is packable
+template <class Derived>
 class Window : public Box
 {
 private:
-	void Setup() {	dw_signal_connect(hwnd, DW_SIGNAL_DELETE, DW_SIGNAL_FUNC(_OnDelete), this);
-					dw_signal_connect(hwnd, DW_SIGNAL_CONFIGURE, DW_SIGNAL_FUNC(_OnConfigure), this); }
+	void Setup() {	
+		if(&Derived::OnDelete != &Window::OnDelete) {
+			dw_signal_connect(hwnd, DW_SIGNAL_DELETE, DW_SIGNAL_FUNC(_OnDelete), this);
+			dw_debug("DW_SIGNAL_DELETE\n");
+		}
+		if(&Derived::OnConfigure != &Window::OnConfigure) {
+			dw_signal_connect(hwnd, DW_SIGNAL_CONFIGURE, DW_SIGNAL_FUNC(_OnConfigure), this);
+			dw_debug("DW_SIGNAL_CONFIGURE\n");
+		}
+	}
 	static int _OnDelete(HWND window, void *data) { return reinterpret_cast<Window *>(data)->OnDelete(); }
 	static int _OnConfigure(HWND window, int width, int height, void *data) { return reinterpret_cast<Window *>(data)->OnConfigure(width, height); }
 public:
@@ -54,9 +64,9 @@ public:
 	void SetText(const char *text) { dw_window_set_text(hwnd, text); }
 	void SetSize(unsigned long width, unsigned long height) { dw_window_set_size(hwnd, width, height); }
 	void Show() { dw_window_show(hwnd); }
-protected:
-	virtual int OnDelete() = 0;
-	virtual int OnConfigure(int width, int height) = 0;
+	// Our signal handler functions to be overriden
+	virtual int OnDelete() { return FALSE; }
+	virtual int OnConfigure(int width, int height) { return FALSE; };
 };
 
 class App
