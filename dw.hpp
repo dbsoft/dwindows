@@ -117,10 +117,13 @@ protected:
     App() { }
     static App *_app;
 public:
+// Allow the code to compile if handicapped on older compilers
+#if __cplusplus >= 201103L
     // Singletons should not be cloneable.
     App(App &other) = delete;
     // Singletons should not be assignable.
     void operator=(const App &) = delete;
+#endif
     // Initialization functions for creating App
     static App *Init() { if(!_app) { _app = new App; dw_init(TRUE, 0, NULL); } return _app; }
     static App *Init(const char *appid) { if(!_app) { _app = new App(); dw_app_id_set(appid, NULL); dw_init(TRUE, 0, NULL); } return _app; }
