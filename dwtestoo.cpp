@@ -1,7 +1,7 @@
 /*
  * Simple C++ Dynamic Windows Example
  */
-#include <dw.hpp>
+#include "dw.hpp"
 
 class MyWindow : public DW::Window
 {

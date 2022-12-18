@@ -44,11 +44,11 @@ class Box : public Widget
 {
 public:
     void PackStart(Widget *item, int width, int height, int hsize, int vsize, int pad) { 
-        dw_box_pack_start(hwnd, item ? item->GetHWND() : nullptr, width, height, hsize, vsize, pad); }
+        dw_box_pack_start(hwnd, item ? item->GetHWND() : DW_NOHWND, width, height, hsize, vsize, pad); }
     void PackEnd(Widget *item, int width, int height, int hsize, int vsize, int pad) { 
-        dw_box_pack_end(hwnd, item ? item->GetHWND() : nullptr, width, height, hsize, vsize, pad); }
+        dw_box_pack_end(hwnd, item ? item->GetHWND() : DW_NOHWND, width, height, hsize, vsize, pad); }
     void PackAtIndex(Widget *item, int index, int width, int height, int hsize, int vsize, int pad) { 
-        dw_box_pack_at_index(hwnd, item ? item->GetHWND() : nullptr, index, width, height, hsize, vsize, pad); }
+        dw_box_pack_at_index(hwnd, item ? item->GetHWND() : DW_NOHWND, index, width, height, hsize, vsize, pad); }
     Widget *UnpackAtIndex(int index) { HWND widget = dw_box_unpack_at_index(hwnd, index);
         void *classptr = widget ? dw_window_get_data(widget, "_dw_classptr") : nullptr;
         return reinterpret_cast<Widget *>(classptr);
