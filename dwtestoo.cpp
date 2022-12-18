@@ -1,6 +1,6 @@
 #include <dw.hpp>
 
-class MyWindow : public DW::Window<MyWindow>
+class MyWindow : public DW::Window
 {
 public:
   MyWindow() {
