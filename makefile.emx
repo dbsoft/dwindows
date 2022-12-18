@@ -24,7 +24,7 @@ RCFLAGS = -r
 COMPATOBJECTS = dwcompat.obj dirent.obj
 COMPATSOURCES = dwcompat.c dirent.c
 
-all: dw.dll dwcompat.dll dwtest.exe
+all: dw.dll dwcompat.dll dwtest.exe dwtestoo.exe
 
 dw.dll:  os2\dw.c os2\dw.def
 	$(CC) $(CFLAGS) $(DEFS) -o dw.dll os2/dw.c $(LDFLAGS) os2/dw.def
@@ -38,11 +38,15 @@ dwcompat.dll:  $(COMPATOBJECTS) os2\dwcompat.def
 dwcompat.lib: os2\dwcompat.def
 	emximp -o dwcompat.lib os2\dwcompat.def
 
-dwtest.exe: dwtest.o dw.lib dwcompat.lib
-	$(CC) $(CFLAGS) -Zomf -Zmt -static-libgcc -Zlinker /pm:pm -o dwtest.exe dwtest.o -Llib -ldw -ldwcompat os2/dwtest.def
+dwtest.exe: dwtest.obj dw.lib dwcompat.lib
+	$(CC) $(CFLAGS) -Zomf -Zmt -static-libgcc -Zlinker /pm:pm -o dwtest.exe dwtest.obj -Llib -ldw -ldwcompat os2/dwtest.def
+
+dwtestoo.exe: dwtestoo.obj dw.lib dwcompat.lib
+	$(CC) $(CFLAGS) -Zomf -Zmt -static-libgcc -Zlinker /pm:pm -o dwtestoo.exe dwtestoo.obj -Llib -ldw -ldwcompat -lstdc++ os2/dwtest.def
+
 
 clean:
-	$(RM) *.obj *.o *.lib *.res *~ dwtest.exe dw.dll dwcompat.dll SVN.REV
+	$(RM) *.obj *.o *.lib *.res *~ dwtest.exe dwtestoo.exe dw.dll dwcompat.dll SVN.REV
 
 dw.obj: dw.c
 	$(CC) $(CFLAGS) -c $<	
@@ -55,6 +59,10 @@ dirent.obj: os2/dirent.c
 
 dwtest.obj: dwtest.c
 	$(CC) $(CFLAGS) -c $<	
+
+dwtestoo.obj: dwtestoo.cpp
+	$(CC) $(CFLAGS) -std=c++11 -c $<	
+
 
 zip: dw.dll
 	cp os2/readme-os2.txt .
