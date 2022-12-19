@@ -7,6 +7,13 @@
 #define _HPP_DW
 #include <dw.h>
 
+// Attempt to support compilers without nullptr type literal
+#if __cplusplus >= 201103L
+#define DW_NULL nullptr
+#else
+#define DW_NULL NULL
+#endif
+
 namespace DW 
 {
 
@@ -50,7 +57,7 @@ public:
     void PackAtIndex(Widget *item, int index, int width, int height, int hsize, int vsize, int pad) { 
         dw_box_pack_at_index(hwnd, item ? item->GetHWND() : DW_NOHWND, index, width, height, hsize, vsize, pad); }
     Widget *UnpackAtIndex(int index) { HWND widget = dw_box_unpack_at_index(hwnd, index);
-        void *classptr = widget ? dw_window_get_data(widget, "_dw_classptr") : nullptr;
+        void *classptr = widget ? dw_window_get_data(widget, "_dw_classptr") : DW_NULL;
         return reinterpret_cast<Widget *>(classptr);
     }
 };
@@ -125,11 +132,11 @@ public:
     void operator=(const App &) = delete;
 #endif
     // Initialization functions for creating App
-    static App *Init() { if(!_app) { _app = new App; dw_init(TRUE, 0, NULL); } return _app; }
-    static App *Init(const char *appid) { if(!_app) { _app = new App(); dw_app_id_set(appid, NULL); dw_init(TRUE, 0, NULL); } return _app; }
-    static App *Init(const char *appid, const char *appname) { if(!_app) { _app = new App(); dw_app_id_set(appid, appname); dw_init(TRUE, 0, NULL); } return _app; }
+    static App *Init() { if(!_app) { _app = new App; dw_init(TRUE, 0, DW_NULL); } return _app; }
+    static App *Init(const char *appid) { if(!_app) { _app = new App(); dw_app_id_set(appid, DW_NULL); dw_init(TRUE, 0, DW_NULL); } return _app; }
+    static App *Init(const char *appid, const char *appname) { if(!_app) { _app = new App(); dw_app_id_set(appid, appname); dw_init(TRUE, 0, DW_NULL); } return _app; }
     static App *Init(int argc, char *argv[]) { if(!_app) { _app = new App(); dw_init(TRUE, argc, argv); } return _app; }
-    static App *Init(int argc, char *argv[], const char *appid) { if(!_app) { _app = new App(); dw_app_id_set(appid, NULL); dw_init(TRUE, argc, argv); } return _app; }
+    static App *Init(int argc, char *argv[], const char *appid) { if(!_app) { _app = new App(); dw_app_id_set(appid, DW_NULL); dw_init(TRUE, argc, argv); } return _app; }
     static App *Init(int argc, char *argv[], const char *appid, const char *appname) { if(!_app) { _app = new App(); dw_app_id_set(appid, appname); dw_init(TRUE, argc, argv); } return _app; }
 
     void Main() { dw_main(); }
@@ -139,7 +146,7 @@ public:
 };
 
 // Static singleton reference declared outside of the class
-App* App::_app = nullptr;
+App* App::_app = DW_NULL;
 
 #if 0
 // Class that allows drawing, either to screen or picture (pixmap)
