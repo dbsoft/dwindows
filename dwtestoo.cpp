@@ -10,8 +10,8 @@ public:
         SetText("Basic application");
         SetSize(200, 200);
      }
-     virtual int OnDelete() override { DW::App *app = DW::App::Init(); app->MainQuit(); return FALSE; }
-     virtual int OnConfigure(int width, int height) override { return FALSE; }
+     int OnDelete() override { DW::App *app = DW::App::Init(); app->MainQuit(); return FALSE; }
+     int OnConfigure(int width, int height) override { return FALSE; }
 };
 
 int dwmain(int argc, char* argv[]) 
