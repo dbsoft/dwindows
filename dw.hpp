@@ -279,6 +279,20 @@ public:
     void Set(const char *data, int len) { dw_window_set_bitmap_from_data(hwnd, 0, data, len); }
 };
 
+// Class for handing calendar widget
+class Calendar : public Widget
+{
+public:
+    // Constructors
+    Calendar(unsigned long id) { SetHWND(dw_calendar_new(id)); }
+    Calendar() { SetHWND(dw_calendar_new(0)); }
+
+    // User functions
+    void GetData(unsigned int *year, unsigned int *month, unsigned int *day) { dw_calendar_get_date(hwnd, year, month, day); }
+    void SetData(unsigned int year, unsigned int month, unsigned int day) { dw_calendar_set_date(hwnd, year, month, day); }
+};
+
+
 // Forward declare these so our Drawable abstract class can reference
 class Render;
 class Pixmap;
@@ -426,7 +440,7 @@ class TextEntry : virtual public Focusable, virtual public TextWidget
 {
 public:
     // User functions
-    void ClickDefault(Focusable *next) { dw_window_click_default(hwnd, next); }
+    void ClickDefault(Focusable *next) { if(next) dw_window_click_default(hwnd, next->GetHWND()); }
 };
 
 class Entryfield : public TextEntry
