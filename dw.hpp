@@ -1,6 +1,6 @@
 /* Dynamic Windows C++ Language Bindings 
  * Copyright 2022 Brian Smith
- * Requires a C++11 compatible compiler.
+ * Recommends a C++11 compatible compiler.
  */
 
 #ifndef _HPP_DW
@@ -52,6 +52,15 @@ public:
     int SetColor(unsigned long fore, unsigned long back) { return dw_window_set_color(hwnd, fore, back); }
     void SetData(const char *dataname, void *data) { dw_window_set_data(hwnd, dataname, data); }
     void *GetData(const char *dataname) { return dw_window_get_data(hwnd, dataname); }
+    void SetPointer(int cursortype) { dw_window_set_pointer(hwnd, cursortype); }
+    Widget *FromID(int id) { 
+        HWND child = dw_window_from_id(hwnd, id);
+        if(child) {
+            return reinterpret_cast<Widget *>(dw_window_get_data(child, "_dw_classptr"));
+        }
+        return DW_NULL;
+    }
+    void GetPreferredSize(int *width, int *height) { dw_window_get_preferred_size(hwnd, width, height); }
 };
 
 // Box class is a packable object
@@ -128,6 +137,9 @@ public:
     int Minimize() { return dw_window_minimize(hwnd); }
     int Raise() { return dw_window_raise(hwnd); }
     int Lower() { return dw_window_lower(hwnd); }
+    void Redraw() { dw_window_redraw(hwnd); }
+    void Default(Widget *defaultitem) { if(defaultitem) dw_window_default(hwnd, defaultitem->GetHWND()); }
+    void SetIcon(HICN icon) { dw_window_set_icon(hwnd, icon); }
 protected:
     // Our signal handler functions to be overriden...
     // If they are not overridden and an event is generated, remove the unused handler
@@ -135,8 +147,17 @@ protected:
     virtual int OnConfigure(int width, int height) { dw_signal_disconnect_by_name(hwnd, DW_SIGNAL_CONFIGURE); return FALSE; };
 };
 
+// Class for focusable widgets
+class Focusable : virtual public Widget
+{
+public:
+    void Enable() { dw_window_enable(hwnd); }
+    void Disable() { dw_window_disable(hwnd); }
+    void SetFocus() { dw_window_set_focus(hwnd); }
+};
+
 // Base class for several types of buttons
-class Buttons : virtual public Widget
+class Buttons : virtual public Focusable
 {
 private:
     static int _OnClicked(HWND window, void *data) { return reinterpret_cast<Buttons *>(data)->OnClicked(); }
@@ -211,7 +232,18 @@ public:
 };
 
 // Class for handling static text widget
-class Text : public Widget
+class TextWidget : virtual public Widget
+{
+public:
+    // User functions
+    void SetText(const char *text) { dw_window_set_text(hwnd, text); }
+    char *GetText() { return dw_window_get_text(hwnd); }
+    int SetFont(const char *font) { return dw_window_set_font(hwnd, font); }
+    char *GetFont() { return dw_window_get_font(hwnd); }
+};
+
+// Class for handling static text widget
+class Text : public TextWidget
 {
 public:
     // Constructors
@@ -219,11 +251,16 @@ public:
     Text(const char *text) { SetHWND(dw_text_new(text, 0)); }
     Text(unsigned long id) { SetHWND(dw_text_new("", id)); }
     Text() { SetHWND(dw_text_new("", 0)); }
+};
 
-    // User functions
-    void SetText(const char *text) { dw_window_set_text(hwnd, text); }
-    int SetFont(const char *font) { return dw_window_set_font(hwnd, font); }
-    char *GetFont() { return dw_window_get_font(hwnd); }
+class StatusText : public TextWidget
+{
+public:
+    // Constructors
+    StatusText(const char *text, unsigned long id) { SetHWND(dw_status_text_new(text, id)); }
+    StatusText(const char *text) { SetHWND(dw_status_text_new(text, 0)); }
+    StatusText(unsigned long id) { SetHWND(dw_status_text_new("", id)); }
+    StatusText() { SetHWND(dw_status_text_new("", 0)); }
 };
 
 // Class for handing static image widget
@@ -299,6 +336,7 @@ public:
     int SetFont(const char *fontname) { return dw_window_set_font(hwnd, fontname); }
     void GetTextExtents(const char *text, int *width, int *height) { dw_font_text_extents_get(hwnd, DW_NULL, text, width, height); }
     char *GetFont() { return dw_window_get_font(hwnd); }
+    void Redraw() { dw_render_redraw(hwnd); }
 protected:
     // Our signal handler functions to be overriden...
     // If they are not overridden and an event is generated, remove the unused handler
@@ -384,12 +422,11 @@ protected:
 };
 
 // Base class for several widgets that allow text entry
-class TextEntry : virtual public Widget
+class TextEntry : virtual public Focusable, virtual public TextWidget
 {
 public:
     // User functions
-    void SetText(const char *text) { dw_window_set_text(hwnd, text); }
-    char *GetText() { return dw_window_get_text(hwnd); }
+    void ClickDefault(Focusable *next) { dw_window_click_default(hwnd, next); }
 };
 
 class Entryfield : public TextEntry
@@ -413,7 +450,7 @@ public:
 };
 
 // Base class for several widgets that have a list of elements
-class ListBoxes : virtual public Widget
+class ListBoxes : virtual public Focusable
 {
 private:
     void Setup() {	
