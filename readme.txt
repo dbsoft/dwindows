@@ -64,6 +64,8 @@ Added DW_FEATURE_CONTAINER_MODE on Mobile platforms: iOS and Android.
 Added return values to several functions previously returning void.
     Previous code should just be able to ignore the new return values.
     Currently affected: dw_window_set_bitmap(_from_data)
+Added C++ language bindings in dw.hpp and an example C++ test
+    application in the form of dwtestoo.cpp, similar to godwindows.
 
 
 Dynamic Windows Documentation is available at:
