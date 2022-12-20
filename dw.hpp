@@ -50,10 +50,12 @@ public:
     void SetStyle(unsigned long style, unsigned long mask) { dw_window_set_style(hwnd, style, mask); }
     void SetTooltip(char *bubbletext) { dw_window_set_tooltip(hwnd, bubbletext); }
     int SetColor(unsigned long fore, unsigned long back) { return dw_window_set_color(hwnd, fore, back); }
+    void SetData(const char *dataname, void *data) { dw_window_set_data(hwnd, dataname, data); }
+    void *GetData(const char *dataname) { return dw_window_get_data(hwnd, dataname); }
 };
 
 // Box class is a packable object
-class Boxes : public Widget
+class Boxes : virtual public Widget
 {
 public:
     // User functions
@@ -71,6 +73,7 @@ public:
 
 class Box : public Boxes
 {
+public:
     // Constructors
     Box(int type, int pad) { SetHWND(dw_box_new(type, pad)); }
     Box(int type) { SetHWND(dw_box_new(type, 0)); }
@@ -133,7 +136,7 @@ protected:
 };
 
 // Base class for several types of buttons
-class Buttons : public Widget
+class Buttons : virtual public Widget
 {
 private:
     static int _OnClicked(HWND window, void *data) { return reinterpret_cast<Buttons *>(data)->OnClicked(); }
@@ -179,7 +182,7 @@ public:
     BitmapButton(const char *text, const char *data, int len) { SetHWND(dw_bitmapbutton_new_from_data(text, 0, data, len)); Setup(); }
 };
 
-class CheckBoxes : public TextButton
+class CheckBoxes : virtual public TextButton
 {
 public:
     // User functions
@@ -189,6 +192,7 @@ public:
 
 class CheckBox : public CheckBoxes
 {
+public:
     // Constructors
     CheckBox(const char *text, unsigned long id) { SetHWND(dw_checkbox_new(text, id)); Setup(); }
     CheckBox(unsigned long id) { SetHWND(dw_checkbox_new("", id)); Setup(); }
@@ -198,6 +202,7 @@ class CheckBox : public CheckBoxes
 
 class RadioButton : public CheckBoxes
 {
+public:
     // Constructors
     RadioButton(const char *text, unsigned long id) { SetHWND(dw_radiobutton_new(text, id)); Setup(); }
     RadioButton(unsigned long id) { SetHWND(dw_radiobutton_new("", id)); Setup(); }
@@ -303,7 +308,7 @@ protected:
 
 class Pixmap : public Drawable, public Handle
 {
-protected:
+private:
     void SetHPIXMAP(HPIXMAP newpixmap) { 
         hpixmap = newpixmap; 
         SetHandle(reinterpret_cast<void *>(newpixmap));
@@ -336,7 +341,6 @@ public:
     }
     int SetFont(const char *fontname) { return dw_pixmap_set_font(hpixmap, fontname); }
     void GetTextExtents(const char *text, int *width, int *height) { dw_font_text_extents_get(DW_NOHWND, hpixmap, text, width, height); }
-    
 };
 
 // Need to declare these here after Pixmap is defined
@@ -380,7 +384,7 @@ protected:
 };
 
 // Base class for several widgets that allow text entry
-class TextEntry : public Widget
+class TextEntry : virtual public Widget
 {
 public:
     // User functions
@@ -409,7 +413,7 @@ public:
 };
 
 // Base class for several widgets that have a list of elements
-class ListBoxes : public Widget
+class ListBoxes : virtual public Widget
 {
 private:
     void Setup() {	
@@ -437,7 +441,6 @@ protected:
     virtual int OnListSelect(int index) { dw_signal_disconnect_by_name(hwnd, DW_SIGNAL_LIST_SELECT); return FALSE; }
 };
 
-#if 0
 class Combobox : public TextEntry, public ListBoxes
 {
 public:
@@ -447,7 +450,6 @@ public:
     Combobox(const char *text) { SetHWND(dw_combobox_new(text, 0)); }
     Combobox() { SetHWND(dw_combobox_new("", 0)); }
 };
-#endif
 
 class Listbox : public ListBoxes
 {
