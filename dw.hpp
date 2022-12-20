@@ -139,7 +139,7 @@ private:
     static int _OnClicked(HWND window, void *data) { return reinterpret_cast<Buttons *>(data)->OnClicked(); }
 protected:
     void Setup() {	
-        if(IsOverridden(Window::OnClicked, this))
+        if(IsOverridden(Buttons::OnClicked, this))
             dw_signal_connect(hwnd, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(_OnClicked), this);
     }
     // Our signal handler functions to be overriden...
@@ -181,6 +181,7 @@ public:
 
 class CheckBoxes : public TextButton
 {
+public:
     // User functions
     void Set(int value) { dw_checkbox_set(hwnd, value); }
     int Get() { return dw_checkbox_get(hwnd); }
@@ -263,9 +264,9 @@ class Render : public Drawable, public Widget
 {
 private:
     void Setup() {	
-        if(IsOverridden(Window::OnExpose, this))
+        if(IsOverridden(Render::OnExpose, this))
             dw_signal_connect(hwnd, DW_SIGNAL_EXPOSE, DW_SIGNAL_FUNC(_OnExpose), this);
-        if(IsOverridden(Window::OnConfigure, this))
+        if(IsOverridden(Render::OnConfigure, this))
             dw_signal_connect(hwnd, DW_SIGNAL_CONFIGURE, DW_SIGNAL_FUNC(_OnConfigure), this);
     }
     static int _OnExpose(HWND window, DWExpose *exp, void *data) { return reinterpret_cast<Render *>(data)->OnExpose(exp); }
@@ -291,6 +292,7 @@ public:
     }
     void BitBlt(int xdest, int ydest, int width, int height, Pixmap *src, int xsrc, int ysrc);
     int SetFont(const char *fontname) { return dw_window_set_font(hwnd, fontname); }
+    void GetTextExtents(const char *text, int *width, int *height) { dw_font_text_extents_get(hwnd, DW_NULL, text, width, height); }
     char *GetFont() { return dw_window_get_font(hwnd); }
 protected:
     // Our signal handler functions to be overriden...
@@ -333,6 +335,8 @@ public:
         dw_pixmap_bitblt(DW_NOHWND, hpixmap, xdest, ydest, width, height, DW_NOHWND, src ? src->GetHPIXMAP() : DW_NULL, xsrc, ysrc);
     }
     int SetFont(const char *fontname) { return dw_pixmap_set_font(hpixmap, fontname); }
+    void GetTextExtents(const char *text, int *width, int *height) { dw_font_text_extents_get(DW_NOHWND, hpixmap, text, width, height); }
+    
 };
 
 // Need to declare these here after Pixmap is defined
@@ -345,6 +349,115 @@ void Render::BitBlt(int xdest, int ydest, int width, int height, Pixmap *src, in
 {
     dw_pixmap_bitblt(hwnd, DW_NULL, xdest, ydest, width, height, DW_NOHWND, src ? src->GetHPIXMAP() : DW_NULL, xsrc, ysrc);
 }
+
+// Class for the HTML rendering widget
+class HTML : public Widget
+{
+private:
+    void Setup() {	
+        if(IsOverridden(HTML::OnChanged, this))
+            dw_signal_connect(hwnd, DW_SIGNAL_HTML_CHANGED, DW_SIGNAL_FUNC(_OnChanged), this);
+        if(IsOverridden(HTML::OnResult, this))
+            dw_signal_connect(hwnd, DW_SIGNAL_HTML_CHANGED, DW_SIGNAL_FUNC(_OnResult), this);
+    }
+    static int _OnChanged(HWND window, int status, char *url, void *data) { return reinterpret_cast<HTML *>(data)->OnChanged(status, url); }
+    static int _OnResult(HWND window, int status, char *result, void *scriptdata, void *data) { return reinterpret_cast<HTML *>(data)->OnResult(status, result, scriptdata); }
+public:
+    // Constructors
+    HTML(unsigned long id) { SetHWND(dw_html_new(id)); Setup(); }
+    HTML() { SetHWND(dw_html_new(0)); Setup(); }
+
+    // User functions
+    void Action(int action) { dw_html_action(hwnd, action); }
+    int JavascriptRun(const char *script, void *scriptdata) { return dw_html_javascript_run(hwnd, script, scriptdata); }
+    int Raw(const char *buffer) { return dw_html_raw(hwnd, buffer); }
+    int URL(const char *url) { return dw_html_url(hwnd, url); }
+protected:
+    // Our signal handler functions to be overriden...
+    // If they are not overridden and an event is generated, remove the unused handler
+    virtual int OnChanged(int status, char *url) { dw_signal_disconnect_by_name(hwnd, DW_SIGNAL_HTML_CHANGED); return FALSE; }
+    virtual int OnResult(int status, char *result, void *scriptdata) { dw_signal_disconnect_by_name(hwnd, DW_SIGNAL_HTML_RESULT); return FALSE; };
+};
+
+// Base class for several widgets that allow text entry
+class TextEntry : public Widget
+{
+public:
+    // User functions
+    void SetText(const char *text) { dw_window_set_text(hwnd, text); }
+    char *GetText() { return dw_window_get_text(hwnd); }
+};
+
+class Entryfield : public TextEntry
+{
+public:
+    // Constructors
+    Entryfield(const char *text, unsigned long id) { SetHWND(dw_entryfield_new(text, id)); }
+    Entryfield(unsigned long id) { SetHWND(dw_entryfield_new("", id)); }
+    Entryfield(const char *text) { SetHWND(dw_entryfield_new(text, 0)); }
+    Entryfield() { SetHWND(dw_entryfield_new("", 0)); }
+};
+
+class EntryfieldPassword : public TextEntry
+{
+public:
+    // Constructors
+    EntryfieldPassword(const char *text, unsigned long id) { SetHWND(dw_entryfield_password_new(text, id)); }
+    EntryfieldPassword(unsigned long id) { SetHWND(dw_entryfield_password_new("", id)); }
+    EntryfieldPassword(const char *text) { SetHWND(dw_entryfield_password_new(text, 0)); }
+    EntryfieldPassword() { SetHWND(dw_entryfield_password_new("", 0)); }
+};
+
+// Base class for several widgets that have a list of elements
+class ListBoxes : public Widget
+{
+private:
+    void Setup() {	
+        if(IsOverridden(ListBoxes::OnListSelect, this))
+            dw_signal_connect(hwnd, DW_SIGNAL_LIST_SELECT, DW_SIGNAL_FUNC(_OnListSelect), this);
+    }
+    static int _OnListSelect(HWND window, int index, void *data) { return reinterpret_cast<ListBoxes *>(data)->OnListSelect(index); }
+public:
+    // User functions
+    void Append(const char *text) { dw_listbox_append(hwnd, text); }
+    void Clear() { dw_listbox_clear(hwnd); }
+    int Count() { return dw_listbox_count(hwnd); }
+    void Delete(int index) { dw_listbox_delete(hwnd, index); }
+    void GetText(unsigned int index, char *buffer, unsigned int length) { dw_listbox_get_text(hwnd, index, buffer, length); }
+    void SetText(unsigned int index, char *buffer) { dw_listbox_set_text(hwnd, index, buffer); }
+    void Insert(const char *text, int pos) { dw_listbox_insert(hwnd, text, pos); }
+    void ListAppend(char **text, int count) { dw_listbox_list_append(hwnd, text, count); }
+    void Select(int index, int state) { dw_listbox_select(hwnd, index, state); }
+    int Selected() { return dw_listbox_selected(hwnd); }
+    int Selected(int where) { return dw_listbox_selected_multi(hwnd, where); }
+    void SetTop(int top) { dw_listbox_set_top(hwnd, top); }
+protected:
+    // Our signal handler functions to be overriden...
+    // If they are not overridden and an event is generated, remove the unused handler
+    virtual int OnListSelect(int index) { dw_signal_disconnect_by_name(hwnd, DW_SIGNAL_LIST_SELECT); return FALSE; }
+};
+
+#if 0
+class Combobox : public TextEntry, public ListBoxes
+{
+public:
+    // Constructors
+    Combobox(const char *text, unsigned long id) { SetHWND(dw_combobox_new(text, id)); }
+    Combobox(unsigned long id) { SetHWND(dw_combobox_new("", id)); }
+    Combobox(const char *text) { SetHWND(dw_combobox_new(text, 0)); }
+    Combobox() { SetHWND(dw_combobox_new("", 0)); }
+};
+#endif
+
+class Listbox : public ListBoxes
+{
+public:
+    // Constructors
+    Listbox(unsigned long id, int multi) { SetHWND(dw_listbox_new(id, multi)); }
+    Listbox(unsigned long id) { SetHWND(dw_listbox_new(id, FALSE)); }
+    Listbox(int multi) { SetHWND(dw_listbox_new(0, multi)); }
+    Listbox() { SetHWND(dw_listbox_new(0, FALSE)); }
+};
 
 class App
 {
