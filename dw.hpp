@@ -512,6 +512,85 @@ public:
     Listbox() { SetHWND(dw_listbox_new(0, FALSE)); }
 };
 
+// Base class for several ranged type widgets
+class Ranged : virtual public Widget
+{
+private:
+    static int _OnValueChanged(HWND window, int value, void *data) { return reinterpret_cast<Ranged *>(data)->OnValueChanged(value); }
+protected:
+    void Setup() {	
+        if(IsOverridden(Ranged::OnValueChanged, this))
+            dw_signal_connect(hwnd, DW_SIGNAL_VALUE_CHANGED, DW_SIGNAL_FUNC(_OnValueChanged), this);
+    }
+    // Our signal handler functions to be overriden...
+    // If they are not overridden and an event is generated, remove the unused handler
+    virtual int OnValueChanged(int value) { dw_signal_disconnect_by_name(hwnd, DW_SIGNAL_VALUE_CHANGED); return FALSE; }    
+};
+
+class Slider : public Ranged
+{
+public:
+    // Constructors
+    Slider(int orient, int increments, unsigned long id) { SetHWND(dw_slider_new(orient, increments, id)); Setup(); }
+    Slider(int orient, int increments) { SetHWND(dw_slider_new(orient, increments, 0)); Setup(); }
+
+    // User functions
+    unsigned int GetPos() { return dw_slider_get_pos(hwnd); }
+    void SetPos(unsigned int position) { dw_slider_set_pos(hwnd, position); }
+};
+
+class Scrollbar : public Ranged
+{
+public:
+    // Constructors
+    Scrollbar(int orient, unsigned long id) { SetHWND(dw_scrollbar_new(orient, id)); Setup(); }
+    Scrollbar(int orient) { SetHWND(dw_scrollbar_new(orient, 0)); Setup(); }
+
+    // User functions
+    unsigned int GetPos() { return dw_scrollbar_get_pos(hwnd); }
+    void SetPos(unsigned int position) { dw_scrollbar_set_pos(hwnd, position); }
+    void SetRange(unsigned int range, unsigned int visible) { dw_scrollbar_set_range(hwnd, range, visible); }
+};
+
+class SpinButton : public Ranged, public TextEntry
+{
+public:
+    // Constructors
+    SpinButton(const char *text, unsigned long id) { SetHWND(dw_spinbutton_new(text, id)); Setup(); }
+    SpinButton(unsigned long id) { SetHWND(dw_spinbutton_new("", id)); Setup(); }
+    SpinButton(const char *text) { SetHWND(dw_spinbutton_new(text, 0)); Setup(); }
+    SpinButton() { SetHWND(dw_spinbutton_new("", 0)); Setup(); }
+
+    // User functions
+    long GetPos() { return dw_spinbutton_get_pos(hwnd); }
+    void SetPos(long position) { dw_spinbutton_set_pos(hwnd, position); }
+    void SetLimits(long upper, long lower) { dw_spinbutton_set_limits(hwnd, upper, lower); }
+};
+
+// Multi-line Edit widget
+class MLE : public Focusable
+{
+public:
+    // Constructors
+    MLE(unsigned long id) { SetHWND(dw_mle_new(id)); }
+    MLE() { SetHWND(dw_mle_new(0)); }
+
+    // User functions
+    void Freeze() { dw_mle_freeze(hwnd); }
+    void Thaw() { dw_mle_thaw(hwnd); }
+    void Clear() { dw_mle_clear(hwnd); }
+    void Delete(int startpoint, int length) { dw_mle_delete(hwnd, startpoint, length); }
+    void Export(char *buffer, int startpoint, int length) { dw_mle_export(hwnd, buffer, startpoint, length); }
+    void Import(const char *buffer, int startpoint) { dw_mle_import(hwnd, buffer, startpoint); }
+    void GetSize(unsigned long *bytes, unsigned long *lines) { dw_mle_get_size(hwnd, bytes, lines); }
+    void Search(const char *text, int point, unsigned long flags) { dw_mle_search(hwnd, text, point, flags); }
+    void SetAutoComplete(int state) { dw_mle_set_auto_complete(hwnd, state); }
+    void SetCursor(int point) { dw_mle_set_cursor(hwnd, point); }
+    void SetEditable(int state) { dw_mle_set_editable(hwnd, state); }
+    void SetVisible(int line) { dw_mle_set_visible(hwnd, line); }
+    void SetWordWrap(int state) { dw_mle_set_word_wrap(hwnd, state); }
+};
+
 class App
 {
 protected:
