@@ -279,7 +279,7 @@ public:
     MenuBar *MenuBarNew() { if(!menu) menu = new MenuBar(hwnd); return menu; }
     void Popup(Menu *menu, int x, int y) {
         if(menu) {
-            HMENUI pmenu = menu;
+            HMENUI pmenu = menu->GetHMENUI();
 
             dw_menu_popup(&pmenu, hwnd, x, y);
             delete menu; 
@@ -288,7 +288,7 @@ public:
     void Popup(Menu *menu) {
         if(menu) {
             long x, y;
-            HMENUI pmenu = menu;
+            HMENUI pmenu = menu->GetHMENUI();
 
             dw_pointer_query_pos(&x, &y);
             dw_menu_popup(&pmenu, hwnd, (int)x, (int)y);
