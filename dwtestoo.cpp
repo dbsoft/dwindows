@@ -17,6 +17,7 @@ public:
 #ifndef DW_CPP11
 int button_clicked()
 {
+    DW::App *app = DW::App::Init();
     app->MessageBox("Button", DW_MB_OK | DW_MB_WARNING, "Clicked!"); 
     return TRUE; 
 }
