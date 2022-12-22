@@ -1791,7 +1791,7 @@ DWObject *DWObj;
 -(int)check { return check; }
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
--(void)dealloc { dw_signal_disconnect_by_window(self); [super dealloc]; }
+-(void)dealloc { UserData *root = userdata; _dw_remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
 /* Subclass for a scrollbox type */
