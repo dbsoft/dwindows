@@ -939,6 +939,202 @@ public:
     void SetWordWrap(int state) { dw_mle_set_word_wrap(hwnd, state); }
 };
 
+class ObjectView : virtual public Widget
+{
+private:
+    bool ItemSelectConnected, ItemContextConnected;
+#ifdef DW_CPP11
+    std::function<int(HTREEITEM, char *, void *)> _ConnectItemSelect;
+    std::function<int(char *, int, int, void *)> _ConnectItemContext;
+#else
+    int (*_ConnectItemSelect)(HTREEITEM, char *, void *);
+    int (*_ConnectItemContext)(char *, int, int, void *);
+#endif
+    static int _OnItemSelect(HWND window, HTREEITEM item, char *text, void *itemdata, void *data) {
+        if(reinterpret_cast<ObjectView *>(data)->_ConnectItemSelect)
+            return reinterpret_cast<ObjectView *>(data)->_ConnectItemSelect(item, text, itemdata);
+        return reinterpret_cast<ObjectView *>(data)->OnItemSelect(item, text, itemdata);
+    }
+    static int _OnItemContext(HWND window, char *text, int x, int y, void *itemdata, void *data) {
+        if(reinterpret_cast<ObjectView *>(data)->_ConnectItemContext)
+            return reinterpret_cast<ObjectView *>(data)->_ConnectItemContext(text, x, y, itemdata);
+        return reinterpret_cast<ObjectView *>(data)->OnItemContext(text, x, y, itemdata);
+    }
+protected:
+    void SetupObjectView() {	
+        if(IsOverridden(ObjectView::OnItemSelect, this)) {
+            dw_signal_connect(hwnd, DW_SIGNAL_ITEM_SELECT, DW_SIGNAL_FUNC(_OnItemSelect), this);
+            ItemSelectConnected = true;
+        }
+        if(IsOverridden(ObjectView::OnItemContext, this)) {
+            dw_signal_connect(hwnd, DW_SIGNAL_ITEM_CONTEXT, DW_SIGNAL_FUNC(_OnItemContext), this);
+            ItemContextConnected = true;
+        }
+    }
+    // Our signal handler functions to be overriden...
+    // If they are not overridden and an event is generated, remove the unused handler
+    virtual int OnItemSelect(HTREEITEM item, char *text, void *itemdata) {
+        dw_signal_disconnect_by_name(hwnd, DW_SIGNAL_ITEM_SELECT);
+        ItemSelectConnected = false;
+        return FALSE;
+    }
+    virtual int OnItemContext(char *text, int x, int y, void *itemdata) {
+        dw_signal_disconnect_by_name(hwnd, DW_SIGNAL_ITEM_CONTEXT);
+        ItemContextConnected = false;
+        return FALSE;
+    }
+public:
+#ifdef DW_CPP11
+    void ConnectItemSelect(std::function<int(HTREEITEM, char *, void *)> userfunc)
+#else
+    void ConnectItemSelect(int (*userfunc)(HTREEITEM, char *, void *))
+#endif
+    {
+        _ConnectItemSelect = userfunc;
+        if(!ItemSelectConnected) {
+            dw_signal_connect(hwnd, DW_SIGNAL_ITEM_SELECT, DW_SIGNAL_FUNC(_OnItemSelect), this);
+            ItemSelectConnected = true;
+        }
+    }        
+#ifdef DW_CPP11
+    void ConnectItemContext(std::function<int(char *, int, int, void *)> userfunc)
+#else
+    void ConnectItemContext(int (*userfunc)(char *, int, int, void *))
+#endif
+    {
+        _ConnectItemContext = userfunc;
+        if(!ItemContextConnected) {
+            dw_signal_connect(hwnd, DW_SIGNAL_ITEM_CONTEXT, DW_SIGNAL_FUNC(_OnItemContext), this);
+            ItemContextConnected = true;
+        }
+    }        
+};
+
+class Containers : virtual public Focusable, virtual public ObjectView
+{
+private:
+    bool ItemEnterConnected, ColumnClickConnected;
+#ifdef DW_CPP11
+    std::function<int(char *)> _ConnectItemEnter;
+    std::function<int(int)> _ConnectColumnClick;
+#else
+    int (*_ConnectItemEnter)(HTREEITEM, char *, void *);
+    int (*_ConnectColumnClick)(char *, int, int, void *);
+#endif
+    static int _OnItemEnter(HWND window, char *text, void *data) {
+        if(reinterpret_cast<Containers *>(data)->_ConnectItemEnter)
+            return reinterpret_cast<Containers *>(data)->_ConnectItemEnter(text);
+        return reinterpret_cast<Containers *>(data)->OnItemEnter(text);
+    }
+    static int _OnColumnClick(HWND window, int column, void *data) {
+        if(reinterpret_cast<Containers *>(data)->_ConnectColumnClick)
+            return reinterpret_cast<Containers *>(data)->_ConnectColumnClick(column);
+        return reinterpret_cast<Containers *>(data)->OnColumnClick(column);
+    }
+protected:
+    void *allocpointer;
+    int allocrowcount;
+    void SetupContainer() {	
+        if(IsOverridden(Container::OnItemEnter, this)) {
+            dw_signal_connect(hwnd, DW_SIGNAL_ITEM_ENTER, DW_SIGNAL_FUNC(_OnItemEnter), this);
+            ItemEnterConnected = true;
+        }
+        if(IsOverridden(Container::OnColumnClick, this)) {
+            dw_signal_connect(hwnd, DW_SIGNAL_COLUMN_CLICK, DW_SIGNAL_FUNC(_OnColumnClick), this);
+            ColumnClickConnected = true;
+        }
+    }
+    // Our signal handler functions to be overriden...
+    // If they are not overridden and an event is generated, remove the unused handler
+    virtual int OnItemEnter(char *text) {
+        dw_signal_disconnect_by_name(hwnd, DW_SIGNAL_ITEM_ENTER);
+        ItemEnterConnected = false;
+        return FALSE;
+    }
+    virtual int OnColumnClick(int column) {
+        dw_signal_disconnect_by_name(hwnd, DW_SIGNAL_COLUMN_CLICK);
+        ColumnClickConnected = false;
+        return FALSE;
+    }
+public:
+    // User functions
+    void Alloc(int rowcount) { allocpointer = dw_container_alloc(hwnd, rowcount); allocrowcount = rowcount; }
+    void ChangeRowTitle(int row, char *title) { dw_container_change_row_title(hwnd, row, title); }
+    void Clear(int redraw) { dw_container_clear(hwnd, redraw); }
+    void Clear() { dw_container_clear(hwnd, TRUE); }
+    void Cursor(const char *text) { dw_container_cursor(hwnd, text); }
+    void Cursor(void *data) { dw_container_cursor_by_data(hwnd, data); }
+    void Delete(int rowcount) { dw_container_delete(hwnd, rowcount); }
+    void DeleteRow(char *title) { dw_container_delete_row(hwnd, title); }
+    void DeleteRow(void *data) { dw_container_delete_row_by_data(hwnd, data); }
+    void Insert() { dw_container_insert(hwnd, allocpointer, allocrowcount); }
+    void Optimize() { dw_container_optimize(hwnd); }
+    char *QueryNext(unsigned long flags) { return dw_container_query_next(hwnd, flags); }
+    char *QueryStart(unsigned long flags) { return dw_container_query_start(hwnd, flags); }
+    void Scroll(int direction, long rows) { dw_container_scroll(hwnd, direction, rows); }
+    void SetColumnWidth(int column, int width) { dw_container_set_column_width(hwnd, column, width); }
+    void SetRowData(int row, void *data) { dw_container_set_row_data(allocpointer, row, data); }
+    void SetRowTitle(int row, const char *title) { dw_container_set_row_title(allocpointer, row, title); }
+    void SetStripe(unsigned long oddcolor, unsigned long evencolor) { dw_container_set_stripe(hwnd, oddcolor, evencolor); }
+#ifdef DW_CPP11
+    void ConnectItemEnter(std::function<int(char *)> userfunc)
+#else
+    void ConnectItemEnter(int (*userfunc)(char *))
+#endif
+    {
+        _ConnectItemEnter = userfunc;
+        if(!ItemEnterConnected) {
+            dw_signal_connect(hwnd, DW_SIGNAL_ITEM_ENTER, DW_SIGNAL_FUNC(_OnItemEnter), this);
+            ItemEnterConnected = true;
+        }
+    }        
+#ifdef DW_CPP11
+    void ConnecColumnClick(std::function<int(int)> userfunc)
+#else
+    void ConnectColumnClick(int (*userfunc)(int))
+#endif
+    {
+        _ConnectColumnClick = userfunc;
+        if(!ColumnClickConnected) {
+            dw_signal_connect(hwnd, DW_SIGNAL_COLUMN_CLICK, DW_SIGNAL_FUNC(_OnColumnClick), this);
+            ColumnClickConnected = true;
+        }
+    }        
+};
+
+class Container : public Containers
+{
+public:
+    // Constructors
+    Container(unsigned long id, int multi) { SetHWND(dw_container_new(id, multi)); SetupObjectView(); SetupContainer(); }
+    Container(int multi) { SetHWND(dw_container_new(0, multi)); SetupObjectView(); SetupContainer(); }
+    Container() { SetHWND(dw_container_new(0, FALSE)); SetupObjectView(); SetupContainer(); }
+
+    // User functions
+    int Setup(unsigned long *flags, char **titles, int count, int separator) { return dw_container_setup(hwnd, flags, titles, count, separator); }    
+    void ChangeItem(int column, int row, void *data) { dw_container_change_item(hwnd, column, row, data); }
+    int GetColumnType(int column) { return dw_container_get_column_type(hwnd, column); }
+    void SetItem(int column, int row, void *data) { dw_container_set_item(hwnd, allocpointer, column, row, data); }
+};
+
+class Filesystem : public Containers
+{
+public:
+    // Constructors
+    Filesystem(unsigned long id, int multi) { SetHWND(dw_container_new(id, multi)); SetupObjectView(); SetupContainer(); }
+    Filesystem(int multi) { SetHWND(dw_container_new(0, multi)); SetupObjectView(); SetupContainer(); }
+    Filesystem() { SetHWND(dw_container_new(0, FALSE)); SetupObjectView(); SetupContainer(); }
+
+    // User functions
+    int Setup(unsigned long *flags, char **titles, int count) { return dw_filesystem_setup(hwnd, flags, titles, count); }    
+    void ChangeFile(int row, const char *filename, HICN icon) { dw_filesystem_change_file(hwnd, row, filename, icon); }
+    void ChangeItem(int column, int row, void *data) { dw_filesystem_change_item(hwnd, column, row, data); }
+    int GetColumnType(int column) { return dw_filesystem_get_column_type(hwnd, column); }
+    void SetColumnTitle(const char *title) { dw_filesystem_set_column_title(hwnd, title); }
+    void SetFile(int row, const char *filename, HICN icon) { dw_filesystem_set_file(hwnd, allocpointer, row, filename, icon); }
+    void SetItem(int column, int row, void *data) { dw_filesystem_set_item(hwnd, allocpointer, column, row, data); }
+};
+
 class App
 {
 protected:
