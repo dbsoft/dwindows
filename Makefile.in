@@ -4,7 +4,7 @@ CC	=	@CC@
 CXX	=	@CXX@
 PLATCCFLAGS =	@PLATCCFLAGS@
 MLFLAGS	=	-L.
-include $(srcdir)/Version
+include $(srcdir)/Version.mk
 CCFLAGS = 	@CFLAGS@ $(PLATCCFLAGS) @ARCH@ -D@DW_DEFINE@ -DBUILD_DLL -DDW_RESOURCES -DVER_REV=$(VER_REV)
 CXXFLAGS=	-std=c++11 
 LFLAGS	=	@LIBS@ @ARCH@
@@ -209,7 +209,7 @@ dwtestoo: dwtestoo.o
 
 zip:
 	zip dwindows$(VER_MAJ)$(VER_MIN).zip $(srcdir)/*.txt $(srcdir)/makefile.* $(srcdir)/*.c $(srcdir)/dw.h  $(srcdir)/dwcompat.h \
-	$(srcdir)/install.sh $(srcdir)/*.in $(srcdir)/configure $(srcdir)/Version \
+	$(srcdir)/install.sh $(srcdir)/*.in $(srcdir)/configure $(srcdir)/Version.mk \
 	$(srcdir)/ac*.m4 $(srcdir)/dwindows-config.1 $(srcdir)/config.sub $(srcdir)/config.guess $(srcdir)/image/test.* \
 	$(srcdir)/win/*.c $(srcdir)/win/*.cpp $(srcdir)/win/*.h $(srcdir)/win/*.ico $(srcdir)/win/*.txt $(srcdir)/win/*.def $(srcdir)/win/*.rc $(srcdir)/win/*.manifest \
 	$(srcdir)/os2/*.c $(srcdir)/os2/*.ico $(srcdir)/os2/*.txt $(srcdir)/os2/*.def \
@@ -221,7 +221,7 @@ zip:
 dist:
 	(cd $(srcdir)/..;ln -sf dwindows $(SRCDIR))
 	(cd $(srcdir)/..;tar -cvf - $(SRCDIR)/*.txt $(SRCDIR)/makefile.* $(SRCDIR)/*.c $(SRCDIR)/dw.h $(SRCDIR)/dwcompat.h \
-	$(SRCDIR)/install.sh $(SRCDIR)/*.in $(SRCDIR)/configure $(SRCDIR)/Version \
+	$(SRCDIR)/install.sh $(SRCDIR)/*.in $(SRCDIR)/configure $(SRCDIR)/Version.mk \
 	$(SRCDIR)/ac*.m4 $(SRCDIR)/dwindows-config.1 $(SRCDIR)/config.sub $(SRCDIR)/config.guess $(SRCDIR)/image/test.* \
 	$(SRCDIR)/win/*.c $(SRCDIR)/win/*.cpp $(SRCDIR)/win/*.h $(SRCDIR)/win/*.txt $(SRCDIR)/win/*.def $(SRCDIR)/win/*.ico $(SRCDIR)/win/*.rc $(SRCDIR)/win/*.manifest \
 	$(SRCDIR)/os2/*.c $(SRCDIR)/os2/*.ico $(SRCDIR)/os2/*.txt $(SRCDIR)/os2/*.def \

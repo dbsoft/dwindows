@@ -1,7 +1,7 @@
 #
 # Visual C Makefile for Dynamic Windows
 #
-!include Version
+!include Version.mk
 VER = $(DW_MAJOR_VERSION)$(DW_MINOR_VERSION)
 VERDOT = $(DW_MAJOR_VERSION).$(DW_MINOR_VERSION)
 VERREV = 0
