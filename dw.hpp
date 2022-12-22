@@ -9,7 +9,9 @@
 
 // Attempt to support compilers without nullptr type literal
 #if __cplusplus >= 201103L
+#define DW_CPP11
 #define DW_NULL nullptr
+#include <functional>
 #else
 #define DW_NULL NULL
 #endif
@@ -21,6 +23,12 @@
 
 namespace DW 
 {
+
+// Forward declare these so they can be referenced
+class Render;
+class Pixmap;
+class MenuItem;
+
 
 // Base handle class which allows opaque access to 
 // The base system handles
@@ -105,18 +113,115 @@ public:
 // That way we can skip adding unused signal handlers
 #define IsOverridden(a, b) true
 
+// Base class for several types of widgets including buttons and menu items
+class Clickable : virtual public Widget
+{
+private:
+    bool ClickedConnected;
+#ifdef DW_CPP11
+    std::function<int()> _ConnectClicked;
+#else
+    int (*_ConnectClicked)();
+#endif
+    static int _OnClicked(HWND window, void *data) { 
+        if(reinterpret_cast<Clickable *>(data)->_ConnectClicked) 
+            return reinterpret_cast<Clickable *>(data)->_ConnectClicked();
+        return reinterpret_cast<Clickable *>(data)->OnClicked(); }
+protected:
+    void Setup() {	
+        if(IsOverridden(Clickable::OnClicked, this)) {
+            dw_signal_connect(hwnd, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(_OnClicked), this);
+            ClickedConnected = true;
+        }
+    }
+    // Our signal handler functions to be overriden...
+    // If they are not overridden and an event is generated, remove the unused handler
+    virtual int OnClicked() {
+        dw_signal_disconnect_by_name(hwnd, DW_SIGNAL_CLICKED);
+        ClickedConnected = false;
+        return FALSE;
+    }
+public:
+#ifdef DW_CPP11
+    void ConnectClicked(std::function<int()> userfunc)
+#else
+    void ConnectClicked(int (*userfunc)())
+#endif
+    {
+        _ConnectClicked = userfunc;
+        if(!ClickedConnected) {
+            dw_signal_connect(hwnd, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(_OnClicked), this);
+            ClickedConnected = true;
+        }
+    }
+};
+
+class Menus : public Handle
+{
+protected:
+    void SetHMENUI(HMENUI newmenu) { 
+        menu = newmenu; 
+        SetHandle(reinterpret_cast<void *>(newmenu));
+    }
+    HMENUI menu; 
+public:
+    // User functions
+    HMENUI GetHMENUI() { return menu; }
+};
+
+class Menu : public Menus
+{
+public:
+    // Constructors
+    Menu(HWND location) { SetHMENUI(dw_menubar_new(location)); }
+    Menu(unsigned long id) { SetHMENUI(dw_menu_new(id)); }
+    Menu() { SetHMENUI(dw_menu_new(0)); }
+};
+
+class MenuItem : public Clickable
+{
+public:
+    // Constructors
+    MenuItem(Menus *menu, const char *title, unsigned long id, unsigned long flags, int end, int check, Menus *submenu) { 
+        SetHWND(dw_menu_append_item(menu->GetHMENUI(), title, id, flags, end, check, submenu ? submenu->GetHMENUI() : DW_NULL)); 
+    }
+
+    // User functions
+    void SetState(unsigned long flags) { dw_window_set_style(hwnd, flags, flags); }
+    void SetStyle(unsigned long flags, unsigned long mask) { dw_window_set_style(hwnd, flags, mask); }
+};
+
 // Top-level window class is packable
 class Window : public Boxes
 {
 private:
+    bool DeleteConnected, ConfigureConnected;
+#ifdef DW_CPP11
+    std::function<int()> _ConnectDelete;
+    std::function<int(int, int)> _ConnectConfigure;
+#else
+    int (*_ConnectDelete)();
+    int (*_ConnectConfigure)(int width, int height);
+#endif
     void Setup() {	
-        if(IsOverridden(Window::OnDelete, this))
+        if(IsOverridden(Window::OnDelete, this)) {
             dw_signal_connect(hwnd, DW_SIGNAL_DELETE, DW_SIGNAL_FUNC(_OnDelete), this);
-        if(IsOverridden(Window::OnConfigure, this))
+            DeleteConnected = true;
+        }
+        if(IsOverridden(Window::OnConfigure, this)) {
             dw_signal_connect(hwnd, DW_SIGNAL_CONFIGURE, DW_SIGNAL_FUNC(_OnConfigure), this);
+            ConfigureConnected = true;
+        }
     }
-    static int _OnDelete(HWND window, void *data) { return reinterpret_cast<Window *>(data)->OnDelete(); }
-    static int _OnConfigure(HWND window, int width, int height, void *data) { return reinterpret_cast<Window *>(data)->OnConfigure(width, height); }
+    static int _OnDelete(HWND window, void *data) { 
+        if(reinterpret_cast<Window *>(data)->_ConnectDelete)
+            return reinterpret_cast<Window *>(data)->_ConnectDelete();
+        return reinterpret_cast<Window *>(data)->OnDelete(); }
+    static int _OnConfigure(HWND window, int width, int height, void *data) { 
+        if(reinterpret_cast<Window *>(data)->_ConnectConfigure)
+            return reinterpret_cast<Window *>(data)->_ConnectConfigure(width, height);
+        return reinterpret_cast<Window *>(data)->OnConfigure(width, height); }
+    Menu *menu;
 public:
     // Constructors
     Window(HWND owner, const char *title, unsigned long style) { SetHWND(dw_window_new(owner, title, style)); Setup(); }
@@ -140,11 +245,44 @@ public:
     void Redraw() { dw_window_redraw(hwnd); }
     void Default(Widget *defaultitem) { if(defaultitem) dw_window_default(hwnd, defaultitem->GetHWND()); }
     void SetIcon(HICN icon) { dw_window_set_icon(hwnd, icon); }
+    Menu *MenuBar() { if(menu == DW_NULL) menu = new Menu(hwnd); return menu; }
+#ifdef DW_CPP11
+    void ConnectDelete(std::function<int()> userfunc)
+#else
+    void ConnectDelete(int (*userfunc)()) 
+#endif
+    {
+        _ConnectDelete = userfunc;
+        if(!DeleteConnected) {
+            dw_signal_connect(hwnd, DW_SIGNAL_DELETE, DW_SIGNAL_FUNC(_OnDelete), this);
+            DeleteConnected = true;
+        }
+    }
+#ifdef DW_CPP11
+    void ConnectConfigure(std::function<int(int, int)> userfunc)
+#else
+    void ConnectConfigure(int (*userfunc)(int, int)) 
+#endif
+    {
+        _ConnectConfigure = userfunc;
+        if(!ConfigureConnected) {
+            dw_signal_connect(hwnd, DW_SIGNAL_CONFIGURE, DW_SIGNAL_FUNC(_OnConfigure), this);
+            ConfigureConnected = true;
+        }
+    }    
 protected:
     // Our signal handler functions to be overriden...
     // If they are not overridden and an event is generated, remove the unused handler
-    virtual int OnDelete() { dw_signal_disconnect_by_name(hwnd, DW_SIGNAL_DELETE); return FALSE; }
-    virtual int OnConfigure(int width, int height) { dw_signal_disconnect_by_name(hwnd, DW_SIGNAL_CONFIGURE); return FALSE; };
+    virtual int OnDelete() {
+        dw_signal_disconnect_by_name(hwnd, DW_SIGNAL_DELETE);
+        DeleteConnected = false;
+        return FALSE;
+    }
+    virtual int OnConfigure(int width, int height) {
+        dw_signal_disconnect_by_name(hwnd, DW_SIGNAL_CONFIGURE);
+        ConfigureConnected = false;
+        return FALSE;
+    };
 };
 
 // Class for focusable widgets
@@ -156,23 +294,8 @@ public:
     void SetFocus() { dw_window_set_focus(hwnd); }
 };
 
-// Base class for several types of buttons
-class Buttons : virtual public Focusable
-{
-private:
-    static int _OnClicked(HWND window, void *data) { return reinterpret_cast<Buttons *>(data)->OnClicked(); }
-protected:
-    void Setup() {	
-        if(IsOverridden(Buttons::OnClicked, this))
-            dw_signal_connect(hwnd, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(_OnClicked), this);
-    }
-    // Our signal handler functions to be overriden...
-    // If they are not overridden and an event is generated, remove the unused handler
-    virtual int OnClicked() { dw_signal_disconnect_by_name(hwnd, DW_SIGNAL_CLICKED); return FALSE; }
-};
-
 // Text based button
-class TextButton : public Buttons
+class TextButton : public Clickable, public Focusable
 {
 public:
     // User functions
@@ -191,7 +314,7 @@ public:
 };
 
 // Image based button
-class BitmapButton : public Buttons
+class BitmapButton : public Clickable, public Focusable
 {
 public:
     // Constructors
@@ -293,10 +416,6 @@ public:
 };
 
 
-// Forward declare these so our Drawable abstract class can reference
-class Render;
-class Pixmap;
-
 // Abstract class that defines drawing, either to screen or picture (pixmap)
 class Drawable
 {
@@ -319,14 +438,32 @@ public:
 class Render : public Drawable, public Widget
 {
 private:
+    bool ExposeConnected, ConfigureConnected;
+#ifdef DW_CPP11
+    std::function<int(DWExpose *)> _ConnectExpose;
+    std::function<int(int, int)> _ConnectConfigure;
+#else
+    int (*_ConnectExpose)(DWExpose *);
+    int (*_ConnectConfigure)(int width, int height);
+#endif
     void Setup() {	
-        if(IsOverridden(Render::OnExpose, this))
+        if(IsOverridden(Render::OnExpose, this)) {
             dw_signal_connect(hwnd, DW_SIGNAL_EXPOSE, DW_SIGNAL_FUNC(_OnExpose), this);
-        if(IsOverridden(Render::OnConfigure, this))
+            ExposeConnected = true;
+        }
+        if(IsOverridden(Render::OnConfigure, this)) {
             dw_signal_connect(hwnd, DW_SIGNAL_CONFIGURE, DW_SIGNAL_FUNC(_OnConfigure), this);
+            ConfigureConnected = true;
+        }
     }
-    static int _OnExpose(HWND window, DWExpose *exp, void *data) { return reinterpret_cast<Render *>(data)->OnExpose(exp); }
-    static int _OnConfigure(HWND window, int width, int height, void *data) { return reinterpret_cast<Render *>(data)->OnConfigure(width, height); }
+    static int _OnExpose(HWND window, DWExpose *exp, void *data) {
+        if(reinterpret_cast<Render *>(data)->_ConnectExpose)
+            return reinterpret_cast<Render *>(data)->_ConnectExpose(exp);
+        return reinterpret_cast<Render *>(data)->OnExpose(exp); }
+    static int _OnConfigure(HWND window, int width, int height, void *data) {
+        if(reinterpret_cast<Render *>(data)->_ConnectConfigure)
+            return reinterpret_cast<Render *>(data)->_ConnectConfigure(width, height);
+        return reinterpret_cast<Render *>(data)->OnConfigure(width, height); }
 public:
     // Constructors
     Render(unsigned long id) { SetHWND(dw_render_new(id)); Setup(); }
@@ -351,11 +488,43 @@ public:
     void GetTextExtents(const char *text, int *width, int *height) { dw_font_text_extents_get(hwnd, DW_NULL, text, width, height); }
     char *GetFont() { return dw_window_get_font(hwnd); }
     void Redraw() { dw_render_redraw(hwnd); }
+#ifdef DW_CPP11
+    void ConnectExpose(std::function<int(DWExpose *)> userfunc)
+#else
+    void ConnectExpose(int (*userfunc)(DWExpose *))
+#endif
+    {
+        _ConnectExpose = userfunc;
+        if(!ExposeConnected) {
+            dw_signal_connect(hwnd, DW_SIGNAL_EXPOSE, DW_SIGNAL_FUNC(_OnExpose), this);
+            ExposeConnected = true;
+        }
+    }
+#ifdef DW_CPP11
+    void ConnectConfigure(std::function<int(int, int)> userfunc)
+#else
+    void ConnectConfigure(int (*userfunc)(int, int))
+#endif
+    {
+        _ConnectConfigure = userfunc;
+        if(!ConfigureConnected) {
+            dw_signal_connect(hwnd, DW_SIGNAL_CONFIGURE, DW_SIGNAL_FUNC(_OnConfigure), this);
+            ConfigureConnected = true;
+        }
+    }    
 protected:
     // Our signal handler functions to be overriden...
     // If they are not overridden and an event is generated, remove the unused handler
-    virtual int OnExpose(DWExpose *exp) { dw_signal_disconnect_by_name(hwnd, DW_SIGNAL_EXPOSE); return FALSE; }
-    virtual int OnConfigure(int width, int height) { dw_signal_disconnect_by_name(hwnd, DW_SIGNAL_CONFIGURE); return FALSE; };
+    virtual int OnExpose(DWExpose *exp) {
+        dw_signal_disconnect_by_name(hwnd, DW_SIGNAL_EXPOSE);
+        ExposeConnected = false;
+        return FALSE;
+    }
+    virtual int OnConfigure(int width, int height) {
+        dw_signal_disconnect_by_name(hwnd, DW_SIGNAL_CONFIGURE);
+        ConfigureConnected = false;
+        return FALSE;
+    };
 };
 
 class Pixmap : public Drawable, public Handle
@@ -410,14 +579,32 @@ void Render::BitBlt(int xdest, int ydest, int width, int height, Pixmap *src, in
 class HTML : public Widget
 {
 private:
+    bool ChangedConnected, ResultConnected;
+#ifdef DW_CPP11
+    std::function<int(int, char *)> _ConnectChanged;
+    std::function<int(int, char *, void *)> _ConnectResult;
+#else
+    int (*_ConnectChanged)(int status, char *url);
+    int (*_ConnectResult)(int status, char *result, void *scriptdata);
+#endif
     void Setup() {	
-        if(IsOverridden(HTML::OnChanged, this))
+        if(IsOverridden(HTML::OnChanged, this)) {
             dw_signal_connect(hwnd, DW_SIGNAL_HTML_CHANGED, DW_SIGNAL_FUNC(_OnChanged), this);
-        if(IsOverridden(HTML::OnResult, this))
+            ChangedConnected = true;
+        }
+        if(IsOverridden(HTML::OnResult, this)) {
             dw_signal_connect(hwnd, DW_SIGNAL_HTML_CHANGED, DW_SIGNAL_FUNC(_OnResult), this);
+            ResultConnected = true;
+        }
     }
-    static int _OnChanged(HWND window, int status, char *url, void *data) { return reinterpret_cast<HTML *>(data)->OnChanged(status, url); }
-    static int _OnResult(HWND window, int status, char *result, void *scriptdata, void *data) { return reinterpret_cast<HTML *>(data)->OnResult(status, result, scriptdata); }
+    static int _OnChanged(HWND window, int status, char *url, void *data) {
+        if(reinterpret_cast<HTML *>(data)->_ConnectChanged)
+            return reinterpret_cast<HTML *>(data)->_ConnectChanged(status, url);
+        return reinterpret_cast<HTML *>(data)->OnChanged(status, url); }
+    static int _OnResult(HWND window, int status, char *result, void *scriptdata, void *data) {
+        if(reinterpret_cast<HTML *>(data)->_ConnectResult)
+            return reinterpret_cast<HTML *>(data)->_ConnectResult(status, result, scriptdata);
+        return reinterpret_cast<HTML *>(data)->OnResult(status, result, scriptdata); }
 public:
     // Constructors
     HTML(unsigned long id) { SetHWND(dw_html_new(id)); Setup(); }
@@ -428,11 +615,43 @@ public:
     int JavascriptRun(const char *script, void *scriptdata) { return dw_html_javascript_run(hwnd, script, scriptdata); }
     int Raw(const char *buffer) { return dw_html_raw(hwnd, buffer); }
     int URL(const char *url) { return dw_html_url(hwnd, url); }
+#ifdef DW_CPP11
+    void ConnectChanged(std::function<int(int, char *)> userfunc)
+#else
+    void ConnectChanged(int (*userfunc)(int, char *))
+#endif
+    { 
+        _ConnectChanged = userfunc;
+        if(!ChangedConnected) {
+            dw_signal_connect(hwnd, DW_SIGNAL_HTML_CHANGED, DW_SIGNAL_FUNC(_OnChanged), this);
+            ChangedConnected = true;
+        }
+    }
+#ifdef DW_CPP11
+    void ConnectResult(std::function<int(int, char *, void *)> userfunc)
+#else
+    void ConnectResult(int (*userfunc)(int, char *, void *))
+#endif
+    {
+        _ConnectResult = userfunc;
+        if(!ResultConnected) {
+            dw_signal_connect(hwnd, DW_SIGNAL_HTML_CHANGED, DW_SIGNAL_FUNC(_OnResult), this);
+            ResultConnected = true;
+        }
+    }    
 protected:
     // Our signal handler functions to be overriden...
     // If they are not overridden and an event is generated, remove the unused handler
-    virtual int OnChanged(int status, char *url) { dw_signal_disconnect_by_name(hwnd, DW_SIGNAL_HTML_CHANGED); return FALSE; }
-    virtual int OnResult(int status, char *result, void *scriptdata) { dw_signal_disconnect_by_name(hwnd, DW_SIGNAL_HTML_RESULT); return FALSE; };
+    virtual int OnChanged(int status, char *url) {
+        dw_signal_disconnect_by_name(hwnd, DW_SIGNAL_HTML_CHANGED); 
+        ChangedConnected = false;
+        return FALSE;
+    }
+    virtual int OnResult(int status, char *result, void *scriptdata) {
+        dw_signal_disconnect_by_name(hwnd, DW_SIGNAL_HTML_RESULT);
+        ResultConnected = false;
+        return FALSE;
+    };
 };
 
 // Base class for several widgets that allow text entry
@@ -467,11 +686,23 @@ public:
 class ListBoxes : virtual public Focusable
 {
 private:
+    bool ListSelectConnected;
+#ifdef DW_CPP11
+    std::function<int(int)> _ConnectListSelect;
+#else
+    int (*_ConnectListSelect)(int index);
+#endif
     void Setup() {	
-        if(IsOverridden(ListBoxes::OnListSelect, this))
+        if(IsOverridden(ListBoxes::OnListSelect, this)) {
             dw_signal_connect(hwnd, DW_SIGNAL_LIST_SELECT, DW_SIGNAL_FUNC(_OnListSelect), this);
+            ListSelectConnected = true;
+        }
     }
-    static int _OnListSelect(HWND window, int index, void *data) { return reinterpret_cast<ListBoxes *>(data)->OnListSelect(index); }
+    static int _OnListSelect(HWND window, int index, void *data) {
+        if(reinterpret_cast<ListBoxes *>(data)->_ConnectListSelect)
+            return reinterpret_cast<ListBoxes *>(data)->_ConnectListSelect(index);
+        return reinterpret_cast<ListBoxes *>(data)->OnListSelect(index);
+    }
 public:
     // User functions
     void Append(const char *text) { dw_listbox_append(hwnd, text); }
@@ -486,10 +717,26 @@ public:
     int Selected() { return dw_listbox_selected(hwnd); }
     int Selected(int where) { return dw_listbox_selected_multi(hwnd, where); }
     void SetTop(int top) { dw_listbox_set_top(hwnd, top); }
+#ifdef DW_CPP11
+    void ConnectListSelect(std::function<int(int)> userfunc)
+#else
+    void ConnectListSelect(int (*userfunc)(int))
+#endif
+    {
+        _ConnectListSelect = userfunc;
+        if(!ListSelectConnected) {
+            dw_signal_connect(hwnd, DW_SIGNAL_LIST_SELECT, DW_SIGNAL_FUNC(_OnListSelect), this);
+            ListSelectConnected = true;
+        }
+    }    
 protected:
     // Our signal handler functions to be overriden...
     // If they are not overridden and an event is generated, remove the unused handler
-    virtual int OnListSelect(int index) { dw_signal_disconnect_by_name(hwnd, DW_SIGNAL_LIST_SELECT); return FALSE; }
+    virtual int OnListSelect(int index) {
+        dw_signal_disconnect_by_name(hwnd, DW_SIGNAL_LIST_SELECT);
+        ListSelectConnected = false;
+        return FALSE;
+    }
 };
 
 class Combobox : public TextEntry, public ListBoxes
@@ -516,15 +763,44 @@ public:
 class Ranged : virtual public Widget
 {
 private:
-    static int _OnValueChanged(HWND window, int value, void *data) { return reinterpret_cast<Ranged *>(data)->OnValueChanged(value); }
+    bool ValueChangedConnected;
+#ifdef DW_CPP11
+    std::function<int(int)> _ConnectValueChanged;
+#else
+    int (*_ConnectValueChanged)(int value);
+#endif
+    static int _OnValueChanged(HWND window, int value, void *data) {
+        if(reinterpret_cast<Ranged *>(data)->_ConnectValueChanged)
+            return reinterpret_cast<Ranged *>(data)->_ConnectValueChanged(value);
+        return reinterpret_cast<Ranged *>(data)->OnValueChanged(value);
+    }
 protected:
     void Setup() {	
-        if(IsOverridden(Ranged::OnValueChanged, this))
+        if(IsOverridden(Ranged::OnValueChanged, this)) {
             dw_signal_connect(hwnd, DW_SIGNAL_VALUE_CHANGED, DW_SIGNAL_FUNC(_OnValueChanged), this);
+            ValueChangedConnected = true;
+        }
     }
     // Our signal handler functions to be overriden...
     // If they are not overridden and an event is generated, remove the unused handler
-    virtual int OnValueChanged(int value) { dw_signal_disconnect_by_name(hwnd, DW_SIGNAL_VALUE_CHANGED); return FALSE; }    
+    virtual int OnValueChanged(int value) {
+        dw_signal_disconnect_by_name(hwnd, DW_SIGNAL_VALUE_CHANGED);
+        ValueChangedConnected = false;
+        return FALSE;
+    }
+public:
+#ifdef DW_CPP11
+    void ConnectValueChanged(std::function<int(int)> userfunc)
+#else
+    void ConnectValueChanged(int (*userfunc)(int))
+#endif
+    {
+        _ConnectValueChanged = userfunc;
+        if(!ValueChangedConnected) {
+            dw_signal_connect(hwnd, DW_SIGNAL_VALUE_CHANGED, DW_SIGNAL_FUNC(_OnValueChanged), this);
+            ValueChangedConnected = true;
+        }
+    }    
 };
 
 class Slider : public Ranged
@@ -598,7 +874,7 @@ protected:
     static App *_app;
 public:
 // Allow the code to compile if handicapped on older compilers
-#if __cplusplus >= 201103L
+#ifdef DW_CPP11
     // Singletons should not be cloneable.
     App(App &other) = delete;
     // Singletons should not be assignable.
@@ -612,10 +888,12 @@ public:
     static App *Init(int argc, char *argv[], const char *appid) { if(!_app) { _app = new App(); dw_app_id_set(appid, DW_NULL); dw_init(TRUE, argc, argv); } return _app; }
     static App *Init(int argc, char *argv[], const char *appid, const char *appname) { if(!_app) { _app = new App(); dw_app_id_set(appid, appname); dw_init(TRUE, argc, argv); } return _app; }
 
+    // User functions
     void Main() { dw_main(); }
     void MainIteration() { dw_main_iteration(); }
     void MainQuit() { dw_main_quit(); }
     void Exit(int exitcode) { dw_exit(exitcode); }
+    int MessageBox(const char *title, int flags, const char *format) { return dw_messagebox(title, flags, format); }
 };
 
 // Static singleton reference declared outside of the class
