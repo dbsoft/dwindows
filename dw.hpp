@@ -28,7 +28,7 @@ namespace DW
 class Render;
 class Pixmap;
 class MenuItem;
-
+class Window;
 
 // Base handle class which allows opaque access to 
 // The base system handles
@@ -167,6 +167,9 @@ protected:
 public:
     // User functions
     HMENUI GetHMENUI() { return menu; }
+    MenuItem *MenuItemNew(const char *title, unsigned long id, unsigned long flags, int end, int check, Menus *submenu);
+    MenuItem *MenuItemNew(const char *title, Menus *submenu);
+    MenuItem *MenuItemNew(const char *title);
 };
 
 class Menu : public Menus
@@ -175,6 +178,10 @@ public:
     // Constructors
     Menu(unsigned long id) { SetHMENUI(dw_menu_new(id)); }
     Menu() { SetHMENUI(dw_menu_new(0)); }
+
+    // User functions
+    void Popup(Window *window, int x, int y);
+    void Popup(Window *window);
 };
 
 class MenuBar : public Menus
@@ -184,19 +191,36 @@ public:
     MenuBar(HWND location) { SetHMENUI(dw_menubar_new(location)); }
 };
 
-
 class MenuItem : public Clickable
 {
 public:
     // Constructors
     MenuItem(Menus *menu, const char *title, unsigned long id, unsigned long flags, int end, int check, Menus *submenu) { 
-        SetHWND(dw_menu_append_item(menu->GetHMENUI(), title, id, flags, end, check, submenu ? submenu->GetHMENUI() : 0)); 
+        SetHWND(dw_menu_append_item(menu->GetHMENUI(), title, id, flags, end, check, submenu ? submenu->GetHMENUI() : DW_NOMENU)); 
+    }
+    MenuItem(Menus *menu, const char *title, Menus *submenu) {
+        SetHWND(dw_menu_append_item(menu->GetHMENUI(), title, DW_MENU_AUTO, 0, TRUE, FALSE, submenu));
+    }
+    MenuItem(Menus *menu, const char *title) {
+        SetHWND(dw_menu_append_item(menu->GetHMENUI(), title, DW_MENU_AUTO, 0, TRUE, FALSE, DW_NOMENU));
     }
 
     // User functions
     void SetState(unsigned long flags) { dw_window_set_style(hwnd, flags, flags); }
     void SetStyle(unsigned long flags, unsigned long mask) { dw_window_set_style(hwnd, flags, mask); }
 };
+
+MenuItem *Menus::MenuItemNew(const char *title, unsigned long id, unsigned long flags, int end, int check, Menus *submenu) {
+    return new MenuItem((Menus *)menu, title, id, flags, end, check, submenu);
+}
+
+MenuItem *Menus::MenuItemNew(const char *title, Menus *submenu) {
+    return new MenuItem((Menus *)menu, title, submenu);
+}
+MenuItem *Menus::MenuItemNew(const char *title) {
+    return new MenuItem((Menus *)menu, title);
+}
+
 
 // Top-level window class is packable
 class Window : public Boxes
@@ -252,7 +276,24 @@ public:
     void Redraw() { dw_window_redraw(hwnd); }
     void Default(Widget *defaultitem) { if(defaultitem) dw_window_default(hwnd, defaultitem->GetHWND()); }
     void SetIcon(HICN icon) { dw_window_set_icon(hwnd, icon); }
-    MenuBar *MenuBarNew() { if(!menu) menu = new MenuBar(hwnd); return menu; }
+    Menus *MenuBarNew() { if(!menu) menu = new MenuBar(hwnd); return menu; }
+    void Popup(Menus *menu, int x, int y) {
+        if(menu) {
+            HMENUI pmenu = menu;
+
+            dw_menu_popup(&pmenu, hwnd, x, y);
+            delete menu; 
+        }
+    }
+    void Popup(Menus *menu) { if(menu) {
+            long x, y;
+            HMENUI pmenu = menu;
+
+            dw_pointer_query_pos(&x, &y);
+            dw_menu_popup(&pmenu, hwnd, (int)x, (int)y);
+            delete menu;
+        }
+    }
 #ifdef DW_CPP11
     void ConnectDelete(std::function<int()> userfunc)
 #else
@@ -291,6 +332,29 @@ protected:
         return FALSE;
     };
 };
+
+void Menu::Popup(Window *window, int x, int y) 
+{
+    if(window)
+    {
+        HMENUI pmenu = menu;
+
+        dw_menu_popup(&pmenu, window->GetHWND(), x, y);
+        delete this;
+    }
+}
+
+void Menu::Popup(Window *window)
+{
+    if(window) {
+        long x, y;
+        HMENUI pmenu = menu;
+
+        dw_pointer_query_pos(&x, &y);
+        dw_menu_popup(&pmenu, window->GetHWND(), (int)x, (int)y);
+        delete this;
+    }
+}
 
 // Class for focusable widgets
 class Focusable : virtual public Widget
