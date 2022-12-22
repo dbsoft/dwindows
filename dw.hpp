@@ -211,14 +211,14 @@ public:
 };
 
 MenuItem *Menus::AppendItem(const char *title, unsigned long id, unsigned long flags, int end, int check, Menus *submenu) {
-    return new MenuItem((Menus *)menu, title, id, flags, end, check, submenu);
+    return new MenuItem(this, title, id, flags, end, check, submenu);
 }
 
 MenuItem *Menus::AppendItem(const char *title, Menus *submenu) {
-    return new MenuItem((Menus *)menu, title, submenu);
+    return new MenuItem(this, title, submenu);
 }
 MenuItem *Menus::AppendItem(const char *title) {
-    return new MenuItem((Menus *)menu, title);
+    return new MenuItem(this, title);
 }
 
 
