@@ -173,17 +173,24 @@ class Menu : public Menus
 {
 public:
     // Constructors
-    Menu(HWND location) { SetHMENUI(dw_menubar_new(location)); }
     Menu(unsigned long id) { SetHMENUI(dw_menu_new(id)); }
     Menu() { SetHMENUI(dw_menu_new(0)); }
 };
+
+class MenuBar : public Menus
+{
+public:
+    // Constructors
+    MenuBar(HWND location) { SetHMENUI(dw_menubar_new(location)); }
+};
+
 
 class MenuItem : public Clickable
 {
 public:
     // Constructors
     MenuItem(Menus *menu, const char *title, unsigned long id, unsigned long flags, int end, int check, Menus *submenu) { 
-        SetHWND(dw_menu_append_item(menu->GetHMENUI(), title, id, flags, end, check, submenu ? submenu->GetHMENUI() : DW_NULL)); 
+        SetHWND(dw_menu_append_item(menu->GetHMENUI(), title, id, flags, end, check, submenu ? submenu->GetHMENUI() : 0)); 
     }
 
     // User functions
@@ -221,7 +228,7 @@ private:
         if(reinterpret_cast<Window *>(data)->_ConnectConfigure)
             return reinterpret_cast<Window *>(data)->_ConnectConfigure(width, height);
         return reinterpret_cast<Window *>(data)->OnConfigure(width, height); }
-    Menu *menu;
+    MenuBar *menu;
 public:
     // Constructors
     Window(HWND owner, const char *title, unsigned long style) { SetHWND(dw_window_new(owner, title, style)); Setup(); }
@@ -245,7 +252,7 @@ public:
     void Redraw() { dw_window_redraw(hwnd); }
     void Default(Widget *defaultitem) { if(defaultitem) dw_window_default(hwnd, defaultitem->GetHWND()); }
     void SetIcon(HICN icon) { dw_window_set_icon(hwnd, icon); }
-    Menu *MenuBar() { if(menu == DW_NULL) menu = new Menu(hwnd); return menu; }
+    MenuBar *MenuBarNew() { if(!menu) menu = new MenuBar(hwnd); return menu; }
 #ifdef DW_CPP11
     void ConnectDelete(std::function<int()> userfunc)
 #else
