@@ -967,9 +967,12 @@ typedef struct _bitbltinfo
 @interface DWMenuItem : NSMenuItem
 {
     int check;
+    void *userdata;
 }
 -(void)setCheck:(int)input;
 -(int)check;
+-(void *)userdata;
+-(void)setUserdata:(void *)input;
 -(void)dealloc;
 @end
 
@@ -1786,6 +1789,8 @@ DWObject *DWObj;
 @implementation DWMenuItem
 -(void)setCheck:(int)input { check = input; }
 -(int)check { return check; }
+-(void *)userdata { return userdata; }
+-(void)setUserdata:(void *)input { userdata = input; }
 -(void)dealloc { dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
