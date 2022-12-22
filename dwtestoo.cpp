@@ -18,7 +18,16 @@ public:
 int button_clicked()
 {
     DW::App *app = DW::App::Init();
-    app->MessageBox("Button", DW_MB_OK | DW_MB_WARNING, "Clicked!"); 
+    app->MessageBox("Button", DW_MB_OK | DW_MB_INFORMATION, "Clicked!"); 
+    return TRUE; 
+}
+
+int exit_handler()
+{
+    DW::App *app = DW::App::Init();
+    if(app->MessageBox("dwtest", DW_MB_YESNO | DW_MB_QUESTION, "Are you sure you want to exit?") != 0) {
+        app->MainQuit();
+    }
     return TRUE; 
 }
 #endif
@@ -28,7 +37,7 @@ int dwmain(int argc, char* argv[])
     DW::App *app = DW::App::Init(argc, argv, "org.dbsoft.dwindows.dwtestoo");
     MyWindow *window = new MyWindow();
     DW::Button *button = new DW::Button("Test window");
-    
+
     window->PackStart(button, DW_SIZE_AUTO, DW_SIZE_AUTO, TRUE, TRUE, 0);
 #ifdef DW_CPP11
     button->ConnectClicked([app] () -> int 
@@ -37,8 +46,29 @@ int dwmain(int argc, char* argv[])
             return TRUE; 
         });
 #else
-    button ->ConnectClicked(&button_clicked);
+    button->ConnectClicked(&button_clicked);
 #endif
+
+    DW::MenuBar *mainmenubar = window->MenuBarNew();
+
+    // add menus to the menubar
+    DW::Menu *menu = new DW::Menu();
+    DW::MenuItem *menuitem = menu->AppendItem("~Quit");
+#ifdef DW_CPP11
+    menuitem->ConnectClicked([app] () -> int 
+        { 
+            if(app->MessageBox("dwtest", DW_MB_YESNO | DW_MB_QUESTION, "Are you sure you want to exit?") != 0) {
+                app->MainQuit();
+            }
+            return TRUE;
+        });
+#else
+    menuitem->ConnectClicked(&exit_handler);
+#endif
+
+    // Add the "File" menu to the menubar...
+    mainmenubar->AppendItem("~File", menu);
+
     window->Show();
 
     app->Main();

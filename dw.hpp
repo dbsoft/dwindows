@@ -167,9 +167,9 @@ protected:
 public:
     // User functions
     HMENUI GetHMENUI() { return menu; }
-    MenuItem *MenuItemNew(const char *title, unsigned long id, unsigned long flags, int end, int check, Menus *submenu);
-    MenuItem *MenuItemNew(const char *title, Menus *submenu);
-    MenuItem *MenuItemNew(const char *title);
+    MenuItem *AppendItem(const char *title, unsigned long id, unsigned long flags, int end, int check, Menus *submenu);
+    MenuItem *AppendItem(const char *title, Menus *submenu);
+    MenuItem *AppendItem(const char *title);
 };
 
 class Menu : public Menus
@@ -199,7 +199,7 @@ public:
         SetHWND(dw_menu_append_item(menu->GetHMENUI(), title, id, flags, end, check, submenu ? submenu->GetHMENUI() : DW_NOMENU)); 
     }
     MenuItem(Menus *menu, const char *title, Menus *submenu) {
-        SetHWND(dw_menu_append_item(menu->GetHMENUI(), title, DW_MENU_AUTO, 0, TRUE, FALSE, submenu));
+        SetHWND(dw_menu_append_item(menu->GetHMENUI(), title, DW_MENU_AUTO, 0, TRUE, FALSE, submenu ? submenu->GetHMENUI() : DW_NOMENU));
     }
     MenuItem(Menus *menu, const char *title) {
         SetHWND(dw_menu_append_item(menu->GetHMENUI(), title, DW_MENU_AUTO, 0, TRUE, FALSE, DW_NOMENU));
@@ -210,14 +210,14 @@ public:
     void SetStyle(unsigned long flags, unsigned long mask) { dw_window_set_style(hwnd, flags, mask); }
 };
 
-MenuItem *Menus::MenuItemNew(const char *title, unsigned long id, unsigned long flags, int end, int check, Menus *submenu) {
+MenuItem *Menus::AppendItem(const char *title, unsigned long id, unsigned long flags, int end, int check, Menus *submenu) {
     return new MenuItem((Menus *)menu, title, id, flags, end, check, submenu);
 }
 
-MenuItem *Menus::MenuItemNew(const char *title, Menus *submenu) {
+MenuItem *Menus::AppendItem(const char *title, Menus *submenu) {
     return new MenuItem((Menus *)menu, title, submenu);
 }
-MenuItem *Menus::MenuItemNew(const char *title) {
+MenuItem *Menus::AppendItem(const char *title) {
     return new MenuItem((Menus *)menu, title);
 }
 
@@ -276,8 +276,8 @@ public:
     void Redraw() { dw_window_redraw(hwnd); }
     void Default(Widget *defaultitem) { if(defaultitem) dw_window_default(hwnd, defaultitem->GetHWND()); }
     void SetIcon(HICN icon) { dw_window_set_icon(hwnd, icon); }
-    Menus *MenuBarNew() { if(!menu) menu = new MenuBar(hwnd); return menu; }
-    void Popup(Menus *menu, int x, int y) {
+    MenuBar *MenuBarNew() { if(!menu) menu = new MenuBar(hwnd); return menu; }
+    void Popup(Menu *menu, int x, int y) {
         if(menu) {
             HMENUI pmenu = menu;
 
@@ -285,7 +285,8 @@ public:
             delete menu; 
         }
     }
-    void Popup(Menus *menu) { if(menu) {
+    void Popup(Menu *menu) {
+        if(menu) {
             long x, y;
             HMENUI pmenu = menu;
 
