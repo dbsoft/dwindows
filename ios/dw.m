@@ -734,6 +734,7 @@ API_AVAILABLE(ios(13.0))
     BOOL check, enabled;
     unsigned long tag;
     DWMenu *submenu, *menu;
+    void *userdata;
 }
 -(void)setCheck:(BOOL)input;
 -(void)setEnabled:(BOOL)input;
@@ -745,6 +746,8 @@ API_AVAILABLE(ios(13.0))
 -(BOOL)check;
 -(BOOL)enabled;
 -(unsigned long)tag;
+-(void *)userdata;
+-(void)setUserdata:(void *)input;
 -(void)dealloc;
 @end
 
@@ -1812,7 +1815,9 @@ BOOL _dw_is_dark(void)
 -(DWMenu *)submenu { return submenu; }
 -(DWMenu *)menu { return menu; }
 -(unsigned long)tag { return tag; }
--(void)dealloc { dw_signal_disconnect_by_window(self); [super dealloc]; }
+-(void *)userdata { return userdata; }
+-(void)setUserdata:(void *)input { userdata = input; }
+-(void)dealloc { UserData *root = userdata; _dw_remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 /*
  * Encapsulate immutable objects in our own containers,
