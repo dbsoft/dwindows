@@ -1018,8 +1018,8 @@ private:
     std::function<int(char *)> _ConnectItemEnter;
     std::function<int(int)> _ConnectColumnClick;
 #else
-    int (*_ConnectItemEnter)(HTREEITEM, char *, void *);
-    int (*_ConnectColumnClick)(char *, int, int, void *);
+    int (*_ConnectItemEnter)(char *);
+    int (*_ConnectColumnClick)(int);
 #endif
     static int _OnItemEnter(HWND window, char *text, void *data) {
         if(reinterpret_cast<Containers *>(data)->_ConnectItemEnter)
@@ -1134,6 +1134,67 @@ public:
     void SetFile(int row, const char *filename, HICN icon) { dw_filesystem_set_file(hwnd, allocpointer, row, filename, icon); }
     void SetItem(int column, int row, void *data) { dw_filesystem_set_item(hwnd, allocpointer, column, row, data); }
 };
+
+class Tree : virtual public Focusable, virtual public ObjectView
+{
+private:
+    bool TreeExpandConnected;
+#ifdef DW_CPP11
+    std::function<int(HTREEITEM)> _ConnectTreeExpand;
+#else
+    int (*_ConnectTreeExpand)(HTREEITEM);
+#endif
+    static int _OnTreeExpand(HWND window, HTREEITEM item, void *data) {
+        if(reinterpret_cast<Tree *>(data)->_ConnectTreeExpand)
+            return reinterpret_cast<Tree *>(data)->_ConnectTreeExpand(item);
+        return reinterpret_cast<Tree *>(data)->OnTreeExpand(item);
+    }
+    void SetupTree() {	
+        if(IsOverridden(Tree::OnTreeExpand, this)) {
+            dw_signal_connect(hwnd, DW_SIGNAL_TREE_EXPAND, DW_SIGNAL_FUNC(_OnTreeExpand), this);
+            TreeExpandConnected = true;
+        }
+    }
+protected:
+    // Our signal handler functions to be overriden...
+    // If they are not overridden and an event is generated, remove the unused handler
+    virtual int OnTreeExpand(HTREEITEM item) {
+        dw_signal_disconnect_by_name(hwnd, DW_SIGNAL_TREE_EXPAND);
+        TreeExpandConnected = false;
+        return FALSE;
+    }
+public:
+    // Constructors
+    Tree(unsigned long id) { SetHWND(dw_tree_new(id)); SetupObjectView(); SetupTree(); }
+    Tree() { SetHWND(dw_tree_new(0)); SetupObjectView(); SetupTree(); }
+
+    // User functions
+    void Clear() { dw_tree_clear(hwnd); }
+    HTREEITEM GetParent(HTREEITEM item) { return dw_tree_get_parent(hwnd, item); }
+    char *GetTitle(HTREEITEM item) { return dw_tree_get_title(hwnd, item); }
+    HTREEITEM Insert(const char *title, HICN icon, HTREEITEM parent, void *itemdata) { return dw_tree_insert(hwnd, title, icon, parent, itemdata); }
+    HTREEITEM Insert(const char *title, HTREEITEM item, HICN icon, HTREEITEM parent, void *itemdata) { return dw_tree_insert_after(hwnd, item, title, icon, parent, itemdata); }
+    void Change(HTREEITEM item, const char *title, HICN icon) { dw_tree_item_change(hwnd, item, title, icon); }
+    void Collapse(HTREEITEM item) { dw_tree_item_collapse(hwnd, item); }
+    void Delete(HTREEITEM item) { dw_tree_item_delete(hwnd, item); }
+    void Expand(HTREEITEM item) { dw_tree_item_expand(hwnd, item); }
+    void *GetData(HTREEITEM item) { dw_tree_item_get_data(hwnd, item); }
+    void Select(HTREEITEM item) { dw_tree_item_select(hwnd, item); }
+    void SetData(HTREEITEM item, void *itemdata) { dw_tree_item_set_data(hwnd, item, itemdata); }
+#ifdef DW_CPP11
+    void ConnectTreeExpand(std::function<int(HTREEITEM)> userfunc)
+#else
+    void ConnectTreeExpand(int (*userfunc)(HTREEITEM))
+#endif
+    {
+        _ConnectTreeExpand = userfunc;
+        if(!TreeExpandConnected) {
+            dw_signal_connect(hwnd, DW_SIGNAL_TREE_EXPAND, DW_SIGNAL_FUNC(_OnTreeExpand), this);
+            TreeExpandConnected = true;
+        }
+    }
+};
+
 
 class App
 {
