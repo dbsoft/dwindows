@@ -14,7 +14,7 @@ public:
      int OnConfigure(int width, int height) override { return FALSE; }
 };
 
-#ifndef DW_CPP11
+#ifndef DW_LAMBDA
 int button_clicked()
 {
     DW::App *app = DW::App::Init();
@@ -39,7 +39,7 @@ int dwmain(int argc, char* argv[])
     DW::Button *button = new DW::Button("Test window");
 
     window->PackStart(button, DW_SIZE_AUTO, DW_SIZE_AUTO, TRUE, TRUE, 0);
-#ifdef DW_CPP11
+#ifdef DW_LAMBDA
     button->ConnectClicked([app] () -> int 
         { 
             app->MessageBox("Button", DW_MB_OK | DW_MB_WARNING, "Clicked!"); 
@@ -54,7 +54,7 @@ int dwmain(int argc, char* argv[])
     // add menus to the menubar
     DW::Menu *menu = new DW::Menu();
     DW::MenuItem *menuitem = menu->AppendItem("~Quit");
-#ifdef DW_CPP11
+#ifdef DW_LAMBDA
     menuitem->ConnectClicked([app] () -> int 
         { 
             if(app->MessageBox("dwtest", DW_MB_YESNO | DW_MB_QUESTION, "Are you sure you want to exit?") != 0) {

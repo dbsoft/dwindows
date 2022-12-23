@@ -8,12 +8,18 @@
 #include <dw.h>
 
 // Attempt to support compilers without nullptr type literal
-#if __cplusplus >= 201103L
+#if __cplusplus >= 201103L 
 #define DW_CPP11
 #define DW_NULL nullptr
-#include <functional>
 #else
 #define DW_NULL NULL
+#endif
+
+// Support Lambdas on C++11, Visual C 2010 or GCC 4.5
+#ifdef DW_CPP11 || (defined(_MSC_VER) && _MSC_VER >= 1600) || \
+    (defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ > 4)))
+#define DW_LAMBDA
+#include <functional>
 #endif
 
 // Attempt to allow compilation on GCC older than 4.7
@@ -118,7 +124,7 @@ class Clickable : virtual public Widget
 {
 private:
     bool ClickedConnected;
-#ifdef DW_CPP11
+#ifdef DW_LAMBDA
     std::function<int()> _ConnectClicked;
 #else
     int (*_ConnectClicked)();
@@ -142,7 +148,7 @@ protected:
         return FALSE;
     }
 public:
-#ifdef DW_CPP11
+#ifdef DW_LAMBDA
     void ConnectClicked(std::function<int()> userfunc)
 #else
     void ConnectClicked(int (*userfunc)())
@@ -227,7 +233,7 @@ class Window : public Boxes
 {
 private:
     bool DeleteConnected, ConfigureConnected;
-#ifdef DW_CPP11
+#ifdef DW_LAMBDA
     std::function<int()> _ConnectDelete;
     std::function<int(int, int)> _ConnectConfigure;
 #else
@@ -295,7 +301,7 @@ public:
             delete menu;
         }
     }
-#ifdef DW_CPP11
+#ifdef DW_LAMBDA
     void ConnectDelete(std::function<int()> userfunc)
 #else
     void ConnectDelete(int (*userfunc)()) 
@@ -307,7 +313,7 @@ public:
             DeleteConnected = true;
         }
     }
-#ifdef DW_CPP11
+#ifdef DW_LAMBDA
     void ConnectConfigure(std::function<int(int, int)> userfunc)
 #else
     void ConnectConfigure(int (*userfunc)(int, int)) 
@@ -511,7 +517,7 @@ class Render : public Drawable, public Widget
 {
 private:
     bool ExposeConnected, ConfigureConnected;
-#ifdef DW_CPP11
+#ifdef DW_LAMBDA
     std::function<int(DWExpose *)> _ConnectExpose;
     std::function<int(int, int)> _ConnectConfigure;
 #else
@@ -560,7 +566,7 @@ public:
     void GetTextExtents(const char *text, int *width, int *height) { dw_font_text_extents_get(hwnd, DW_NULL, text, width, height); }
     char *GetFont() { return dw_window_get_font(hwnd); }
     void Redraw() { dw_render_redraw(hwnd); }
-#ifdef DW_CPP11
+#ifdef DW_LAMBDA
     void ConnectExpose(std::function<int(DWExpose *)> userfunc)
 #else
     void ConnectExpose(int (*userfunc)(DWExpose *))
@@ -572,7 +578,7 @@ public:
             ExposeConnected = true;
         }
     }
-#ifdef DW_CPP11
+#ifdef DW_LAMBDA
     void ConnectConfigure(std::function<int(int, int)> userfunc)
 #else
     void ConnectConfigure(int (*userfunc)(int, int))
@@ -652,7 +658,7 @@ class HTML : public Widget
 {
 private:
     bool ChangedConnected, ResultConnected;
-#ifdef DW_CPP11
+#ifdef DW_LAMBDA
     std::function<int(int, char *)> _ConnectChanged;
     std::function<int(int, char *, void *)> _ConnectResult;
 #else
@@ -687,7 +693,7 @@ public:
     int JavascriptRun(const char *script, void *scriptdata) { return dw_html_javascript_run(hwnd, script, scriptdata); }
     int Raw(const char *buffer) { return dw_html_raw(hwnd, buffer); }
     int URL(const char *url) { return dw_html_url(hwnd, url); }
-#ifdef DW_CPP11
+#ifdef DW_LAMBDA
     void ConnectChanged(std::function<int(int, char *)> userfunc)
 #else
     void ConnectChanged(int (*userfunc)(int, char *))
@@ -699,7 +705,7 @@ public:
             ChangedConnected = true;
         }
     }
-#ifdef DW_CPP11
+#ifdef DW_LAMBDA
     void ConnectResult(std::function<int(int, char *, void *)> userfunc)
 #else
     void ConnectResult(int (*userfunc)(int, char *, void *))
@@ -759,7 +765,7 @@ class ListBoxes : virtual public Focusable
 {
 private:
     bool ListSelectConnected;
-#ifdef DW_CPP11
+#ifdef DW_LAMBDA
     std::function<int(int)> _ConnectListSelect;
 #else
     int (*_ConnectListSelect)(int index);
@@ -789,7 +795,7 @@ public:
     int Selected() { return dw_listbox_selected(hwnd); }
     int Selected(int where) { return dw_listbox_selected_multi(hwnd, where); }
     void SetTop(int top) { dw_listbox_set_top(hwnd, top); }
-#ifdef DW_CPP11
+#ifdef DW_LAMBDA
     void ConnectListSelect(std::function<int(int)> userfunc)
 #else
     void ConnectListSelect(int (*userfunc)(int))
@@ -836,7 +842,7 @@ class Ranged : virtual public Widget
 {
 private:
     bool ValueChangedConnected;
-#ifdef DW_CPP11
+#ifdef DW_LAMBDA
     std::function<int(int)> _ConnectValueChanged;
 #else
     int (*_ConnectValueChanged)(int value);
@@ -861,7 +867,7 @@ protected:
         return FALSE;
     }
 public:
-#ifdef DW_CPP11
+#ifdef DW_LAMBDA
     void ConnectValueChanged(std::function<int(int)> userfunc)
 #else
     void ConnectValueChanged(int (*userfunc)(int))
@@ -943,7 +949,7 @@ class ObjectView : virtual public Widget
 {
 private:
     bool ItemSelectConnected, ItemContextConnected;
-#ifdef DW_CPP11
+#ifdef DW_LAMBDA
     std::function<int(HTREEITEM, char *, void *)> _ConnectItemSelect;
     std::function<int(char *, int, int, void *)> _ConnectItemContext;
 #else
@@ -984,7 +990,7 @@ protected:
         return FALSE;
     }
 public:
-#ifdef DW_CPP11
+#ifdef DW_LAMBDA
     void ConnectItemSelect(std::function<int(HTREEITEM, char *, void *)> userfunc)
 #else
     void ConnectItemSelect(int (*userfunc)(HTREEITEM, char *, void *))
@@ -996,7 +1002,7 @@ public:
             ItemSelectConnected = true;
         }
     }        
-#ifdef DW_CPP11
+#ifdef DW_LAMBDA
     void ConnectItemContext(std::function<int(char *, int, int, void *)> userfunc)
 #else
     void ConnectItemContext(int (*userfunc)(char *, int, int, void *))
@@ -1014,7 +1020,7 @@ class Containers : virtual public Focusable, virtual public ObjectView
 {
 private:
     bool ItemEnterConnected, ColumnClickConnected;
-#ifdef DW_CPP11
+#ifdef DW_LAMBDA
     std::function<int(char *)> _ConnectItemEnter;
     std::function<int(int)> _ConnectColumnClick;
 #else
@@ -1076,7 +1082,7 @@ public:
     void SetRowData(int row, void *data) { dw_container_set_row_data(allocpointer, row, data); }
     void SetRowTitle(int row, const char *title) { dw_container_set_row_title(allocpointer, row, title); }
     void SetStripe(unsigned long oddcolor, unsigned long evencolor) { dw_container_set_stripe(hwnd, oddcolor, evencolor); }
-#ifdef DW_CPP11
+#ifdef DW_LAMBDA
     void ConnectItemEnter(std::function<int(char *)> userfunc)
 #else
     void ConnectItemEnter(int (*userfunc)(char *))
@@ -1088,7 +1094,7 @@ public:
             ItemEnterConnected = true;
         }
     }        
-#ifdef DW_CPP11
+#ifdef DW_LAMBDA
     void ConnecColumnClick(std::function<int(int)> userfunc)
 #else
     void ConnectColumnClick(int (*userfunc)(int))
@@ -1139,7 +1145,7 @@ class Tree : virtual public Focusable, virtual public ObjectView
 {
 private:
     bool TreeExpandConnected;
-#ifdef DW_CPP11
+#ifdef DW_LAMBDA
     std::function<int(HTREEITEM)> _ConnectTreeExpand;
 #else
     int (*_ConnectTreeExpand)(HTREEITEM);
@@ -1181,7 +1187,7 @@ public:
     void *GetData(HTREEITEM item) { dw_tree_item_get_data(hwnd, item); }
     void Select(HTREEITEM item) { dw_tree_item_select(hwnd, item); }
     void SetData(HTREEITEM item, void *itemdata) { dw_tree_item_set_data(hwnd, item, itemdata); }
-#ifdef DW_CPP11
+#ifdef DW_LAMBDA
     void ConnectTreeExpand(std::function<int(HTREEITEM)> userfunc)
 #else
     void ConnectTreeExpand(int (*userfunc)(HTREEITEM))
