@@ -1184,7 +1184,7 @@ public:
     void Collapse(HTREEITEM item) { dw_tree_item_collapse(hwnd, item); }
     void Delete(HTREEITEM item) { dw_tree_item_delete(hwnd, item); }
     void Expand(HTREEITEM item) { dw_tree_item_expand(hwnd, item); }
-    void *GetData(HTREEITEM item) { dw_tree_item_get_data(hwnd, item); }
+    void *GetData(HTREEITEM item) { return dw_tree_item_get_data(hwnd, item); }
     void Select(HTREEITEM item) { dw_tree_item_select(hwnd, item); }
     void SetData(HTREEITEM item, void *itemdata) { dw_tree_item_set_data(hwnd, item, itemdata); }
 #ifdef DW_LAMBDA
