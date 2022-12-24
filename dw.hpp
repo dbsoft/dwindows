@@ -1309,6 +1309,34 @@ public:
     }
 };
 
+class SplitBar : public Widget
+{
+public:
+    // Constructors
+    SplitBar(int orient, Widget *topleft, Widget *bottomright, unsigned long id) { 
+            SetHWND(dw_splitbar_new(orient, topleft ? topleft->GetHWND() : DW_NOHWND, bottomright ? bottomright->GetHWND() : DW_NOHWND, id)); }
+    SplitBar(int orient, Widget *topleft, Widget *bottomright) { 
+            SetHWND(dw_splitbar_new(orient, topleft ? topleft->GetHWND() : DW_NOHWND, bottomright ? bottomright->GetHWND() : DW_NOHWND, 0)); }
+
+    // User functions
+    float Get() { return dw_splitbar_get(hwnd); }
+    void Set(float percent) { dw_splitbar_set(hwnd, percent); }
+};
+
+class Dialog : public Handle
+{
+private:
+    DWDialog *dialog;
+public:
+    // Constructors
+    Dialog(void *data) { dialog = dw_dialog_new(data); SetHandle(reinterpret_cast<void *>(dialog)); }
+    Dialog() { dialog = dw_dialog_new(DW_NULL); SetHandle(reinterpret_cast<void *>(dialog)); }
+
+    // User functions
+    void *Wait() { void *retval = dw_dialog_wait(dialog); delete this; return retval; }
+    int Dismiss(void *data) { return dw_dialog_dismiss(dialog, data); }
+    int Dismiss() { return dw_dialog_dismiss(dialog, NULL); }
+};
 
 class App
 {
