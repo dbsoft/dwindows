@@ -516,13 +516,21 @@ public:
 class Render : public Drawable, public Widget
 {
 private:
-    bool ExposeConnected, ConfigureConnected;
+    bool ExposeConnected, ConfigureConnected, KeyPressConnected, ButtonPressConnected, ButtonReleaseConnected, MotionNotifyConnected;
 #ifdef DW_LAMBDA
     std::function<int(DWExpose *)> _ConnectExpose;
     std::function<int(int, int)> _ConnectConfigure;
+    std::function<int(char c, int, int, char *)> _ConnectKeyPress;
+    std::function<int(int, int, int)> _ConnectButtonPress;
+    std::function<int(int, int, int)> _ConnectButtonRelease;
+    std::function<int(int, int, int)> _ConnectMotionNotify;
 #else
     int (*_ConnectExpose)(DWExpose *);
     int (*_ConnectConfigure)(int width, int height);
+    int (*_ConnectKeyPress)(char c, int vk, int state, char *utf8);
+    int (*_ConnectButtonPress)(int x, int y, int buttonmask);
+    int (*_ConnectButtonRelease)(int x, int y, int buttonmask);
+    int (*_ConnectMotionNotify)(int x, int y, int buttonmask);
 #endif
     void Setup() {	
         if(IsOverridden(Render::OnExpose, this)) {
@@ -533,6 +541,22 @@ private:
             dw_signal_connect(hwnd, DW_SIGNAL_CONFIGURE, DW_SIGNAL_FUNC(_OnConfigure), this);
             ConfigureConnected = true;
         }
+        if(IsOverridden(Render::OnKeyPress, this)) {
+            dw_signal_connect(hwnd, DW_SIGNAL_KEY_PRESS, DW_SIGNAL_FUNC(_OnKeyPress), this);
+            KeyPressConnected = true;
+        }
+        if(IsOverridden(Render::OnButtonPress, this)) {
+            dw_signal_connect(hwnd, DW_SIGNAL_BUTTON_PRESS, DW_SIGNAL_FUNC(_OnButtonPress), this);
+            ButtonPressConnected = true;
+        }
+        if(IsOverridden(Render::OnButtonRelease, this)) {
+            dw_signal_connect(hwnd, DW_SIGNAL_BUTTON_RELEASE, DW_SIGNAL_FUNC(_OnButtonRelease), this);
+            ButtonReleaseConnected = true;
+        }
+        if(IsOverridden(Render::OnMotionNotify, this)) {
+            dw_signal_connect(hwnd, DW_SIGNAL_MOTION_NOTIFY, DW_SIGNAL_FUNC(_OnMotionNotify), this);
+            MotionNotifyConnected = true;
+        }
     }
     static int _OnExpose(HWND window, DWExpose *exp, void *data) {
         if(reinterpret_cast<Render *>(data)->_ConnectExpose)
@@ -542,6 +566,22 @@ private:
         if(reinterpret_cast<Render *>(data)->_ConnectConfigure)
             return reinterpret_cast<Render *>(data)->_ConnectConfigure(width, height);
         return reinterpret_cast<Render *>(data)->OnConfigure(width, height); }
+    static int _OnKeyPress(HWND window, char c, int vk, int state, void *data, char *utf8) {
+        if(reinterpret_cast<Render *>(data)->_ConnectKeyPress)
+            return reinterpret_cast<Render *>(data)->_ConnectKeyPress(c, vk, state, utf8);
+        return reinterpret_cast<Render *>(data)->OnKeyPress(c, vk, state, utf8); }
+    static int _OnButtonPress(HWND window, int x, int y, int buttonmask, void *data) {
+        if(reinterpret_cast<Render *>(data)->_ConnectButtonPress)
+            return reinterpret_cast<Render *>(data)->_ConnectButtonPress(x, y, buttonmask);
+        return reinterpret_cast<Render *>(data)->OnButtonPress(x, y, buttonmask); }
+    static int _OnButtonRelease(HWND window, int x, int y, int buttonmask, void *data) {
+        if(reinterpret_cast<Render *>(data)->_ConnectButtonRelease)
+            return reinterpret_cast<Render *>(data)->_ConnectButtonRelease(x, y, buttonmask);
+        return reinterpret_cast<Render *>(data)->OnButtonRelease(x, y, buttonmask); }
+    static int _OnMotionNotify(HWND window, int x, int y, int  buttonmask, void *data) {
+        if(reinterpret_cast<Render *>(data)->_ConnectMotionNotify)
+            return reinterpret_cast<Render *>(data)->_ConnectMotionNotify(x, y, buttonmask);
+        return reinterpret_cast<Render *>(data)->OnMotionNotify(x, y, buttonmask); }
 public:
     // Constructors
     Render(unsigned long id) { SetHWND(dw_render_new(id)); Setup(); }
@@ -589,7 +629,55 @@ public:
             dw_signal_connect(hwnd, DW_SIGNAL_CONFIGURE, DW_SIGNAL_FUNC(_OnConfigure), this);
             ConfigureConnected = true;
         }
-    }    
+    }
+#ifdef DW_LAMBDA
+    void ConnectKeyPress(std::function<int(char, int, int, char *)> userfunc)
+#else
+    void ConnectKeyPress(int (*userfunc)(char, int, int, char *))
+#endif
+    {
+        _ConnectKeyPress = userfunc;
+        if(!KeyPressConnected) {
+            dw_signal_connect(hwnd, DW_SIGNAL_KEY_PRESS, DW_SIGNAL_FUNC(_OnKeyPress), this);
+            KeyPressConnected = true;
+        }
+    }
+#ifdef DW_LAMBDA
+    void ConnectButtonPress(std::function<int(int, int, int)> userfunc)
+#else
+    void ConnectButtonPress(int (*userfunc)(int, int, int))
+#endif
+    {
+        _ConnectButtonPress = userfunc;
+        if(!KeyPressConnected) {
+            dw_signal_connect(hwnd, DW_SIGNAL_BUTTON_PRESS, DW_SIGNAL_FUNC(_OnButtonPress), this);
+            ButtonPressConnected = true;
+        }
+    }
+#ifdef DW_LAMBDA
+    void ConnectButtonRelease(std::function<int(int, int, int)> userfunc)
+#else
+    void ConnectButtonRelease(int (*userfunc)(int, int, int))
+#endif
+    {
+        _ConnectButtonRelease = userfunc;
+        if(!KeyPressConnected) {
+            dw_signal_connect(hwnd, DW_SIGNAL_BUTTON_RELEASE, DW_SIGNAL_FUNC(_OnButtonRelease), this);
+            ButtonReleaseConnected = true;
+        }
+    }
+#ifdef DW_LAMBDA
+    void ConnectMotionNotify(std::function<int(int, int, int)> userfunc)
+#else
+    void ConnectMotionNotify(int (*userfunc)(int, int, int))
+#endif
+    {
+        _ConnectMotionNotify = userfunc;
+        if(!MotionNotifyConnected) {
+            dw_signal_connect(hwnd, DW_SIGNAL_MOTION_NOTIFY, DW_SIGNAL_FUNC(_OnMotionNotify), this);
+            MotionNotifyConnected = true;
+        }
+    }
 protected:
     // Our signal handler functions to be overriden...
     // If they are not overridden and an event is generated, remove the unused handler
@@ -601,6 +689,26 @@ protected:
     virtual int OnConfigure(int width, int height) {
         dw_signal_disconnect_by_name(hwnd, DW_SIGNAL_CONFIGURE);
         ConfigureConnected = false;
+        return FALSE;
+    };
+    virtual int OnKeyPress(char c, int vk, int state, char *utf8) {
+        dw_signal_disconnect_by_name(hwnd, DW_SIGNAL_KEY_PRESS);
+        KeyPressConnected = false;
+        return FALSE;
+    };
+    virtual int OnButtonPress(char x, int y, int buttonmask) {
+        dw_signal_disconnect_by_name(hwnd, DW_SIGNAL_BUTTON_PRESS);
+        ButtonPressConnected = false;
+        return FALSE;
+    };
+    virtual int OnButtonRelease(char x, int y, int buttonmask) {
+        dw_signal_disconnect_by_name(hwnd, DW_SIGNAL_BUTTON_RELEASE);
+        ButtonReleaseConnected = false;
+        return FALSE;
+    };
+    virtual int OnMotionNotify(char x, int y, int buttonmask) {
+        dw_signal_disconnect_by_name(hwnd, DW_SIGNAL_MOTION_NOTIFY);
+        MotionNotifyConnected = false;
         return FALSE;
     };
 };
