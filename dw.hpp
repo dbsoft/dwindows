@@ -60,13 +60,7 @@ protected:
     HWND hwnd; 
 public:
     HWND GetHWND() { return hwnd; }
-    int Unpack() { return dw_box_unpack(hwnd); }
-    void SetStyle(unsigned long style, unsigned long mask) { dw_window_set_style(hwnd, style, mask); }
-    void SetTooltip(char *bubbletext) { dw_window_set_tooltip(hwnd, bubbletext); }
-    int SetColor(unsigned long fore, unsigned long back) { return dw_window_set_color(hwnd, fore, back); }
-    void SetData(const char *dataname, void *data) { dw_window_set_data(hwnd, dataname, data); }
-    void *GetData(const char *dataname) { return dw_window_get_data(hwnd, dataname); }
-    void SetPointer(int cursortype) { dw_window_set_pointer(hwnd, cursortype); }
+    int Destroy() { int retval = dw_window_destroy(hwnd); delete this; return retval; }
     Widget *FromID(int id) { 
         HWND child = dw_window_from_id(hwnd, id);
         if(child) {
@@ -75,6 +69,13 @@ public:
         return DW_NULL;
     }
     void GetPreferredSize(int *width, int *height) { dw_window_get_preferred_size(hwnd, width, height); }
+    int SetColor(unsigned long fore, unsigned long back) { return dw_window_set_color(hwnd, fore, back); }
+    void SetData(const char *dataname, void *data) { dw_window_set_data(hwnd, dataname, data); }
+    void *GetData(const char *dataname) { return dw_window_get_data(hwnd, dataname); }
+    void SetPointer(int cursortype) { dw_window_set_pointer(hwnd, cursortype); }
+    void SetStyle(unsigned long style, unsigned long mask) { dw_window_set_style(hwnd, style, mask); }
+    void SetTooltip(char *bubbletext) { dw_window_set_tooltip(hwnd, bubbletext); }
+    int Unpack() { return dw_box_unpack(hwnd); }
 };
 
 // Box class is a packable object
@@ -1336,6 +1337,36 @@ public:
     void *Wait() { void *retval = dw_dialog_wait(dialog); delete this; return retval; }
     int Dismiss(void *data) { return dw_dialog_dismiss(dialog, data); }
     int Dismiss() { return dw_dialog_dismiss(dialog, NULL); }
+};
+
+class Mutex : public Handle
+{
+private:
+    HMTX mutex;
+public:
+    // Constructors
+    Mutex() { mutex = dw_mutex_new(); SetHandle(reinterpret_cast<void *>(mutex)); }
+
+    // User functions
+    void Close() { dw_mutex_close(mutex); delete this; }
+    void Lock() { dw_mutex_lock(mutex); }
+    int TryLock() { return dw_mutex_trylock(mutex); }
+    void Unlock() { dw_mutex_unlock(mutex); }
+};
+
+class Event : public Handle
+{
+private:
+    HEV event;
+public:
+    // Constructors
+    Event() { event = dw_event_new(); SetHandle(reinterpret_cast<void *>(event)); }
+
+    // User functions
+    int Close() { int retval = dw_event_close(&event); delete this; return retval; }
+    int Post() { return dw_event_post(event); }
+    int Reset() { return dw_event_reset(event); }
+    int Wait(unsigned long timeout) { return dw_event_wait(event, timeout); }
 };
 
 class App
