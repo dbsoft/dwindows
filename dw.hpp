@@ -135,7 +135,8 @@ private:
             return reinterpret_cast<Clickable *>(data)->_ConnectClicked();
         return reinterpret_cast<Clickable *>(data)->OnClicked(); }
 protected:
-    void Setup() {	
+    void Setup() {
+        _ConnectClicked = 0;
         if(IsOverridden(Clickable::OnClicked, this)) {
             dw_signal_connect(hwnd, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(_OnClicked), this);
             ClickedConnected = true;
@@ -241,15 +242,22 @@ private:
     int (*_ConnectDelete)();
     int (*_ConnectConfigure)(int width, int height);
 #endif
-    void Setup() {	
+    void Setup() {
+        _ConnectDelete = 0;
+        _ConnectConfigure = 0;
+        menu = DW_NULL;
         if(IsOverridden(Window::OnDelete, this)) {
             dw_signal_connect(hwnd, DW_SIGNAL_DELETE, DW_SIGNAL_FUNC(_OnDelete), this);
             DeleteConnected = true;
+        } else {
+            DeleteConnected = false;
         }
         if(IsOverridden(Window::OnConfigure, this)) {
             dw_signal_connect(hwnd, DW_SIGNAL_CONFIGURE, DW_SIGNAL_FUNC(_OnConfigure), this);
             ConfigureConnected = true;
-        }
+        } else {
+            ConfigureConnected = false;
+    }
     }
     static int _OnDelete(HWND window, void *data) { 
         if(reinterpret_cast<Window *>(data)->_ConnectDelete)
@@ -312,6 +320,8 @@ public:
         if(!DeleteConnected) {
             dw_signal_connect(hwnd, DW_SIGNAL_DELETE, DW_SIGNAL_FUNC(_OnDelete), this);
             DeleteConnected = true;
+        } else {
+            DeleteConnected = false;
         }
     }
 #ifdef DW_LAMBDA
@@ -324,6 +334,8 @@ public:
         if(!ConfigureConnected) {
             dw_signal_connect(hwnd, DW_SIGNAL_CONFIGURE, DW_SIGNAL_FUNC(_OnConfigure), this);
             ConfigureConnected = true;
+        } else {
+            ConfigureConnected = false;
         }
     }    
 protected:
@@ -533,30 +545,48 @@ private:
     int (*_ConnectButtonRelease)(int x, int y, int buttonmask);
     int (*_ConnectMotionNotify)(int x, int y, int buttonmask);
 #endif
-    void Setup() {	
+    void Setup() {
+        _ConnectExpose = 0;
+        _ConnectConfigure = 0;
+        _ConnectKeyPress = 0;
+        _ConnectButtonPress = 0;
+        _ConnectButtonRelease = 0;
+        _ConnectMotionNotify = 0;
         if(IsOverridden(Render::OnExpose, this)) {
             dw_signal_connect(hwnd, DW_SIGNAL_EXPOSE, DW_SIGNAL_FUNC(_OnExpose), this);
             ExposeConnected = true;
+        } else {
+            ExposeConnected = false;
         }
         if(IsOverridden(Render::OnConfigure, this)) {
             dw_signal_connect(hwnd, DW_SIGNAL_CONFIGURE, DW_SIGNAL_FUNC(_OnConfigure), this);
             ConfigureConnected = true;
+        } else {
+            ConfigureConnected = false;
         }
         if(IsOverridden(Render::OnKeyPress, this)) {
             dw_signal_connect(hwnd, DW_SIGNAL_KEY_PRESS, DW_SIGNAL_FUNC(_OnKeyPress), this);
             KeyPressConnected = true;
+        } else {
+            KeyPressConnected = false;
         }
         if(IsOverridden(Render::OnButtonPress, this)) {
             dw_signal_connect(hwnd, DW_SIGNAL_BUTTON_PRESS, DW_SIGNAL_FUNC(_OnButtonPress), this);
             ButtonPressConnected = true;
+        } else {
+            ButtonPressConnected = false;
         }
         if(IsOverridden(Render::OnButtonRelease, this)) {
             dw_signal_connect(hwnd, DW_SIGNAL_BUTTON_RELEASE, DW_SIGNAL_FUNC(_OnButtonRelease), this);
             ButtonReleaseConnected = true;
+        } else {
+            ButtonReleaseConnected = false;
         }
         if(IsOverridden(Render::OnMotionNotify, this)) {
             dw_signal_connect(hwnd, DW_SIGNAL_MOTION_NOTIFY, DW_SIGNAL_FUNC(_OnMotionNotify), this);
             MotionNotifyConnected = true;
+        } else {
+            MotionNotifyConnected = false;
         }
     }
     static int _OnExpose(HWND window, DWExpose *exp, void *data) {
@@ -774,15 +804,21 @@ private:
     int (*_ConnectChanged)(int status, char *url);
     int (*_ConnectResult)(int status, char *result, void *scriptdata);
 #endif
-    void Setup() {	
+    void Setup() {
+        _ConnectChanged = 0;
+        _ConnectResult = 0;
         if(IsOverridden(HTML::OnChanged, this)) {
             dw_signal_connect(hwnd, DW_SIGNAL_HTML_CHANGED, DW_SIGNAL_FUNC(_OnChanged), this);
             ChangedConnected = true;
+        } else {
+            ChangedConnected = false;
         }
         if(IsOverridden(HTML::OnResult, this)) {
             dw_signal_connect(hwnd, DW_SIGNAL_HTML_CHANGED, DW_SIGNAL_FUNC(_OnResult), this);
             ResultConnected = true;
-        }
+        } else {
+            ResultConnected = false;
+    }
     }
     static int _OnChanged(HWND window, int status, char *url, void *data) {
         if(reinterpret_cast<HTML *>(data)->_ConnectChanged)
@@ -879,7 +915,8 @@ private:
 #else
     int (*_ConnectListSelect)(int index);
 #endif
-    void Setup() {	
+    void Setup() {
+        _ConnectListSelect = 0;
         if(IsOverridden(ListBoxes::OnListSelect, this)) {
             dw_signal_connect(hwnd, DW_SIGNAL_LIST_SELECT, DW_SIGNAL_FUNC(_OnListSelect), this);
             ListSelectConnected = true;
@@ -962,10 +999,13 @@ private:
         return reinterpret_cast<Ranged *>(data)->OnValueChanged(value);
     }
 protected:
-    void Setup() {	
+    void Setup() {
+        _ConnectValueChanged = 0;
         if(IsOverridden(Ranged::OnValueChanged, this)) {
             dw_signal_connect(hwnd, DW_SIGNAL_VALUE_CHANGED, DW_SIGNAL_FUNC(_OnValueChanged), this);
             ValueChangedConnected = true;
+        } else {
+            ValueChangedConnected = false;
         }
     }
     // Our signal handler functions to be overriden...
@@ -1076,14 +1116,20 @@ private:
         return reinterpret_cast<ObjectView *>(data)->OnItemContext(text, x, y, itemdata);
     }
 protected:
-    void SetupObjectView() {	
+    void SetupObjectView() {
+        _ConnectItemSelect = 0;
+        _ConnectItemContext = 0;
         if(IsOverridden(ObjectView::OnItemSelect, this)) {
             dw_signal_connect(hwnd, DW_SIGNAL_ITEM_SELECT, DW_SIGNAL_FUNC(_OnItemSelect), this);
             ItemSelectConnected = true;
+        } else {
+            ItemSelectConnected = false;
         }
         if(IsOverridden(ObjectView::OnItemContext, this)) {
             dw_signal_connect(hwnd, DW_SIGNAL_ITEM_CONTEXT, DW_SIGNAL_FUNC(_OnItemContext), this);
             ItemContextConnected = true;
+        } else {
+            ItemContextConnected = false;
         }
     }
     // Our signal handler functions to be overriden...
@@ -1149,14 +1195,20 @@ private:
 protected:
     void *allocpointer;
     int allocrowcount;
-    void SetupContainer() {	
+    void SetupContainer() {
+        _ConnectItemEnter = 0;
+        _ConnectColumnClick = 0;
         if(IsOverridden(Container::OnItemEnter, this)) {
             dw_signal_connect(hwnd, DW_SIGNAL_ITEM_ENTER, DW_SIGNAL_FUNC(_OnItemEnter), this);
             ItemEnterConnected = true;
+        } else {
+            ItemEnterConnected = false;
         }
         if(IsOverridden(Container::OnColumnClick, this)) {
             dw_signal_connect(hwnd, DW_SIGNAL_COLUMN_CLICK, DW_SIGNAL_FUNC(_OnColumnClick), this);
             ColumnClickConnected = true;
+        } else {
+            ColumnClickConnected = false;
         }
     }
     // Our signal handler functions to be overriden...
@@ -1264,10 +1316,13 @@ private:
             return reinterpret_cast<Tree *>(data)->_ConnectTreeExpand(item);
         return reinterpret_cast<Tree *>(data)->OnTreeExpand(item);
     }
-    void SetupTree() {	
+    void SetupTree() {
+        _ConnectTreeExpand = 0;
         if(IsOverridden(Tree::OnTreeExpand, this)) {
             dw_signal_connect(hwnd, DW_SIGNAL_TREE_EXPAND, DW_SIGNAL_FUNC(_OnTreeExpand), this);
             TreeExpandConnected = true;
+        } else {
+            TreeExpandConnected = false;
         }
     }
 protected:
