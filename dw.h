@@ -64,6 +64,8 @@ extern "C" {
 #define DW_UNUSED(x) x
 #endif
 
+#include <stdarg.h>
+
 /* These corespond to the entries in the color
  * arrays in the Win32 dw.c, they are also the
  * same as DOS ANSI colors.

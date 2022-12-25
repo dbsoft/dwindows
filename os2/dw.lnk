@@ -19,9 +19,13 @@ export dw_main_iteration.24
 export dw_app_dir.25
 export dw_main_quit.26
 export dw_shutdown.27
+export dw_app_id_set.28
   
 export _dw_init_thread.30
 export _dw_deinit_thread.31
+
+export dw_vdebug.35
+export dw_vmessagebox.36
 
 export dw_box_new.40
 export dw_groupbox_new.41
@@ -71,6 +75,7 @@ export dw_window_set_tooltip.83
 export dw_window_get_preferred_size.84
 export dw_window_set_gravity.85
 export dw_window_set_focus.86
+export dw_window_compare.87
 
 export dw_button_new.90
 export dw_bitmapbutton_new.91
@@ -217,6 +222,7 @@ export dw_draw_rect.333
 export dw_draw_text.334
 export dw_draw_polygon.335
 export dw_draw_arc.336
+export dw_render_redraw.337
 
 export dw_pixmap_bitblt.340
 export dw_pixmap_new.341
@@ -297,6 +303,7 @@ export dw_html_new.470
 export dw_html_action.471
 export dw_html_raw.472
 export dw_html_url.473
+export dw_html_javascript_run.474
 
 export dw_calendar_new.480
 export dw_calendar_set_date.481
@@ -315,3 +322,10 @@ export dw_print_cancel.512
 
 export dw_utf8_to_wchar.520
 export dw_wchar_to_utf8.521
+
+export dw_notification_new.530
+export dw_notification_send.531
+
+export dw_feature_get.540
+export dw_feature_set.541
+
