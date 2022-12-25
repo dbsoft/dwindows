@@ -362,12 +362,15 @@ void API dw_debug(const char *format, ...)
    va_list args;
 
    va_start(args, format);
-   vfprintf(stderr, format, args);
+   dw_vdebug(format, args);
    va_end(args);
 }
 
 void API dw_vdebug(const char *format, va_list args)
 {
+   /* Output to stderr, if there is another way to send it
+    * on the implementation platform, change this.
+    */
    vfprintf(stderr, format, args);
 }
 

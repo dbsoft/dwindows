@@ -257,7 +257,7 @@ private:
             ConfigureConnected = true;
         } else {
             ConfigureConnected = false;
-    }
+        }
     }
     static int _OnDelete(HWND window, void *data) { 
         if(reinterpret_cast<Window *>(data)->_ConnectDelete)
