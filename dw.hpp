@@ -1401,9 +1401,11 @@ private:
 public:
     // Constructors
     Mutex() { mutex = dw_mutex_new(); SetHandle(reinterpret_cast<void *>(mutex)); }
+    // Destructor
+    ~Mutex() { dw_mutex_close(mutex); mutex = 0; }
 
     // User functions
-    void Close() { dw_mutex_close(mutex); delete this; }
+    void Close() { dw_mutex_close(mutex); mutex = 0; delete this; }
     void Lock() { dw_mutex_lock(mutex); }
     int TryLock() { return dw_mutex_trylock(mutex); }
     void Unlock() { dw_mutex_unlock(mutex); }
@@ -1416,12 +1418,58 @@ private:
 public:
     // Constructors
     Event() { event = dw_event_new(); SetHandle(reinterpret_cast<void *>(event)); }
+    // Destructor
+    virtual ~Event() { if(event) dw_event_close(&event); }
 
     // User functions
     int Close() { int retval = dw_event_close(&event); delete this; return retval; }
     int Post() { return dw_event_post(event); }
     int Reset() { return dw_event_reset(event); }
     int Wait(unsigned long timeout) { return dw_event_wait(event, timeout); }
+};
+
+class Timer : public Handle
+{
+private:
+    HTIMER timer;
+#ifdef DW_LAMBDA
+    std::function<int()> _ConnectTimer;
+#else
+    int (*_ConnectTimer)();
+#endif
+    static int _OnTimer(void *data) {
+        if(reinterpret_cast<Timer *>(data)->_ConnectTimer)
+            return reinterpret_cast<Timer *>(data)->_ConnectTimer();
+        return reinterpret_cast<Timer *>(data)->OnTimer();
+    }
+public:
+    // Constructors
+    Timer(int interval) { _ConnectTimer = 0; timer = dw_timer_connect(interval, DW_SIGNAL_FUNC(_OnTimer), this); SetHandle(reinterpret_cast<void *>(timer)); }
+#ifdef DW_LAMBDA
+    Timer(int interval, std::function<int()> userfunc)
+#else
+    Timer(int interval, int (*userfunc)())
+#endif
+    {
+        _ConnectTimer = userfunc;
+        timer = dw_timer_connect(interval, DW_SIGNAL_FUNC(_OnTimer), this);
+        SetHandle(reinterpret_cast<void *>(timer));
+    }
+    // Destructor
+    virtual ~Timer() { if(timer) { dw_timer_disconnect(timer); timer = 0; } }
+
+    // User functions
+    HTIMER GetHTIMER() { return timer; }
+    void Disconnect() { if(timer) { dw_timer_disconnect(timer); timer = 0; } delete this; }
+protected:
+    // Our signal handler functions to be overriden...
+    // If they are not overridden and an event is generated, remove the unused handler
+    virtual int OnTimer() {
+        if(timer)
+            dw_timer_disconnect(timer);
+        delete this;
+        return FALSE;
+    }
 };
 
 class App
@@ -1444,12 +1492,15 @@ public:
     static App *Init(int argc, char *argv[]) { if(!_app) { _app = new App(); dw_init(TRUE, argc, argv); } return _app; }
     static App *Init(int argc, char *argv[], const char *appid) { if(!_app) { _app = new App(); dw_app_id_set(appid, DW_NULL); dw_init(TRUE, argc, argv); } return _app; }
     static App *Init(int argc, char *argv[], const char *appid, const char *appname) { if(!_app) { _app = new App(); dw_app_id_set(appid, appname); dw_init(TRUE, argc, argv); } return _app; }
+    // Destrouctor
+    ~App() { dw_exit(0); }
 
     // User functions
     void Main() { dw_main(); }
     void MainIteration() { dw_main_iteration(); }
     void MainQuit() { dw_main_quit(); }
     void Exit(int exitcode) { dw_exit(exitcode); }
+    void Shutdown() { dw_shutdown(); }
     int MessageBox(const char *title, int flags, const char *format, ...) { 
         int retval;
         va_list args;
@@ -1467,6 +1518,15 @@ public:
         dw_vdebug(format, args); 
         va_end(args);
     }
+    void Beep(int freq, int dur) { dw_beep(freq, dur); }
+    void GetEnvironment(DWEnv *env) { dw_environment_query(env); }
+    char *GetClipboard() { return dw_clipboard_get_text(); }
+    void SetClipboard(const char *text) { if(text) dw_clipboard_set_text(text, strlen(text)); }
+    void SetDefaultFont(const char *fontname) { dw_font_set_default(fontname); }
+    unsigned long ColorChoose(unsigned long initial) { return dw_color_choose(initial); }
+    char *FileBrowse(const char *title, const char *defpath, const char *ext, int flags) { return dw_file_browse(title, defpath, ext, flags); }
+    char *FontChoose(const char *currfont) { return dw_font_choose(currfont); }
+    void Free(void *buff) { dw_free(buff); }
 };
 
 // Static singleton reference declared outside of the class
