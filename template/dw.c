@@ -360,16 +360,15 @@ int API dw_app_id_set(const char *appid, const char *appname)
 void API dw_debug(const char *format, ...)
 {
    va_list args;
-   char outbuf[1025] = {0};
 
    va_start(args, format);
-   vsnprintf(outbuf, 1024, format, args);
+   vfprintf(stderr, format, args);
    va_end(args);
+}
 
-   /* Output to stderr, if there is another way to send it
-    * on the implementation platform, change this.
-    */
-   fprintf(stderr, "%s", outbuf);
+void API dw_vdebug(const char *format, va_list args)
+{
+   vfprintf(stderr, format, args);
 }
 
 /*
@@ -384,6 +383,17 @@ void API dw_debug(const char *format, ...)
  *       or DW_MB_RETURN_CANCEL based on flags and user response.
  */
 int API dw_messagebox(const char *title, int flags, const char *format, ...)
+{
+   va_list args;
+   int rc;
+
+   va_start(args, format);
+   rc = dw_vmessagebox(title, flags, format, args);
+   va_end(args);
+   return rc;
+}
+
+int API dw_vmessagebox(const char *title, int flags, const char *format, va_list args)
 {
     return 0;
 }

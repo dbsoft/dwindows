@@ -5057,12 +5057,17 @@ void * API dw_dialog_wait(DWDialog *dialog)
 void API dw_debug(const char *format, ...)
 {
    va_list args;
-   char outbuf[1025] = {0}, *thisbuf = outbuf;
 
    va_start(args, format);
-   vsnprintf(outbuf, 1024, format, args);
+   dw_vdebug(format, args);
    va_end(args);
+}
 
+void API dw_vdebug(const char *format, va_list args)
+{
+   char outbuf[1025] = {0}, *thisbuf = outbuf;
+
+   vsnprintf(outbuf, 1024, format, args);
    OutputDebugString(UTF8toWide(thisbuf));
 }
 
@@ -5076,12 +5081,20 @@ void API dw_debug(const char *format, ...)
 int API dw_messagebox(const char *title, int flags, const char *format, ...)
 {
    va_list args;
-   char outbuf[1025] = { 0 }, *thisbuf = outbuf;
    int rc;
 
    va_start(args, format);
-   vsnprintf(outbuf, 1024, format, args);
+   rc = dw_vmessagebox(title, flags, format, args);
    va_end(args);
+   return rc;
+}
+
+int API dw_vmessagebox(const char *title, int flags, const char *format, va_list args)
+{
+   char outbuf[1025] = { 0 }, *thisbuf = outbuf;
+   int rc;
+
+   vsnprintf(outbuf, 1024, format, args);
 
    rc = MessageBox(HWND_DESKTOP, UTF8toWide(thisbuf), UTF8toWide(title), flags);
    if(rc == IDOK)

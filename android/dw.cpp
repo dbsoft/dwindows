@@ -1166,15 +1166,22 @@ int API dw_app_id_set(const char *appid, const char *appname)
 void API dw_debug(const char *format, ...)
 {
     va_list args;
-    char outbuf[1025] = {0};
-    JNIEnv *env;
 
     va_start(args, format);
-    vsnprintf(outbuf, 1024, format, args);
+    vfprintf(stderr, format, args);
     va_end(args);
+}
+
+void API dw_vdebug(const char *format, va_list args)
+{
+    JNIEnv *env;
 
     if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
+        char outbuf[1025] = {0};
+
+        vsnprintf(outbuf, 1024, format, args);
+
         // Construct a String
         jstring jstr = env->NewStringUTF(outbuf);
         // First get the class that contains the method you need to call
@@ -1191,7 +1198,7 @@ void API dw_debug(const char *format, ...)
         /* Output to stderr, if there is another way to send it
          * on the implementation platform, change this.
          */
-        fprintf(stderr, "%s", outbuf);
+        vfprintf(stderr, format, args);
     }
 }
 
@@ -1209,16 +1216,25 @@ void API dw_debug(const char *format, ...)
 int API dw_messagebox(const char *title, int flags, const char *format, ...)
 {
     va_list args;
-    char outbuf[1025] = {0};
+    int rc;
+
+    va_start(args, format);
+    rc = dw_vmessagebox(title, flags, format, args);
+    va_end(args);
+    return rc;
+}
+
+int API dw_vmessagebox(const char *title, int flags, const char *format, va_list args)
+{
     JNIEnv *env;
     int retval = 0;
 
-    va_start(args, format);
-    vsnprintf(outbuf, 1024, format, args);
-    va_end(args);
-
     if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
+        char outbuf[1025] = {0};
+
+        vsnprintf(outbuf, 1024, format, args);
+
         // Construct a String
         jstring jstr = env->NewStringUTF(outbuf);
         jstring jstrtitle = env->NewStringUTF(title);

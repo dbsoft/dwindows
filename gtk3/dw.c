@@ -2371,13 +2371,15 @@ void *dw_dialog_wait(DWDialog *dialog)
 void API dw_debug(const char *format, ...)
 {
    va_list args;
-   char outbuf[1025] = {0};
 
    va_start(args, format);
-   vsnprintf(outbuf, 1024, format, args);
+   vfprintf(stderr, format, args);
    va_end(args);
+}
 
-   fprintf(stderr, "%s", outbuf);
+void API dw_vdebug(const char *format, va_list args)
+{
+   vfprintf(stderr, format, args);
 }
 
 /*
@@ -2388,18 +2390,26 @@ void API dw_debug(const char *format, ...)
  *           format: printf style format string.
  *           ...: Additional variables for use in the format.
  */
-int dw_messagebox(const char *title, int flags, const char *format, ...)
+int API dw_messagebox(const char *title, int flags, const char *format, ...)
+{
+   va_list args;
+   int rc;
+
+   va_start(args, format);
+   rc = dw_vmessagebox(title, flags, format, args);
+   va_end(args);
+   return rc;
+}
+
+int dw_vmessagebox(const char *title, int flags, const char *format, va_list args)
 {
    GtkMessageType gtkicon = GTK_MESSAGE_OTHER;
    GtkButtonsType gtkbuttons = GTK_BUTTONS_OK;
    GtkWidget *dialog;
    int response, _dw_locked_by_me = FALSE;
-   va_list args;
    char outbuf[1025] = {0};
 
-   va_start(args, format);
    vsnprintf(outbuf, 1024, format, args);
-   va_end(args);
 
    if(flags & DW_MB_ERROR)
       gtkicon = GTK_MESSAGE_ERROR;

@@ -4366,13 +4366,17 @@ int dw_app_id_set(const char *appid, const char *appname)
 void API dw_debug(const char *format, ...)
 {
    va_list args;
-   char outbuf[1025] = {0};
 
    va_start(args, format);
-   vsnprintf(outbuf, 1024, format, args);
+   dw_vdebug(format, args);
    va_end(args);
+}
 
-   NSLog(@"%s", outbuf);
+void API dw_vdebug(const char *format, va_list args)
+{
+   NSString *nformat = [[NSString stringWithUTF8String:format] autorelease];
+
+   NSLogv(nformat, args);
 }
 
 /*
@@ -4385,6 +4389,17 @@ void API dw_debug(const char *format, ...)
  */
 int API dw_messagebox(const char *title, int flags, const char *format, ...)
 {
+   va_list args;
+   int rc;
+
+   va_start(args, format);
+   rc = dw_vmessagebox(title, flags, format, args);
+   va_end(args);
+   return rc;
+}
+
+int API dw_vmessagebox(const char *title, int flags, const char *format, va_list args)
+{
     NSInteger iResponse;
     NSString *button1 = @"OK";
     NSString *button2 = nil;
@@ -4393,7 +4408,6 @@ int API dw_messagebox(const char *title, int flags, const char *format, ...)
     NSString *mtext;
     UIAlertControllerStyle mstyle = UIAlertControllerStyleAlert;
     NSArray *params;
-    va_list args;
     static int in_mb = FALSE;
 
     /* Prevent recursion */
@@ -4417,9 +4431,7 @@ int API dw_messagebox(const char *title, int flags, const char *format, ...)
         button3 = @"Cancel";
     }
 
-    va_start(args, format);
     mtext = [[NSString alloc] initWithFormat:[NSString stringWithUTF8String:format] arguments:args];
-    va_end(args);
 
     params = [NSMutableArray arrayWithObjects:mtitle, mtext, [NSNumber numberWithInteger:mstyle], button1, button2, button3, nil];
     [DWObj safeCall:@selector(messageBox:) withObject:params];

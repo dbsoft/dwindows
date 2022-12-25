@@ -2526,13 +2526,15 @@ int _dw_cancel_func(HWND window, void *data)
 void API dw_debug(const char *format, ...)
 {
    va_list args;
-   char outbuf[1025] = {0};
 
    va_start(args, format);
-   vsnprintf(outbuf, 1024, format, args);
+   vfprintf(stderr, format, args);
    va_end(args);
+}
 
-   fprintf(stderr, "%s", outbuf);
+void API dw_vdebug(const char *format, va_list args)
+{
+   vfprintf(stderr, format, args);
 }
 
 /*
@@ -2543,20 +2545,28 @@ void API dw_debug(const char *format, ...)
  *           format: printf style format string.
  *           ...: Additional variables for use in the format.
  */
-int dw_messagebox(const char *title, int flags, const char *format, ...)
+int API dw_messagebox(const char *title, int flags, const char *format, ...)
+{
+   va_list args;
+   int rc;
+
+   va_start(args, format);
+   rc = dw_vmessagebox(title, flags, format, args);
+   va_end(args);
+   return rc;
+}
+
+int dw_vmessagebox(const char *title, int flags, const char *format, va_list args)
 {
    HWND entrywindow, texttargetbox, imagetextbox, mainbox, okbutton, nobutton, yesbutton, cancelbutton, buttonbox, stext;
    ULONG flStyle = DW_FCF_TITLEBAR | DW_FCF_SHELLPOSITION | DW_FCF_DLGBORDER;
    DWDialog *dwwait;
-   va_list args;
    char outbuf[1025] = {0};
    char **xpm_data = NULL;
    int x, y, extra_width=0,text_width,text_height;
    int width,height;
 
-   va_start(args, format);
    vsnprintf(outbuf, 1024, format, args);
-   va_end(args);
 
    entrywindow = dw_window_new(HWND_DESKTOP, title, flStyle);
    mainbox = dw_box_new(DW_VERT, 10);

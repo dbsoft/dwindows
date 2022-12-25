@@ -1780,13 +1780,15 @@ void * API dw_dialog_wait(DWDialog *dialog)
 void API dw_debug(const char *format, ...)
 {
    va_list args;
-   char outbuf[1025] = {0};
 
    va_start(args, format);
-   vsnprintf(outbuf, 1024, format, args);
+   vfprintf(stderr, format, args);
    va_end(args);
+}
 
-   fprintf(stderr, "%s", outbuf);
+void API dw_vdebug(const char *format, va_list args)
+{
+   vfprintf(stderr, format, args);
 }
 
 /* Internal version that does not use variable arguments */
@@ -1867,12 +1869,19 @@ DW_FUNCTION_RESTORE_PARAM3(title, const char *, flags, int, outbuf, char *)
 int API dw_messagebox(const char *title, int flags, const char *format, ...)
 {
    va_list args;
-   char outbuf[1025] = {0};
+   int rc;
 
    va_start(args, format);
-   vsnprintf(outbuf, 1024, format, args);
+   rc = dw_vmessagebox(title, flags, format, args);
    va_end(args);
-   
+   return rc;
+}
+
+int API dw_vmessagebox(const char *title, int flags, const char *format, va_list args)
+{
+   char outbuf[1025] = {0};
+
+   vsnprintf(outbuf, 1024, format, args);
    return dw_messagebox_int(title, flags, outbuf);
 }
 
