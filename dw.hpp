@@ -1395,7 +1395,23 @@ public:
     void MainIteration() { dw_main_iteration(); }
     void MainQuit() { dw_main_quit(); }
     void Exit(int exitcode) { dw_exit(exitcode); }
-    int MessageBox(const char *title, int flags, const char *format) { return dw_messagebox(title, flags, format); }
+    int MessageBox(const char *title, int flags, const char *format, ...) { 
+        int retval;
+        va_list args;
+
+        va_start(args, format);
+        retval = dw_vmessagebox(title, flags, format, args); 
+        va_end(args);
+
+        return retval;
+    }
+    void Debug(const char *format, ...) { 
+        va_list args;
+
+        va_start(args, format);
+        dw_vdebug(format, args); 
+        va_end(args);
+    }
 };
 
 // Static singleton reference declared outside of the class

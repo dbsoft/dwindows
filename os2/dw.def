@@ -29,6 +29,9 @@ EXPORTS
   _dw_init_thread                        @30
   _dw_deinit_thread                      @31
 
+  dw_vdebug                              @35
+  dw_vmessagebox                         @36
+
   dw_box_new                             @40
   dw_groupbox_new                        @41
   dw_box_pack_start                      @42

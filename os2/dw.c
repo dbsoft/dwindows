@@ -4673,15 +4673,21 @@ void * API dw_dialog_wait(DWDialog *dialog)
 void API dw_debug(const char *format, ...)
 {
    va_list args;
-   char outbuf[1025] = { 0 };
 
    va_start(args, format);
+   vfprintf(stderr, format, args);
+   va_end(args);
+}
+
+void API dw_vdebug(const char *format, va_list args)
+{
+   char outbuf[1025] = { 0 };
+
 #if defined(__IBMC__)
    vsprintf(outbuf, format, args);
 #else
    vsnprintf(outbuf, 1024, format, args);
 #endif
-   va_end(args);
 
    if(_PmPrintfString)
    {
@@ -4707,16 +4713,24 @@ void API dw_debug(const char *format, ...)
 int API dw_messagebox(const char *title, int flags, const char *format, ...)
 {
    va_list args;
-   char outbuf[1025] = { 0 };
    int rc;
 
    va_start(args, format);
+   rc = dw_vmessagebox(title, flags, format, args);
+   va_end(args);
+   return rc;
+}
+
+int API dw_vmessagebox(const char *title, int flags, const char *format, va_list args)
+{
+   char outbuf[1025] = { 0 };
+   int rc;
+
 #if defined(__IBMC__)
    vsprintf(outbuf, format, args);
 #else
    vsnprintf(outbuf, 1024, format, args);
 #endif
-   va_end(args);
 
    rc = WinMessageBox(HWND_DESKTOP, HWND_DESKTOP, (PSZ)outbuf, (PSZ)title, 0, flags | MB_MOVEABLE);
    if(rc == MBID_OK)

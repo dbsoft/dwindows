@@ -66,7 +66,9 @@ Added return values to several functions previously returning void.
     Currently affected: dw_window_set_bitmap(_from_data)
 Added C++ language bindings in dw.hpp and an example C++ test
     application in the form of dwtestoo.cpp, similar to godwindows.
-
+Added variadic versions of dw_debug() and dw_messagebox().
+    This is how the standard library does it so we can call the new
+    va_list versions from C++: dw_vdebug() and dw_vmessagebox().
 
 Dynamic Windows Documentation is available at:
 
