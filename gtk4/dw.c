@@ -1522,7 +1522,7 @@ void _dw_init_path(char *arg)
 #elif defined(__sun__)
    char procpath[101] = {0};
 
-   snprintf(procpath, 100, "/proc/%d/path/a.out", getpid());
+   snprintf(procpath, 100, "/proc/%ld/path/a.out", (long)getpid());
 
    if(readlink(procpath, path, PATH_MAX) == -1)
 #endif
