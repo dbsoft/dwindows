@@ -6,6 +6,7 @@
 #ifndef _HPP_DW
 #define _HPP_DW
 #include <dw.h>
+#include <string.h>
 
 // Attempt to support compilers without nullptr type literal
 #if __cplusplus >= 201103L 
