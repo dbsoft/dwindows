@@ -9127,7 +9127,7 @@ int _dw_get_physical_page(HWND handle, unsigned long pageid)
 DW_FUNCTION_DEFINITION(dw_notebook_page_destroy, void, HWND handle, unsigned long pageid)
 DW_FUNCTION_ADD_PARAM2(handle, pageid)
 DW_FUNCTION_NO_RETURN(dw_notebook_page_destroy)
-DW_FUNCTION_RESTORE_PARAM2(handle, HWND, pageid, unsigned int)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, pageid, unsigned long)
 {
    GtkWidget **pagearray;
    int realpage = _dw_get_physical_page(handle, pageid);
@@ -9167,7 +9167,7 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
 DW_FUNCTION_DEFINITION(dw_notebook_page_set, void, HWND handle, unsigned long pageid)
 DW_FUNCTION_ADD_PARAM2(handle, pageid)
 DW_FUNCTION_NO_RETURN(dw_notebook_page_set)
-DW_FUNCTION_RESTORE_PARAM2(handle, HWND, pageid, unsigned int)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, pageid, unsigned long)
 {
    int realpage = _dw_get_physical_page(handle, pageid);
 
