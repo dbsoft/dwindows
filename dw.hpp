@@ -1095,6 +1095,24 @@ public:
     void SetWordWrap(int state) { dw_mle_set_word_wrap(hwnd, state); }
 };
 
+class Notebook : public Widget
+{
+public:
+    // Constructors
+    Notebook(unsigned long id, int top) { SetHWND(dw_notebook_new(id, top)); }
+    Notebook(unsigned long id) { SetHWND(dw_notebook_new(id, TRUE)); }
+    Notebook() { SetHWND(dw_notebook_new(0, TRUE)); }
+
+    // User functions
+    void Pack(unsigned long pageid, HWND page) { dw_notebook_pack(hwnd, pageid, page); }
+    void PageDestroy(unsigned long pageid) { dw_notebook_page_destroy(hwnd, pageid); }
+    unsigned long PageGet() { return dw_notebook_page_get(hwnd); }
+    unsigned long PageNew(unsigned long flags, int front) { return dw_notebook_page_new(hwnd, flags, front); }
+    void PageSet(unsigned long pageid) { dw_notebook_page_set(hwnd, pageid); }
+    void PageSetStatusText(unsigned long pageid, const char *text) { dw_notebook_page_set_status_text(hwnd, pageid, text); }
+    void PageSetText(unsigned long pageid, const char *text) { dw_notebook_page_set_text(hwnd, pageid, text); }
+};
+
 class ObjectView : virtual public Widget
 {
 private:
@@ -1415,18 +1433,39 @@ public:
 class Event : public Handle
 {
 private:
-    HEV event;
+    HEV event, named;
 public:
     // Constructors
-    Event() { event = dw_event_new(); SetHandle(reinterpret_cast<void *>(event)); }
+    Event() { event = dw_event_new(); named = DW_NULL; SetHandle(reinterpret_cast<void *>(event)); }
+    Event(const char *name) {
+        // Try to attach to an existing event
+        named = dw_named_event_get(name);
+        if(!named) {
+            // Otherwise try to create a new one
+            named = dw_named_event_new(name);
+        }
+        event = DW_NULL;
+        SetHandle(reinterpret_cast<void *>(named));
+    }
     // Destructor
-    virtual ~Event() { if(event) dw_event_close(&event); }
+    virtual ~Event() { if(event) { dw_event_close(&event); } if(named) { dw_named_event_close(named); } }
 
     // User functions
-    int Close() { int retval = dw_event_close(&event); delete this; return retval; }
-    int Post() { return dw_event_post(event); }
-    int Reset() { return dw_event_reset(event); }
-    int Wait(unsigned long timeout) { return dw_event_wait(event, timeout); }
+    int Close() { 
+        int retval = DW_ERROR_UNKNOWN;
+        
+        if(event) {
+            retval = dw_event_close(&event);
+        } else if(named) {
+            retval = dw_named_event_close(named);
+            named = DW_NULL;
+        }
+        delete this;
+        return retval;
+    }
+    int Post() { return (named ? dw_named_event_post(named) : dw_event_post(event)); }
+    int Reset() { return (named ? dw_named_event_reset(named) : dw_event_reset(event)); }
+    int Wait(unsigned long timeout) { return (named ? dw_named_event_wait(named, timeout) : dw_event_wait(event, timeout)); }
 };
 
 class Timer : public Handle
