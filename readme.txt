@@ -51,6 +51,10 @@ It is not safe on all platforms to operate on widgets before they
 are packed.  For portability pack widgets before operating on them.
 
 Changes from version 3.2:
+WARNING: Fixed an API inconsistency in dw_notebook_page_destroy/set().
+    The page ID had been unsigned int when it should be unsigned long.
+    On some platforms apps compiled for versions prior to 3.3 may
+    malfunction when calling these API calls, so recompile with 3.3.
 Added tree widget/control support for iOS and Android.
 Removed the lib and dll directories previously used on Windows and OS/2.
     On Windows x86 and x64 subdirectories are created automatically
