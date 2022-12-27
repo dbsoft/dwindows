@@ -1439,7 +1439,7 @@ private:
     HEV event, named;
 public:
     // Constructors
-    Event() { event = dw_event_new(); named = DW_NULL; SetHandle(reinterpret_cast<void *>(event)); }
+    Event() { event = dw_event_new(); named = 0; SetHandle(reinterpret_cast<void *>(event)); }
     Event(const char *name) {
         // Try to attach to an existing event
         named = dw_named_event_get(name);
@@ -1447,7 +1447,7 @@ public:
             // Otherwise try to create a new one
             named = dw_named_event_new(name);
         }
-        event = DW_NULL;
+        event = 0;
         SetHandle(reinterpret_cast<void *>(named));
     }
     // Destructor
@@ -1461,7 +1461,7 @@ public:
             retval = dw_event_close(&event);
         } else if(named) {
             retval = dw_named_event_close(named);
-            named = DW_NULL;
+            named = 0;
         }
         delete this;
         return retval;
