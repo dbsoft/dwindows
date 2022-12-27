@@ -1564,12 +1564,15 @@ public:
     void Beep(int freq, int dur) { dw_beep(freq, dur); }
     void GetEnvironment(DWEnv *env) { dw_environment_query(env); }
     char *GetClipboard() { return dw_clipboard_get_text(); }
-    void SetClipboard(const char *text) { if(text) dw_clipboard_set_text(text, strlen(text)); }
+    void SetClipboard(const char *text) { if(text) dw_clipboard_set_text(text, (int)strlen(text)); }
+    void SetClipboard(const char *text, int len) { if(text) dw_clipboard_set_text(text, len); }
     void SetDefaultFont(const char *fontname) { dw_font_set_default(fontname); }
     unsigned long ColorChoose(unsigned long initial) { return dw_color_choose(initial); }
     char *FileBrowse(const char *title, const char *defpath, const char *ext, int flags) { return dw_file_browse(title, defpath, ext, flags); }
     char *FontChoose(const char *currfont) { return dw_font_choose(currfont); }
     void Free(void *buff) { dw_free(buff); }
+    int GetFeature(DWFEATURE feature) { return dw_feature_get(feature); }
+    int SetFeature(DWFEATURE feature, int state) { return dw_feature_set(feature, state); }
 };
 
 // Static singleton reference declared outside of the class
