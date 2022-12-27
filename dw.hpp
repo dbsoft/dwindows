@@ -131,7 +131,7 @@ private:
 #else
     int (*_ConnectClicked)();
 #endif
-    static int _OnClicked(HWND window, void *data) { 
+    static int _OnClicked(HWND window, void *data) {
         if(reinterpret_cast<Clickable *>(data)->_ConnectClicked) 
             return reinterpret_cast<Clickable *>(data)->_ConnectClicked();
         return reinterpret_cast<Clickable *>(data)->OnClicked(); }
@@ -141,6 +141,9 @@ protected:
         if(IsOverridden(Clickable::OnClicked, this)) {
             dw_signal_connect(hwnd, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(_OnClicked), this);
             ClickedConnected = true;
+        }
+        else {
+            ClickedConnected = false;
         }
     }
     // Our signal handler functions to be overriden...
@@ -205,13 +208,13 @@ class MenuItem : public Clickable
 public:
     // Constructors
     MenuItem(Menus *menu, const char *title, unsigned long id, unsigned long flags, int end, int check, Menus *submenu) { 
-        SetHWND(dw_menu_append_item(menu->GetHMENUI(), title, id, flags, end, check, submenu ? submenu->GetHMENUI() : DW_NOMENU)); 
+        SetHWND(dw_menu_append_item(menu->GetHMENUI(), title, id, flags, end, check, submenu ? submenu->GetHMENUI() : DW_NOMENU)); Setup();
     }
     MenuItem(Menus *menu, const char *title, Menus *submenu) {
-        SetHWND(dw_menu_append_item(menu->GetHMENUI(), title, DW_MENU_AUTO, 0, TRUE, FALSE, submenu ? submenu->GetHMENUI() : DW_NOMENU));
+        SetHWND(dw_menu_append_item(menu->GetHMENUI(), title, DW_MENU_AUTO, 0, TRUE, FALSE, submenu ? submenu->GetHMENUI() : DW_NOMENU)); Setup();
     }
     MenuItem(Menus *menu, const char *title) {
-        SetHWND(dw_menu_append_item(menu->GetHMENUI(), title, DW_MENU_AUTO, 0, TRUE, FALSE, DW_NOMENU));
+        SetHWND(dw_menu_append_item(menu->GetHMENUI(), title, DW_MENU_AUTO, 0, TRUE, FALSE, DW_NOMENU)); Setup();
     }
 
     // User functions
