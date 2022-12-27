@@ -8466,7 +8466,7 @@ unsigned long API dw_notebook_page_new(HWND handle, ULONG flags, int front)
  *          handle: Handle to the notebook widget.
  *          pageid: ID of the page to be destroyed.
  */
-void API dw_notebook_page_destroy(HWND handle, unsigned int pageid)
+void API dw_notebook_page_destroy(HWND handle, unsigned long pageid)
 {
    HWND pagehwnd = (HWND)WinSendMsg(handle, BKM_QUERYPAGEWINDOWHWND,
                                     MPFROMLONG(pageid), 0L);
@@ -8495,7 +8495,7 @@ unsigned long API dw_notebook_page_get(HWND handle)
  *          handle: Handle to the notebook widget.
  *          pageid: ID of the page to be made visible.
  */
-void API dw_notebook_page_set(HWND handle, unsigned int pageid)
+void API dw_notebook_page_set(HWND handle, unsigned long pageid)
 {
    WinSendMsg(handle, BKM_TURNTOPAGE, MPFROMLONG(pageid), 0L);
 }

@@ -11508,7 +11508,7 @@ int _dw_get_physical_page(HWND handle, unsigned long pageid)
  *          handle: Handle to the notebook widget.
  *          pageid: ID of the page to be destroyed.
  */
-void dw_notebook_page_destroy(HWND handle, unsigned int pageid)
+void dw_notebook_page_destroy(HWND handle, unsigned long pageid)
 {
    int realpage, _dw_locked_by_me = FALSE;
    GtkWidget **pagearray;
@@ -11547,7 +11547,7 @@ unsigned long dw_notebook_page_get(HWND handle)
  *          handle: Handle to the notebook widget.
  *          pageid: ID of the page to be made visible.
  */
-void dw_notebook_page_set(HWND handle, unsigned int pageid)
+void dw_notebook_page_set(HWND handle, unsigned long pageid)
 {
    int realpage, _dw_locked_by_me = FALSE;
 
