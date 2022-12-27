@@ -6,7 +6,7 @@ The source base is considered beta on: iOS, Android and GTK4.
 
 Build Recommendations:
 MacOS:
-    11-12: configure --with-arch=modern --with-minver=10.14
+    11-13: configure --with-arch=modern --with-minver=10.14
         64bit Intel and Apple Silicon (ARM64) with Dark Mode.
     10.13-10.15: configure --with-minver=10.8
         64bit Intel with Notifications, Dark Mode for 10.14-15.
@@ -69,6 +69,7 @@ Added C++ language bindings in dw.hpp and an example C++ test
 Added variadic versions of dw_debug() and dw_messagebox().
     This is how the standard library does it so we can call the new
     va_list versions from C++: dw_vdebug() and dw_vmessagebox().
+Added support for MacOS 13 Ventura and iOS 16.
 
 Dynamic Windows Documentation is available at:
 
