@@ -9124,7 +9124,7 @@ int _dw_get_physical_page(HWND handle, unsigned long pageid)
  *          handle: Handle to the notebook widget.
  *          pageid: ID of the page to be destroyed.
  */
-DW_FUNCTION_DEFINITION(dw_notebook_page_destroy, void, HWND handle, unsigned int pageid)
+DW_FUNCTION_DEFINITION(dw_notebook_page_destroy, void, HWND handle, unsigned long pageid)
 DW_FUNCTION_ADD_PARAM2(handle, pageid)
 DW_FUNCTION_NO_RETURN(dw_notebook_page_destroy)
 DW_FUNCTION_RESTORE_PARAM2(handle, HWND, pageid, unsigned int)
@@ -9164,7 +9164,7 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
  *          handle: Handle to the notebook widget.
  *          pageid: ID of the page to be made visible.
  */
-DW_FUNCTION_DEFINITION(dw_notebook_page_set, void, HWND handle, unsigned int pageid)
+DW_FUNCTION_DEFINITION(dw_notebook_page_set, void, HWND handle, unsigned long pageid)
 DW_FUNCTION_ADD_PARAM2(handle, pageid)
 DW_FUNCTION_NO_RETURN(dw_notebook_page_set)
 DW_FUNCTION_RESTORE_PARAM2(handle, HWND, pageid, unsigned int)

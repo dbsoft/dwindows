@@ -9826,7 +9826,7 @@ unsigned long API dw_notebook_page_new(HWND handle, ULONG flags, int front)
  *          handle: Handle to the notebook widget.
  *          pageid: ID of the page to be destroyed.
  */
-void API dw_notebook_page_destroy(HWND handle, unsigned int pageid)
+void API dw_notebook_page_destroy(HWND handle, unsigned long pageid)
 {
     DWNotebook *notebook = handle;
     DWNotebookPage *notepage = _dw_notepage_from_id(notebook, pageid);
@@ -9857,7 +9857,7 @@ unsigned long API dw_notebook_page_get(HWND handle)
  *          handle: Handle to the notebook widget.
  *          pageid: ID of the page to be made visible.
  */
-void API dw_notebook_page_set(HWND handle, unsigned int pageid)
+void API dw_notebook_page_set(HWND handle, unsigned long pageid)
 {
     DWNotebook *notebook = handle;
     DWNotebookPage *notepage = _dw_notepage_from_id(notebook, pageid);
