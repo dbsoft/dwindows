@@ -1579,6 +1579,18 @@ protected:
     }
 };
 
+class Notification final : public Clickable
+{
+public:
+    // Constructors
+    Notification(const char *title, const char *imagepath, const char *description) { SetHWND(dw_notification_new(title, imagepath, description)); }
+    Notification(const char *title, const char *imagepath) { SetHWND(dw_notification_new(title, imagepath, NULL)); }
+    Notification(const char *title) { SetHWND(dw_notification_new(title, NULL, NULL)); }
+
+    // User functions
+    int Send() { int retval = dw_notification_send(hwnd); delete this; return retval; }
+};
+
 class App
 {
 protected:

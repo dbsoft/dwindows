@@ -134,6 +134,61 @@ private:
         else return "none";
     }
 
+    char *ReadFile(char *filename)
+    {
+        char *errors = NULL;
+#ifdef __ANDROID__
+        int fd = -1;
+
+        /* Special way to open for URIs on Android */
+        if(strstr(filename, "://"))
+        {
+            fd = dw_file_open(filename, O_RDONLY);
+            fp = fdopen(fd, "r");
+        }
+        else
+#endif
+            fp = fopen(filename, "r");
+        if(!fp)
+            errors = strerror(errno);
+        else
+        {
+            int i,len;
+
+            lp = (char **)calloc(1000,sizeof(char *));
+            /* should test for out of memory */
+            max_linewidth=0;
+            for(i=0; i<1000; i++)
+            {
+               lp[i] = (char *)calloc(1, 1025);
+               if (fgets(lp[i], 1024, fp) == NULL)
+                   break;
+               len = (int)strlen(lp[i]);
+               if (len > max_linewidth)
+                   max_linewidth = len;
+               if(lp[i][len - 1] == '\n')
+                   lp[i][len - 1] = '\0';
+            }
+            num_lines = i;
+            fclose(fp);
+#if 0
+            hscrollbar->SetRange(max_linewidth, cols);
+            hscrollbar->SetPos(0);
+            vscrollbar->SetRange(num_lines, rows);
+            vscrollbar->SetPos(0);
+#endif
+        }
+#ifdef __ANDROID__
+        if(fd != -1)
+            close(fd);
+#endif
+        return errors;
+    }
+
+    void RenderDraw() {
+        // Draw page 2
+    }
+
     // Add the menus to the window
     void CreateMenus() {
         // Setup the menu
@@ -285,17 +340,15 @@ private:
             char *tmp = this->app->FileBrowse("Pick a file", "dwtest.c", "c", DW_FILE_OPEN);
             if(tmp)
             {
-#if 0
-                char *errors = read_file(tmp);
-                char *title = "New file load";
-                char *image = "image/test.png";
+                char *errors = ReadFile(tmp);
+                const char *title = "New file load";
+                const char *image = "image/test.png";
                 DW::Notification *notification;
 
                 if(errors)
-                    notification = new DW::Notification(title, image, "dwtest failed to load \"%s\" into the file browser, %s.", tmp, errors);
+                    notification = new DW::Notification(title, image, APP_TITLE " failed to load the file into the file browser.");
                 else
-                    notification = new DW::Notification(title, image, "dwtest loaded \"%s\" into the file browser on the Render tab, with \"File Display\" selected from the drop down list.", tmp);
-#endif
+                    notification = new DW::Notification(title, image, APP_TITLE " loaded the file into the file browser on the Render tab, with \"File Display\" selected from the drop down list.");
 
                 if(current_file)
                     this->app->Free(current_file);
@@ -303,13 +356,12 @@ private:
                 entryfield->SetText(current_file);
                 current_col = current_row = 0;
 
-#if 0
-                render_draw();
+                RenderDraw();
                 notification->ConnectClicked([this]() -> int {
+                    this->app->Debug("Notification clicked\n");
                     return TRUE;
                 });
                 notification->Send();
-#endif
             }
             copypastefield->SetFocus();
             return FALSE;
