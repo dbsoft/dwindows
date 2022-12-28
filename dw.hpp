@@ -778,10 +778,22 @@ private:
         SetHandle(reinterpret_cast<void *>(newpixmap));
     }
     HPIXMAP hpixmap; 
+    unsigned long pwidth, pheight;
 public:
     // Constructors
-    Pixmap(HWND window, unsigned long width, unsigned long height, int depth) { SetHPIXMAP(dw_pixmap_new(window, width, height, depth)); }
-    Pixmap(HWND window, unsigned long width, unsigned long height) { SetHPIXMAP(dw_pixmap_new(window, width, height, 32)); }
+    Pixmap(Render *window, unsigned long width, unsigned long height, int depth) { 
+        SetHPIXMAP(dw_pixmap_new(window ? window->GetHWND() : DW_NOHWND, width, height, depth)); 
+        pwidth = width; pheight = height; 
+    }
+    Pixmap(Render *window, unsigned long width, unsigned long height) {
+        SetHPIXMAP(dw_pixmap_new(window ? window->GetHWND() : DW_NOHWND, width, height, 32)); 
+        pwidth = width; pheight = height;
+    }
+    Pixmap(Render *window, const char *filename) { 
+        SetHPIXMAP(dw_pixmap_new_from_file(window ? window->GetHWND() : DW_NOHWND, filename));
+        pwidth = hpixmap ? DW_PIXMAP_WIDTH(hpixmap) : 0;
+        pheight = hpixmap ? DW_PIXMAP_HEIGHT(hpixmap) : 0;
+    }
 
     // User functions
     HPIXMAP GetHPIXMAP() { return hpixmap; }
@@ -805,6 +817,9 @@ public:
     }
     int SetFont(const char *fontname) { return dw_pixmap_set_font(hpixmap, fontname); }
     void GetTextExtents(const char *text, int *width, int *height) { dw_font_text_extents_get(DW_NOHWND, hpixmap, text, width, height); }
+    void SetTransparentColor(unsigned long color) { dw_pixmap_set_transparent_color(hpixmap, color); }
+    unsigned long GetWidth() { return pwidth; }
+    unsigned long GetHeight() { return pheight; }
 };
 
 // Need to declare these here after Pixmap is defined
@@ -990,24 +1005,24 @@ protected:
     }
 };
 
-class Combobox : public TextEntry, public ListBoxes
+class ComboBox : public TextEntry, public ListBoxes
 {
 public:
     // Constructors
-    Combobox(const char *text, unsigned long id) { SetHWND(dw_combobox_new(text, id)); }
-    Combobox(unsigned long id) { SetHWND(dw_combobox_new("", id)); }
-    Combobox(const char *text) { SetHWND(dw_combobox_new(text, 0)); }
-    Combobox() { SetHWND(dw_combobox_new("", 0)); }
+    ComboBox(const char *text, unsigned long id) { SetHWND(dw_combobox_new(text, id)); }
+    ComboBox(unsigned long id) { SetHWND(dw_combobox_new("", id)); }
+    ComboBox(const char *text) { SetHWND(dw_combobox_new(text, 0)); }
+    ComboBox() { SetHWND(dw_combobox_new("", 0)); }
 };
 
-class Listbox : public ListBoxes
+class ListBox : public ListBoxes
 {
 public:
     // Constructors
-    Listbox(unsigned long id, int multi) { SetHWND(dw_listbox_new(id, multi)); }
-    Listbox(unsigned long id) { SetHWND(dw_listbox_new(id, FALSE)); }
-    Listbox(int multi) { SetHWND(dw_listbox_new(0, multi)); }
-    Listbox() { SetHWND(dw_listbox_new(0, FALSE)); }
+    ListBox(unsigned long id, int multi) { SetHWND(dw_listbox_new(id, multi)); }
+    ListBox(unsigned long id) { SetHWND(dw_listbox_new(id, FALSE)); }
+    ListBox(int multi) { SetHWND(dw_listbox_new(0, multi)); }
+    ListBox() { SetHWND(dw_listbox_new(0, FALSE)); }
 };
 
 // Base class for several ranged type widgets
@@ -1069,12 +1084,12 @@ public:
     void SetPos(unsigned int position) { dw_slider_set_pos(hwnd, position); }
 };
 
-class Scrollbar : public Ranged
+class ScrollBar : public Ranged
 {
 public:
     // Constructors
-    Scrollbar(int orient, unsigned long id) { SetHWND(dw_scrollbar_new(orient, id)); Setup(); }
-    Scrollbar(int orient) { SetHWND(dw_scrollbar_new(orient, 0)); Setup(); }
+    ScrollBar(int orient, unsigned long id) { SetHWND(dw_scrollbar_new(orient, id)); Setup(); }
+    ScrollBar(int orient) { SetHWND(dw_scrollbar_new(orient, 0)); Setup(); }
 
     // User functions
     unsigned int GetPos() { return dw_scrollbar_get_pos(hwnd); }
@@ -1642,6 +1657,7 @@ public:
     void GetEnvironment(DWEnv *env) { dw_environment_query(env); }
     int GetScreenWidth() { return dw_screen_width(); }
     int GetScreenHeight() { return dw_screen_height(); }
+    void GetPointerPos(long *x, long *y) { dw_pointer_query_pos(x, y); }
     unsigned long GetColorDepth() { return dw_color_depth_get(); }
     char *GetClipboard() { return dw_clipboard_get_text(); }
     void SetClipboard(const char *text) { if(text) dw_clipboard_set_text(text, (int)strlen(text)); }
@@ -1657,6 +1673,8 @@ public:
     HICN LoadIcon(const char *filename) { return dw_icon_load_from_file(filename); }
     HICN LoadIcon(const char *data, int len) { return dw_icon_load_from_data(data, len); }
     void FreeIcon(HICN icon) { dw_icon_free(icon); }
+    void TaskBarInsert(Widget *handle, HICN icon, char *bubbletext) { dw_taskbar_insert(handle ? handle->GetHWND() : DW_NOHWND, icon, bubbletext); }
+    void TaskBarDelete(Widget *handle, HICN icon) { dw_taskbar_delete(handle ? handle->GetHWND() : DW_NOHWND, icon); }
 };
 
 // Static singleton reference declared outside of the class

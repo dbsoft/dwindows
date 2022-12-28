@@ -171,12 +171,11 @@ private:
             }
             num_lines = i;
             fclose(fp);
-#if 0
+
             hscrollbar->SetRange(max_linewidth, cols);
             hscrollbar->SetPos(0);
             vscrollbar->SetRange(num_lines, rows);
             vscrollbar->SetPos(0);
-#endif
         }
 #ifdef __ANDROID__
         if(fd != -1)
@@ -414,10 +413,10 @@ private:
 
         cursortogglebutton->ConnectClicked([this, cursortogglebutton] () -> int 
         {
-            this->cursor_arrow = !this->cursor_arrow;
             cursortogglebutton->SetText(this->cursor_arrow ? "Set Cursor pointer - ARROW" :
                                         "Set Cursor pointer - CLOCK");
             this->SetPointer(this->cursor_arrow ? DW_POINTER_CLOCK : DW_POINTER_DEFAULT);
+            this->cursor_arrow = !this->cursor_arrow;
             return FALSE;
         });
 
@@ -426,6 +425,315 @@ private:
             this->current_color = this->app->ColorChoose(this->current_color);
             return FALSE;
         });
+    }
+
+    void CreateRender(DW::Box *notebookbox) {
+        int vscrollbarwidth, hscrollbarheight;
+        wchar_t widestring[100] = L"DWTest Wide";
+        char *utf8string = dw_wchar_to_utf8(widestring);
+
+        // create a box to pack into the notebook page
+        DW::Box *pagebox = new DW::Box(DW_HORZ, 2);
+        notebookbox->PackStart(pagebox, 0, 0, TRUE, TRUE, 0);
+
+        // now a status area under this box
+        DW::Box *hbox = new DW::Box(DW_HORZ, 1);
+        notebookbox->PackStart(hbox, 100, 20, TRUE, FALSE, 1);
+
+        DW::StatusText *status1 = new DW::StatusText();
+        hbox->PackStart(status1, 100, DW_SIZE_AUTO, TRUE, FALSE, 1);
+
+        DW::StatusText *status2 = new DW::StatusText();
+        hbox->PackStart(status2, 100, DW_SIZE_AUTO, TRUE, FALSE, 1);
+        // a box with combobox and button
+        hbox = new DW::Box(DW_HORZ, 1 );
+        notebookbox->PackStart(hbox, 100, 25, TRUE, FALSE, 1);
+
+        DW::ComboBox *rendcombo = new DW::ComboBox( "Shapes Double Buffered");
+        hbox->PackStart(rendcombo, 80, 25, TRUE, TRUE, 0);
+        rendcombo->Append("Shapes Double Buffered");
+        rendcombo->Append("Shapes Direct");
+        rendcombo->Append("File Display");
+
+        DW::Text *label = new DW::Text("Image X:");
+        label->SetStyle(DW_DT_VCENTER | DW_DT_CENTER);
+        hbox->PackStart(label, DW_SIZE_AUTO, 25, FALSE, TRUE, 0);
+
+        DW::SpinButton *imagexspin = new DW::SpinButton("20");
+        hbox->PackStart(imagexspin, 25, 25, TRUE, TRUE, 0);
+
+        label = new DW::Text("Y:");
+        label->SetStyle(DW_DT_VCENTER | DW_DT_CENTER);
+        hbox->PackStart(label, DW_SIZE_AUTO, 25, FALSE, TRUE, 0);
+
+        DW::SpinButton *imageyspin = new DW::SpinButton("20");
+        hbox->PackStart(imageyspin, 25, 25, TRUE, TRUE, 0);
+        imagexspin->SetLimits(2000, 0);
+        imageyspin->SetLimits(2000, 0);
+        imagexspin->SetPos(20);
+        imageyspin->SetPos(20);
+
+        DW::CheckBox *imagestretchcheck = new DW::CheckBox("Stretch");
+        hbox->PackStart(imagestretchcheck, DW_SIZE_AUTO, 25, FALSE, TRUE, 0);
+
+        DW::Button *refreshbutton = new DW::Button("Refresh");
+        hbox->PackStart(refreshbutton, DW_SIZE_AUTO, 25, FALSE, TRUE, 0);
+
+        DW::Button *printbutton = new DW::Button("Print");
+        hbox->PackStart(printbutton, DW_SIZE_AUTO, 25, FALSE, TRUE, 0);
+
+        // Pre-create the scrollbars so we can query their sizes
+        vscrollbar = new DW::ScrollBar(DW_VERT, 50);
+        hscrollbar = new DW::ScrollBar(DW_HORZ, 50);
+        vscrollbar->GetPreferredSize(&vscrollbarwidth, NULL);
+        hscrollbar->GetPreferredSize(NULL, &hscrollbarheight);
+
+        // On GTK with overlay scrollbars enabled this returns us 0...
+        // so in that case we need to give it some real values.
+        if(!vscrollbarwidth)
+            vscrollbarwidth = 8;
+        if(!hscrollbarheight)
+            hscrollbarheight = 8;
+
+        // Create render box for line number pixmap
+        DW::Render *render1 = new DW::Render();
+        render1->SetFont(FIXEDFONT);
+        render1->GetTextExtents("(g", &font_width, &font_height);
+        font_width = font_width / 2;
+
+        DW::Box *vscrollbox = new DW::Box(DW_VERT, 0);
+        vscrollbox->PackStart(render1, font_width*width1, font_height*rows, FALSE, TRUE, 0);
+        vscrollbox->PackStart(DW_NOHWND, (font_width*(width1+1)), hscrollbarheight, FALSE, FALSE, 0);
+        pagebox->PackStart(vscrollbox, 0, 0, FALSE, TRUE, 0);
+
+        // pack empty space 1 character wide
+        pagebox->PackStart(DW_NOHWND, font_width, 0, FALSE, TRUE, 0);
+
+        // create box for filecontents and horz scrollbar
+        DW::Box *textbox = new DW::Box(DW_VERT,0 );
+        pagebox->PackStart(textbox, 0, 0, TRUE, TRUE, 0);
+
+        // create render box for filecontents pixmap
+        DW::Render *render2 = new DW::Render();
+        textbox->PackStart(render2, 10, 10, TRUE, TRUE, 0);
+        render2->SetFont(FIXEDFONT);
+        // create horizonal scrollbar
+        textbox->PackStart(hscrollbar, TRUE, FALSE, 0);
+
+        // create vertical scrollbar
+        vscrollbox = new DW::Box(DW_VERT, 0);
+        vscrollbox->PackStart(vscrollbar, FALSE, TRUE, 0);
+        // Pack an area of empty space of the scrollbar dimensions
+        vscrollbox->PackStart(DW_NOHWND, vscrollbarwidth, hscrollbarheight, FALSE, FALSE, 0);
+        pagebox->PackStart(vscrollbox, 0, 0, FALSE, TRUE, 0);
+
+        pixmap1 = new DW::Pixmap(render1, font_width*width1, font_height*rows);
+        pixmap2 = new DW::Pixmap(render2, font_width*cols, font_height*rows);
+        image = new DW::Pixmap(render1, "image/test");
+        if(!image || !image->GetHPIXMAP())
+            image = new DW::Pixmap(render1, "~/test");
+        if(!image || !image->GetHPIXMAP())
+        {
+            char *appdir = app->GetDir();
+            char pathbuff[1025] = {0};
+            int pos = (int)strlen(appdir);
+            
+            strncpy(pathbuff, appdir, 1024);
+            pathbuff[pos] = DW_DIR_SEPARATOR;
+            pos++;
+            strncpy(&pathbuff[pos], "test", 1024-pos);
+            image = new DW::Pixmap(render1, pathbuff);
+        }
+        if(image)
+            image->SetTransparentColor(DW_CLR_WHITE);
+
+        app->MessageBox(utf8string ? utf8string : "DWTest", DW_MB_OK|DW_MB_INFORMATION, "Width: %d Height: %d\n", font_width, font_height);
+        if(utf8string)
+            app->Free(utf8string);
+        pixmap1->DrawRect(DW_DRAW_FILL | DW_DRAW_NOAA, 0, 0, font_width*width1, font_height*rows);
+        pixmap2->DrawRect(DW_DRAW_FILL | DW_DRAW_NOAA, 0, 0, font_width*cols, font_height*rows);
+
+        // Signal handler lambdas
+        render1->ConnectButtonPress([this](int x, int y, int buttonmask) -> int
+        {
+            DW::Menu *menu = new DW::Menu();
+            DW::MenuItem *menuitem = menu->AppendItem("~Quit");
+            long px, py;
+
+            menuitem->ConnectClicked([this] () -> int 
+            {
+                if(this->app->MessageBox(APP_TITLE, DW_MB_YESNO | DW_MB_QUESTION, APP_EXIT) != 0) {
+                    this->app->MainQuit();
+                }
+                return TRUE;
+            });
+
+
+            menu->AppendItem(DW_MENU_SEPARATOR);
+            menuitem = menu->AppendItem("~Show Window");
+            menuitem->ConnectClicked([this]() -> int
+            {
+                this->Show();
+                this->Raise();
+                return TRUE;
+            });
+
+            this->app->GetPointerPos(&px, &py);
+            menu->Popup(this, (int)px, (int)py);
+            return TRUE;
+        });
+
+        render1->ConnectExpose([this](DWExpose *exp) -> int 
+        {
+            return TRUE;
+        });
+
+        render2->ConnectExpose([this](DWExpose *exp) -> int 
+        {
+            return TRUE;
+        });
+
+        render2->ConnectKeyPress([this, status1](char ch, int vk, int state, char *utf8) -> int
+        {
+            char tmpbuf[101] = {0};
+            if(ch)
+                snprintf(tmpbuf, 100, "Key: %c(%d) Modifiers: %s(%d) utf8 %s", ch, ch, this->ResolveKeyModifiers(state), state,  utf8);
+            else
+                snprintf(tmpbuf, 100, "Key: %s(%d) Modifiers: %s(%d) utf8 %s", this->ResolveKeyName(vk), vk, ResolveKeyModifiers(state), state, utf8);
+            status1->SetText(tmpbuf);
+            return FALSE;
+        });
+
+        hscrollbar->ConnectValueChanged([this, status1](int value) -> int
+        {
+            char tmpbuf[101] = {0};
+
+            this->current_col = value;
+            snprintf(tmpbuf, 100, "Row:%d Col:%d Lines:%d Cols:%d", current_row,current_col,num_lines,max_linewidth);
+            status1->SetText(tmpbuf);
+            this->RenderDraw();
+            return TRUE;
+        });
+
+        vscrollbar->ConnectValueChanged([this, status1](int value) -> int
+        {
+            char tmpbuf[101] = {0};
+
+            this->current_row = value;
+            snprintf(tmpbuf, 100, "Row:%d Col:%d Lines:%d Cols:%d", current_row,current_col,num_lines,max_linewidth);
+            status1->SetText(tmpbuf);
+            this->RenderDraw();
+            return TRUE;
+        });
+
+        render2->ConnectMotionNotify([this, status2](int x, int y, int buttonmask) -> int
+        {
+            char buf[201] = {0};
+
+            snprintf(buf, 200, "motion_notify: %dx%d buttons %d", x, y, buttonmask);
+            status2->SetText(buf);
+            return FALSE;
+        });
+
+        render2->ConnectButtonPress([this, status2](int x, int y, int buttonmask) -> int
+        {
+            char buf[201] = {0};
+
+            snprintf(buf, 200, "button_press: %dx%d buttons %d", x, y, buttonmask);
+            status2->SetText(buf);
+            return FALSE;
+        });
+
+        render2->ConnectConfigure([this, render1, render2](int width, int height) -> int
+        {
+            DW::Pixmap *old1 = this->pixmap1, *old2 = this->pixmap2;
+
+            rows = height / font_height;
+            cols = width / font_width;
+
+            // Create new pixmaps with the current sizes
+            this->pixmap1 = new DW::Pixmap(render1, (unsigned long)(font_width*(width1)), (unsigned long)height);
+            this->pixmap2 = new DW::Pixmap(render2, (unsigned long)width, (unsigned long)height);
+
+            // Make sure the side area is cleared
+            this->pixmap1->SetForegroundColor(DW_CLR_WHITE);
+            this->pixmap1->DrawRect(DW_DRAW_FILL | DW_DRAW_NOAA, 0, 0, (int)this->pixmap1->GetWidth(), (int)this->pixmap1->GetHeight());
+
+            // Destroy the old pixmaps
+            delete old1;
+            delete old2;
+
+            // Update scrollbar ranges with new values
+            this->hscrollbar->SetRange(max_linewidth, cols);
+            this->vscrollbar->SetRange(num_lines, rows);
+
+            // Redraw the render widgets
+            this->RenderDraw();
+            return TRUE;
+        });
+
+        imagestretchcheck->ConnectClicked([this]() -> int
+        {
+            this->RenderDraw();
+            return TRUE;
+        });
+
+        refreshbutton->ConnectClicked([this]() -> int
+        {
+            this->RenderDraw();
+            return TRUE;
+        });
+
+        printbutton->ConnectClicked([this]() -> int
+        {
+#if 0 // TODO
+            DW::Print *print = new DW::Print("DWTest Job", 0, 2, [this](DW::Pixmap *pixmap, int page_num) -> int
+            {
+               pixmap->SetFont(FIXEDFONT);
+               if(page_num == 0)
+               {
+                   this->DrawShapes(FALSE, pixmap);
+               }
+               else if(page_num == 1)
+               {
+                   /* Get the font size for this printer context... */
+                   int fheight, fwidth;
+
+                   /* If we have a file to display... */
+                   if(current_file)
+                   {
+                       int nrows;
+
+                       /* Calculate new dimensions */
+                       pixmap->GetTextExtents("(g", NULL, &fheight);
+                       nrows = (int)(pixmap->GetHeight() / fheight);
+
+                       /* Do the actual drawing */
+                       this->DrawFile(0, 0, nrows, fheight, pixmap);
+                   }
+                   else
+                   {
+                       /* We don't have a file so center an error message on the page */
+                       const char *text = "No file currently selected!";
+                       int posx, posy;
+
+                       pixmap->GetTextExtents(text, &fwidth, &fheight);
+
+                       posx = (int)(pixmap->GetWidth() - fwidth)/2;
+                       posy = (int)(pixmap->GetHeight() - fheight)/2;
+
+                       pixmap->SetColor(DW_CLR_BLACK, DW_CLR_WHITE);
+                       pixmap->DrawText(posx, posy, text);
+                   }
+               }
+               return TRUE;
+            });
+            print->Run(0);
+#endif
+            return TRUE;
+        });
+
+        app->TaskBarInsert(render1, fileicon, "DWTest");
     }
 public:
     // Constructor creates the application
@@ -491,12 +799,19 @@ public:
             return TRUE;
         });
 
-        // Create Notebook page 1
+        // Create Notebook Page 1 - Input
         notebookbox = new DW::Box(DW_VERT, 5);
         CreateInput(notebookbox);
         unsigned long notebookpage = notebook->PageNew(0, TRUE);
         notebook->Pack(notebookpage, notebookbox);
         notebook->PageSetText(notebookpage, "buttons and entry");
+
+        // Create Notebook Page 2 - Render
+        notebookbox = new DW::Box(DW_VERT, 5);
+        CreateRender(notebookbox);
+        notebookpage = notebook->PageNew(0, TRUE);
+        notebook->Pack(notebookpage, notebookbox);
+        notebook->PageSetText(notebookpage, "render");
 
         // Finalize the window
         this->SetSize(640, 550);
@@ -518,7 +833,8 @@ public:
     unsigned long current_color;
 
     // Page 2
-    HPIXMAP text1pm,text2pm,image;
+    DW::Pixmap *pixmap1, *pixmap2, *image;
+    DW::ScrollBar *hscrollbar, *vscrollbar;
     int image_x = 20, image_y = 20, image_stretch = 0;
 
     int font_width = 8, font_height=12;
@@ -529,13 +845,13 @@ public:
 
     FILE *fp=NULL;
     char **lp;
+    char *current_file = NULL;
 
     // Page 4
     int mle_point=-1;
 
     // Miscellaneous
-    int menu_enabled = 1;
-    char *current_file = NULL;
+    int menu_enabled = TRUE;
     HICN fileicon,foldericon;
 
     int OnDelete() override {
