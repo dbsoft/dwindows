@@ -74,7 +74,8 @@ public:
     void SetData(const char *dataname, void *data) { dw_window_set_data(hwnd, dataname, data); }
     void *GetData(const char *dataname) { return dw_window_get_data(hwnd, dataname); }
     void SetPointer(int cursortype) { dw_window_set_pointer(hwnd, cursortype); }
-    void SetStyle(unsigned long style, unsigned long mask) { dw_window_set_style(hwnd, style, mask); }
+    void SetStyle(unsigned long flags, unsigned long mask) { dw_window_set_style(hwnd, flags, mask); }
+    void SetStyle(unsigned long flags) { dw_window_set_style(hwnd, flags, flags); }
     void SetTooltip(char *bubbletext) { dw_window_set_tooltip(hwnd, bubbletext); }
     int Unpack() { return dw_box_unpack(hwnd); }
 };
@@ -86,10 +87,16 @@ public:
     // User functions
     void PackStart(Widget *item, int width, int height, int hsize, int vsize, int pad) { 
         dw_box_pack_start(hwnd, item ? item->GetHWND() : DW_NOHWND, width, height, hsize, vsize, pad); }
+    void PackStart(Widget *item, int hsize, int vsize, int pad) { 
+        dw_box_pack_start(hwnd, item ? item->GetHWND() : DW_NOHWND, DW_SIZE_AUTO, DW_SIZE_AUTO, hsize, vsize, pad); }
     void PackEnd(Widget *item, int width, int height, int hsize, int vsize, int pad) { 
         dw_box_pack_end(hwnd, item ? item->GetHWND() : DW_NOHWND, width, height, hsize, vsize, pad); }
+    void PackEnd(Widget *item, int hsize, int vsize, int pad) { 
+        dw_box_pack_end(hwnd, item ? item->GetHWND() : DW_NOHWND, DW_SIZE_AUTO, DW_SIZE_AUTO, hsize, vsize, pad); }
     void PackAtIndex(Widget *item, int index, int width, int height, int hsize, int vsize, int pad) { 
         dw_box_pack_at_index(hwnd, item ? item->GetHWND() : DW_NOHWND, index, width, height, hsize, vsize, pad); }
+    void PackAtIndex(Widget *item, int index, int hsize, int vsize, int pad) { 
+        dw_box_pack_at_index(hwnd, item ? item->GetHWND() : DW_NOHWND, index, DW_SIZE_AUTO, DW_SIZE_AUTO, hsize, vsize, pad); }
     Widget *UnpackAtIndex(int index) { HWND widget = dw_box_unpack_at_index(hwnd, index);
         void *classptr = widget ? dw_window_get_data(widget, "_dw_classptr") : DW_NULL;
         return reinterpret_cast<Widget *>(classptr);
@@ -180,6 +187,8 @@ public:
     // User functions
     HMENUI GetHMENUI() { return menu; }
     MenuItem *AppendItem(const char *title, unsigned long id, unsigned long flags, int end, int check, Menus *submenu);
+    MenuItem *AppendItem(const char *title, unsigned long flags, int check, Menus *submenu);
+    MenuItem *AppendItem(const char *title, unsigned long flags, int check);
     MenuItem *AppendItem(const char *title, Menus *submenu);
     MenuItem *AppendItem(const char *title);
 };
@@ -210,6 +219,12 @@ public:
     MenuItem(Menus *menu, const char *title, unsigned long id, unsigned long flags, int end, int check, Menus *submenu) { 
         SetHWND(dw_menu_append_item(menu->GetHMENUI(), title, id, flags, end, check, submenu ? submenu->GetHMENUI() : DW_NOMENU)); Setup();
     }
+    MenuItem(Menus *menu, const char *title, unsigned long flags, int check, Menus *submenu) { 
+        SetHWND(dw_menu_append_item(menu->GetHMENUI(), title, DW_MENU_AUTO, flags, TRUE, check, submenu ? submenu->GetHMENUI() : DW_NOMENU)); Setup();
+    }
+    MenuItem(Menus *menu, const char *title, unsigned long flags, int check) { 
+        SetHWND(dw_menu_append_item(menu->GetHMENUI(), title, DW_MENU_AUTO, flags, TRUE, check, DW_NOMENU)); Setup();
+    }
     MenuItem(Menus *menu, const char *title, Menus *submenu) {
         SetHWND(dw_menu_append_item(menu->GetHMENUI(), title, DW_MENU_AUTO, 0, TRUE, FALSE, submenu ? submenu->GetHMENUI() : DW_NOMENU)); Setup();
     }
@@ -219,11 +234,18 @@ public:
 
     // User functions
     void SetState(unsigned long flags) { dw_window_set_style(hwnd, flags, flags); }
-    void SetStyle(unsigned long flags, unsigned long mask) { dw_window_set_style(hwnd, flags, mask); }
 };
 
 MenuItem *Menus::AppendItem(const char *title, unsigned long id, unsigned long flags, int end, int check, Menus *submenu) {
     return new MenuItem(this, title, id, flags, end, check, submenu);
+}
+
+MenuItem *Menus::AppendItem(const char *title, unsigned long flags, int check, Menus *submenu) {
+    return new MenuItem(this, title, flags, check, submenu);
+}
+
+MenuItem *Menus::AppendItem(const char *title, unsigned long flags, int check) {
+    return new MenuItem(this, title, flags, check);
 }
 
 MenuItem *Menus::AppendItem(const char *title, Menus *submenu) {
@@ -887,6 +909,7 @@ class TextEntry : virtual public Focusable, virtual public TextWidget
 public:
     // User functions
     void ClickDefault(Focusable *next) { if(next) dw_window_click_default(hwnd, next->GetHWND()); }
+    void SetLimit(int limit) { dw_entryfield_set_limit(hwnd, limit);}
 };
 
 class Entryfield : public TextEntry
@@ -1100,6 +1123,35 @@ public:
 
 class Notebook : public Widget
 {
+private:
+    bool SwitchPageConnected;
+#ifdef DW_LAMBDA
+    std::function<int(unsigned long)> _ConnectSwitchPage;
+#else
+    int (*_ConnectSwitchPage)(unsigned long);
+#endif
+    static int _OnSwitchPage(HWND window, unsigned long pageid, void *data) {
+        if(reinterpret_cast<Notebook *>(data)->_ConnectSwitchPage)
+            return reinterpret_cast<Notebook *>(data)->_ConnectSwitchPage(pageid);
+        return reinterpret_cast<Notebook *>(data)->OnSwitchPage(pageid);
+    }
+protected:
+    void Setup() {
+        _ConnectSwitchPage = 0;
+        if(IsOverridden(Notebook::OnSwitchPage, this)) {
+            dw_signal_connect(hwnd, DW_SIGNAL_SWITCH_PAGE, DW_SIGNAL_FUNC(_OnSwitchPage), this);
+            SwitchPageConnected = true;
+        } else {
+            SwitchPageConnected = false;
+        }
+    }
+    // Our signal handler functions to be overriden...
+    // If they are not overridden and an event is generated, remove the unused handler
+    virtual int OnSwitchPage(unsigned long pageid) {
+        dw_signal_disconnect_by_name(hwnd, DW_SIGNAL_SWITCH_PAGE);
+        SwitchPageConnected = false;
+        return FALSE;
+    }
 public:
     // Constructors
     Notebook(unsigned long id, int top) { SetHWND(dw_notebook_new(id, top)); }
@@ -1107,13 +1159,25 @@ public:
     Notebook() { SetHWND(dw_notebook_new(0, TRUE)); }
 
     // User functions
-    void Pack(unsigned long pageid, HWND page) { dw_notebook_pack(hwnd, pageid, page); }
+    void Pack(unsigned long pageid, Widget *page) { dw_notebook_pack(hwnd, pageid, page ? page->GetHWND() : DW_NOHWND); }
     void PageDestroy(unsigned long pageid) { dw_notebook_page_destroy(hwnd, pageid); }
     unsigned long PageGet() { return dw_notebook_page_get(hwnd); }
     unsigned long PageNew(unsigned long flags, int front) { return dw_notebook_page_new(hwnd, flags, front); }
     void PageSet(unsigned long pageid) { dw_notebook_page_set(hwnd, pageid); }
     void PageSetStatusText(unsigned long pageid, const char *text) { dw_notebook_page_set_status_text(hwnd, pageid, text); }
     void PageSetText(unsigned long pageid, const char *text) { dw_notebook_page_set_text(hwnd, pageid, text); }
+#ifdef DW_LAMBDA
+    void ConnectSwitchPage(std::function<int(unsigned long)> userfunc)
+#else
+    void ConnectSwitchPage(int (*userfunc)(unsigned long))
+#endif
+    {
+        _ConnectSwitchPage = userfunc;
+        if(!SwitchPageConnected) {
+            dw_signal_connect(hwnd, DW_SIGNAL_SWITCH_PAGE, DW_SIGNAL_FUNC(_OnSwitchPage), this);
+            SwitchPageConnected = true;
+        }
+    }        
 };
 
 class ObjectView : virtual public Widget
@@ -1178,7 +1242,7 @@ public:
             dw_signal_connect(hwnd, DW_SIGNAL_ITEM_SELECT, DW_SIGNAL_FUNC(_OnItemSelect), this);
             ItemSelectConnected = true;
         }
-    }        
+    }
 #ifdef DW_LAMBDA
     void ConnectItemContext(std::function<int(char *, int, int, void *)> userfunc)
 #else
@@ -1562,7 +1626,11 @@ public:
         va_end(args);
     }
     void Beep(int freq, int dur) { dw_beep(freq, dur); }
+    char *GetDir() { return dw_app_dir(); }
     void GetEnvironment(DWEnv *env) { dw_environment_query(env); }
+    int GetScreenWidth() { return dw_screen_width(); }
+    int GetScreenHeight() { return dw_screen_height(); }
+    unsigned long GetColorDepth() { return dw_color_depth_get(); }
     char *GetClipboard() { return dw_clipboard_get_text(); }
     void SetClipboard(const char *text) { if(text) dw_clipboard_set_text(text, (int)strlen(text)); }
     void SetClipboard(const char *text, int len) { if(text) dw_clipboard_set_text(text, len); }
@@ -1573,6 +1641,10 @@ public:
     void Free(void *buff) { dw_free(buff); }
     int GetFeature(DWFEATURE feature) { return dw_feature_get(feature); }
     int SetFeature(DWFEATURE feature, int state) { return dw_feature_set(feature, state); }
+    HICN LoadIcon(unsigned long id) { return dw_icon_load(0, id); }
+    HICN LoadIcon(const char *filename) { return dw_icon_load_from_file(filename); }
+    HICN LoadIcon(const char *data, int len) { return dw_icon_load_from_data(data, len); }
+    void FreeIcon(HICN icon) { dw_icon_free(icon); }
 };
 
 // Static singleton reference declared outside of the class
