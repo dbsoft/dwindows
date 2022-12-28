@@ -137,10 +137,11 @@ private:
     char *ReadFile(char *filename)
     {
         char *errors = NULL;
+        FILE *fp=NULL;
 #ifdef __ANDROID__
         int fd = -1;
 
-        /* Special way to open for URIs on Android */
+        // Special way to open for URIs on Android
         if(strstr(filename, "://"))
         {
             fd = dw_file_open(filename, O_RDONLY);
@@ -156,7 +157,7 @@ private:
             int i,len;
 
             lp = (char **)calloc(1000,sizeof(char *));
-            /* should test for out of memory */
+            // should test for out of memory
             max_linewidth=0;
             for(i=0; i<1000; i++)
             {
@@ -184,8 +185,103 @@ private:
         return errors;
     }
 
+    // When hpm is not NULL we are printing.. so handle things differently
+    void DrawFile(int row, int col, int nrows, int fheight, DW::Pixmap *hpm)
+    {
+        DW::Pixmap *pixmap = hpm ? hpm : pixmap2;
+        char buf[16] = {0};
+        int i,y,fileline;
+        char *pLine;
+
+        if(current_file)
+        {
+            pixmap->SetForegroundColor(DW_CLR_WHITE);
+            if(!hpm)
+                pixmap1->DrawRect(DW_DRAW_FILL | DW_DRAW_NOAA, 0, 0, (int)pixmap1->GetWidth(), (int)pixmap1->GetHeight());
+            pixmap->DrawRect(DW_DRAW_FILL | DW_DRAW_NOAA, 0, 0, (int)pixmap->GetWidth(), (int)pixmap->GetHeight());
+
+            for(i = 0;(i < nrows) && (i+row < num_lines); i++)
+            {
+                fileline = i + row - 1;
+                y = i*fheight;
+                pixmap->SetColor(fileline < 0 ? DW_CLR_WHITE : fileline % 16, 1 + (fileline % 15));
+                if(!hpm)
+                {
+                    snprintf(buf, 15, "%6.6d", i+row);
+                    pixmap->DrawText(0, y, buf);
+                }
+                pLine = lp[i+row];
+                pixmap->DrawText(0, y, pLine+col);
+            }
+        }
+    }
+
+    // When hpm is not NULL we are printing.. so handle things differently 
+    void DrawShapes(int direct, DW::Pixmap *hpm)
+    {
+        DW::Pixmap *pixmap = hpm ? hpm : pixmap2;
+        int width = (int)pixmap->GetWidth(), height = (int)pixmap->GetHeight();
+        int x[7] = { 20, 180, 180, 230, 180, 180, 20 };
+        int y[7] = { 50, 50, 20, 70, 120, 90, 90 };
+        DW::Drawable *drawable = direct ? static_cast<DW::Drawable *>(render2) : static_cast<DW::Drawable *>(pixmap);
+
+        drawable->SetForegroundColor(DW_CLR_WHITE);
+        drawable->DrawRect(DW_DRAW_FILL | DW_DRAW_NOAA, 0, 0, width, height);
+        drawable->SetForegroundColor(DW_CLR_DARKPINK);
+        drawable->DrawRect(DW_DRAW_FILL | DW_DRAW_NOAA, 10, 10, width - 20, height - 20);
+        drawable->SetColor(DW_CLR_GREEN, DW_CLR_DARKRED);
+        drawable->DrawText(10, 10, "This should be aligned with the edges.");
+        drawable->SetForegroundColor(DW_CLR_YELLOW);
+        drawable->DrawLine(width - 10, 10, 10, height - 10);
+        drawable->SetForegroundColor(DW_CLR_BLUE);
+        drawable->DrawPolygon(DW_DRAW_FILL, 7, x, y);
+        drawable->SetForegroundColor(DW_CLR_BLACK);
+        drawable->DrawRect(DW_DRAW_FILL | DW_DRAW_NOAA, 80, 80, 80, 40);
+        drawable->SetForegroundColor(DW_CLR_CYAN);
+        // Bottom right corner
+        drawable->DrawArc(0, width - 30, height - 30, width - 10, height - 30, width - 30, height - 10);
+        // Top right corner
+        drawable->DrawArc(0, width - 30, 30, width - 30, 10, width - 10, 30);
+        // Bottom left corner
+        drawable->DrawArc(0, 30, height - 30, 30, height - 10, 10, height - 30);
+        // Full circle in the left top area
+        drawable->DrawArc(DW_DRAW_FULL, 120, 100, 80, 80, 160, 120);
+        if(image && image->GetHPIXMAP())
+        {
+            if(imagestretchcheck->Get())
+                drawable->BitBltStretch(0, 10, width - 20, height - 20, image, 0, 0, (int)image->GetWidth(), (int)image->GetHeight());
+            else
+                drawable->BitBlt(imagexspin->GetPos(), imageyspin->GetPos(), (int)image->GetWidth(), (int)image->GetHeight(), image, 0, 0);
+        }
+    }
+
+    void UpdateRender(void)
+    {
+        switch(render_type)
+        {
+            case SHAPES_DOUBLE_BUFFERED:
+                DrawShapes(FALSE, NULL);
+                break;
+            case SHAPES_DIRECT:
+                DrawShapes(TRUE, NULL);
+                break;
+            case DRAW_FILE:
+                DrawFile(current_row, current_col, rows, font_height, NULL);
+                break;
+        }
+    }
+
+    // Request that the render widgets redraw...
+    // If not using direct rendering, call update_render() to
+    // redraw the in memory pixmaps. Then trigger the expose events.
+    // Expose will call update_render() to draw directly or bitblt the pixmaps.
     void RenderDraw() {
-        // Draw page 2
+        // If we are double buffered, draw to the pixmaps
+        if(render_type != SHAPES_DIRECT)
+            UpdateRender();
+        // Trigger expose event
+        render1->Redraw();
+        render2->Redraw();
     }
 
     // Add the menus to the window
@@ -459,21 +555,21 @@ private:
         label->SetStyle(DW_DT_VCENTER | DW_DT_CENTER);
         hbox->PackStart(label, DW_SIZE_AUTO, 25, FALSE, TRUE, 0);
 
-        DW::SpinButton *imagexspin = new DW::SpinButton("20");
+        imagexspin = new DW::SpinButton("20");
         hbox->PackStart(imagexspin, 25, 25, TRUE, TRUE, 0);
 
         label = new DW::Text("Y:");
         label->SetStyle(DW_DT_VCENTER | DW_DT_CENTER);
         hbox->PackStart(label, DW_SIZE_AUTO, 25, FALSE, TRUE, 0);
 
-        DW::SpinButton *imageyspin = new DW::SpinButton("20");
+        imageyspin = new DW::SpinButton("20");
         hbox->PackStart(imageyspin, 25, 25, TRUE, TRUE, 0);
         imagexspin->SetLimits(2000, 0);
         imageyspin->SetLimits(2000, 0);
         imagexspin->SetPos(20);
         imageyspin->SetPos(20);
 
-        DW::CheckBox *imagestretchcheck = new DW::CheckBox("Stretch");
+        imagestretchcheck = new DW::CheckBox("Stretch");
         hbox->PackStart(imagestretchcheck, DW_SIZE_AUTO, 25, FALSE, TRUE, 0);
 
         DW::Button *refreshbutton = new DW::Button("Refresh");
@@ -496,7 +592,7 @@ private:
             hscrollbarheight = 8;
 
         // Create render box for line number pixmap
-        DW::Render *render1 = new DW::Render();
+        render1 = new DW::Render();
         render1->SetFont(FIXEDFONT);
         render1->GetTextExtents("(g", &font_width, &font_height);
         font_width = font_width / 2;
@@ -514,7 +610,7 @@ private:
         pagebox->PackStart(textbox, 0, 0, TRUE, TRUE, 0);
 
         // create render box for filecontents pixmap
-        DW::Render *render2 = new DW::Render();
+        render2 = new DW::Render();
         textbox->PackStart(render2, 10, 10, TRUE, TRUE, 0);
         render2->SetFont(FIXEDFONT);
         // create horizonal scrollbar
@@ -585,11 +681,29 @@ private:
 
         render1->ConnectExpose([this](DWExpose *exp) -> int 
         {
+            if(render_type != SHAPES_DIRECT)
+            {
+                this->render1->BitBlt(0, 0, (int)pixmap1->GetWidth(), (int)pixmap1->GetHeight(), pixmap1, 0, 0);
+                render1->Flush();
+            }
+            else
+            {
+                UpdateRender();
+            }
             return TRUE;
         });
 
         render2->ConnectExpose([this](DWExpose *exp) -> int 
         {
+            if(render_type != SHAPES_DIRECT)
+            {
+                this->render2->BitBlt(0, 0, (int)pixmap2->GetWidth(), (int)pixmap2->GetHeight(), pixmap2, 0, 0);
+                render2->Flush();
+            }
+            else
+            {
+                UpdateRender();
+            }
             return TRUE;
         });
 
@@ -626,7 +740,7 @@ private:
             return TRUE;
         });
 
-        render2->ConnectMotionNotify([this, status2](int x, int y, int buttonmask) -> int
+        render2->ConnectMotionNotify([status2](int x, int y, int buttonmask) -> int
         {
             char buf[201] = {0};
 
@@ -635,7 +749,7 @@ private:
             return FALSE;
         });
 
-        render2->ConnectButtonPress([this, status2](int x, int y, int buttonmask) -> int
+        render2->ConnectButtonPress([status2](int x, int y, int buttonmask) -> int
         {
             char buf[201] = {0};
 
@@ -644,7 +758,7 @@ private:
             return FALSE;
         });
 
-        render2->ConnectConfigure([this, render1, render2](int width, int height) -> int
+        render2->ConnectConfigure([this](int width, int height) -> int
         {
             DW::Pixmap *old1 = this->pixmap1, *old2 = this->pixmap2;
 
@@ -652,8 +766,8 @@ private:
             cols = width / font_width;
 
             // Create new pixmaps with the current sizes
-            this->pixmap1 = new DW::Pixmap(render1, (unsigned long)(font_width*(width1)), (unsigned long)height);
-            this->pixmap2 = new DW::Pixmap(render2, (unsigned long)width, (unsigned long)height);
+            this->pixmap1 = new DW::Pixmap(this->render1, (unsigned long)(font_width*(width1)), (unsigned long)height);
+            this->pixmap2 = new DW::Pixmap(this->render2, (unsigned long)width, (unsigned long)height);
 
             // Make sure the side area is cleared
             this->pixmap1->SetForegroundColor(DW_CLR_WHITE);
@@ -684,7 +798,7 @@ private:
             return TRUE;
         });
 
-        printbutton->ConnectClicked([this]() -> int
+        printbutton->ConnectClicked([]() -> int
         {
 #if 0 // TODO
             DW::Print *print = new DW::Print("DWTest Job", 0, 2, [this](DW::Pixmap *pixmap, int page_num) -> int
@@ -731,6 +845,31 @@ private:
             print->Run(0);
 #endif
             return TRUE;
+        });
+
+        rendcombo->ConnectListSelect([this](int index) -> int 
+        {
+            if(index != this->render_type)
+            {
+                if(index == DRAW_FILE)
+                {
+                    this->hscrollbar->SetRange(max_linewidth, cols);
+                    this->hscrollbar->SetPos(0);
+                    this->vscrollbar->SetRange(num_lines, rows);
+                    this->vscrollbar->SetPos(0);
+                    this->current_col = this->current_row = 0;
+                }
+                else
+                {
+                    this->hscrollbar->SetRange(0, 0);
+                    this->hscrollbar->SetPos(0);
+                    this->vscrollbar->SetRange(0, 0);
+                    this->vscrollbar->SetPos(0);
+                }
+                this->render_type = index;
+                this->RenderDraw();
+            }
+            return FALSE;
         });
 
         app->TaskBarInsert(render1, fileicon, "DWTest");
@@ -833,9 +972,11 @@ public:
     unsigned long current_color;
 
     // Page 2
+    DW::Render *render1, *render2;
     DW::Pixmap *pixmap1, *pixmap2, *image;
     DW::ScrollBar *hscrollbar, *vscrollbar;
-    int image_x = 20, image_y = 20, image_stretch = 0;
+    DW::SpinButton *imagexspin, *imageyspin;
+    DW::CheckBox *imagestretchcheck;
 
     int font_width = 8, font_height=12;
     int rows=10,width1=6,cols=80;
@@ -843,7 +984,6 @@ public:
     int current_row=0,current_col=0;
     int render_type = SHAPES_DOUBLE_BUFFERED;
 
-    FILE *fp=NULL;
     char **lp;
     char *current_file = NULL;
 

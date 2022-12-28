@@ -663,6 +663,7 @@ public:
     void GetTextExtents(const char *text, int *width, int *height) { dw_font_text_extents_get(hwnd, DW_NULL, text, width, height); }
     char *GetFont() { return dw_window_get_font(hwnd); }
     void Redraw() { dw_render_redraw(hwnd); }
+    void Flush() { dw_flush(); }
 #ifdef DW_LAMBDA
     void ConnectExpose(std::function<int(DWExpose *)> userfunc)
 #else
@@ -770,7 +771,7 @@ protected:
     };
 };
 
-class Pixmap : public Drawable, public Handle
+class Pixmap final : public Drawable, public Handle
 {
 private:
     void SetHPIXMAP(HPIXMAP newpixmap) { 
@@ -1673,7 +1674,7 @@ public:
     HICN LoadIcon(const char *filename) { return dw_icon_load_from_file(filename); }
     HICN LoadIcon(const char *data, int len) { return dw_icon_load_from_data(data, len); }
     void FreeIcon(HICN icon) { dw_icon_free(icon); }
-    void TaskBarInsert(Widget *handle, HICN icon, char *bubbletext) { dw_taskbar_insert(handle ? handle->GetHWND() : DW_NOHWND, icon, bubbletext); }
+    void TaskBarInsert(Widget *handle, HICN icon,  const char *bubbletext) { dw_taskbar_insert(handle ? handle->GetHWND() : DW_NOHWND, icon, bubbletext); }
     void TaskBarDelete(Widget *handle, HICN icon) { dw_taskbar_delete(handle ? handle->GetHWND() : DW_NOHWND, icon); }
 };
 
