@@ -28,6 +28,9 @@
 #define SHAPES_DIRECT           1
 #define DRAW_FILE               2
 
+#define APP_TITLE "Dynamic Windows C++"
+#define APP_EXIT "Are you sure you want to exit?"
+
 class DWTest : public DW::Window
 {
 private:
@@ -140,12 +143,12 @@ private:
         DW::Menu *menu = new DW::Menu();
         DW::MenuItem *menuitem = menu->AppendItem("~Quit");
         menuitem->ConnectClicked([this] () -> int 
-            { 
-                if(this->app->MessageBox("dwtestoo", DW_MB_YESNO | DW_MB_QUESTION, "Are you sure you want to exit?") != 0) {
-                    this->app->MainQuit();
-                }
-                return TRUE;
-            });
+        { 
+            if(this->app->MessageBox(APP_TITLE, DW_MB_YESNO | DW_MB_QUESTION, APP_EXIT) != 0) {
+                this->app->MainQuit();
+            }
+            return TRUE;
+        });
 
         // Add the "File" menu to the menubar...
         menubar->AppendItem("~File", menu);
@@ -186,12 +189,13 @@ private:
             DWEnv env;
 
             this->app->GetEnvironment(&env);
-            this->app->MessageBox("About dwindows", DW_MB_OK | DW_MB_INFORMATION, "dwindows test\n\nOS: %s %s %s Version: %d.%d.%d.%d\n\nHTML: %s\n\ndwindows Version: %d.%d.%d\n\nScreen: %dx%d %dbpp",
-                           env.osName, env.buildDate, env.buildTime,
-                           env.MajorVersion, env.MinorVersion, env.MajorBuild, env.MinorBuild,
-                           env.htmlEngine,
-                           env.DWMajorVersion, env.DWMinorVersion, env.DWSubVersion,
-                           this->app->GetScreenWidth(), this->app->GetScreenHeight(), this->app->GetColorDepth());
+            this->app->MessageBox("About dwindows", DW_MB_OK | DW_MB_INFORMATION,
+                            "dwindows test\n\nOS: %s %s %s Version: %d.%d.%d.%d\n\nHTML: %s\n\ndwindows Version: %d.%d.%d\n\nScreen: %dx%d %dbpp",
+                            env.osName, env.buildDate, env.buildTime,
+                            env.MajorVersion, env.MinorVersion, env.MajorBuild, env.MinorBuild,
+                            env.htmlEngine,
+                            env.DWMajorVersion, env.DWMinorVersion, env.DWSubVersion,
+                            this->app->GetScreenWidth(), this->app->GetScreenHeight(), this->app->GetColorDepth());
             return FALSE;
         });
         // Add the "Help" menu to the menubar...
@@ -350,7 +354,7 @@ private:
 
         cancelbutton->ConnectClicked([this] () -> int 
         {
-            if(this->app->MessageBox("dwtest", DW_MB_YESNO | DW_MB_QUESTION, "Are you sure you want to exit?") != 0) {
+            if(this->app->MessageBox(APP_TITLE, DW_MB_YESNO | DW_MB_QUESTION, APP_EXIT) != 0) {
                 this->app->MainQuit();
             }
             return TRUE;
@@ -373,7 +377,7 @@ private:
     }
 public:
     // Constructor creates the application
-    DWTest(const char *title) {
+    DWTest(const char *title): DW::Window(title) {
         char fileiconpath[1025] = "file";
         char foldericonpath[1025] = "folder";
 
@@ -483,7 +487,7 @@ public:
     HICN fileicon,foldericon;
 
     int OnDelete() override {
-        if(app->MessageBox("dwtest", DW_MB_YESNO | DW_MB_QUESTION, "Are you sure you want to exit?") != 0) {
+        if(app->MessageBox(APP_TITLE, DW_MB_YESNO | DW_MB_QUESTION, APP_EXIT) != 0) {
             app->MainQuit();
         }
         return TRUE;
