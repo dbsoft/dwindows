@@ -11609,6 +11609,11 @@ void dw_window_set_data(HWND window, const char *dataname, void *data)
         NSScrollView *sv = window;
         object = [sv documentView];
     }
+    else if([object isMemberOfClass:[NSBox class]])
+    {
+        NSBox *box = window;
+        object = [box contentView];
+    }
     WindowData *blah = (WindowData *)[object userdata];
 
     if(!blah)
@@ -11650,6 +11655,11 @@ void *dw_window_get_data(HWND window, const char *dataname)
     {
         NSScrollView *sv = window;
         object = [sv documentView];
+    }
+    else if([object isMemberOfClass:[NSBox class]])
+    {
+        NSBox *box = window;
+        object = [box contentView];
     }
     WindowData *blah = (WindowData *)[object userdata];
 
