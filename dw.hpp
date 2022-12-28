@@ -1179,6 +1179,8 @@ public:
     void PageDestroy(unsigned long pageid) { dw_notebook_page_destroy(hwnd, pageid); }
     unsigned long PageGet() { return dw_notebook_page_get(hwnd); }
     unsigned long PageNew(unsigned long flags, int front) { return dw_notebook_page_new(hwnd, flags, front); }
+    unsigned long PageNew(unsigned long flags) { return dw_notebook_page_new(hwnd, flags, FALSE); }
+    unsigned long PageNew() { return dw_notebook_page_new(hwnd, 0, FALSE); }
     void PageSet(unsigned long pageid) { dw_notebook_page_set(hwnd, pageid); }
     void PageSetStatusText(unsigned long pageid, const char *text) { dw_notebook_page_set_status_text(hwnd, pageid, text); }
     void PageSetText(unsigned long pageid, const char *text) { dw_notebook_page_set_text(hwnd, pageid, text); }

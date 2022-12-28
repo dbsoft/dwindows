@@ -208,7 +208,7 @@ private:
                 if(!hpm)
                 {
                     snprintf(buf, 15, "%6.6d", i+row);
-                    pixmap->DrawText(0, y, buf);
+                    pixmap1->DrawText(0, y, buf);
                 }
                 pLine = lp[i+row];
                 pixmap->DrawText(0, y, pLine+col);
@@ -948,7 +948,7 @@ public:
         // Create Notebook Page 2 - Render
         notebookbox = new DW::Box(DW_VERT, 5);
         CreateRender(notebookbox);
-        notebookpage = notebook->PageNew(0, TRUE);
+        notebookpage = notebook->PageNew();
         notebook->Pack(notebookpage, notebookbox);
         notebook->PageSetText(notebookpage, "render");
 
