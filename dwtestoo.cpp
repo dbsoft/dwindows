@@ -1,9 +1,9 @@
-/*
- * Simple C++ Dynamic Windows Example
- */
+// An example Dynamic Windows application and testing
+// ground for Dynamic Windows features in C++.
+// By: Brian Smith and Mark Hessling
 #include "dw.hpp"
 
-/* Select a fixed width font for our platform */
+// Select a fixed width font for our platform 
 #ifdef __OS2__
 #define FIXEDFONT "5.System VIO"
 #define PLATFORMFOLDER "os2\\"
@@ -31,6 +31,80 @@
 #define APP_TITLE "Dynamic Windows C++"
 #define APP_EXIT "Are you sure you want to exit?"
 
+// Handle the case of very old compilers by using
+// A simple non-lambda example instead.
+#ifndef DW_LAMBDA
+
+// Simple C++ Dynamic Windows Example
+
+class DWTest : public DW::Window
+{
+public:
+    DW::App *app;
+
+    DWTest() {
+        app = DW::App::Init();
+
+        SetText(APP_TITLE);
+        SetSize(200, 200);
+     }
+     int OnDelete() override { 
+         if(app->MessageBox(APP_TITLE, DW_MB_YESNO | DW_MB_QUESTION, APP_EXIT) != 0) {
+             app->MainQuit();
+         }
+         return FALSE;
+     }
+};
+
+int button_clicked(Clickable *classptr)
+{
+    DW::App *app = DW::App::Init();
+    app->MessageBox("Button", DW_MB_OK | DW_MB_INFORMATION, "Clicked!"); 
+    return TRUE; 
+}
+
+int exit_handler(Clickable *classptr)
+{
+    DW::App *app = DW::App::Init();
+    if(app->MessageBox(APP_TITLE, DW_MB_YESNO | DW_MB_QUESTION, APP_EXIT) != 0) {
+        app->MainQuit();
+    }
+    return TRUE; 
+}
+
+int dwmain(int argc, char* argv[]) 
+{
+    DW::App *app = DW::App::Init(argc, argv, "org.dbsoft.dwindows.dwtestoo");
+
+    app->MessageBox(APP_TITLE, DW_MB_OK | DW_MB_INFORMATION, 
+                    "Warning: You are viewing the simplified version of this sample program.\n\n" \
+                    "This is because your compiler does not have lambda support.\n\n" \
+                    "Please upgrade to Clang, GCC 4.5 or Visual Studio 2010 to see the full sample.");
+
+    DWTest *window = new DWTest();
+    DW::Button *button = new DW::Button("Test window");
+
+    window->PackStart(button, DW_SIZE_AUTO, DW_SIZE_AUTO, TRUE, TRUE, 0);
+    button->ConnectClicked(&button_clicked);
+
+    DW::MenuBar *mainmenubar = window->MenuBarNew();
+
+    // add menus to the menubar
+    DW::Menu *menu = new DW::Menu();
+    DW::MenuItem *menuitem = menu->AppendItem("~Quit");
+    menuitem->ConnectClicked(&exit_handler);
+
+    // Add the "File" menu to the menubar...
+    mainmenubar->AppendItem("~File", menu);
+
+    window->Show();
+
+    app->Main();
+    app->Exit(0);
+
+    return 0;
+}
+#else
 class DWTest : public DW::Window
 {
 private:
@@ -1000,7 +1074,7 @@ public:
     }
 };
 
-/* Pretty list of features corresponding to the DWFEATURE enum in dw.h */
+// Pretty list of features corresponding to the DWFEATURE enum in dw.h
 const char *DWFeatureList[] = {
     "Supports the HTML Widget",
     "Supports the DW_SIGNAL_HTML_RESULT callback",
@@ -1021,24 +1095,22 @@ const char *DWFeatureList[] = {
     "Supports alternate container view modes",
     NULL };
 
-/*
- * Let's demonstrate the functionality of this library. :)
- */
+// Let's demonstrate the functionality of this library. :)
 int dwmain(int argc, char* argv[]) 
 {
-    /* Initialize the Dynamic Windows engine */
+    // Initialize the Dynamic Windows engine
     DW::App *app = DW::App::Init(argc, argv, "org.dbsoft.dwindows.dwtestoo", "Dynamic Windows Test C++");
 
-    /* Enable full dark mode on platforms that support it */
+    // Enable full dark mode on platforms that support it
     if(getenv("DW_DARK_MODE"))
         app->SetFeature(DW_FEATURE_DARK_MODE, DW_DARK_MODE_FULL);
 
 #ifdef DW_MOBILE
-    /* Enable multi-line container display on Mobile platforms */
+    // Enable multi-line container display on Mobile platforms
     app->SetFeature(DW_FEATURE_CONTAINER_MODE, DW_CONTAINER_MODE_MULTI);
 #endif
 
-    /* Test all the features and display the results */
+    // Test all the features and display the results
     for(int intfeat=DW_FEATURE_HTML; intfeat<DW_FEATURE_MAX; intfeat++)
     {
         DWFEATURE feat = static_cast<DWFEATURE>(intfeat);
@@ -1061,3 +1133,4 @@ int dwmain(int argc, char* argv[])
 
     return 0;
 }
+#endif

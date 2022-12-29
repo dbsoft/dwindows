@@ -135,16 +135,23 @@ private:
     bool ClickedConnected;
 #ifdef DW_LAMBDA
     std::function<int()> _ConnectClicked;
-#else
-    int (*_ConnectClicked)();
 #endif
+    int (*_ConnectClickedOld)(Clickable *);
     static int _OnClicked(HWND window, void *data) {
-        if(reinterpret_cast<Clickable *>(data)->_ConnectClicked) 
-            return reinterpret_cast<Clickable *>(data)->_ConnectClicked();
-        return reinterpret_cast<Clickable *>(data)->OnClicked(); }
+        Clickable *classptr = reinterpret_cast<Clickable *>(data);
+#ifdef DW_LAMBDA
+        if(classptr->_ConnectClicked) 
+            return classptr->_ConnectClicked();
+#endif
+        if(classptr->_ConnectClickedOld)
+            return classptr->_ConnectClickedOld(classptr);
+        return classptr->OnClicked(); }
 protected:
     void Setup() {
+#ifdef DW_LAMBDA
         _ConnectClicked = 0;
+#endif
+        _ConnectClickedOld = 0;
         if(IsOverridden(Clickable::OnClicked, this)) {
             dw_signal_connect(hwnd, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(_OnClicked), this);
             ClickedConnected = true;
@@ -163,11 +170,17 @@ protected:
 public:
 #ifdef DW_LAMBDA
     void ConnectClicked(std::function<int()> userfunc)
-#else
-    void ConnectClicked(int (*userfunc)())
-#endif
     {
         _ConnectClicked = userfunc;
+        if(!ClickedConnected) {
+            dw_signal_connect(hwnd, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(_OnClicked), this);
+            ClickedConnected = true;
+        }
+    }
+#endif
+    void ConnectClicked(int (*userfunc)(Clickable *))
+    {
+        _ConnectClickedOld = userfunc;
         if(!ClickedConnected) {
             dw_signal_connect(hwnd, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(_OnClicked), this);
             ClickedConnected = true;
@@ -264,13 +277,16 @@ private:
 #ifdef DW_LAMBDA
     std::function<int()> _ConnectDelete;
     std::function<int(int, int)> _ConnectConfigure;
-#else
-    int (*_ConnectDelete)();
-    int (*_ConnectConfigure)(int width, int height);
 #endif
+    int (*_ConnectDeleteOld)(Window *);
+    int (*_ConnectConfigureOld)(Window *, int width, int height);
     void Setup() {
+#ifdef DW_LAMBDA
         _ConnectDelete = 0;
         _ConnectConfigure = 0;
+#endif
+        _ConnectDeleteOld = 0;
+        _ConnectConfigureOld = 0;
         menu = DW_NULL;
         if(IsOverridden(Window::OnDelete, this)) {
             dw_signal_connect(hwnd, DW_SIGNAL_DELETE, DW_SIGNAL_FUNC(_OnDelete), this);
@@ -285,14 +301,24 @@ private:
             ConfigureConnected = false;
         }
     }
-    static int _OnDelete(HWND window, void *data) { 
-        if(reinterpret_cast<Window *>(data)->_ConnectDelete)
-            return reinterpret_cast<Window *>(data)->_ConnectDelete();
-        return reinterpret_cast<Window *>(data)->OnDelete(); }
+    static int _OnDelete(HWND window, void *data) {
+        Window *classptr = reinterpret_cast<Window *>(data);
+#ifdef DW_LAMBDA
+        if(classptr->_ConnectDelete)
+            return classptr->_ConnectDelete();
+#endif
+        if(classptr->_ConnectDeleteOld)
+            return classptr->_ConnectDeleteOld(classptr);
+        return classptr->OnDelete(); }
     static int _OnConfigure(HWND window, int width, int height, void *data) { 
-        if(reinterpret_cast<Window *>(data)->_ConnectConfigure)
-            return reinterpret_cast<Window *>(data)->_ConnectConfigure(width, height);
-        return reinterpret_cast<Window *>(data)->OnConfigure(width, height); }
+        Window *classptr = reinterpret_cast<Window *>(data);
+#ifdef DW_LAMBDA
+        if(classptr->_ConnectConfigure)
+            return classptr->_ConnectConfigure(width, height);
+#endif
+        if(classptr->_ConnectConfigureOld)
+            return classptr->_ConnectConfigureOld(classptr, width, height);
+        return classptr->OnConfigure(width, height); }
     MenuBar *menu;
 public:
     // Constructors
@@ -338,9 +364,6 @@ public:
     }
 #ifdef DW_LAMBDA
     void ConnectDelete(std::function<int()> userfunc)
-#else
-    void ConnectDelete(int (*userfunc)()) 
-#endif
     {
         _ConnectDelete = userfunc;
         if(!DeleteConnected) {
@@ -350,13 +373,32 @@ public:
             DeleteConnected = false;
         }
     }
+#endif
+    void ConnectDelete(int (*userfunc)(Window *)) 
+    {
+        _ConnectDeleteOld = userfunc;
+        if(!DeleteConnected) {
+            dw_signal_connect(hwnd, DW_SIGNAL_DELETE, DW_SIGNAL_FUNC(_OnDelete), this);
+            DeleteConnected = true;
+        } else {
+            DeleteConnected = false;
+        }
+    }
 #ifdef DW_LAMBDA
     void ConnectConfigure(std::function<int(int, int)> userfunc)
-#else
-    void ConnectConfigure(int (*userfunc)(int, int)) 
-#endif
     {
         _ConnectConfigure = userfunc;
+        if(!ConfigureConnected) {
+            dw_signal_connect(hwnd, DW_SIGNAL_CONFIGURE, DW_SIGNAL_FUNC(_OnConfigure), this);
+            ConfigureConnected = true;
+        } else {
+            ConfigureConnected = false;
+        }
+    }    
+#endif
+    void ConnectConfigure(int (*userfunc)(Window *, int, int))
+    {
+        _ConnectConfigureOld = userfunc;
         if(!ConfigureConnected) {
             dw_signal_connect(hwnd, DW_SIGNAL_CONFIGURE, DW_SIGNAL_FUNC(_OnConfigure), this);
             ConfigureConnected = true;
@@ -563,21 +605,28 @@ private:
     std::function<int(int, int, int)> _ConnectButtonPress;
     std::function<int(int, int, int)> _ConnectButtonRelease;
     std::function<int(int, int, int)> _ConnectMotionNotify;
-#else
-    int (*_ConnectExpose)(DWExpose *);
-    int (*_ConnectConfigure)(int width, int height);
-    int (*_ConnectKeyPress)(char c, int vk, int state, char *utf8);
-    int (*_ConnectButtonPress)(int x, int y, int buttonmask);
-    int (*_ConnectButtonRelease)(int x, int y, int buttonmask);
-    int (*_ConnectMotionNotify)(int x, int y, int buttonmask);
 #endif
+    int (*_ConnectExposeOld)(Render *, DWExpose *);
+    int (*_ConnectConfigureOld)(Render *, int width, int height);
+    int (*_ConnectKeyPressOld)(Render *, char c, int vk, int state, char *utf8);
+    int (*_ConnectButtonPressOld)(Render *, int x, int y, int buttonmask);
+    int (*_ConnectButtonReleaseOld)(Render *, int x, int y, int buttonmask);
+    int (*_ConnectMotionNotifyOld)(Render *, int x, int y, int buttonmask);
     void Setup() {
+#ifdef DW_LAMBDA
         _ConnectExpose = 0;
         _ConnectConfigure = 0;
         _ConnectKeyPress = 0;
         _ConnectButtonPress = 0;
         _ConnectButtonRelease = 0;
         _ConnectMotionNotify = 0;
+#endif
+        _ConnectExposeOld = 0;
+        _ConnectConfigureOld = 0;
+        _ConnectKeyPressOld = 0;
+        _ConnectButtonPressOld = 0;
+        _ConnectButtonReleaseOld = 0;
+        _ConnectMotionNotifyOld = 0;
         if(IsOverridden(Render::OnExpose, this)) {
             dw_signal_connect(hwnd, DW_SIGNAL_EXPOSE, DW_SIGNAL_FUNC(_OnExpose), this);
             ExposeConnected = true;
@@ -616,29 +665,59 @@ private:
         }
     }
     static int _OnExpose(HWND window, DWExpose *exp, void *data) {
-        if(reinterpret_cast<Render *>(data)->_ConnectExpose)
-            return reinterpret_cast<Render *>(data)->_ConnectExpose(exp);
-        return reinterpret_cast<Render *>(data)->OnExpose(exp); }
+        Render *classptr = reinterpret_cast<Render *>(data);
+#ifdef DW_LAMBDA
+        if(classptr->_ConnectExpose)
+            return classptr->_ConnectExpose(exp);
+#endif
+        if(classptr->_ConnectExposeOld)
+            return classptr->_ConnectExposeOld(classptr, exp);
+        return classptr->OnExpose(exp); }
     static int _OnConfigure(HWND window, int width, int height, void *data) {
-        if(reinterpret_cast<Render *>(data)->_ConnectConfigure)
-            return reinterpret_cast<Render *>(data)->_ConnectConfigure(width, height);
-        return reinterpret_cast<Render *>(data)->OnConfigure(width, height); }
+        Render *classptr = reinterpret_cast<Render *>(data);
+#ifdef DW_LAMBDA
+        if(classptr->_ConnectConfigure)
+            return classptr->_ConnectConfigure(width, height);
+#endif
+        if(classptr->_ConnectConfigureOld)
+            return classptr->_ConnectConfigureOld(classptr, width, height);
+        return classptr->OnConfigure(width, height); }
     static int _OnKeyPress(HWND window, char c, int vk, int state, void *data, char *utf8) {
-        if(reinterpret_cast<Render *>(data)->_ConnectKeyPress)
-            return reinterpret_cast<Render *>(data)->_ConnectKeyPress(c, vk, state, utf8);
-        return reinterpret_cast<Render *>(data)->OnKeyPress(c, vk, state, utf8); }
+        Render *classptr = reinterpret_cast<Render *>(data);
+#ifdef DW_LAMBDA
+        if(classptr->_ConnectKeyPress)
+            return classptr->_ConnectKeyPress(c, vk, state, utf8);
+#endif
+        if(classptr->_ConnectKeyPressOld)
+            return classptr->_ConnectKeyPressOld(classptr, c, vk, state, utf8);
+        return classptr->OnKeyPress(c, vk, state, utf8); }
     static int _OnButtonPress(HWND window, int x, int y, int buttonmask, void *data) {
-        if(reinterpret_cast<Render *>(data)->_ConnectButtonPress)
-            return reinterpret_cast<Render *>(data)->_ConnectButtonPress(x, y, buttonmask);
-        return reinterpret_cast<Render *>(data)->OnButtonPress(x, y, buttonmask); }
+        Render *classptr = reinterpret_cast<Render *>(data);
+#ifdef DW_LAMBDA
+        if(classptr->_ConnectButtonPress)
+            return classptr->_ConnectButtonPress(x, y, buttonmask);
+#endif
+        if(classptr->_ConnectButtonPressOld)
+            return classptr->_ConnectButtonPressOld(classptr, x, y, buttonmask);
+        return classptr->OnButtonPress(x, y, buttonmask); }
     static int _OnButtonRelease(HWND window, int x, int y, int buttonmask, void *data) {
-        if(reinterpret_cast<Render *>(data)->_ConnectButtonRelease)
-            return reinterpret_cast<Render *>(data)->_ConnectButtonRelease(x, y, buttonmask);
-        return reinterpret_cast<Render *>(data)->OnButtonRelease(x, y, buttonmask); }
+        Render *classptr = reinterpret_cast<Render *>(data);
+#ifdef DW_LAMBDA
+        if(classptr->_ConnectButtonRelease)
+            return classptr->_ConnectButtonRelease(x, y, buttonmask);
+#endif
+        if(classptr->_ConnectButtonReleaseOld)
+            return classptr->_ConnectButtonReleaseOld(classptr, x, y, buttonmask);
+        return classptr->OnButtonRelease(x, y, buttonmask); }
     static int _OnMotionNotify(HWND window, int x, int y, int  buttonmask, void *data) {
-        if(reinterpret_cast<Render *>(data)->_ConnectMotionNotify)
-            return reinterpret_cast<Render *>(data)->_ConnectMotionNotify(x, y, buttonmask);
-        return reinterpret_cast<Render *>(data)->OnMotionNotify(x, y, buttonmask); }
+        Render *classptr = reinterpret_cast<Render *>(data);
+#ifdef DW_LAMBDA
+        if(classptr->_ConnectMotionNotify)
+            return classptr->_ConnectMotionNotify(x, y, buttonmask);
+#endif
+        if(classptr->_ConnectMotionNotifyOld)
+            return classptr->_ConnectMotionNotifyOld(classptr, x, y, buttonmask);
+        return classptr->OnMotionNotify(x, y, buttonmask); }
 public:
     // Constructors
     Render(unsigned long id) { SetHWND(dw_render_new(id)); Setup(); }
@@ -666,9 +745,6 @@ public:
     void Flush() { dw_flush(); }
 #ifdef DW_LAMBDA
     void ConnectExpose(std::function<int(DWExpose *)> userfunc)
-#else
-    void ConnectExpose(int (*userfunc)(DWExpose *))
-#endif
     {
         _ConnectExpose = userfunc;
         if(!ExposeConnected) {
@@ -676,11 +752,17 @@ public:
             ExposeConnected = true;
         }
     }
+#endif
+    void ConnectExpose(int (*userfunc)(Render *, DWExpose *))
+    {
+        _ConnectExposeOld = userfunc;
+        if(!ExposeConnected) {
+            dw_signal_connect(hwnd, DW_SIGNAL_EXPOSE, DW_SIGNAL_FUNC(_OnExpose), this);
+            ExposeConnected = true;
+        }
+    }
 #ifdef DW_LAMBDA
     void ConnectConfigure(std::function<int(int, int)> userfunc)
-#else
-    void ConnectConfigure(int (*userfunc)(int, int))
-#endif
     {
         _ConnectConfigure = userfunc;
         if(!ConfigureConnected) {
@@ -688,11 +770,17 @@ public:
             ConfigureConnected = true;
         }
     }
+#endif
+    void ConnectConfigure(int (*userfunc)(Render *, int, int))
+    {
+        _ConnectConfigureOld = userfunc;
+        if(!ConfigureConnected) {
+            dw_signal_connect(hwnd, DW_SIGNAL_CONFIGURE, DW_SIGNAL_FUNC(_OnConfigure), this);
+            ConfigureConnected = true;
+        }
+    }
 #ifdef DW_LAMBDA
     void ConnectKeyPress(std::function<int(char, int, int, char *)> userfunc)
-#else
-    void ConnectKeyPress(int (*userfunc)(char, int, int, char *))
-#endif
     {
         _ConnectKeyPress = userfunc;
         if(!KeyPressConnected) {
@@ -700,11 +788,17 @@ public:
             KeyPressConnected = true;
         }
     }
+#endif
+    void ConnectKeyPress(int (*userfunc)(Render *, char, int, int, char *))
+    {
+        _ConnectKeyPressOld = userfunc;
+        if(!KeyPressConnected) {
+            dw_signal_connect(hwnd, DW_SIGNAL_KEY_PRESS, DW_SIGNAL_FUNC(_OnKeyPress), this);
+            KeyPressConnected = true;
+        }
+    }
 #ifdef DW_LAMBDA
     void ConnectButtonPress(std::function<int(int, int, int)> userfunc)
-#else
-    void ConnectButtonPress(int (*userfunc)(int, int, int))
-#endif
     {
         _ConnectButtonPress = userfunc;
         if(!KeyPressConnected) {
@@ -712,11 +806,17 @@ public:
             ButtonPressConnected = true;
         }
     }
+#endif
+    void ConnectButtonPress(int (*userfunc)(Render *, int, int, int))
+    {
+        _ConnectButtonPressOld = userfunc;
+        if(!KeyPressConnected) {
+            dw_signal_connect(hwnd, DW_SIGNAL_BUTTON_PRESS, DW_SIGNAL_FUNC(_OnButtonPress), this);
+            ButtonPressConnected = true;
+        }
+    }
 #ifdef DW_LAMBDA
     void ConnectButtonRelease(std::function<int(int, int, int)> userfunc)
-#else
-    void ConnectButtonRelease(int (*userfunc)(int, int, int))
-#endif
     {
         _ConnectButtonRelease = userfunc;
         if(!KeyPressConnected) {
@@ -724,13 +824,28 @@ public:
             ButtonReleaseConnected = true;
         }
     }
+#endif
+    void ConnectButtonRelease(int (*userfunc)(Render *, int, int, int))
+    {
+        _ConnectButtonReleaseOld = userfunc;
+        if(!KeyPressConnected) {
+            dw_signal_connect(hwnd, DW_SIGNAL_BUTTON_RELEASE, DW_SIGNAL_FUNC(_OnButtonRelease), this);
+            ButtonReleaseConnected = true;
+        }
+    }
 #ifdef DW_LAMBDA
     void ConnectMotionNotify(std::function<int(int, int, int)> userfunc)
-#else
-    void ConnectMotionNotify(int (*userfunc)(int, int, int))
-#endif
     {
         _ConnectMotionNotify = userfunc;
+        if(!MotionNotifyConnected) {
+            dw_signal_connect(hwnd, DW_SIGNAL_MOTION_NOTIFY, DW_SIGNAL_FUNC(_OnMotionNotify), this);
+            MotionNotifyConnected = true;
+        }
+    }
+#endif
+    void ConnectMotionNotify(int (*userfunc)(Render *, int, int, int))
+    {
+        _ConnectMotionNotifyOld = userfunc;
         if(!MotionNotifyConnected) {
             dw_signal_connect(hwnd, DW_SIGNAL_MOTION_NOTIFY, DW_SIGNAL_FUNC(_OnMotionNotify), this);
             MotionNotifyConnected = true;
@@ -854,13 +969,16 @@ private:
 #ifdef DW_LAMBDA
     std::function<int(int, char *)> _ConnectChanged;
     std::function<int(int, char *, void *)> _ConnectResult;
-#else
-    int (*_ConnectChanged)(int status, char *url);
-    int (*_ConnectResult)(int status, char *result, void *scriptdata);
 #endif
+    int (*_ConnectChangedOld)(HTML *, int status, char *url);
+    int (*_ConnectResultOld)(HTML *, int status, char *result, void *scriptdata);
     void Setup() {
+#ifdef DW_LAMBDA
         _ConnectChanged = 0;
         _ConnectResult = 0;
+#endif
+        _ConnectChangedOld = 0;
+        _ConnectResultOld = 0;
         if(IsOverridden(HTML::OnChanged, this)) {
             dw_signal_connect(hwnd, DW_SIGNAL_HTML_CHANGED, DW_SIGNAL_FUNC(_OnChanged), this);
             ChangedConnected = true;
@@ -875,13 +993,23 @@ private:
     }
     }
     static int _OnChanged(HWND window, int status, char *url, void *data) {
-        if(reinterpret_cast<HTML *>(data)->_ConnectChanged)
-            return reinterpret_cast<HTML *>(data)->_ConnectChanged(status, url);
-        return reinterpret_cast<HTML *>(data)->OnChanged(status, url); }
+        HTML *classptr = reinterpret_cast<HTML *>(data);
+#ifdef DW_LAMBDA
+        if(classptr->_ConnectChanged)
+            return classptr->_ConnectChanged(status, url);
+#endif
+        if(classptr->_ConnectChangedOld)
+            return classptr->_ConnectChangedOld(classptr, status, url);
+        return classptr->OnChanged(status, url); }
     static int _OnResult(HWND window, int status, char *result, void *scriptdata, void *data) {
-        if(reinterpret_cast<HTML *>(data)->_ConnectResult)
-            return reinterpret_cast<HTML *>(data)->_ConnectResult(status, result, scriptdata);
-        return reinterpret_cast<HTML *>(data)->OnResult(status, result, scriptdata); }
+        HTML *classptr = reinterpret_cast<HTML *>(data);
+#ifdef DW_LAMBDA
+        if(classptr->_ConnectResult)
+            return classptr->_ConnectResult(status, result, scriptdata);
+#endif
+        if(classptr->_ConnectResultOld)
+            return classptr->_ConnectResultOld(classptr, status, result, scriptdata);
+        return classptr->OnResult(status, result, scriptdata); }
 public:
     // Constructors
     HTML(unsigned long id) { SetHWND(dw_html_new(id)); Setup(); }
@@ -894,9 +1022,6 @@ public:
     int URL(const char *url) { return dw_html_url(hwnd, url); }
 #ifdef DW_LAMBDA
     void ConnectChanged(std::function<int(int, char *)> userfunc)
-#else
-    void ConnectChanged(int (*userfunc)(int, char *))
-#endif
     { 
         _ConnectChanged = userfunc;
         if(!ChangedConnected) {
@@ -904,13 +1029,28 @@ public:
             ChangedConnected = true;
         }
     }
+#endif
+    void ConnectChanged(int (*userfunc)(HTML *, int, char *))
+    { 
+        _ConnectChangedOld = userfunc;
+        if(!ChangedConnected) {
+            dw_signal_connect(hwnd, DW_SIGNAL_HTML_CHANGED, DW_SIGNAL_FUNC(_OnChanged), this);
+            ChangedConnected = true;
+        }
+    }
 #ifdef DW_LAMBDA
     void ConnectResult(std::function<int(int, char *, void *)> userfunc)
-#else
-    void ConnectResult(int (*userfunc)(int, char *, void *))
-#endif
     {
         _ConnectResult = userfunc;
+        if(!ResultConnected) {
+            dw_signal_connect(hwnd, DW_SIGNAL_HTML_CHANGED, DW_SIGNAL_FUNC(_OnResult), this);
+            ResultConnected = true;
+        }
+    }    
+#endif
+    void ConnectResult(int (*userfunc)(HTML *, int, char *, void *))
+    {
+        _ConnectResultOld = userfunc;
         if(!ResultConnected) {
             dw_signal_connect(hwnd, DW_SIGNAL_HTML_CHANGED, DW_SIGNAL_FUNC(_OnResult), this);
             ResultConnected = true;
@@ -967,20 +1107,27 @@ private:
     bool ListSelectConnected;
 #ifdef DW_LAMBDA
     std::function<int(int)> _ConnectListSelect;
-#else
-    int (*_ConnectListSelect)(int index);
 #endif
+    int (*_ConnectListSelectOld)(ListBoxes *, int index);
     void Setup() {
+#ifdef DW_LAMBDA
         _ConnectListSelect = 0;
+#endif
+        _ConnectListSelectOld = 0;
         if(IsOverridden(ListBoxes::OnListSelect, this)) {
             dw_signal_connect(hwnd, DW_SIGNAL_LIST_SELECT, DW_SIGNAL_FUNC(_OnListSelect), this);
             ListSelectConnected = true;
         }
     }
     static int _OnListSelect(HWND window, int index, void *data) {
-        if(reinterpret_cast<ListBoxes *>(data)->_ConnectListSelect)
-            return reinterpret_cast<ListBoxes *>(data)->_ConnectListSelect(index);
-        return reinterpret_cast<ListBoxes *>(data)->OnListSelect(index);
+        ListBoxes *classptr = reinterpret_cast<ListBoxes *>(data);
+#ifdef DW_LAMBDA
+        if(classptr->_ConnectListSelect)
+            return classptr->_ConnectListSelect(index);
+#endif
+        if(classptr->_ConnectListSelectOld)
+            return classptr->_ConnectListSelectOld(classptr, index);
+        return classptr->OnListSelect(index);
     }
 public:
     // User functions
@@ -998,11 +1145,17 @@ public:
     void SetTop(int top) { dw_listbox_set_top(hwnd, top); }
 #ifdef DW_LAMBDA
     void ConnectListSelect(std::function<int(int)> userfunc)
-#else
-    void ConnectListSelect(int (*userfunc)(int))
-#endif
     {
         _ConnectListSelect = userfunc;
+        if(!ListSelectConnected) {
+            dw_signal_connect(hwnd, DW_SIGNAL_LIST_SELECT, DW_SIGNAL_FUNC(_OnListSelect), this);
+            ListSelectConnected = true;
+        }
+    }    
+#endif
+    void ConnectListSelect(int (*userfunc)(ListBoxes *, int))
+    {
+        _ConnectListSelectOld = userfunc;
         if(!ListSelectConnected) {
             dw_signal_connect(hwnd, DW_SIGNAL_LIST_SELECT, DW_SIGNAL_FUNC(_OnListSelect), this);
             ListSelectConnected = true;
@@ -1045,13 +1198,17 @@ private:
     bool ValueChangedConnected;
 #ifdef DW_LAMBDA
     std::function<int(int)> _ConnectValueChanged;
-#else
-    int (*_ConnectValueChanged)(int value);
 #endif
+    int (*_ConnectValueChangedOld)(Ranged *, int value);
     static int _OnValueChanged(HWND window, int value, void *data) {
-        if(reinterpret_cast<Ranged *>(data)->_ConnectValueChanged)
-            return reinterpret_cast<Ranged *>(data)->_ConnectValueChanged(value);
-        return reinterpret_cast<Ranged *>(data)->OnValueChanged(value);
+        Ranged *classptr = reinterpret_cast<Ranged *>(data);
+#ifdef DW_LAMBDA
+        if(classptr->_ConnectValueChanged)
+            return classptr->_ConnectValueChanged(value);
+#endif
+        if(classptr->_ConnectValueChangedOld)
+            return classptr->_ConnectValueChangedOld(classptr, value);
+        return classptr->OnValueChanged(value);
     }
 protected:
     void Setup() {
@@ -1073,11 +1230,17 @@ protected:
 public:
 #ifdef DW_LAMBDA
     void ConnectValueChanged(std::function<int(int)> userfunc)
-#else
-    void ConnectValueChanged(int (*userfunc)(int))
-#endif
     {
         _ConnectValueChanged = userfunc;
+        if(!ValueChangedConnected) {
+            dw_signal_connect(hwnd, DW_SIGNAL_VALUE_CHANGED, DW_SIGNAL_FUNC(_OnValueChanged), this);
+            ValueChangedConnected = true;
+        }
+    }    
+#endif
+    void ConnectValueChanged(int (*userfunc)(Ranged *, int))
+    {
+        _ConnectValueChangedOld = userfunc;
         if(!ValueChangedConnected) {
             dw_signal_connect(hwnd, DW_SIGNAL_VALUE_CHANGED, DW_SIGNAL_FUNC(_OnValueChanged), this);
             ValueChangedConnected = true;
@@ -1155,13 +1318,17 @@ private:
     bool SwitchPageConnected;
 #ifdef DW_LAMBDA
     std::function<int(unsigned long)> _ConnectSwitchPage;
-#else
-    int (*_ConnectSwitchPage)(unsigned long);
 #endif
+    int (*_ConnectSwitchPageOld)(Notebook *, unsigned long);
     static int _OnSwitchPage(HWND window, unsigned long pageid, void *data) {
-        if(reinterpret_cast<Notebook *>(data)->_ConnectSwitchPage)
-            return reinterpret_cast<Notebook *>(data)->_ConnectSwitchPage(pageid);
-        return reinterpret_cast<Notebook *>(data)->OnSwitchPage(pageid);
+        Notebook *classptr = reinterpret_cast<Notebook *>(data);
+#ifdef DW_LAMBDA
+        if(classptr->_ConnectSwitchPage)
+            return classptr->_ConnectSwitchPage(pageid);
+#endif
+        if(classptr->_ConnectSwitchPageOld)
+            return classptr->_ConnectSwitchPageOld(classptr, pageid);
+        return classptr->OnSwitchPage(pageid);
     }
 protected:
     void Setup() {
@@ -1198,11 +1365,17 @@ public:
     void PageSetText(unsigned long pageid, const char *text) { dw_notebook_page_set_text(hwnd, pageid, text); }
 #ifdef DW_LAMBDA
     void ConnectSwitchPage(std::function<int(unsigned long)> userfunc)
-#else
-    void ConnectSwitchPage(int (*userfunc)(unsigned long))
-#endif
     {
         _ConnectSwitchPage = userfunc;
+        if(!SwitchPageConnected) {
+            dw_signal_connect(hwnd, DW_SIGNAL_SWITCH_PAGE, DW_SIGNAL_FUNC(_OnSwitchPage), this);
+            SwitchPageConnected = true;
+        }
+    }        
+#endif
+    void ConnectSwitchPage(int (*userfunc)(Notebook *, unsigned long))
+    {
+        _ConnectSwitchPageOld = userfunc;
         if(!SwitchPageConnected) {
             dw_signal_connect(hwnd, DW_SIGNAL_SWITCH_PAGE, DW_SIGNAL_FUNC(_OnSwitchPage), this);
             SwitchPageConnected = true;
@@ -1217,24 +1390,37 @@ private:
 #ifdef DW_LAMBDA
     std::function<int(HTREEITEM, char *, void *)> _ConnectItemSelect;
     std::function<int(char *, int, int, void *)> _ConnectItemContext;
-#else
-    int (*_ConnectItemSelect)(HTREEITEM, char *, void *);
-    int (*_ConnectItemContext)(char *, int, int, void *);
 #endif
+    int (*_ConnectItemSelectOld)(ObjectView *, HTREEITEM, char *, void *);
+    int (*_ConnectItemContextOld)(ObjectView *, char *, int, int, void *);
     static int _OnItemSelect(HWND window, HTREEITEM item, char *text, void *itemdata, void *data) {
-        if(reinterpret_cast<ObjectView *>(data)->_ConnectItemSelect)
-            return reinterpret_cast<ObjectView *>(data)->_ConnectItemSelect(item, text, itemdata);
-        return reinterpret_cast<ObjectView *>(data)->OnItemSelect(item, text, itemdata);
+        ObjectView *classptr = reinterpret_cast<ObjectView *>(data);
+#ifdef DW_LAMBDA
+        if(classptr->_ConnectItemSelect)
+            return classptr->_ConnectItemSelect(item, text, itemdata);
+#endif
+        if(classptr->_ConnectItemSelectOld)
+            return classptr->_ConnectItemSelectOld(classptr, item, text, itemdata);
+        return classptr->OnItemSelect(item, text, itemdata);
     }
     static int _OnItemContext(HWND window, char *text, int x, int y, void *itemdata, void *data) {
-        if(reinterpret_cast<ObjectView *>(data)->_ConnectItemContext)
-            return reinterpret_cast<ObjectView *>(data)->_ConnectItemContext(text, x, y, itemdata);
-        return reinterpret_cast<ObjectView *>(data)->OnItemContext(text, x, y, itemdata);
+        ObjectView *classptr = reinterpret_cast<ObjectView *>(data);
+#ifdef DW_LAMBDA
+        if(classptr->_ConnectItemContext)
+            return classptr->_ConnectItemContext(text, x, y, itemdata);
+#endif
+        if(classptr->_ConnectItemContextOld)
+            return classptr->_ConnectItemContextOld(classptr, text, x, y, itemdata);
+        return classptr->OnItemContext(text, x, y, itemdata);
     }
 protected:
     void SetupObjectView() {
+#ifdef DW_LAMBDA
         _ConnectItemSelect = 0;
         _ConnectItemContext = 0;
+#endif
+        _ConnectItemSelectOld = 0;
+        _ConnectItemContextOld = 0;
         if(IsOverridden(ObjectView::OnItemSelect, this)) {
             dw_signal_connect(hwnd, DW_SIGNAL_ITEM_SELECT, DW_SIGNAL_FUNC(_OnItemSelect), this);
             ItemSelectConnected = true;
@@ -1263,9 +1449,6 @@ protected:
 public:
 #ifdef DW_LAMBDA
     void ConnectItemSelect(std::function<int(HTREEITEM, char *, void *)> userfunc)
-#else
-    void ConnectItemSelect(int (*userfunc)(HTREEITEM, char *, void *))
-#endif
     {
         _ConnectItemSelect = userfunc;
         if(!ItemSelectConnected) {
@@ -1273,13 +1456,28 @@ public:
             ItemSelectConnected = true;
         }
     }
+#endif
+    void ConnectItemSelect(int (*userfunc)(ObjectView *, HTREEITEM, char *, void *))
+    {
+        _ConnectItemSelectOld = userfunc;
+        if(!ItemSelectConnected) {
+            dw_signal_connect(hwnd, DW_SIGNAL_ITEM_SELECT, DW_SIGNAL_FUNC(_OnItemSelect), this);
+            ItemSelectConnected = true;
+        }
+    }
 #ifdef DW_LAMBDA
     void ConnectItemContext(std::function<int(char *, int, int, void *)> userfunc)
-#else
-    void ConnectItemContext(int (*userfunc)(char *, int, int, void *))
-#endif
     {
         _ConnectItemContext = userfunc;
+        if(!ItemContextConnected) {
+            dw_signal_connect(hwnd, DW_SIGNAL_ITEM_CONTEXT, DW_SIGNAL_FUNC(_OnItemContext), this);
+            ItemContextConnected = true;
+        }
+    }        
+#endif
+    void ConnectItemContext(int (*userfunc)(ObjectView *, char *, int, int, void *))
+    {
+        _ConnectItemContextOld = userfunc;
         if(!ItemContextConnected) {
             dw_signal_connect(hwnd, DW_SIGNAL_ITEM_CONTEXT, DW_SIGNAL_FUNC(_OnItemContext), this);
             ItemContextConnected = true;
@@ -1294,26 +1492,39 @@ private:
 #ifdef DW_LAMBDA
     std::function<int(char *)> _ConnectItemEnter;
     std::function<int(int)> _ConnectColumnClick;
-#else
-    int (*_ConnectItemEnter)(char *);
-    int (*_ConnectColumnClick)(int);
 #endif
+    int (*_ConnectItemEnterOld)(Containers *, char *);
+    int (*_ConnectColumnClickOld)(Containers *, int);
     static int _OnItemEnter(HWND window, char *text, void *data) {
-        if(reinterpret_cast<Containers *>(data)->_ConnectItemEnter)
-            return reinterpret_cast<Containers *>(data)->_ConnectItemEnter(text);
-        return reinterpret_cast<Containers *>(data)->OnItemEnter(text);
+        Containers *classptr = reinterpret_cast<Containers *>(data);
+#ifdef DW_LAMBDA
+        if(classptr->_ConnectItemEnter)
+            return classptr->_ConnectItemEnter(text);
+#endif
+        if(classptr->_ConnectItemEnterOld)
+            return classptr->_ConnectItemEnterOld(classptr, text);
+        return classptr->OnItemEnter(text);
     }
     static int _OnColumnClick(HWND window, int column, void *data) {
-        if(reinterpret_cast<Containers *>(data)->_ConnectColumnClick)
-            return reinterpret_cast<Containers *>(data)->_ConnectColumnClick(column);
-        return reinterpret_cast<Containers *>(data)->OnColumnClick(column);
+        Containers *classptr = reinterpret_cast<Containers *>(data);
+#ifdef DW_LAMBDA
+        if(classptr->_ConnectColumnClick)
+            return classptr->_ConnectColumnClick(column);
+#endif
+        if(classptr->_ConnectColumnClickOld)
+            return classptr->_ConnectColumnClickOld(classptr, column);
+        return classptr->OnColumnClick(column);
     }
 protected:
     void *allocpointer;
     int allocrowcount;
     void SetupContainer() {
+#ifdef DW_LAMBDA
         _ConnectItemEnter = 0;
         _ConnectColumnClick = 0;
+#endif
+        _ConnectItemEnterOld = 0;
+        _ConnectColumnClickOld = 0;
         if(IsOverridden(Container::OnItemEnter, this)) {
             dw_signal_connect(hwnd, DW_SIGNAL_ITEM_ENTER, DW_SIGNAL_FUNC(_OnItemEnter), this);
             ItemEnterConnected = true;
@@ -1361,9 +1572,6 @@ public:
     void SetStripe(unsigned long oddcolor, unsigned long evencolor) { dw_container_set_stripe(hwnd, oddcolor, evencolor); }
 #ifdef DW_LAMBDA
     void ConnectItemEnter(std::function<int(char *)> userfunc)
-#else
-    void ConnectItemEnter(int (*userfunc)(char *))
-#endif
     {
         _ConnectItemEnter = userfunc;
         if(!ItemEnterConnected) {
@@ -1371,13 +1579,28 @@ public:
             ItemEnterConnected = true;
         }
     }        
+#endif
+    void ConnectItemEnter(int (*userfunc)(Containers *, char *))
+    {
+        _ConnectItemEnterOld = userfunc;
+        if(!ItemEnterConnected) {
+            dw_signal_connect(hwnd, DW_SIGNAL_ITEM_ENTER, DW_SIGNAL_FUNC(_OnItemEnter), this);
+            ItemEnterConnected = true;
+        }
+    }        
 #ifdef DW_LAMBDA
     void ConnecColumnClick(std::function<int(int)> userfunc)
-#else
-    void ConnectColumnClick(int (*userfunc)(int))
-#endif
     {
         _ConnectColumnClick = userfunc;
+        if(!ColumnClickConnected) {
+            dw_signal_connect(hwnd, DW_SIGNAL_COLUMN_CLICK, DW_SIGNAL_FUNC(_OnColumnClick), this);
+            ColumnClickConnected = true;
+        }
+    }        
+#endif
+    void ConnectColumnClick(int (*userfunc)(Containers *, int))
+    {
+        _ConnectColumnClickOld = userfunc;
         if(!ColumnClickConnected) {
             dw_signal_connect(hwnd, DW_SIGNAL_COLUMN_CLICK, DW_SIGNAL_FUNC(_OnColumnClick), this);
             ColumnClickConnected = true;
@@ -1424,16 +1647,23 @@ private:
     bool TreeExpandConnected;
 #ifdef DW_LAMBDA
     std::function<int(HTREEITEM)> _ConnectTreeExpand;
-#else
-    int (*_ConnectTreeExpand)(HTREEITEM);
 #endif
+    int (*_ConnectTreeExpandOld)(Tree *, HTREEITEM);
     static int _OnTreeExpand(HWND window, HTREEITEM item, void *data) {
-        if(reinterpret_cast<Tree *>(data)->_ConnectTreeExpand)
-            return reinterpret_cast<Tree *>(data)->_ConnectTreeExpand(item);
-        return reinterpret_cast<Tree *>(data)->OnTreeExpand(item);
+        Tree *classptr = reinterpret_cast<Tree *>(data);
+#ifdef DW_LAMBDA
+        if(classptr->_ConnectTreeExpand)
+            return classptr->_ConnectTreeExpand(item);
+#endif
+        if(classptr->_ConnectTreeExpandOld)
+            return classptr->_ConnectTreeExpandOld(classptr, item);
+        return classptr->OnTreeExpand(item);
     }
     void SetupTree() {
+#ifdef DW_LAMBDA
         _ConnectTreeExpand = 0;
+#endif
+        _ConnectTreeExpandOld = 0;
         if(IsOverridden(Tree::OnTreeExpand, this)) {
             dw_signal_connect(hwnd, DW_SIGNAL_TREE_EXPAND, DW_SIGNAL_FUNC(_OnTreeExpand), this);
             TreeExpandConnected = true;
@@ -1469,11 +1699,17 @@ public:
     void SetData(HTREEITEM item, void *itemdata) { dw_tree_item_set_data(hwnd, item, itemdata); }
 #ifdef DW_LAMBDA
     void ConnectTreeExpand(std::function<int(HTREEITEM)> userfunc)
-#else
-    void ConnectTreeExpand(int (*userfunc)(HTREEITEM))
-#endif
     {
         _ConnectTreeExpand = userfunc;
+        if(!TreeExpandConnected) {
+            dw_signal_connect(hwnd, DW_SIGNAL_TREE_EXPAND, DW_SIGNAL_FUNC(_OnTreeExpand), this);
+            TreeExpandConnected = true;
+        }
+    }
+#endif
+    void ConnectTreeExpandOld(int (*userfunc)(Tree *, HTREEITEM))
+    {
+        _ConnectTreeExpandOld = userfunc;
         if(!TreeExpandConnected) {
             dw_signal_connect(hwnd, DW_SIGNAL_TREE_EXPAND, DW_SIGNAL_FUNC(_OnTreeExpand), this);
             TreeExpandConnected = true;
@@ -1571,24 +1807,34 @@ private:
     HTIMER timer;
 #ifdef DW_LAMBDA
     std::function<int()> _ConnectTimer;
-#else
-    int (*_ConnectTimer)();
 #endif
+    int (*_ConnectTimerOld)(Timer *);
     static int _OnTimer(void *data) {
-        if(reinterpret_cast<Timer *>(data)->_ConnectTimer)
-            return reinterpret_cast<Timer *>(data)->_ConnectTimer();
-        return reinterpret_cast<Timer *>(data)->OnTimer();
+        Timer *classptr = reinterpret_cast<Timer *>(data);
+#ifdef DW_LAMBDA
+        if(classptr->_ConnectTimer)
+            return classptr->_ConnectTimer();
+#endif
+        if(classptr->_ConnectTimerOld)
+            return classptr->_ConnectTimerOld(classptr);
+        return classptr->OnTimer();
     }
 public:
     // Constructors
     Timer(int interval) { _ConnectTimer = 0; timer = dw_timer_connect(interval, DW_SIGNAL_FUNC(_OnTimer), this); SetHandle(reinterpret_cast<void *>(timer)); }
 #ifdef DW_LAMBDA
-    Timer(int interval, std::function<int()> userfunc)
-#else
-    Timer(int interval, int (*userfunc)())
-#endif
-    {
+    Timer(int interval, std::function<int()> userfunc) {
         _ConnectTimer = userfunc;
+        _ConnectTimerOld = 0;
+        timer = dw_timer_connect(interval, DW_SIGNAL_FUNC(_OnTimer), this);
+        SetHandle(reinterpret_cast<void *>(timer));
+    }
+#endif
+    Timer(int interval, int (*userfunc)(Timer *)) {
+        _ConnectTimerOld = userfunc;
+#ifdef DW_LAMBDA
+        _ConnectTimer = 0;
+#endif
         timer = dw_timer_connect(interval, DW_SIGNAL_FUNC(_OnTimer), this);
         SetHandle(reinterpret_cast<void *>(timer));
     }
@@ -1627,17 +1873,22 @@ private:
     HPRINT print;
 #ifdef DW_LAMBDA
     std::function<int(Pixmap *, int)> _ConnectDrawPage;
-#else
-    int (*_ConnectDrawPage)(Pixmap *, int);
 #endif
+    int (*_ConnectDrawPageOld)(Print *, Pixmap *, int);
     static int _OnDrawPage(HPRINT print, HPIXMAP hpm, int page_num, void *data) {
         int retval;
         Pixmap *pixmap = new Pixmap(hpm);
+        Print *classptr = reinterpret_cast<Print *>(data);
 
-        if(reinterpret_cast<Print *>(data)->_ConnectDrawPage)
-            retval = reinterpret_cast<Print *>(data)->_ConnectDrawPage(pixmap, page_num);
+#ifdef DW_LAMBDA
+        if(classptr->_ConnectDrawPage)
+            retval = classptr->_ConnectDrawPage(pixmap, page_num);
         else
-            retval = reinterpret_cast<Print *>(data)->OnDrawPage(pixmap, page_num);
+#endif
+        if(classptr->_ConnectDrawPageOld)
+            retval = classptr->_ConnectDrawPageOld(classptr, pixmap, page_num);
+        else
+            retval = classptr->OnDrawPage(pixmap, page_num);
 
         delete pixmap;
         return retval;
@@ -1649,14 +1900,17 @@ public:
         print = dw_print_new(jobname, flags, pages, DW_SIGNAL_FUNC(_OnDrawPage), this);
         SetHandle(reinterpret_cast<void *>(print));
         _ConnectDrawPage = userfunc;
-    }
-#else
-    Print(const char *jobname, unsigned long flags, unsigned int pages, int (*userfunc)(Pixmap *, int)) { 
-        print = dw_print_new(jobname, flags, pages, DW_SIGNAL_FUNC(_OnDrawPage), this);
-        SetHandle(reinterpret_cast<void *>(print));
-        _ConnectDrawPage = userfunc;
+        _ConnectDrawPageOld = 0;
     }
 #endif
+    Print(const char *jobname, unsigned long flags, unsigned int pages, int (*userfunc)(Print *, Pixmap *, int)) { 
+        print = dw_print_new(jobname, flags, pages, DW_SIGNAL_FUNC(_OnDrawPage), this);
+        SetHandle(reinterpret_cast<void *>(print));
+        _ConnectDrawPageOld = userfunc;
+#ifdef DW_LAMBDA
+        _ConnectDrawPage = 0;
+#endif
+    }
     // Destructor
     virtual ~Print() { if(print) dw_print_cancel(print); print = 0; }
 
