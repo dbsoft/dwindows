@@ -798,9 +798,8 @@ private:
             return TRUE;
         });
 
-        printbutton->ConnectClicked([]() -> int
+        printbutton->ConnectClicked([this]() -> int
         {
-#if 0 // TODO
             DW::Print *print = new DW::Print("DWTest Job", 0, 2, [this](DW::Pixmap *pixmap, int page_num) -> int
             {
                pixmap->SetFont(FIXEDFONT);
@@ -843,7 +842,6 @@ private:
                return TRUE;
             });
             print->Run(0);
-#endif
             return TRUE;
         });
 
