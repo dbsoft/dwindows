@@ -1212,7 +1212,10 @@ private:
     }
 protected:
     void Setup() {
+#ifdef DW_LAMBDA
         _ConnectValueChanged = 0;
+#endif
+        _ConnectValueChangedOld = 0;
         if(IsOverridden(Ranged::OnValueChanged, this)) {
             dw_signal_connect(hwnd, DW_SIGNAL_VALUE_CHANGED, DW_SIGNAL_FUNC(_OnValueChanged), this);
             ValueChangedConnected = true;
@@ -1332,7 +1335,10 @@ private:
     }
 protected:
     void Setup() {
+#ifdef DW_LAMBDA
         _ConnectSwitchPage = 0;
+#endif
+        _ConnectSwitchPageOld = 0;
         if(IsOverridden(Notebook::OnSwitchPage, this)) {
             dw_signal_connect(hwnd, DW_SIGNAL_SWITCH_PAGE, DW_SIGNAL_FUNC(_OnSwitchPage), this);
             SwitchPageConnected = true;
@@ -1821,7 +1827,14 @@ private:
     }
 public:
     // Constructors
-    Timer(int interval) { _ConnectTimer = 0; timer = dw_timer_connect(interval, DW_SIGNAL_FUNC(_OnTimer), this); SetHandle(reinterpret_cast<void *>(timer)); }
+    Timer(int interval) {
+#ifdef DW_LAMBDA
+        _ConnectTimer = 0;
+#endif
+        _ConnectTimerOld = 0;
+        timer = dw_timer_connect(interval, DW_SIGNAL_FUNC(_OnTimer), this);
+        SetHandle(reinterpret_cast<void *>(timer));
+    }
 #ifdef DW_LAMBDA
     Timer(int interval, std::function<int()> userfunc) {
         _ConnectTimer = userfunc;
