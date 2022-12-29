@@ -56,14 +56,14 @@ public:
      }
 };
 
-int button_clicked(Clickable *classptr)
+int button_clicked(DW::Clickable *classptr)
 {
     DW::App *app = DW::App::Init();
     app->MessageBox("Button", DW_MB_OK | DW_MB_INFORMATION, "Clicked!"); 
     return TRUE; 
 }
 
-int exit_handler(Clickable *classptr)
+int exit_handler(DW::Clickable *classptr)
 {
     DW::App *app = DW::App::Init();
     if(app->MessageBox(APP_TITLE, DW_MB_YESNO | DW_MB_QUESTION, APP_EXIT) != 0) {
