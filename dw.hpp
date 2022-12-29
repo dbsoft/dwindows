@@ -28,6 +28,11 @@
 #define override
 #endif	
 
+// Attempt to allow compilation on MSVC older than 2012
+#if defined(_MSC_VER) && _MSC_VER < 1700
+#define final
+#endif
+
 namespace DW 
 {
 
