@@ -780,21 +780,31 @@ private:
     }
     HPIXMAP hpixmap; 
     unsigned long pwidth, pheight;
+    bool hpmprot;
 public:
     // Constructors
     Pixmap(Render *window, unsigned long width, unsigned long height, int depth) { 
         SetHPIXMAP(dw_pixmap_new(window ? window->GetHWND() : DW_NOHWND, width, height, depth)); 
         pwidth = width; pheight = height; 
+        hpmprot = false;
     }
     Pixmap(Render *window, unsigned long width, unsigned long height) {
         SetHPIXMAP(dw_pixmap_new(window ? window->GetHWND() : DW_NOHWND, width, height, 32)); 
         pwidth = width; pheight = height;
+        hpmprot = false;
     }
     Pixmap(Render *window, const char *filename) { 
         SetHPIXMAP(dw_pixmap_new_from_file(window ? window->GetHWND() : DW_NOHWND, filename));
+        hpmprot = false;
+    }
+    Pixmap(HPIXMAP hpm) { 
+        SetHPIXMAP(hpm);
         pwidth = hpixmap ? DW_PIXMAP_WIDTH(hpixmap) : 0;
         pheight = hpixmap ? DW_PIXMAP_HEIGHT(hpixmap) : 0;
+        hpmprot = true;
     }
+    // Destructor
+    ~Pixmap() { if(hpmprot == false) dw_pixmap_destroy(hpixmap); hpixmap = 0; }
 
     // User functions
     HPIXMAP GetHPIXMAP() { return hpixmap; }
@@ -1607,6 +1617,60 @@ public:
 
     // User functions
     int Send() { int retval = dw_notification_send(hwnd); delete this; return retval; }
+};
+
+class Print : public Handle
+{
+private:
+    HPRINT print;
+#ifdef DW_LAMBDA
+    std::function<int(Pixmap *, int)> _ConnectDrawPage;
+#else
+    int (*_ConnectDrawPage)(Pixmap *, int);
+#endif
+    static int _OnDrawPage(HPRINT print, HPIXMAP hpm, int page_num, void *data) {
+        int retval;
+        Pixmap *pixmap = new Pixmap(hpm);
+
+        if(reinterpret_cast<Print *>(data)->_ConnectDrawPage)
+            retval = reinterpret_cast<Print *>(data)->_ConnectDrawPage(pixmap, page_num);
+        else
+            retval = reinterpret_cast<Print *>(data)->OnDrawPage(pixmap, page_num);
+
+        delete pixmap;
+        return retval;
+    }
+public:
+    // Constructors
+#ifdef DW_LAMBDA
+    Print(const char *jobname, unsigned long flags, unsigned int pages, std::function<int(Pixmap *, int)> userfunc) {
+        print = dw_print_new(jobname, flags, pages, DW_SIGNAL_FUNC(_OnDrawPage), this);
+        SetHandle(reinterpret_cast<void *>(print));
+        _ConnectDrawPage = userfunc;
+    }
+#else
+    Print(const char *jobname, unsigned long flags, unsigned int pages, int (*userfunc)(Pixmap *, int)) { 
+        print = dw_print_new(jobname, flags, pages, DW_SIGNAL_FUNC(_OnDrawPage), this);
+        SetHandle(reinterpret_cast<void *>(print));
+        _ConnectDrawPage = userfunc;
+    }
+#endif
+    // Destructor
+    virtual ~Print() { if(print) dw_print_cancel(print); print = 0; }
+
+    // User functions
+    void Cancel() { dw_print_cancel(print); delete this; }
+    int Run(unsigned long flags) { int retval = dw_print_run(print, flags); delete this; return retval; }
+    HPRINT GetHPRINT() { return print; }
+protected:
+    // Our signal handler functions to be overriden...
+    // If they are not overridden and an event is generated, remove the unused handler
+    virtual int OnDrawPage(Pixmap *pixmap, int page_num) {
+        if(print)
+            dw_print_cancel(print);
+        delete this;
+        return FALSE;
+    }
 };
 
 class App
