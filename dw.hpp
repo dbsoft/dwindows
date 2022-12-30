@@ -577,8 +577,8 @@ public:
     Calendar() { SetHWND(dw_calendar_new(0)); }
 
     // User functions
-    void GetData(unsigned int *year, unsigned int *month, unsigned int *day) { dw_calendar_get_date(hwnd, year, month, day); }
-    void SetData(unsigned int year, unsigned int month, unsigned int day) { dw_calendar_set_date(hwnd, year, month, day); }
+    void GetDate(unsigned int *year, unsigned int *month, unsigned int *day) { dw_calendar_get_date(hwnd, year, month, day); }
+    void SetDate(unsigned int year, unsigned int month, unsigned int day) { dw_calendar_set_date(hwnd, year, month, day); }
 };
 
 
@@ -1114,9 +1114,9 @@ class ListBoxes : virtual public Focusable
 private:
     bool ListSelectConnected;
 #ifdef DW_LAMBDA
-    std::function<int(int)> _ConnectListSelect;
+    std::function<int(unsigned int)> _ConnectListSelect;
 #endif
-    int (*_ConnectListSelectOld)(ListBoxes *, int index);
+    int (*_ConnectListSelectOld)(ListBoxes *, unsigned int index);
     void Setup() {
 #ifdef DW_LAMBDA
         _ConnectListSelect = 0;
@@ -1131,11 +1131,11 @@ private:
         ListBoxes *classptr = reinterpret_cast<ListBoxes *>(data);
 #ifdef DW_LAMBDA
         if(classptr->_ConnectListSelect)
-            return classptr->_ConnectListSelect(index);
+            return classptr->_ConnectListSelect((unsigned int)index);
 #endif
         if(classptr->_ConnectListSelectOld)
-            return classptr->_ConnectListSelectOld(classptr, index);
-        return classptr->OnListSelect(index);
+            return classptr->_ConnectListSelectOld(classptr, (unsigned int)index);
+        return classptr->OnListSelect((unsigned int)index);
     }
 public:
     // User functions
@@ -1143,8 +1143,8 @@ public:
     void Clear() { dw_listbox_clear(hwnd); }
     int Count() { return dw_listbox_count(hwnd); }
     void Delete(int index) { dw_listbox_delete(hwnd, index); }
-    void GetText(unsigned int index, char *buffer, unsigned int length) { dw_listbox_get_text(hwnd, index, buffer, length); }
-    void SetText(unsigned int index, char *buffer) { dw_listbox_set_text(hwnd, index, buffer); }
+    void GetListText(unsigned int index, char *buffer, unsigned int length) { dw_listbox_get_text(hwnd, index, buffer, length); }
+    void SetListText(unsigned int index, char *buffer) { dw_listbox_set_text(hwnd, index, buffer); }
     void Insert(const char *text, int pos) { dw_listbox_insert(hwnd, text, pos); }
     void ListAppend(char **text, int count) { dw_listbox_list_append(hwnd, text, count); }
     void Select(int index, int state) { dw_listbox_select(hwnd, index, state); }
@@ -1152,7 +1152,7 @@ public:
     int Selected(int where) { return dw_listbox_selected_multi(hwnd, where); }
     void SetTop(int top) { dw_listbox_set_top(hwnd, top); }
 #ifdef DW_LAMBDA
-    void ConnectListSelect(std::function<int(int)> userfunc)
+    void ConnectListSelect(std::function<int(unsigned int)> userfunc)
     {
         _ConnectListSelect = userfunc;
         if(!ListSelectConnected) {
@@ -1161,7 +1161,7 @@ public:
         }
     }    
 #endif
-    void ConnectListSelect(int (*userfunc)(ListBoxes *, int))
+    void ConnectListSelect(int (*userfunc)(ListBoxes *, unsigned int))
     {
         _ConnectListSelectOld = userfunc;
         if(!ListSelectConnected) {
@@ -1172,7 +1172,7 @@ public:
 protected:
     // Our signal handler functions to be overriden...
     // If they are not overridden and an event is generated, remove the unused handler
-    virtual int OnListSelect(int index) {
+    virtual int OnListSelect(unsigned int index) {
         dw_signal_disconnect_by_name(hwnd, DW_SIGNAL_LIST_SELECT);
         ListSelectConnected = false;
         return FALSE;
@@ -1313,7 +1313,7 @@ public:
     void Clear() { dw_mle_clear(hwnd); }
     void Delete(int startpoint, int length) { dw_mle_delete(hwnd, startpoint, length); }
     void Export(char *buffer, int startpoint, int length) { dw_mle_export(hwnd, buffer, startpoint, length); }
-    void Import(const char *buffer, int startpoint) { dw_mle_import(hwnd, buffer, startpoint); }
+    int Import(const char *buffer, int startpoint) { return dw_mle_import(hwnd, buffer, startpoint); }
     void GetSize(unsigned long *bytes, unsigned long *lines) { dw_mle_get_size(hwnd, bytes, lines); }
     void Search(const char *text, int point, unsigned long flags) { dw_mle_search(hwnd, text, point, flags); }
     void SetAutoComplete(int state) { dw_mle_set_auto_complete(hwnd, state); }
@@ -1321,6 +1321,8 @@ public:
     void SetEditable(int state) { dw_mle_set_editable(hwnd, state); }
     void SetVisible(int line) { dw_mle_set_visible(hwnd, line); }
     void SetWordWrap(int state) { dw_mle_set_word_wrap(hwnd, state); }
+    int SetFont(const char *font) { return dw_window_set_font(hwnd, font); }
+    char *GetFont() { return dw_window_get_font(hwnd); }
 };
 
 class Notebook : public Widget
@@ -1504,20 +1506,20 @@ class Containers : virtual public Focusable, virtual public ObjectView
 private:
     bool ItemEnterConnected, ColumnClickConnected;
 #ifdef DW_LAMBDA
-    std::function<int(char *)> _ConnectItemEnter;
+    std::function<int(char *, void *)> _ConnectItemEnter;
     std::function<int(int)> _ConnectColumnClick;
 #endif
-    int (*_ConnectItemEnterOld)(Containers *, char *);
+    int (*_ConnectItemEnterOld)(Containers *, char *, void *);
     int (*_ConnectColumnClickOld)(Containers *, int);
-    static int _OnItemEnter(HWND window, char *text, void *data) {
+    static int _OnItemEnter(HWND window, char *text, void *data, void *itemdata) {
         Containers *classptr = reinterpret_cast<Containers *>(data);
 #ifdef DW_LAMBDA
         if(classptr->_ConnectItemEnter)
-            return classptr->_ConnectItemEnter(text);
+            return classptr->_ConnectItemEnter(text, itemdata);
 #endif
         if(classptr->_ConnectItemEnterOld)
-            return classptr->_ConnectItemEnterOld(classptr, text);
-        return classptr->OnItemEnter(text);
+            return classptr->_ConnectItemEnterOld(classptr, text, itemdata);
+        return classptr->OnItemEnter(text, itemdata);
     }
     static int _OnColumnClick(HWND window, int column, void *data) {
         Containers *classptr = reinterpret_cast<Containers *>(data);
@@ -1554,7 +1556,7 @@ protected:
     }
     // Our signal handler functions to be overriden...
     // If they are not overridden and an event is generated, remove the unused handler
-    virtual int OnItemEnter(char *text) {
+    virtual int OnItemEnter(char *text, void *itemdata) {
         dw_signal_disconnect_by_name(hwnd, DW_SIGNAL_ITEM_ENTER);
         ItemEnterConnected = false;
         return FALSE;
@@ -1585,7 +1587,7 @@ public:
     void SetRowTitle(int row, const char *title) { dw_container_set_row_title(allocpointer, row, title); }
     void SetStripe(unsigned long oddcolor, unsigned long evencolor) { dw_container_set_stripe(hwnd, oddcolor, evencolor); }
 #ifdef DW_LAMBDA
-    void ConnectItemEnter(std::function<int(char *)> userfunc)
+    void ConnectItemEnter(std::function<int(char *, void *)> userfunc)
     {
         _ConnectItemEnter = userfunc;
         if(!ItemEnterConnected) {
@@ -1594,7 +1596,7 @@ public:
         }
     }        
 #endif
-    void ConnectItemEnter(int (*userfunc)(Containers *, char *))
+    void ConnectItemEnter(int (*userfunc)(Containers *, char *, void *))
     {
         _ConnectItemEnterOld = userfunc;
         if(!ItemEnterConnected) {
@@ -1603,7 +1605,7 @@ public:
         }
     }        
 #ifdef DW_LAMBDA
-    void ConnecColumnClick(std::function<int(int)> userfunc)
+    void ConnectColumnClick(std::function<int(int)> userfunc)
     {
         _ConnectColumnClick = userfunc;
         if(!ColumnClickConnected) {
@@ -1631,7 +1633,7 @@ public:
     Container() { SetHWND(dw_container_new(0, FALSE)); SetupObjectView(); SetupContainer(); }
 
     // User functions
-    int Setup(unsigned long *flags, char **titles, int count, int separator) { return dw_container_setup(hwnd, flags, titles, count, separator); }    
+    int Setup(unsigned long *flags, const char *titles[], int count, int separator) { return dw_container_setup(hwnd, flags, (char **)titles, count, separator); }    
     void ChangeItem(int column, int row, void *data) { dw_container_change_item(hwnd, column, row, data); }
     int GetColumnType(int column) { return dw_container_get_column_type(hwnd, column); }
     void SetItem(int column, int row, void *data) { dw_container_set_item(hwnd, allocpointer, column, row, data); }
@@ -1646,7 +1648,7 @@ public:
     Filesystem() { SetHWND(dw_container_new(0, FALSE)); SetupObjectView(); SetupContainer(); }
 
     // User functions
-    int Setup(unsigned long *flags, char **titles, int count) { return dw_filesystem_setup(hwnd, flags, titles, count); }    
+    int Setup(unsigned long *flags, const char *titles[], int count) { return dw_filesystem_setup(hwnd, flags, (char **)titles, count); }    
     void ChangeFile(int row, const char *filename, HICN icon) { dw_filesystem_change_file(hwnd, row, filename, icon); }
     void ChangeItem(int column, int row, void *data) { dw_filesystem_change_item(hwnd, column, row, data); }
     int GetColumnType(int column) { return dw_filesystem_get_column_type(hwnd, column); }
