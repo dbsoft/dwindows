@@ -391,6 +391,79 @@ private:
         return menu;
     }
 
+    DW::ComboBox *ColorCombobox(void)
+    {
+        DW::ComboBox *combobox = new DW::ComboBox("DW_CLR_DEFAULT");
+
+        combobox->Append("DW_CLR_DEFAULT");
+        combobox->Append("DW_CLR_BLACK");
+        combobox->Append("DW_CLR_DARKRED");
+        combobox->Append("DW_CLR_DARKGREEN");
+        combobox->Append("DW_CLR_BROWN");
+        combobox->Append("DW_CLR_DARKBLUE");
+        combobox->Append("DW_CLR_DARKPINK");
+        combobox->Append("DW_CLR_DARKCYAN");
+        combobox->Append("DW_CLR_PALEGRAY");
+        combobox->Append("DW_CLR_DARKGRAY");
+        combobox->Append("DW_CLR_RED");
+        combobox->Append("DW_CLR_GREEN");
+        combobox->Append("DW_CLR_YELLOW");
+        combobox->Append("DW_CLR_BLUE");
+        combobox->Append("DW_CLR_PINK");
+        combobox->Append("DW_CLR_CYAN");
+        combobox->Append("DW_CLR_WHITE");
+        return combobox;
+    }
+
+    unsigned long ComboboxColor(const char *colortext)
+    {
+        unsigned long color = DW_CLR_DEFAULT;
+
+        if(strcmp(colortext, "DW_CLR_BLACK") == 0)
+            color = DW_CLR_BLACK;
+        else if(strcmp(colortext, "DW_CLR_DARKRED") == 0)
+            color = DW_CLR_DARKRED;
+        else if(strcmp(colortext, "DW_CLR_DARKGREEN") == 0)
+            color = DW_CLR_DARKGREEN;
+        else if(strcmp(colortext, "DW_CLR_BROWN") == 0)
+            color = DW_CLR_BROWN;
+        else if(strcmp(colortext, "DW_CLR_DARKBLUE") == 0)
+            color = DW_CLR_DARKBLUE;
+        else if(strcmp(colortext, "DW_CLR_DARKPINK") == 0)
+            color = DW_CLR_DARKPINK;
+        else if(strcmp(colortext, "DW_CLR_DARKCYAN") == 0)
+            color = DW_CLR_DARKCYAN;
+        else if(strcmp(colortext, "DW_CLR_PALEGRAY") == 0)
+            color = DW_CLR_PALEGRAY;
+        else if(strcmp(colortext, "DW_CLR_DARKGRAY") == 0)
+            color = DW_CLR_DARKGRAY;
+        else if(strcmp(colortext, "DW_CLR_RED") == 0)
+            color = DW_CLR_RED;
+        else if(strcmp(colortext, "DW_CLR_GREEN") == 0)
+            color = DW_CLR_GREEN;
+        else if(strcmp(colortext, "DW_CLR_YELLOW") == 0)
+            color = DW_CLR_YELLOW;
+        else if(strcmp(colortext, "DW_CLR_BLUE") == 0)
+            color = DW_CLR_BLUE;
+        else if(strcmp(colortext, "DW_CLR_PINK") == 0)
+            color = DW_CLR_PINK;
+        else if(strcmp(colortext, "DW_CLR_CYAN") == 0)
+            color = DW_CLR_CYAN;
+        else if(strcmp(colortext, "DW_CLR_WHITE") == 0)
+            color = DW_CLR_WHITE;
+
+        return color;
+    }
+
+    void MLESetFont(DW::MLE *mle, int fontsize, char *fontname)
+    {
+        char font[101] = {0};
+
+        if(fontname)
+            snprintf(font, 100, "%d.%s", fontsize, fontname);
+        mle->SetFont(fontname ? font : NULL);
+    }
+
     // Add the menus to the window
     void CreateMenus() {
         // Setup the menu
@@ -953,7 +1026,7 @@ private:
             return TRUE;
         });
 
-        rendcombo->ConnectListSelect([this](int index) -> int 
+        rendcombo->ConnectListSelect([this](unsigned int index) -> int 
         {
             if(index != this->render_type)
             {
@@ -1018,7 +1091,7 @@ private:
             {
                 char buf[201] = {0};
 
-                snprintf(buf, 200, "DW_SIGNAL_ITEM_SELECT:Item: %x Text: %s Item Data: %x", DW_POINTER_TO_UINT(item), text, DW_POINTER_TO_UINT(itemdata));
+                snprintf(buf, 200, "DW_SIGNAL_ITEM_SELECT:Item: %x Text: %s Itemdata: %x", DW_POINTER_TO_UINT(item), text, DW_POINTER_TO_UINT(itemdata));
                 tree_status->SetText(buf);
                 return FALSE;
             });
@@ -1043,6 +1116,268 @@ private:
             DW::Text *text = new DW::Text("Tree widget not available.");
             notebookbox->PackStart(text, 500, 200, TRUE, TRUE, 1);
         }
+    }
+
+    // Page 4 - Container
+    void CreateContainer(DW::Box *notebookbox)
+    {
+        char buffer[101] = {0};
+        CTIME time;
+        CDATE date;
+
+        // create a box to pack into the notebook page
+        DW::Box *containerbox = new DW::Box(DW_HORZ, 2);
+        notebookbox->PackStart(containerbox, 500, 200, TRUE, TRUE, 0);
+
+        // Add a word wrap checkbox
+        DW::Box *hbox = new DW::Box(DW_HORZ, 0);
+
+        DW::CheckBox *checkbox = new DW::CheckBox("Word wrap");
+        hbox->PackStart(checkbox,  FALSE, TRUE, 1);
+        DW::Text *text = new DW::Text("Foreground:");
+        text->SetStyle(DW_DT_VCENTER);
+        hbox->PackStart(text, FALSE, TRUE, 1);
+        DW::ComboBox *mlefore = ColorCombobox();
+        hbox->PackStart(mlefore, 150, DW_SIZE_AUTO, TRUE, FALSE, 1);
+        text = new DW::Text("Background:");
+        text->SetStyle(DW_DT_VCENTER);
+        hbox->PackStart(text, FALSE, TRUE, 1);
+        DW::ComboBox *mleback = ColorCombobox();
+        hbox->PackStart(mleback, 150, DW_SIZE_AUTO, TRUE, FALSE, 1);
+        checkbox->Set(TRUE);
+        text = new DW::Text("Font:");
+        text->SetStyle(DW_DT_VCENTER);
+        hbox->PackStart(text, FALSE, TRUE, 1);
+        DW::SpinButton *fontsize = new DW::SpinButton("9");
+        hbox->PackStart(fontsize, FALSE, FALSE, 1);
+        fontsize->SetLimits(100, 5);
+        fontsize->SetPos(9);
+        DW::ComboBox *fontname = new DW::ComboBox("Default");
+        fontname->Append("Default");
+        fontname->Append("Arial");
+        fontname->Append("Geneva");
+        fontname->Append("Verdana");
+        fontname->Append("Helvetica");
+        fontname->Append("DejaVu Sans");
+        fontname->Append("Times New Roman");
+        fontname->Append("Times New Roman Bold");
+        fontname->Append("Times New Roman Italic");
+        fontname->Append("Times New Roman Bold Italic");
+        hbox->PackStart(fontname, 150, DW_SIZE_AUTO, TRUE, FALSE, 1);
+        notebookbox->PackStart(hbox, TRUE, FALSE, 1);
+
+        // now a container area under this box
+        DW::Filesystem *container = new DW::Filesystem(TRUE);
+        notebookbox->PackStart(container, 500, 200, TRUE, FALSE, 1);
+
+        // and a status area to see whats going on
+        DW::StatusText *container_status = new DW::StatusText();
+        notebookbox->PackStart(container_status, 100, DW_SIZE_AUTO, TRUE, FALSE, 1);
+
+        const char *titles[] = { "Type", "Size", "Time", "Date" };
+        unsigned long flags[4] = {  DW_CFA_BITMAPORICON | DW_CFA_LEFT | DW_CFA_HORZSEPARATOR | DW_CFA_SEPARATOR,
+                                    DW_CFA_ULONG | DW_CFA_RIGHT | DW_CFA_HORZSEPARATOR | DW_CFA_SEPARATOR,
+                                    DW_CFA_TIME | DW_CFA_CENTER | DW_CFA_HORZSEPARATOR | DW_CFA_SEPARATOR,
+                                    DW_CFA_DATE | DW_CFA_LEFT | DW_CFA_HORZSEPARATOR | DW_CFA_SEPARATOR };
+
+
+        container->SetColumnTitle("Test");
+        container->Setup(flags, titles, 4);
+        container->SetStripe(DW_CLR_DEFAULT, DW_CLR_DEFAULT);
+        container->Alloc(3);
+
+        for(int z=0;z<3;z++)
+        {
+            char names[101] = {0};
+            HICN thisicon = (z == 0 ? foldericon : fileicon);
+
+            snprintf(names, 100, "We can now allocate from the stack: Item: %d", z);
+            unsigned long size = z*100;
+            snprintf(buffer, 100, "Filename %d", z+1);
+            container->SetFile(z, buffer, thisicon);
+            container->SetItem(0, z, &thisicon);
+            container->SetItem(1, z, &size);
+
+            time.seconds = z+10;
+            time.minutes = z+10;
+            time.hours = z+10;
+            container->SetItem(2, z, &time);
+
+            date.day = z+10;
+            date.month = z+10;
+            date.year = z+2000;
+            container->SetItem(3, z, &date);
+
+            container->SetRowTitle(z, names);
+            container->SetRowData(z, DW_INT_TO_POINTER(z));
+        }
+
+        container->Insert();
+
+        container->Alloc(1);
+        container->SetFile(0, "Yikes", foldericon);
+        unsigned long size = 324;
+        container->SetItem(0, 0, &foldericon);
+        container->SetItem(1, 0, &size);
+        container->SetItem(2, 0, &time);
+        container->SetItem(3, 0, &date);
+        container->SetRowTitle(0, "Extra");
+
+        container->Insert();
+        container->Optimize();
+
+        DW::MLE *container_mle = new DW::MLE();
+        containerbox->PackStart(container_mle, 500, 200, TRUE, TRUE, 0);
+
+        mle_point = container_mle->Import("", -1);
+        snprintf(buffer, 100, "[%d]", mle_point);
+        mle_point = container_mle->Import(buffer, mle_point);
+        snprintf(buffer, 100, "[%d]abczxydefijkl", mle_point);
+        mle_point = container_mle->Import(buffer, mle_point);
+        container_mle->Delete(9, 3);
+        mle_point = container_mle->Import("gh", 12);
+        unsigned long newpoint;
+        container_mle->GetSize(&newpoint, NULL);
+        mle_point = (int)newpoint;
+        snprintf(buffer, 100, "[%d]\r\n\r\n", mle_point);
+        mle_point = container_mle->Import(buffer, mle_point);
+        container_mle->SetCursor(mle_point);
+
+        // connect our event trappers...
+        container->ConnectItemEnter([container_status](char *text, void *itemdata) -> int
+        {
+            char buf[201] = {0};
+
+            snprintf(buf, 200, "DW_SIGNAL_ITEM_ENTER: Text: %s Itemdata: %x", text, DW_POINTER_TO_UINT(itemdata));
+            container_status->SetText(buf);
+            return FALSE;
+        });
+
+        container->ConnectItemContext([this, container_status](char *text, int x, int y, void *itemdata) -> int
+        {
+            char buf[201] = {0};
+            DW::Menu *popupmenu = ItemContextMenu(container_status, "Item context menu clicked.");
+
+            snprintf(buf, 200, "DW_SIGNAL_ITEM_CONTEXT: Text: %s x: %d y: %d Itemdata: %x", text, x, y, DW_POINTER_TO_UINT(itemdata));
+            container_status->SetText(buf);
+            popupmenu->Popup(this, x, y);
+            return FALSE;
+        });
+
+        container->ConnectItemSelect([this, container_mle, container, container_status](HTREEITEM item, char *text, void *itemdata) -> int
+        {
+            char buf[201] = {0};
+
+            snprintf(buf, 200, "DW_SIGNAL_ITEM_SELECT:Item: %x Text: %s Itemdata: %x",
+                    DW_POINTER_TO_UINT(item), text, DW_POINTER_TO_UINT(itemdata));
+            container_status->SetText(buf);
+            snprintf(buf, 200, "\r\nDW_SIGNAL_ITEM_SELECT: Item: %x Text: %s Itemdata: %x\r\n",
+                    DW_POINTER_TO_UINT(item), text, DW_POINTER_TO_UINT(itemdata));
+            this->mle_point = container_mle->Import(buf, mle_point);
+            char *str = container->QueryStart(DW_CRA_SELECTED);
+            while(str)
+            {
+                snprintf(buf, 200, "Selected: %s\r\n", str);
+                mle_point = container_mle->Import(buf, mle_point);
+                this->app->Free(str);
+                str = container->QueryNext(DW_CRA_SELECTED);
+            }
+            // Make the last inserted point the cursor location
+            container_mle->SetCursor(mle_point);
+            // set the details of item 0 to new data
+            this->app->Debug("In cb: icon: %x\n", DW_POINTER_TO_INT(fileicon));
+            container->ChangeFile(0, "new data", fileicon);
+            unsigned long size = 999;
+            this->app->Debug("In cb: icon: %x\n",  DW_POINTER_TO_INT(fileicon));
+            container->ChangeItem(1, 0, &size);
+            return FALSE;
+        });
+
+        container->ConnectColumnClick([container, container_status](int column_num) -> int
+        {
+            const char *type_string = "Filename";
+
+            if(column_num != 0)
+            {
+                int column_type = container->GetColumnType(column_num-1);
+
+                if(column_type == DW_CFA_STRING)
+                    type_string = "String";
+                else if(column_type == DW_CFA_ULONG)
+                    type_string ="ULong";
+                else if(column_type == DW_CFA_DATE)
+                    type_string = "Date";
+                else if(column_type == DW_CFA_TIME)
+                    type_string ="Time";
+                else if(column_type == DW_CFA_BITMAPORICON)
+                    type_string = "BitmapOrIcon";
+                else
+                    type_string = "Unknown";
+            }
+            char buf[201] = {0};
+            snprintf(buf, 200, "DW_SIGNAL_COLUMN_CLICK: Column: %d Type: %s", column_num, type_string);
+            container_status->SetText(buf);
+            return FALSE;
+        });
+
+        mlefore->ConnectListSelect([this, mlefore, mleback, container_mle](unsigned int pos) -> int
+        {
+            char colortext[101] = {0};
+            ULONG fore = DW_CLR_DEFAULT, back = DW_CLR_DEFAULT;
+
+            mlefore->GetListText(pos, colortext, 100);
+            fore = ComboboxColor(colortext);
+            char *text = mleback->GetText();
+
+            if(text && *text)
+            {
+                back = ComboboxColor(text);
+                this->app->Free(text);
+            }
+            container_mle->SetColor(fore, back);
+            return FALSE;
+        });
+
+        mleback->ConnectListSelect([this, mlefore, mleback, container_mle](unsigned int pos) -> int
+        {
+            char colortext[101] = {0};
+            ULONG fore = DW_CLR_DEFAULT, back = DW_CLR_DEFAULT;
+
+            mleback->GetListText(pos, colortext, 100);
+            back = ComboboxColor(colortext);
+            char *text = mlefore->GetText();
+
+            if(text && *text)
+            {
+                fore = ComboboxColor(text);
+                this->app->Free(text);
+            }
+            container_mle->SetColor(fore, back);
+            return FALSE;
+        });
+
+        fontname->ConnectListSelect([this, fontname, fontsize, container_mle](unsigned int pos) -> int
+        {
+            char font[101] = {0};
+
+            fontname->GetListText(pos, font, 100);
+            MLESetFont(container_mle, (int)fontsize->GetPos(), strcmp(font, "Default") == 0 ? NULL : font);
+            return FALSE;
+        });
+
+        fontsize->ConnectValueChanged([this, fontname, container_mle](int size) -> int
+        {
+            char *font = fontname->GetText();
+
+            if(font)
+            {
+                MLESetFont(container_mle, size, strcmp(font, "Default") == 0 ? NULL : font);
+                this->app->Free(font);
+            }
+            else
+                MLESetFont(container_mle, size, NULL);
+            return FALSE;
+        });
     }
 
 public:
@@ -1129,6 +1464,13 @@ public:
         notebookpage = notebook->PageNew();
         notebook->Pack(notebookpage, notebookbox);
         notebook->PageSetText(notebookpage, "tree");
+
+        // Create Notebook Page 4 - Container
+        notebookbox = new DW::Box(DW_VERT, 5);
+        CreateContainer(notebookbox);
+        notebookpage = notebook->PageNew();
+        notebook->Pack(notebookpage, notebookbox);
+        notebook->PageSetText(notebookpage, "container");
 
         // Finalize the window
         this->SetSize(640, 550);
