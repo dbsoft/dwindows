@@ -153,6 +153,7 @@ private:
             return classptr->_ConnectClickedOld(classptr);
         return classptr->OnClicked(); }
 protected:
+    virtual ~Clickable() {}
     void Setup() {
 #ifdef DW_LAMBDA
         _ConnectClicked = 0;
@@ -585,6 +586,7 @@ public:
 class Drawable
 {
 public:
+    virtual ~Drawable() { }
     virtual void DrawPoint(int x, int y) = 0;
     virtual void DrawLine(int x1, int y1, int x2, int y2) = 0;
     virtual void DrawPolygon(int flags, int npoints, int x[], int y[]) = 0;
@@ -595,9 +597,9 @@ public:
     virtual int BitBltStretch(int xdest, int ydest, int width, int height, Pixmap *src, int xsrc, int ysrc, int srcwidth, int srcheight) = 0;
     virtual void BitBlt(int xdest, int ydest, int width, int height, Render *src, int xsrc, int ysrc) = 0;
     virtual void BitBlt(int xdest, int ydest, int width, int height, Pixmap *srcp, int xsrc, int ysrc) = 0;
-    void SetColor(unsigned long fore, unsigned long back) { dw_color_foreground_set(fore); dw_color_background_set(back); }    
-    void SetBackgroundColor(unsigned long back) { dw_color_background_set(back); }  
-    void SetForegroundColor(unsigned long fore) { dw_color_foreground_set(fore); }      
+    void SetColor(unsigned long fore, unsigned long back) { dw_color_foreground_set(fore); dw_color_background_set(back); }
+    void SetBackgroundColor(unsigned long back) { dw_color_background_set(back); }
+    void SetForegroundColor(unsigned long fore) { dw_color_foreground_set(fore); }
 };
 
 class Render : public Drawable, public Widget
@@ -1701,7 +1703,11 @@ public:
     HTREEITEM GetParent(HTREEITEM item) { return dw_tree_get_parent(hwnd, item); }
     char *GetTitle(HTREEITEM item) { return dw_tree_get_title(hwnd, item); }
     HTREEITEM Insert(const char *title, HICN icon, HTREEITEM parent, void *itemdata) { return dw_tree_insert(hwnd, title, icon, parent, itemdata); }
-    HTREEITEM Insert(const char *title, HTREEITEM item, HICN icon, HTREEITEM parent, void *itemdata) { return dw_tree_insert_after(hwnd, item, title, icon, parent, itemdata); }
+    HTREEITEM Insert(const char *title, HICN icon, HTREEITEM parent) { return dw_tree_insert(hwnd, title, icon, parent, NULL); }
+    HTREEITEM Insert(const char *title, HICN icon) { return dw_tree_insert(hwnd, title, icon, 0, NULL); }
+    HTREEITEM InsertAfter(const char *title, HTREEITEM item, HICN icon, HTREEITEM parent, void *itemdata) { return dw_tree_insert_after(hwnd, item, title, icon, parent, itemdata); }
+    HTREEITEM InsertAfter(const char *title, HTREEITEM item, HICN icon, HTREEITEM parent) { return dw_tree_insert_after(hwnd, item, title, icon, parent, NULL); }
+    HTREEITEM InsertAfter(const char *title, HTREEITEM item, HICN icon) { return dw_tree_insert_after(hwnd, item, title, icon, 0, NULL); }
     void Change(HTREEITEM item, const char *title, HICN icon) { dw_tree_item_change(hwnd, item, title, icon); }
     void Collapse(HTREEITEM item) { dw_tree_item_collapse(hwnd, item); }
     void Delete(HTREEITEM item) { dw_tree_item_delete(hwnd, item); }
