@@ -82,7 +82,7 @@ public:
     void SetPointer(int cursortype) { dw_window_set_pointer(hwnd, cursortype); }
     void SetStyle(unsigned long flags, unsigned long mask) { dw_window_set_style(hwnd, flags, mask); }
     void SetStyle(unsigned long flags) { dw_window_set_style(hwnd, flags, flags); }
-    void SetTooltip(char *bubbletext) { dw_window_set_tooltip(hwnd, bubbletext); }
+    void SetTooltip(const char *bubbletext) { dw_window_set_tooltip(hwnd, bubbletext); }
     int Unpack() { return dw_box_unpack(hwnd); }
 };
 
@@ -479,8 +479,17 @@ public:
     Button() { SetHWND(dw_button_new("", 0)); Setup(); }
 };
 
+class BitmapWidget : virtual public Widget
+{
+public:
+    // User functions
+    void Set(unsigned long id) { dw_window_set_bitmap(hwnd, id, DW_NULL); }
+    void Set(const char *file) { dw_window_set_bitmap(hwnd, 0, file); }
+    void Set(const char *data, int len) { dw_window_set_bitmap_from_data(hwnd, 0, data, len); }
+};
+
 // Image based button
-class BitmapButton : public Clickable, public Focusable
+class BitmapButton : public Clickable, public Focusable, public BitmapWidget
 {
 public:
     // Constructors
@@ -553,7 +562,7 @@ public:
 };
 
 // Class for handing static image widget
-class Bitmap : public Widget
+class Bitmap : public BitmapWidget
 {
 public:
     // Constructors
@@ -561,11 +570,6 @@ public:
     Bitmap(const char *file) { SetHWND(dw_bitmap_new(0)); dw_window_set_bitmap(hwnd, 0, file); }
     Bitmap(unsigned long id) { SetHWND(dw_bitmap_new(id)); }
     Bitmap() { SetHWND(dw_bitmap_new(0)); }
-
-    // User functions
-    void Set(unsigned long id) { dw_window_set_bitmap(hwnd, id, DW_NULL); }
-    void Set(const char *file) { dw_window_set_bitmap(hwnd, 0, file); }
-    void Set(const char *data, int len) { dw_window_set_bitmap_from_data(hwnd, 0, data, len); }
 };
 
 // Class for handing calendar widget
@@ -1257,6 +1261,17 @@ public:
             ValueChangedConnected = true;
         }
     }    
+};
+
+class Percent : public Widget
+{
+public:
+    // Constructors
+    Percent(unsigned long id) { SetHWND(dw_percent_new(id)); }
+    Percent() { SetHWND(dw_percent_new(0)); }
+
+    // User functions
+    void SetPos(unsigned int position) { dw_percent_set_pos(hwnd, position); }
 };
 
 class Slider : public Ranged
