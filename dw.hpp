@@ -1030,6 +1030,7 @@ public:
     // User functions
     void Action(int action) { dw_html_action(hwnd, action); }
     int JavascriptRun(const char *script, void *scriptdata) { return dw_html_javascript_run(hwnd, script, scriptdata); }
+    int JavascriptRun(const char *script) { return dw_html_javascript_run(hwnd, script, NULL); }
     int Raw(const char *buffer) { return dw_html_raw(hwnd, buffer); }
     int URL(const char *url) { return dw_html_url(hwnd, url); }
 #ifdef DW_LAMBDA

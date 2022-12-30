@@ -31,6 +31,8 @@
 #define APP_TITLE "Dynamic Windows C++"
 #define APP_EXIT "Are you sure you want to exit?"
 
+#define MAX_WIDGETS 20
+
 // Handle the case of very old compilers by using
 // A simple non-lambda example instead.
 #ifndef DW_LAMBDA
@@ -1541,6 +1543,137 @@ private:
             return TRUE;
         });
     }
+
+    // Page 6 - HTML
+    void CreateHTML(DW::Box *notebookbox)
+    {
+        DW::HTML *rawhtml = new DW::HTML();
+        if(rawhtml && rawhtml->GetHWND())
+        {
+            DW::Box *hbox = new DW::Box(DW_HORZ, 0);
+            DW::ComboBox *javascript = new DW::ComboBox();
+
+            javascript->Append("window.scrollTo(0,500);");
+            javascript->Append("window.document.title;");
+            javascript->Append("window.navigator.userAgent;");
+
+            notebookbox->PackStart(rawhtml, 0, 100, TRUE, FALSE, 0);
+            rawhtml->Raw("<html><body><center><h1>dwtest</h1></center></body></html>");
+            DW::HTML *html = new DW::HTML();
+
+            notebookbox->PackStart(hbox, 0, 0, TRUE, FALSE, 0);
+
+            // Add navigation buttons
+            DW::Button *button = new DW::Button("Back");
+            hbox->PackStart(button, FALSE, FALSE, 0);
+            button->ConnectClicked([html]() -> int 
+            {
+                html->Action(DW_HTML_GOBACK);
+                return TRUE;
+            });
+
+            button = new DW::Button("Forward");
+            hbox->PackStart(button, FALSE, FALSE, 0);
+            button->ConnectClicked([html]() -> int 
+            {
+                html->Action(DW_HTML_GOFORWARD);
+                return TRUE;
+            });
+
+            // Put in some extra space
+            hbox->PackStart(0, 5, 1, FALSE, FALSE, 0);
+
+            button = new DW::Button("Reload");
+            hbox->PackStart(button, FALSE, FALSE, 0);
+            button->ConnectClicked([html]() -> int 
+            {
+                html->Action(DW_HTML_RELOAD);
+                return TRUE;
+            });
+
+            // Put in some extra space
+            hbox->PackStart(0, 5, 1, FALSE, FALSE, 0);
+            hbox->PackStart(javascript, TRUE, FALSE, 0);
+
+            button = new DW::Button("Run");
+            hbox->PackStart(button, FALSE, FALSE, 0);
+            button->ConnectClicked([this, javascript, html]() -> int
+            {
+                char *script = javascript->GetText();
+
+                html->JavascriptRun(script);
+                this->app->Free(script);
+                return FALSE;
+            });
+            javascript->ClickDefault(button);
+
+            notebookbox->PackStart(html, 0, 100, TRUE, TRUE, 0);
+            html->URL("https://dbsoft.org/dw_help.php");
+            DW::StatusText *htmlstatus = new DW::StatusText("HTML status loading...");
+            notebookbox->PackStart(htmlstatus, 100, DW_SIZE_AUTO, TRUE, FALSE, 1);
+
+            // Connect the signal handlers
+            html->ConnectChanged([htmlstatus](int status, char *url) -> int
+            {
+                const char *statusnames[] = { "none", "started", "redirect", "loading", "complete", NULL };
+
+                if(htmlstatus && url && status < 5)
+                {
+                    int length = (int)strlen(url) + (int)strlen(statusnames[status]) + 10;
+                    char *text = (char *)calloc(1, length+1);
+
+                    snprintf(text, length, "Status %s: %s", statusnames[status], url);
+                    htmlstatus->SetText(text);
+                    free(text);
+                }
+                return FALSE;
+            });
+
+            html->ConnectResult([this](int status, char *result, void *script_data)
+            {
+                this->app->MessageBox("Javascript Result", DW_MB_OK | (status ? DW_MB_ERROR : DW_MB_INFORMATION),
+                              result ? result : "Javascript result is not a string value");
+                return TRUE;
+            });
+        }
+        else
+        {
+            DW::Text *htmltext = new DW::Text("HTML widget not available.");
+            notebookbox->PackStart(htmltext, 0, 100, TRUE, TRUE, 0);
+        }
+    }
+
+    // Page 7 - ScrollBox
+    void CreateScrollBox(DW::Box *notebookbox)
+    {
+        char buf[101] = {0};
+
+        /* create a box to pack into the notebook page */
+        DW::ScrollBox *scrollbox = new DW::ScrollBox(DW_VERT, 0);
+        notebookbox->PackStart(scrollbox, 0, 0, TRUE, TRUE, 1);
+
+        DW::Button *adjbutton = new DW::Button("Show Adjustments", 0);
+        scrollbox->PackStart(adjbutton, FALSE, FALSE, 0);
+        adjbutton->ConnectClicked([this, scrollbox]() -> int 
+        {
+            int pos = scrollbox->GetPos(DW_VERT);
+            int range = scrollbox->GetRange(DW_VERT);
+            this->app->Debug("Pos %d Range %d\n", pos, range);
+            return FALSE;
+        });
+
+        for(int i = 0; i < MAX_WIDGETS; i++)
+        {
+            DW::Box *tmpbox = new DW::Box(DW_HORZ, 0);
+            scrollbox->PackStart(tmpbox, 0, 0, TRUE, FALSE, 2);
+            snprintf(buf, 100, "Label %d", i);
+            DW::Text *label = new DW::Text(buf );
+            tmpbox->PackStart(label, 0, DW_SIZE_AUTO, TRUE, FALSE, 0);
+            snprintf(buf, 100, "Entry %d", i);
+            DW::Entryfield *entry = new DW::Entryfield(buf , i);
+            tmpbox->PackStart(entry, 0, DW_SIZE_AUTO, TRUE, FALSE, 0);
+        }
+    }
 public:
     // Constructor creates the application
     DWTest(const char *title): DW::Window(title) {
@@ -1636,6 +1769,20 @@ public:
         notebookpage = notebook->PageNew();
         notebook->Pack(notebookpage, notebookbox);
         notebook->PageSetText(notebookpage, "buttons");
+
+        // Create Notebook Page 6 - HTML
+        notebookbox = new DW::Box(DW_VERT, 5);
+        CreateHTML(notebookbox);
+        notebookpage = notebook->PageNew();
+        notebook->Pack(notebookpage, notebookbox);
+        notebook->PageSetText(notebookpage, "html");
+
+        // Create Notebook Page 7 - ScrollBox
+        notebookbox = new DW::Box(DW_VERT, 5);
+        CreateScrollBox(notebookbox);
+        notebookpage = notebook->PageNew();
+        notebook->Pack(notebookpage, notebookbox);
+        notebook->PageSetText(notebookpage, "scrollbox");
 
         // Finalize the window
         this->SetSize(640, 550);
