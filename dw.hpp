@@ -17,7 +17,7 @@
 #endif
 
 // Support Lambdas on C++11, Visual C 2010 or GCC 4.5
-#if defined(DW_CPP11) || (defined(_MSC_VER) && _MSC_VER >= 1600) || \
+#if defined(DW_CPP11) || (defined(_MSC_VER) && _MSC_VER >= 1700) || \
     (defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ > 4)))
 #define DW_LAMBDA
 #include <functional>
