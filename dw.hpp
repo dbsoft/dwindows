@@ -26,6 +26,7 @@
 // Attempt to allow compilation on GCC older than 4.7
 #if defined(__GNUC__) && (__GNuC__ < 5 || (__GNUC__ == 4 && __GNUC_MINOR__ < 7))
 #define override
+#define final
 #endif	
 
 // Attempt to allow compilation on MSVC older than 2012
