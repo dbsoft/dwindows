@@ -358,6 +358,39 @@ private:
         render2->Redraw();
     }
 
+    DW::Menu *ItemContextMenu(DW::StatusText *status_text, const char *text)
+    {
+        DW::Menu *menu = new DW::Menu();
+        DW::Menu *submenu = new DW::Menu();
+        DW::MenuItem *menuitem = submenu->AppendItem("File", 0L, TRUE);
+        menuitem->ConnectClicked([status_text, text]() -> int { status_text->SetText(text); return TRUE; });
+        menuitem->ConnectClicked([status_text, text]() -> int { status_text->SetText(text); return TRUE; });
+        menuitem = submenu->AppendItem("Date", 0L, TRUE);
+        menuitem->ConnectClicked([status_text, text]() -> int { status_text->SetText(text); return TRUE; });
+        menuitem = submenu->AppendItem("Size", 0L, TRUE);
+        menuitem->ConnectClicked([status_text, text]() -> int { status_text->SetText(text); return TRUE; });
+        menuitem = submenu->AppendItem("None", 0L, TRUE);
+        menuitem->ConnectClicked([status_text, text]() -> int { status_text->SetText(text); return TRUE; });
+
+        menuitem = submenu->AppendItem("Sort", submenu);
+
+        menuitem = submenu->AppendItem("Make Directory");
+        menuitem->ConnectClicked([status_text, text]() -> int { status_text->SetText(text); return TRUE; });
+
+        menuitem = submenu->AppendItem(DW_MENU_SEPARATOR);
+        menuitem = submenu->AppendItem("Rename Entry");
+        menuitem->ConnectClicked([status_text, text]() -> int { status_text->SetText(text); return TRUE; });
+
+        menuitem = submenu->AppendItem("Delete Entry");
+        menuitem->ConnectClicked([status_text, text]() -> int { status_text->SetText(text); return TRUE; });
+
+        menuitem = submenu->AppendItem(DW_MENU_SEPARATOR);
+        menuitem = submenu->AppendItem("View File");
+        menuitem->ConnectClicked([status_text, text]() -> int { status_text->SetText(text); return TRUE; });
+
+        return menu;
+    }
+
     // Add the menus to the window
     void CreateMenus() {
         // Setup the menu
@@ -597,6 +630,7 @@ private:
         });
     }
 
+    // Notebook page 2
     void CreateRender(DW::Box *notebookbox) {
         int vscrollbarwidth, hscrollbarheight;
         wchar_t widestring[100] = L"DWTest Wide";
@@ -946,6 +980,71 @@ private:
 
         app->TaskBarInsert(render1, fileicon, "DWTest");
     }
+
+    // Notebook page 3
+    void CreateTree(DW::Box *notebookbox)
+    {
+        // create a box to pack into the notebook page
+        DW::ListBox *listbox = new DW::ListBox(TRUE);
+        notebookbox->PackStart(listbox, 500, 200, TRUE, TRUE, 0);
+        listbox->Append("Test 1");
+        listbox->Append("Test 2");
+        listbox->Append("Test 3");
+        listbox->Append("Test 4");
+        listbox->Append("Test 5");
+
+        // now a tree area under this box 
+        DW::Tree *tree = new DW::Tree();
+        if(tree->GetHWND())
+        {
+            notebookbox->PackStart(tree, 500, 200, TRUE, TRUE, 1);
+
+            /* and a status area to see whats going on */
+            DW::StatusText *tree_status = new DW::StatusText();
+            notebookbox->PackStart(tree_status, 100, DW_SIZE_AUTO, TRUE, FALSE, 1);
+
+            // set up our signal trappers...
+            tree->ConnectItemContext([this, tree_status](char *text, int x, int y, void *data) -> int
+            {
+                char buf[201] = {0};
+                DW::Menu *popupmenu = ItemContextMenu(tree_status, "Item context menu clicked.");
+
+                snprintf(buf, 200, "DW_SIGNAL_ITEM_CONTEXT: Text: %s x: %d y: %d", text, x, y);
+                tree_status->SetText(buf);
+                popupmenu->Popup(this, x, y);
+                return FALSE;
+            });
+            tree->ConnectItemSelect([tree_status](HTREEITEM item, char *text, void *itemdata)
+            {
+                char buf[201] = {0};
+
+                snprintf(buf, 200, "DW_SIGNAL_ITEM_SELECT:Item: %x Text: %s Item Data: %x", DW_POINTER_TO_UINT(item), text, DW_POINTER_TO_UINT(itemdata));
+                tree_status->SetText(buf);
+                return FALSE;
+            });
+
+            HTREEITEM t1 = tree->Insert("tree folder 1", foldericon, DW_NULL, DW_INT_TO_POINTER(1));
+            HTREEITEM t2 = tree->Insert("tree folder 2", foldericon, DW_NULL, DW_INT_TO_POINTER(2));
+            tree->Insert("tree file 1", fileicon, t1, DW_INT_TO_POINTER(3));
+            tree->Insert("tree file 2", fileicon, t1, DW_INT_TO_POINTER(4));
+            tree->Insert("tree file 3", fileicon, t2, DW_INT_TO_POINTER(5));
+            tree->Insert("tree file 4", fileicon, t2, DW_INT_TO_POINTER(6));
+            tree->Change(t1, "tree folder 1", foldericon);
+            tree->Change(t2, "tree folder 2", foldericon);
+            tree->SetData(t2, DW_INT_TO_POINTER(100));
+            tree->Expand(t1);
+            char *title = tree->GetTitle(t1);
+            this->app->Debug("t1 title \"%s\" data %d t2 data %d\n", title, DW_POINTER_TO_INT(tree->GetData(t1)),
+                     DW_POINTER_TO_INT(tree->GetData(t2)));
+            this->app->Free(title);
+        }
+        else
+        {
+            DW::Text *text = new DW::Text("Tree widget not available.");
+            notebookbox->PackStart(text, 500, 200, TRUE, TRUE, 1);
+        }
+    }
+
 public:
     // Constructor creates the application
     DWTest(const char *title): DW::Window(title) {
@@ -1023,6 +1122,13 @@ public:
         notebookpage = notebook->PageNew();
         notebook->Pack(notebookpage, notebookbox);
         notebook->PageSetText(notebookpage, "render");
+
+        // Create Notebook Page 3 - Tree
+        notebookbox = new DW::Box(DW_VERT, 5);
+        CreateTree(notebookbox);
+        notebookpage = notebook->PageNew();
+        notebook->Pack(notebookpage, notebookbox);
+        notebook->PageSetText(notebookpage, "tree");
 
         // Finalize the window
         this->SetSize(640, 550);
