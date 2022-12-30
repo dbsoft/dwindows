@@ -79,7 +79,7 @@ int dwmain(int argc, char* argv[])
     app->MessageBox(APP_TITLE, DW_MB_OK | DW_MB_INFORMATION, 
                     "Warning: You are viewing the simplified version of this sample program.\n\n" \
                     "This is because your compiler does not have lambda support.\n\n" \
-                    "Please upgrade to Clang, GCC 4.5 or Visual Studio 2012 to see the full sample.");
+                    "Please upgrade to Clang, GCC 4.5 or Visual Studio 2015 to see the full sample.");
 
     DWTest *window = new DWTest();
     DW::Button *button = new DW::Button("Test window");
