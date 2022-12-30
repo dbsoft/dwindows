@@ -1380,12 +1380,170 @@ private:
         });
     }
 
+    // Page 5 - Buttons
+    void CreateButtons(DW::Box *notebookbox)
+    {
+        // create a box to pack into the notebook page
+        DW::Box *buttonsbox = new DW::Box(DW_VERT, 2);
+        notebookbox->PackStart(buttonsbox, 25, 200, TRUE, TRUE, 0);
+        buttonsbox->SetColor(DW_CLR_RED, DW_CLR_RED);
+
+        DW::Box *calbox = new DW::Box(DW_HORZ, 0);
+        notebookbox->PackStart(calbox, 0, 0, TRUE, FALSE, 1);
+        DW::Calendar *cal = new DW::Calendar();
+        calbox->PackStart(cal, TRUE, FALSE, 0);
+
+        cal->SetDate(2019, 4, 30);
+
+        // Create our file toolbar boxes...
+        DW::Box *buttonboxperm = new DW::Box(DW_VERT, 0);
+        buttonsbox->PackStart(buttonboxperm, 25, 0, FALSE, TRUE, 2);
+        buttonboxperm->SetColor(DW_CLR_WHITE, DW_CLR_WHITE);
+        DW::BitmapButton *topbutton = new DW::BitmapButton("Top Button", fileiconpath);
+        buttonboxperm->PackStart(topbutton, 100, 30, FALSE, FALSE, 0 );
+        buttonboxperm->PackStart(DW_NOHWND, 25, 5, FALSE, FALSE, 0);
+        DW::BitmapButton *iconbutton = new DW::BitmapButton( "Folder Icon", foldericonpath);
+        buttonsbox->PackStart(iconbutton, 25, 25, FALSE, FALSE, 0);
+        iconbutton->ConnectClicked([this, iconbutton]() -> int
+        {
+            static int isfoldericon = 0;
+
+            isfoldericon = !isfoldericon;
+            if(isfoldericon)
+            {
+                iconbutton->Set(this->fileiconpath);
+                iconbutton->SetTooltip("File Icon");
+            }
+            else
+            {
+                iconbutton->Set(this->foldericonpath);
+                iconbutton->SetTooltip("Folder Icon");
+            }
+            return FALSE;
+        });
+
+        DW::Box *filetoolbarbox = new DW::Box(DW_VERT, 0);
+        buttonboxperm->PackStart(filetoolbarbox, 0, 0, TRUE, TRUE, 0);
+
+        DW::BitmapButton *button = new DW::BitmapButton("Empty image. Should be under Top button", 0, "junk");
+        filetoolbarbox->PackStart(button, 25, 25, FALSE, FALSE, 0);
+        button->ConnectClicked([buttonsbox]() -> int 
+        {
+            buttonsbox->SetColor(DW_CLR_RED, DW_CLR_RED);
+            return TRUE;
+        });
+        filetoolbarbox->PackStart(DW_NOHWND, 25, 5, FALSE, FALSE, 0);
+
+        button = new DW::BitmapButton("A borderless bitmapbitton", 0, foldericonpath);
+        filetoolbarbox->PackStart(button, 25, 25, FALSE, FALSE, 0);
+        button->ConnectClicked([buttonsbox]() -> int 
+        {
+            buttonsbox->SetColor(DW_CLR_YELLOW, DW_CLR_YELLOW);
+            return TRUE;
+        });
+        filetoolbarbox->PackStart(DW_NOHWND, 25, 5, FALSE, FALSE, 0);
+        button->SetStyle(DW_BS_NOBORDER);
+
+        DW::BitmapButton *perbutton = new DW::BitmapButton("A button from data", 0, foldericonpath);
+        filetoolbarbox->PackStart(perbutton, 25, 25, FALSE, FALSE, 0);
+        filetoolbarbox->PackStart(DW_NOHWND, 25, 5, FALSE, FALSE, 0 );
+
+        // make a combobox
+        DW::Box *combox = new DW::Box(DW_VERT, 2);
+        notebookbox->PackStart(combox, 25, 200, TRUE, FALSE, 0);
+        DW::ComboBox *combobox1 = new DW::ComboBox("fred"); 
+        combobox1->Append("fred");
+        combox->PackStart(combobox1, TRUE, FALSE, 0);
+
+        int iteration = 0;
+        combobox1->ConnectListSelect([this, &iteration](unsigned int index) -> int
+        {
+            this->app->Debug("got combobox_select_event for index: %d, iteration: %d\n", index, iteration++);
+            return FALSE;
+        });
+
+        DW::ComboBox *combobox2 = new DW::ComboBox("joe");
+        combox->PackStart(combobox2, TRUE, FALSE, 0);
+        combobox2->ConnectListSelect([this, &iteration](unsigned int index) -> int
+        {
+            this->app->Debug("got combobox_select_event for index: %d, iteration: %d\n", index, iteration++);
+            return FALSE;
+        });
+
+        // add LOTS of items
+        app->Debug("before appending 500 items to combobox using dw_listbox_list_append()\n");
+        char **text = (char **)malloc(500*sizeof(char *));
+        for(int i = 0; i < 500; i++)
+        {
+            text[i] = (char *)calloc(1, 50);
+            snprintf(text[i], 50, "item %d", i);
+        }
+        combobox2->ListAppend(text, 500);
+        app->Debug("after appending 500 items to combobox\n");
+        for(int i = 0; i < 500; i++)
+        {
+            free(text[i]);
+        }
+        free(text);
+        // now insert a couple of items
+        combobox2->Insert("inserted item 2", 2);
+        combobox2->Insert("inserted item 5", 5);
+        /* make a spinbutton */
+        DW::SpinButton *spinbutton = new DW::SpinButton();
+        combox->PackStart(spinbutton, TRUE, FALSE, 0);
+        spinbutton->SetLimits(100, 1);
+        spinbutton->SetPos(30);
+        
+        spinbutton->ConnectValueChanged([this](int value) -> int
+        {
+            this->app->MessageBox("DWTest", DW_MB_OK, "New value from spinbutton: %d\n", value);
+            return TRUE;
+        });
+        /// make a slider
+        DW::Slider *slider = new DW::Slider(FALSE, 11, 0); 
+        combox->PackStart(slider, TRUE, FALSE, 0);
+
+        // make a percent
+        DW::Percent *percent = new DW::Percent();
+        combox->PackStart(percent, TRUE, FALSE, 0);
+
+        topbutton->ConnectClicked([this, combobox1, combobox2, spinbutton, cal]() -> int 
+        {
+            char buf1[101] = {0};
+            char buf2[101] = {0};
+            char buf3[501] = {0};
+
+            unsigned int idx = combobox1->Selected();
+            combobox1->GetListText(idx, buf1, 100);
+            idx = combobox2->Selected();
+            combobox2->GetListText(idx, buf2, 100);
+            unsigned int y,m,d;
+            cal->GetDate(&y, &m, &d);
+            long spvalue = spinbutton->GetPos();
+            int len = snprintf(buf3, 500, "spinbutton: %ld\ncombobox1: \"%s\"\ncombobox2: \"%s\"\ncalendar: %d-%d-%d",
+                              spvalue,
+                              buf1, buf2,
+                              y, m, d);
+            this->app->MessageBox("Values", DW_MB_OK | DW_MB_INFORMATION, buf3);
+            this->app->SetClipboard(buf3, len);
+            return 0;
+        });
+
+        perbutton->ConnectClicked([percent]() -> int 
+        {
+            percent->SetPos(DW_PERCENT_INDETERMINATE);
+            return TRUE;
+        });
+
+        slider->ConnectValueChanged([percent](int value) -> int
+        {
+            percent->SetPos(value * 10);
+            return TRUE;
+        });
+    }
 public:
     // Constructor creates the application
     DWTest(const char *title): DW::Window(title) {
-        char fileiconpath[1025] = "file";
-        char foldericonpath[1025] = "folder";
-
         // Get our application singleton
         app = DW::App::Init();
 
@@ -1472,6 +1630,13 @@ public:
         notebook->Pack(notebookpage, notebookbox);
         notebook->PageSetText(notebookpage, "container");
 
+        // Create Notebook Page 5 - Buttons
+        notebookbox = new DW::Box(DW_VERT, 5);
+        CreateButtons(notebookbox);
+        notebookpage = notebook->PageNew();
+        notebook->Pack(notebookpage, notebookbox);
+        notebook->PageSetText(notebookpage, "buttons");
+
         // Finalize the window
         this->SetSize(640, 550);
 
@@ -1502,7 +1667,7 @@ public:
     int rows=10,width1=6,cols=80;
     int num_lines=0, max_linewidth=0;
     int current_row=0,current_col=0;
-    int render_type = SHAPES_DOUBLE_BUFFERED;
+    unsigned int render_type = SHAPES_DOUBLE_BUFFERED;
 
     char **lp;
     char *current_file = NULL;
@@ -1512,7 +1677,10 @@ public:
 
     // Miscellaneous
     int menu_enabled = TRUE;
-    HICN fileicon,foldericon;
+    HICN fileicon, foldericon;
+    char fileiconpath[1025] = "file";
+    char foldericonpath[1025] = "folder";
+
 
     int OnDelete() override {
         if(app->MessageBox(APP_TITLE, DW_MB_YESNO | DW_MB_QUESTION, APP_EXIT) != 0) {
