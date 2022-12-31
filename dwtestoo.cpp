@@ -349,7 +349,7 @@ private:
     }
 
     // Request that the render widgets redraw...
-    // If not using direct rendering, call update_render() to
+    // If not using direct rendering, call UpdateRender() to
     // redraw the in memory pixmaps. Then trigger the expose events.
     // Expose will call update_render() to draw directly or bitblt the pixmaps.
     void RenderDraw() {
@@ -515,7 +515,7 @@ private:
                 // Increment the ready count while protected by mutex
                 mutex->Lock();
                 ready++;
-                sprintf(buf, "Thread %d work done. ready=%d", threadnum, ready);
+                snprintf(buf, BUF_SIZE, "Thread %d work done. ready=%d", threadnum, ready);
                 // If all 4 threads have incrememted the ready count...
                 // Post the control event semaphore so things will get started.
                 if(ready == 4)
@@ -822,7 +822,7 @@ private:
     void CreateRender(DW::Box *notebookbox) {
         int vscrollbarwidth, hscrollbarheight;
         wchar_t widestring[100] = L"DWTest Wide";
-        char *utf8string = dw_wchar_to_utf8(widestring);
+        char *utf8string = app->WideToUTF8(widestring);
 
         // create a box to pack into the notebook page
         DW::Box *pagebox = new DW::Box(DW_HORZ, 2);
@@ -1586,7 +1586,7 @@ private:
         });
 
         // add LOTS of items
-        app->Debug("before appending 500 items to combobox using dw_listbox_list_append()\n");
+        app->Debug("before appending 500 items to combobox using DW::ListBox::ListAppend()\n");
         char **text = (char **)malloc(500*sizeof(char *));
         for(int i = 0; i < 500; i++)
         {
@@ -2049,7 +2049,7 @@ int dwmain(int argc, char* argv[])
     for(int intfeat=DW_FEATURE_HTML; intfeat<DW_FEATURE_MAX; intfeat++)
     {
         DWFEATURE feat = static_cast<DWFEATURE>(intfeat);
-        int result = dw_feature_get(feat);
+        int result = app->GetFeature(feat);
         const char *status = "Unsupported";
 
         if(result == 0)
