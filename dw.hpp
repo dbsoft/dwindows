@@ -1000,7 +1000,7 @@ private:
             ChangedConnected = false;
         }
         if(IsOverridden(HTML::OnResult, this)) {
-            dw_signal_connect(hwnd, DW_SIGNAL_HTML_CHANGED, DW_SIGNAL_FUNC(_OnResult), this);
+            dw_signal_connect(hwnd, DW_SIGNAL_HTML_RESULT, DW_SIGNAL_FUNC(_OnResult), this);
             ResultConnected = true;
         } else {
             ResultConnected = false;
@@ -1058,7 +1058,7 @@ public:
     {
         _ConnectResult = userfunc;
         if(!ResultConnected) {
-            dw_signal_connect(hwnd, DW_SIGNAL_HTML_CHANGED, DW_SIGNAL_FUNC(_OnResult), this);
+            dw_signal_connect(hwnd, DW_SIGNAL_HTML_RESULT, DW_SIGNAL_FUNC(_OnResult), this);
             ResultConnected = true;
         }
     }    
@@ -1067,7 +1067,7 @@ public:
     {
         _ConnectResultOld = userfunc;
         if(!ResultConnected) {
-            dw_signal_connect(hwnd, DW_SIGNAL_HTML_CHANGED, DW_SIGNAL_FUNC(_OnResult), this);
+            dw_signal_connect(hwnd, DW_SIGNAL_HTML_RESULT, DW_SIGNAL_FUNC(_OnResult), this);
             ResultConnected = true;
         }
     }    
