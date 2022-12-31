@@ -37,6 +37,8 @@
 namespace DW 
 {
 
+#define THREAD_STACK 10000
+
 // Forward declare these so they can be referenced
 class Render;
 class Pixmap;
@@ -1972,6 +1974,91 @@ protected:
     }
 };
 
+class Thread : public Handle
+{
+private:
+    DWTID tid;
+#ifdef DW_LAMBDA
+    std::function<void(Thread *)> _ConnectThread;
+#endif
+    void (*_ConnectThreadOld)(Thread *);
+    static void _OnThread(void *data) {
+        Thread *classptr = reinterpret_cast<Thread *>(data);
+
+#ifdef DW_LAMBDA
+        if(classptr->_ConnectThread)
+            classptr->_ConnectThread(classptr);
+        else
+#endif
+        if(classptr->_ConnectThreadOld)
+            classptr->_ConnectThreadOld(classptr);
+        else
+            classptr->OnThread(classptr);
+
+        delete classptr;
+    }
+public:
+    // Constructors
+#ifdef DW_LAMBDA
+    Thread(std::function<void(Thread *)> userfunc) {
+        tid = dw_thread_new(DW_SIGNAL_FUNC(_OnThread), this, THREAD_STACK);
+        SetHandle(reinterpret_cast<void *>(tid));
+        _ConnectThread = userfunc;
+        _ConnectThreadOld = 0;
+    }
+    Thread(std::function<void(Thread *)> userfunc, int stack) {
+        tid = dw_thread_new(DW_SIGNAL_FUNC(_OnThread), this, stack);
+        SetHandle(reinterpret_cast<void *>(tid));
+        _ConnectThread = userfunc;
+        _ConnectThreadOld = 0;
+    }
+#endif
+    Thread(void (*userfunc)(Thread *)) { 
+        tid = dw_thread_new(DW_SIGNAL_FUNC(_OnThread), this, THREAD_STACK);
+        SetHandle(reinterpret_cast<void *>(tid));
+        _ConnectThreadOld = userfunc;
+#ifdef DW_LAMBDA
+        _ConnectThread = 0;
+#endif
+    }
+    Thread(void (*userfunc)(Thread *), int stack) { 
+        tid = dw_thread_new(DW_SIGNAL_FUNC(_OnThread), this, stack);
+        SetHandle(reinterpret_cast<void *>(tid));
+        _ConnectThreadOld = userfunc;
+#ifdef DW_LAMBDA
+        _ConnectThread = 0;
+#endif
+    }
+    Thread(int stack) { 
+        tid = dw_thread_new(DW_SIGNAL_FUNC(_OnThread), this, stack);
+        SetHandle(reinterpret_cast<void *>(tid));
+        _ConnectThreadOld = 0;
+#ifdef DW_LAMBDA
+        _ConnectThread = 0;
+#endif
+    }
+    Thread() { 
+        tid = dw_thread_new(DW_SIGNAL_FUNC(_OnThread), this, THREAD_STACK);
+        SetHandle(reinterpret_cast<void *>(tid));
+        _ConnectThreadOld = 0;
+#ifdef DW_LAMBDA
+        _ConnectThread = 0;
+#endif
+    }
+    // Destructor
+    virtual ~Thread() { if(tid != 0 && dw_thread_id() == tid) dw_thread_end(); tid = 0; }
+
+    // User functions
+    void End() { if(tid != 0 && dw_thread_id() == tid) delete this; }
+    DWTID GetTID() { return tid; }
+protected:
+    // Our signal handler functions to be overriden...
+    // If they are not overridden and an event is generated, remove the unused handler
+    virtual void OnThread(Thread *classptr) {
+        delete this;
+    }
+};
+
 class App
 {
 protected:
@@ -1999,6 +2086,7 @@ public:
     void Main() { dw_main(); }
     void MainIteration() { dw_main_iteration(); }
     void MainQuit() { dw_main_quit(); }
+    void MainSleep(int milliseconds) { dw_main_sleep(milliseconds); }
     void Exit(int exitcode) { dw_exit(exitcode); }
     void Shutdown() { dw_shutdown(); }
     int MessageBox(const char *title, int flags, const char *format, ...) { 

@@ -32,6 +32,7 @@
 #define APP_EXIT "Are you sure you want to exit?"
 
 #define MAX_WIDGETS 20
+#define BUF_SIZE 1024
 
 // Handle the case of very old compilers by using
 // A simple non-lambda example instead.
@@ -466,6 +467,118 @@ private:
         mle->SetFont(fontname ? font : NULL);
     }
 
+    // Thread and Event functions
+    void UpdateMLE(DW::MLE *threadmle, char *text, DW::Mutex *mutex)
+    {
+        static unsigned int pos = 0;
+
+        // Protect pos from being changed by different threads
+        if(mutex)
+            mutex->Lock();
+        pos = threadmle->Import(text, pos);
+        threadmle->SetCursor(pos);
+        if(mutex)
+            mutex->Unlock();
+    }
+
+    void RunThread(int threadnum, DW::Mutex *mutex, DW::Event *controlevent, DW::Event *workevent, DW::MLE *threadmle) {
+        char buf[BUF_SIZE+1] = {0};
+
+        snprintf(buf, BUF_SIZE, "Thread %d started.\r\n", threadnum);
+        UpdateMLE(threadmle, buf, mutex);
+
+        // Increment the ready count while protected by mutex
+        dw_mutex_lock(mutex);
+        ready++;
+        // If all 4 threads have incrememted the ready count...
+        // Post the control event semaphore so things will get started.
+        if(ready == 4)
+            controlevent->Post();
+        mutex->Unlock();
+
+        while(!finished)
+        {
+            int result = workevent->Wait(2000);
+
+            if(result == DW_ERROR_TIMEOUT)
+            {
+                snprintf(buf, BUF_SIZE, "Thread %d timeout waiting for event.\r\n", threadnum);
+                UpdateMLE(threadmle, buf, mutex);
+            }
+            else if(result == DW_ERROR_NONE)
+            {
+                snprintf(buf, BUF_SIZE, "Thread %d doing some work.\r\n", threadnum);
+                UpdateMLE(threadmle, buf, mutex);
+                // Pretend to do some work
+                app->MainSleep(1000 * threadnum);
+
+                // Increment the ready count while protected by mutex
+                mutex->Lock();
+                ready++;
+                sprintf(buf, "Thread %d work done. ready=%d", threadnum, ready);
+                // If all 4 threads have incrememted the ready count...
+                // Post the control event semaphore so things will get started.
+                if(ready == 4)
+                {
+                    controlevent->Post();
+                    strcat(buf, " Control posted.");
+                }
+                mutex->Unlock();
+                strcat(buf, "\r\n");
+                UpdateMLE(threadmle, buf, mutex);
+            }
+            else
+            {
+                snprintf(buf, BUF_SIZE, "Thread %d error %d.\r\n", threadnum, result);
+                UpdateMLE(threadmle, buf, mutex);
+                app->MainSleep(10000);
+            }
+        }
+        snprintf(buf, BUF_SIZE, "Thread %d finished.\r\n", threadnum);
+        UpdateMLE(threadmle, buf, mutex);
+    }
+
+    void ControlThread(DW::Mutex *mutex, DW::Event *controlevent, DW::Event *workevent, DW::MLE *threadmle) {
+        int inprogress = 5;
+        char buf[BUF_SIZE+1] = {0};
+
+        while(inprogress)
+        {
+            int result = controlevent->Wait(2000);
+
+            if(result == DW_ERROR_TIMEOUT)
+            {
+                UpdateMLE(threadmle, "Control thread timeout waiting for event.\r\n", mutex);
+            }
+            else if(result == DW_ERROR_NONE)
+            {
+                // Reset the control event
+                controlevent->Reset();
+                ready = 0;
+                snprintf(buf, BUF_SIZE, "Control thread starting worker threads. Inprogress=%d\r\n", inprogress);
+                UpdateMLE(threadmle, buf, mutex);
+                // Start the work threads
+                workevent->Post();
+                app->MainSleep(100);
+                // Reset the work event
+                workevent->Reset();
+                inprogress--;
+            }
+            else
+            {
+                snprintf(buf, BUF_SIZE, "Control thread error %d.\r\n", result);
+                UpdateMLE(threadmle, buf, mutex);
+                app->MainSleep(10000);
+            }
+        }
+        // Tell the other threads we are done
+        finished = TRUE;
+        workevent->Post();
+        // Close the control event
+        controlevent->Close();
+        UpdateMLE(threadmle, "Control thread finished.\r\n", mutex);
+    }
+
     // Add the menus to the window
     void CreateMenus() {
         // Setup the menu
@@ -541,7 +654,7 @@ private:
 
         notebookbox->PackStart(lbbox, 150, 70, TRUE, TRUE, 0);
 
-        /* Copy and Paste */
+        // Copy and Paste
         DW::Box *browsebox = new DW::Box(DW_HORZ, 0);
         lbbox->PackStart(browsebox, 0, 0, FALSE, FALSE, 0);
 
@@ -555,7 +668,7 @@ private:
         DW::Button *pastebutton = new DW::Button("Paste");
         browsebox->PackStart(pastebutton, FALSE, FALSE, 0);
 
-        /* Archive Name */
+        // Archive Name
         DW::Text *stext = new DW::Text("File to browse");
         stext->SetStyle(DW_DT_VCENTER);
         lbbox->PackStart(stext, 130, 15, TRUE, TRUE, 2);
@@ -596,7 +709,7 @@ private:
         DW::Button *colorchoosebutton = new DW::Button("Color Chooser Dialog");
         buttonbox->PackStart(colorchoosebutton, 130, 30, TRUE, TRUE, 2);
 
-        /* Set some nice fonts and colors */
+        // Set some nice fonts and colors
         lbbox->SetColor(DW_CLR_DARKCYAN, DW_CLR_PALEGRAY);
         buttonbox->SetColor(DW_CLR_DARKCYAN, DW_CLR_PALEGRAY);
         okbutton->SetColor(DW_CLR_PALEGRAY, DW_CLR_DARKCYAN);
@@ -992,24 +1105,24 @@ private:
                }
                else if(page_num == 1)
                {
-                   /* Get the font size for this printer context... */
+                   // Get the font size for this printer context...
                    int fheight, fwidth;
 
-                   /* If we have a file to display... */
+                   // If we have a file to display...
                    if(current_file)
                    {
                        int nrows;
 
-                       /* Calculate new dimensions */
+                       // Calculate new dimensions
                        pixmap->GetTextExtents("(g", NULL, &fheight);
                        nrows = (int)(pixmap->GetHeight() / fheight);
 
-                       /* Do the actual drawing */
+                       // Do the actual drawing
                        this->DrawFile(0, 0, nrows, fheight, pixmap);
                    }
                    else
                    {
-                       /* We don't have a file so center an error message on the page */
+                       // We don't have a file so center an error message on the page
                        const char *text = "No file currently selected!";
                        int posx, posy;
 
@@ -1074,7 +1187,7 @@ private:
         {
             notebookbox->PackStart(tree, 500, 200, TRUE, TRUE, 1);
 
-            /* and a status area to see whats going on */
+            // and a status area to see whats going on
             DW::StatusText *tree_status = new DW::StatusText();
             notebookbox->PackStart(tree_status, 100, DW_SIZE_AUTO, TRUE, FALSE, 1);
 
@@ -1490,7 +1603,7 @@ private:
         // now insert a couple of items
         combobox2->Insert("inserted item 2", 2);
         combobox2->Insert("inserted item 5", 5);
-        /* make a spinbutton */
+        // make a spinbutton
         DW::SpinButton *spinbutton = new DW::SpinButton();
         combox->PackStart(spinbutton, TRUE, FALSE, 0);
         spinbutton->SetLimits(100, 1);
@@ -1501,7 +1614,7 @@ private:
             this->app->MessageBox("DWTest", DW_MB_OK, "New value from spinbutton: %d\n", value);
             return TRUE;
         });
-        /// make a slider
+        // make a slider
         DW::Slider *slider = new DW::Slider(FALSE, 11, 0); 
         combox->PackStart(slider, TRUE, FALSE, 0);
 
@@ -1648,7 +1761,7 @@ private:
     {
         char buf[101] = {0};
 
-        /* create a box to pack into the notebook page */
+        // create a box to pack into the notebook page
         DW::ScrollBox *scrollbox = new DW::ScrollBox(DW_VERT, 0);
         notebookbox->PackStart(scrollbox, 0, 0, TRUE, TRUE, 1);
 
@@ -1674,6 +1787,56 @@ private:
             tmpbox->PackStart(entry, 0, DW_SIZE_AUTO, TRUE, FALSE, 0);
         }
     }
+
+    // Page 8 - Thread and Event
+    void CreateThreadEvent(DW::Box *notebookbox)
+    {
+        // create a box to pack into the notebook page
+        DW::Box *tmpbox = new DW::Box(DW_VERT, 0);
+        notebookbox->PackStart(tmpbox, 0, 0, TRUE, TRUE, 1);
+
+        DW::Button *startbutton = new DW::Button("Start Threads");
+        tmpbox->PackStart(startbutton, FALSE, FALSE, 0);
+
+        // Create the base threading components
+        DW::MLE *threadmle = new DW::MLE();
+        tmpbox->PackStart(threadmle, 1, 1, TRUE, TRUE, 0);
+        DW::Mutex *mutex = new DW::Mutex();
+        DW::Event *workevent = new DW::Event();
+
+        startbutton->ConnectClicked([this, mutex, workevent, threadmle, startbutton]() -> int
+        {
+            startbutton->Disable();
+            mutex->Lock();
+            DW::Event *controlevent = new DW::Event();
+            workevent->Reset();
+            finished = FALSE;
+            ready = 0;
+            UpdateMLE(threadmle, "Starting thread 1\r\n", DW_NULL);
+            new DW::Thread([this, startbutton, mutex, controlevent, workevent, threadmle](DW::Thread *thread) -> void {
+                this->RunThread(1, mutex, controlevent, workevent, threadmle);
+            });
+            UpdateMLE(threadmle, "Starting thread 2\r\n", DW_NULL);
+            new DW::Thread([this, startbutton, mutex, controlevent, workevent, threadmle](DW::Thread *thread) -> void {
+                this->RunThread(2, mutex, controlevent, workevent, threadmle);
+            });
+            UpdateMLE(threadmle, "Starting thread 3\r\n", DW_NULL);
+            new DW::Thread([this, startbutton, mutex, controlevent, workevent, threadmle](DW::Thread *thread) -> void {
+                this->RunThread(3, mutex, controlevent, workevent, threadmle);
+            });
+            UpdateMLE(threadmle, "Starting thread 4\r\n", DW_NULL);
+            new DW::Thread([this, startbutton, mutex, controlevent, workevent, threadmle](DW::Thread *thread) -> void {
+                this->RunThread(4, mutex, controlevent, workevent, threadmle);
+            });
+            UpdateMLE(threadmle, "Starting control thread\r\n", DW_NULL);
+            new DW::Thread([this, startbutton, mutex, controlevent, workevent, threadmle](DW::Thread *thread) -> void {
+                this->ControlThread(mutex, controlevent, workevent, threadmle);
+                startbutton->Enable();
+            });
+            mutex->Unlock();
+            return FALSE;
+        });
+    }
 public:
     // Constructor creates the application
     DWTest(const char *title): DW::Window(title) {
@@ -1692,9 +1855,8 @@ public:
         fileicon = app->LoadIcon(fileiconpath);
 
 #ifdef PLATFORMFOLDER
-        /* In case we are running from the build directory...
-         * also check the appropriate platform subfolder
-         */
+        // In case we are running from the build directory...
+        // also check the appropriate platform subfolder
         if(!foldericon)
         {
             strncpy(foldericonpath, PLATFORMFOLDER "folder", 1024);
@@ -1707,7 +1869,7 @@ public:
         }
 #endif
 
-        /* Finally try from the platform application directory */
+        // Finally try from the platform application directory
         if(!foldericon && !fileicon)
         {
             char *appdir = app->GetDir();
@@ -1784,6 +1946,13 @@ public:
         notebook->Pack(notebookpage, notebookbox);
         notebook->PageSetText(notebookpage, "scrollbox");
 
+        // Create Notebook Page 8 - Thread and Event
+        notebookbox = new DW::Box(DW_VERT, 5);
+        CreateThreadEvent(notebookbox);
+        notebookpage = notebook->PageNew();
+        notebook->Pack(notebookpage, notebookbox);
+        notebook->PageSetText(notebookpage, "thread/event");
+
         // Finalize the window
         this->SetSize(640, 550);
 
@@ -1821,6 +1990,9 @@ public:
 
     // Page 4
     int mle_point=-1;
+
+    // Page 8
+    int finished = FALSE, ready = 0;
 
     // Miscellaneous
     int menu_enabled = TRUE;
