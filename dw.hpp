@@ -1427,7 +1427,7 @@ private:
 #endif
     int (*_ConnectItemSelectOld)(ObjectView *, HTREEITEM, char *, void *);
     int (*_ConnectItemContextOld)(ObjectView *, char *, int, int, void *);
-    static int _OnItemSelect(HWND window, HTREEITEM item, char *text, void *itemdata, void *data) {
+    static int _OnItemSelect(HWND window, HTREEITEM item, char *text, void *data, void *itemdata) {
         ObjectView *classptr = reinterpret_cast<ObjectView *>(data);
 #ifdef DW_LAMBDA
         if(classptr->_ConnectItemSelect)
