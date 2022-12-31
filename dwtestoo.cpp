@@ -1813,19 +1813,19 @@ private:
             finished = FALSE;
             ready = 0;
             UpdateMLE(threadmle, "Starting thread 1\r\n", DW_NULL);
-            new DW::Thread([this, startbutton, mutex, controlevent, workevent, threadmle](DW::Thread *thread) -> void {
+            new DW::Thread([this, mutex, controlevent, workevent, threadmle](DW::Thread *thread) -> void {
                 this->RunThread(1, mutex, controlevent, workevent, threadmle);
             });
             UpdateMLE(threadmle, "Starting thread 2\r\n", DW_NULL);
-            new DW::Thread([this, startbutton, mutex, controlevent, workevent, threadmle](DW::Thread *thread) -> void {
+            new DW::Thread([this, mutex, controlevent, workevent, threadmle](DW::Thread *thread) -> void {
                 this->RunThread(2, mutex, controlevent, workevent, threadmle);
             });
             UpdateMLE(threadmle, "Starting thread 3\r\n", DW_NULL);
-            new DW::Thread([this, startbutton, mutex, controlevent, workevent, threadmle](DW::Thread *thread) -> void {
+            new DW::Thread([this, mutex, controlevent, workevent, threadmle](DW::Thread *thread) -> void {
                 this->RunThread(3, mutex, controlevent, workevent, threadmle);
             });
             UpdateMLE(threadmle, "Starting thread 4\r\n", DW_NULL);
-            new DW::Thread([this, startbutton, mutex, controlevent, workevent, threadmle](DW::Thread *thread) -> void {
+            new DW::Thread([this, mutex, controlevent, workevent, threadmle](DW::Thread *thread) -> void {
                 this->RunThread(4, mutex, controlevent, workevent, threadmle);
             });
             UpdateMLE(threadmle, "Starting control thread\r\n", DW_NULL);
