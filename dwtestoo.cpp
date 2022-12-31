@@ -468,7 +468,7 @@ private:
     }
 
     // Thread and Event functions
-    void UpdateMLE(DW::MLE *threadmle, char *text, DW::Mutex *mutex)
+    void UpdateMLE(DW::MLE *threadmle, const char *text, DW::Mutex *mutex)
     {
         static unsigned int pos = 0;
 
@@ -488,7 +488,7 @@ private:
         UpdateMLE(threadmle, buf, mutex);
 
         // Increment the ready count while protected by mutex
-        dw_mutex_lock(mutex);
+        mutex->Lock();
         ready++;
         // If all 4 threads have incrememted the ready count...
         // Post the control event semaphore so things will get started.
