@@ -2129,6 +2129,8 @@ public:
     void FreeIcon(HICN icon) { dw_icon_free(icon); }
     void TaskBarInsert(Widget *handle, HICN icon,  const char *bubbletext) { dw_taskbar_insert(handle ? handle->GetHWND() : DW_NOHWND, icon, bubbletext); }
     void TaskBarDelete(Widget *handle, HICN icon) { dw_taskbar_delete(handle ? handle->GetHWND() : DW_NOHWND, icon); }
+    char * WideToUTF8(const wchar_t * wstring) { return dw_wchar_to_utf8(wstring); }
+    wchar_t *UTF8ToWide(const char * utf8string) { return dw_utf8_to_wchar(utf8string); }
 };
 
 // Static singleton reference declared outside of the class
