@@ -351,7 +351,7 @@ private:
     // Request that the render widgets redraw...
     // If not using direct rendering, call UpdateRender() to
     // redraw the in memory pixmaps. Then trigger the expose events.
-    // Expose will call update_render() to draw directly or bitblt the pixmaps.
+    // Expose will call UpdateRender() to draw directly or bitblt the pixmaps.
     void RenderDraw() {
         // If we are double buffered, draw to the pixmaps
         if(render_type != SHAPES_DIRECT)
@@ -704,10 +704,10 @@ private:
 
         cancelbutton->Unpack();
         buttonbox->PackStart(cancelbutton, 130, 30, TRUE, TRUE, 2);
-        //this->ClickDefault(cancelbutton);
+        this->ClickDefault(cancelbutton);
 
         DW::Button *colorchoosebutton = new DW::Button("Color Chooser Dialog");
-        buttonbox->PackStart(colorchoosebutton, 130, 30, TRUE, TRUE, 2);
+        buttonbox->PackAtIndex(colorchoosebutton, 1, 130, 30, TRUE, TRUE, 2);
 
         // Set some nice fonts and colors
         lbbox->SetColor(DW_CLR_DARKCYAN, DW_CLR_PALEGRAY);
