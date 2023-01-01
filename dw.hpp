@@ -1,7 +1,6 @@
-/* Dynamic Windows C++ Language Bindings 
- * Copyright 2022 Brian Smith
- * Recommends a C++11 compatible compiler.
- */
+// Dynamic Windows C++ Language Bindings 
+// Copyright 2022 Brian Smith
+// Recommends a C++11 compatible compiler.
 
 #ifndef _HPP_DW
 #define _HPP_DW
@@ -1125,16 +1124,6 @@ private:
     std::function<int(unsigned int)> _ConnectListSelect;
 #endif
     int (*_ConnectListSelectOld)(ListBoxes *, unsigned int index);
-    void Setup() {
-#ifdef DW_LAMBDA
-        _ConnectListSelect = 0;
-#endif
-        _ConnectListSelectOld = 0;
-        if(IsOverridden(ListBoxes::OnListSelect, this)) {
-            dw_signal_connect(hwnd, DW_SIGNAL_LIST_SELECT, DW_SIGNAL_FUNC(_OnListSelect), this);
-            ListSelectConnected = true;
-        }
-    }
     static int _OnListSelect(HWND window, int index, void *data) {
         ListBoxes *classptr = reinterpret_cast<ListBoxes *>(data);
 #ifdef DW_LAMBDA
@@ -1178,6 +1167,16 @@ public:
         }
     }    
 protected:
+    void Setup() {
+#ifdef DW_LAMBDA
+        _ConnectListSelect = 0;
+#endif
+        _ConnectListSelectOld = 0;
+        if(IsOverridden(ListBoxes::OnListSelect, this)) {
+            dw_signal_connect(hwnd, DW_SIGNAL_LIST_SELECT, DW_SIGNAL_FUNC(_OnListSelect), this);
+            ListSelectConnected = true;
+        }
+    }
     // Our signal handler functions to be overriden...
     // If they are not overridden and an event is generated, remove the unused handler
     virtual int OnListSelect(unsigned int index) {
@@ -1191,20 +1190,20 @@ class ComboBox : public TextEntry, public ListBoxes
 {
 public:
     // Constructors
-    ComboBox(const char *text, unsigned long id) { SetHWND(dw_combobox_new(text, id)); }
-    ComboBox(unsigned long id) { SetHWND(dw_combobox_new("", id)); }
-    ComboBox(const char *text) { SetHWND(dw_combobox_new(text, 0)); }
-    ComboBox() { SetHWND(dw_combobox_new("", 0)); }
+    ComboBox(const char *text, unsigned long id) { SetHWND(dw_combobox_new(text, id)); Setup(); }
+    ComboBox(unsigned long id) { SetHWND(dw_combobox_new("", id)); Setup(); }
+    ComboBox(const char *text) { SetHWND(dw_combobox_new(text, 0)); Setup(); }
+    ComboBox() { SetHWND(dw_combobox_new("", 0)); Setup(); }
 };
 
 class ListBox : public ListBoxes
 {
 public:
     // Constructors
-    ListBox(unsigned long id, int multi) { SetHWND(dw_listbox_new(id, multi)); }
-    ListBox(unsigned long id) { SetHWND(dw_listbox_new(id, FALSE)); }
-    ListBox(int multi) { SetHWND(dw_listbox_new(0, multi)); }
-    ListBox() { SetHWND(dw_listbox_new(0, FALSE)); }
+    ListBox(unsigned long id, int multi) { SetHWND(dw_listbox_new(id, multi)); Setup(); }
+    ListBox(unsigned long id) { SetHWND(dw_listbox_new(id, FALSE)); Setup(); }
+    ListBox(int multi) { SetHWND(dw_listbox_new(0, multi)); Setup(); }
+    ListBox() { SetHWND(dw_listbox_new(0, FALSE)); Setup(); }
 };
 
 // Base class for several ranged type widgets
@@ -2137,5 +2136,5 @@ public:
 // Static singleton reference declared outside of the class
 App* App::_app = DW_NULL;
 
-} /* namespace DW */
+} // namespace DW
 #endif
