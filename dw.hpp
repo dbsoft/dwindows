@@ -351,6 +351,7 @@ public:
     int Lower() { return dw_window_lower(hwnd); }
     void Redraw() { dw_window_redraw(hwnd); }
     void Default(Widget *defaultitem) { if(defaultitem) dw_window_default(hwnd, defaultitem->GetHWND()); }
+    void ClickDefault(Widget *defaultitem) { if(defaultitem) dw_window_click_default(hwnd, defaultitem->GetHWND()); }
     void SetIcon(HICN icon) { dw_window_set_icon(hwnd, icon); }
     MenuBar *MenuBarNew() { if(!menu) menu = new MenuBar(hwnd); return menu; }
     void Popup(Menu *menu, int x, int y) {
@@ -1437,7 +1438,7 @@ private:
             return classptr->_ConnectItemSelectOld(classptr, item, text, itemdata);
         return classptr->OnItemSelect(item, text, itemdata);
     }
-    static int _OnItemContext(HWND window, char *text, int x, int y, void *itemdata, void *data) {
+    static int _OnItemContext(HWND window, char *text, int x, int y, void *data, void *itemdata) {
         ObjectView *classptr = reinterpret_cast<ObjectView *>(data);
 #ifdef DW_LAMBDA
         if(classptr->_ConnectItemContext)
