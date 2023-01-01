@@ -1646,12 +1646,16 @@ class Container : public Containers
 {
 public:
     // Constructors
-    Container(unsigned long id, int multi) { SetHWND(dw_container_new(id, multi)); SetupObjectView(); SetupContainer(); }
-    Container(int multi) { SetHWND(dw_container_new(0, multi)); SetupObjectView(); SetupContainer(); }
-    Container() { SetHWND(dw_container_new(0, FALSE)); SetupObjectView(); SetupContainer(); }
+    Container(unsigned long id, int multi) { SetHWND(dw_container_new(id, multi)); }
+    Container(int multi) { SetHWND(dw_container_new(0, multi)); }
+    Container() { SetHWND(dw_container_new(0, FALSE)); }
 
     // User functions
-    int Setup(unsigned long *flags, const char *titles[], int count, int separator) { return dw_container_setup(hwnd, flags, (char **)titles, count, separator); }    
+    int Setup(unsigned long *flags, const char *titles[], int count, int separator) {
+      int retval = dw_container_setup(hwnd, flags, (char **)titles, count, separator);
+      SetupObjectView(); SetupContainer();
+      return retval;
+    }    
     void ChangeItem(int column, int row, void *data) { dw_container_change_item(hwnd, column, row, data); }
     int GetColumnType(int column) { return dw_container_get_column_type(hwnd, column); }
     void SetItem(int column, int row, void *data) { dw_container_set_item(hwnd, allocpointer, column, row, data); }
@@ -1666,7 +1670,11 @@ public:
     Filesystem() { SetHWND(dw_container_new(0, FALSE)); SetupObjectView(); SetupContainer(); }
 
     // User functions
-    int Setup(unsigned long *flags, const char *titles[], int count) { return dw_filesystem_setup(hwnd, flags, (char **)titles, count); }    
+    int Setup(unsigned long *flags, const char *titles[], int count) { 
+      int retval = dw_filesystem_setup(hwnd, flags, (char **)titles, count);
+      SetupObjectView(); SetupContainer();
+      return retval;
+    }    
     void ChangeFile(int row, const char *filename, HICN icon) { dw_filesystem_change_file(hwnd, row, filename, icon); }
     void ChangeItem(int column, int row, void *data) { dw_filesystem_change_item(hwnd, column, row, data); }
     int GetColumnType(int column) { return dw_filesystem_get_column_type(hwnd, column); }
