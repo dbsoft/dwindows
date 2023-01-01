@@ -211,8 +211,7 @@ private:
         else return "none";
     }
 
-    char *ReadFile(char *filename)
-    {
+    char *ReadFile(char *filename) {
         char *errors = NULL;
         FILE *fp=NULL;
 #ifdef __ANDROID__
@@ -263,8 +262,7 @@ private:
     }
 
     // When hpm is not NULL we are printing.. so handle things differently
-    void DrawFile(int row, int col, int nrows, int fheight, DW::Pixmap *hpm)
-    {
+    void DrawFile(int row, int col, int nrows, int fheight, DW::Pixmap *hpm) {
         DW::Pixmap *pixmap = hpm ? hpm : pixmap2;
         char buf[16] = {0};
         int i,y,fileline;
@@ -294,8 +292,7 @@ private:
     }
 
     // When hpm is not NULL we are printing.. so handle things differently 
-    void DrawShapes(int direct, DW::Pixmap *hpm)
-    {
+    void DrawShapes(int direct, DW::Pixmap *hpm) {
         DW::Pixmap *pixmap = hpm ? hpm : pixmap2;
         int width = (int)pixmap->GetWidth(), height = (int)pixmap->GetHeight();
         int x[7] = { 20, 180, 180, 230, 180, 180, 20 };
@@ -332,8 +329,7 @@ private:
         }
     }
 
-    void UpdateRender(void)
-    {
+    void UpdateRender(void) {
         switch(render_type)
         {
             case SHAPES_DOUBLE_BUFFERED:
@@ -361,8 +357,7 @@ private:
         render2->Redraw();
     }
 
-    DW::Menu *ItemContextMenu(DW::StatusText *status_text, const char *text)
-    {
+    DW::Menu *ItemContextMenu(DW::StatusText *status_text, const char *text) {
         DW::Menu *menu = new DW::Menu();
         DW::Menu *submenu = new DW::Menu();
         DW::MenuItem *menuitem = submenu->AppendItem("File", 0L, TRUE);
@@ -394,8 +389,7 @@ private:
         return menu;
     }
 
-    DW::ComboBox *ColorCombobox(void)
-    {
+    DW::ComboBox *ColorCombobox(void) {
         DW::ComboBox *combobox = new DW::ComboBox("DW_CLR_DEFAULT");
 
         combobox->Append("DW_CLR_DEFAULT");
@@ -418,8 +412,7 @@ private:
         return combobox;
     }
 
-    unsigned long ComboboxColor(const char *colortext)
-    {
+    unsigned long ComboboxColor(const char *colortext) {
         unsigned long color = DW_CLR_DEFAULT;
 
         if(strcmp(colortext, "DW_CLR_BLACK") == 0)
@@ -458,8 +451,7 @@ private:
         return color;
     }
 
-    void MLESetFont(DW::MLE *mle, int fontsize, char *fontname)
-    {
+    void MLESetFont(DW::MLE *mle, int fontsize, char *fontname) {
         char font[101] = {0};
 
         if(fontname)
@@ -468,8 +460,7 @@ private:
     }
 
     // Thread and Event functions
-    void UpdateMLE(DW::MLE *threadmle, const char *text, DW::Mutex *mutex)
-    {
+    void UpdateMLE(DW::MLE *threadmle, const char *text, DW::Mutex *mutex) {
         static unsigned int pos = 0;
 
         // Protect pos from being changed by different threads
@@ -648,8 +639,7 @@ private:
     }
     
     // Notebook page 1
-    void CreateInput(DW::Box *notebookbox)
-    {
+    void CreateInput(DW::Box *notebookbox) {
         DW::Box *lbbox = new DW::Box(DW_VERT, 10);
 
         notebookbox->PackStart(lbbox, 150, 70, TRUE, TRUE, 0);
@@ -1170,8 +1160,7 @@ private:
     }
 
     // Notebook page 3
-    void CreateTree(DW::Box *notebookbox)
-    {
+    void CreateTree(DW::Box *notebookbox) {
         // create a box to pack into the notebook page
         DW::ListBox *listbox = new DW::ListBox(TRUE);
         notebookbox->PackStart(listbox, 500, 200, TRUE, TRUE, 0);
@@ -1234,8 +1223,7 @@ private:
     }
 
     // Page 4 - Container
-    void CreateContainer(DW::Box *notebookbox)
-    {
+    void CreateContainer(DW::Box *notebookbox) {
         char buffer[101] = {0};
         CTIME time;
         CDATE date;
@@ -1496,8 +1484,7 @@ private:
     }
 
     // Page 5 - Buttons
-    void CreateButtons(DW::Box *notebookbox)
-    {
+    void CreateButtons(DW::Box *notebookbox) {
         // create a box to pack into the notebook page
         DW::Box *buttonsbox = new DW::Box(DW_VERT, 2);
         notebookbox->PackStart(buttonsbox, 25, 200, TRUE, TRUE, 0);
@@ -1658,8 +1645,7 @@ private:
     }
 
     // Page 6 - HTML
-    void CreateHTML(DW::Box *notebookbox)
-    {
+    void CreateHTML(DW::Box *notebookbox) {
         DW::HTML *rawhtml = new DW::HTML();
         if(rawhtml && rawhtml->GetHWND())
         {
@@ -1757,8 +1743,7 @@ private:
     }
 
     // Page 7 - ScrollBox
-    void CreateScrollBox(DW::Box *notebookbox)
-    {
+    void CreateScrollBox(DW::Box *notebookbox) {
         char buf[101] = {0};
 
         // create a box to pack into the notebook page
@@ -1789,8 +1774,7 @@ private:
     }
 
     // Page 8 - Thread and Event
-    void CreateThreadEvent(DW::Box *notebookbox)
-    {
+    void CreateThreadEvent(DW::Box *notebookbox) {
         // create a box to pack into the notebook page
         DW::Box *tmpbox = new DW::Box(DW_VERT, 0);
         notebookbox->PackStart(tmpbox, 0, 0, TRUE, TRUE, 1);
