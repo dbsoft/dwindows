@@ -370,20 +370,20 @@ private:
         menuitem = submenu->AppendItem("None", 0L, TRUE);
         menuitem->ConnectClicked([status_text, text]() -> int { status_text->SetText(text); return TRUE; });
 
-        menuitem = submenu->AppendItem("Sort", submenu);
+        menuitem = menu->AppendItem("Sort", submenu);
 
-        menuitem = submenu->AppendItem("Make Directory");
+        menuitem = menu->AppendItem("Make Directory");
         menuitem->ConnectClicked([status_text, text]() -> int { status_text->SetText(text); return TRUE; });
 
-        menuitem = submenu->AppendItem(DW_MENU_SEPARATOR);
-        menuitem = submenu->AppendItem("Rename Entry");
+        menuitem = menu->AppendItem(DW_MENU_SEPARATOR);
+        menuitem = menu->AppendItem("Rename Entry");
         menuitem->ConnectClicked([status_text, text]() -> int { status_text->SetText(text); return TRUE; });
 
-        menuitem = submenu->AppendItem("Delete Entry");
+        menuitem = menu->AppendItem("Delete Entry");
         menuitem->ConnectClicked([status_text, text]() -> int { status_text->SetText(text); return TRUE; });
 
-        menuitem = submenu->AppendItem(DW_MENU_SEPARATOR);
-        menuitem = submenu->AppendItem("View File");
+        menuitem = menu->AppendItem(DW_MENU_SEPARATOR);
+        menuitem = menu->AppendItem("View File");
         menuitem->ConnectClicked([status_text, text]() -> int { status_text->SetText(text); return TRUE; });
 
         return menu;
