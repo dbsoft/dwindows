@@ -1,8 +1,8 @@
 This is a stable release of Dynamic Windows version 3.3.
 
 The current Dynamic Windows source base is considered stable on:
-OS/2, Mac, Windows, Linux, FreeBSD and OpenSolaris.
-The source base is considered beta on: iOS, Android and GTK4.
+OS/2, Mac, Windows, Linux, FreeBSD, OpenSolaris and iOS.
+The source base is considered beta an Android, alpha on C++.
 
 Build Recommendations:
 MacOS:
@@ -25,6 +25,17 @@ Windows:
     2000: Visual Studio 2005. Remove -DAEROGLASS from CFLAGS.
         Should run on 2000 and later, no Aero, Notifications, 
         WebView2 and oldsockpipe() on all versions.
+C++: Recommends a C++11 compatible compiler.
+    MacOS: PowerPC GCC 6 from Tiger Brew.
+           Intel Apple Clang from Xcode 4.1 or later.
+           Apple Silicon any supported Apple Clang.
+    Windows: Visual Studio 2015, recent Clang-cl or MingW32.
+    Linux/FreeBSD: GCC 4.8.1  or Clang 3.3 recommended.
+    OS/2: GCC 9.2 from Bitwise Works.
+
+    If you build with a pre-C++11 compiler features will be 
+    disabled, and you may ended up building an extremely 
+    simplified sample application instead of the full one.
 
 Known problems:
 
@@ -47,8 +58,12 @@ System scaling on Windows versions earlier than 10 will scale the
 
 Known limitations:
 
-It is not safe on all platforms to operate on widgets before they
-are packed.  For portability pack widgets before operating on them.
+Some widget may not be completely created when the widget handle is 
+returned.  Some need to be setup such as Container controls on GTK, 
+and others need to be packed before they are finalized.  Once setup
+and packed it is completely safe to operate on widgets.  If you choose
+to operate on widgets before setup and/or packed, then it depends 
+on the platform if it will work or not.
 
 Changes from version 3.2:
 WARNING: Fixed an API inconsistency in dw_notebook_page_destroy/set().
@@ -77,7 +92,7 @@ Added support for MacOS 13 Ventura and iOS 16.
 
 Dynamic Windows Documentation is available at:
 
-http://dbsoft.org/dw_help.php
+https://dbsoft.org/dw_help.php
 
 If you have any questions or suggestions feel free to email me at:
 

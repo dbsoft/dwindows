@@ -1,5 +1,5 @@
 // Dynamic Windows C++ Language Bindings 
-// Copyright 2022 Brian Smith
+// Copyright (C) 2022-2023 Brian Smith
 // Recommends a C++11 compatible compiler.
 
 #ifndef _HPP_DW

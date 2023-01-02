@@ -1,6 +1,9 @@
 
-Copyright (c) 2000-2021, Brian Smith <brian@dbsoft.org>
-Copyright (c) 2003-2020, Mark Hessling <mark@rexx.org>
+Copyright (c) 2000-2023, Brian Smith <brian@dbsoft.org>
+Copyright (c) 2003-2022, Mark Hessling <mark@rexx.org>
+Copyright (c) 2022, Amr Hesham <amr96@programmer.net>
+Copyright (c) 2019, Anton Popov <panton295@gmail.com>
+Copyright (c) 2017, Ralph Shane <wenjiebiz@outlook.com>
 Copyright (c) 2007, Alex Taylor
 Copyright (c) 2002, Nickolay V. Shmyrev <shmyrev@yandex.ru>
 Copyright (c) 2000, Achim Hasenmueller <achimha@innotek.de>

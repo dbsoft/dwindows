@@ -1,4 +1,4 @@
-// (C) 2021-2022 Brian Smith <brian@dbsoft.org>
+// (C) 2021-2023 Brian Smith <brian@dbsoft.org>
 // (C) 2019 Anton Popov (Color Picker)
 // (C) 2022 Amr Hesham (Tree View)
 package org.dbsoft.dwindows

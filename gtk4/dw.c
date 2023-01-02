@@ -3,7 +3,7 @@
  *          A GTK like cross-platform GUI
  *          GTK4 forwarder module for portabilty.
  *
- * (C) 2000-2022 Brian Smith <brian@dbsoft.org>
+ * (C) 2000-2023 Brian Smith <brian@dbsoft.org>
  * (C) 2003-2022 Mark Hessling <mark@rexx.org>
  */
 #include "dwconfig.h"
