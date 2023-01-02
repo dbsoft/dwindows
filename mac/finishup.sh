@@ -6,7 +6,7 @@ then
     mkdir -p $2.app/Contents/MacOS
     mkdir -p $2.app/Contents/Resources
 
-    cat $1/mac/Info.plist | sed s/APPNAME/$2/ >  $2.app/Contents/Info.plist
+    cat $1/mac/Info.template | sed s/APPNAME/$2/ >  $2.app/Contents/Info.plist
     cp -f $1/mac/PkgInfo $2.app/Contents 
     cp -f $1/mac/file.png $2.app/Contents/Resources
     cp -f $1/mac/folder.png $2.app/Contents/Resources
