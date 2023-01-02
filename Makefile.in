@@ -203,7 +203,7 @@ dwtestoo.o: $(srcdir)/dwtestoo.cpp $(srcdir)/dw.h $(srcdir)/dw.hpp
 	$(CXX) -c $(INCPATH) $(CXXFLAGS) $(CCFLAGS) -o $@ $(srcdir)/dwtestoo.cpp
 
 dwtestoo: dwtestoo.o
-	$(CC) -o dwtestoo dwtestoo.o $(MLFLAGS) -l$(TARGET) $(LFLAGS) -lstdc++
+	$(CXX) -o dwtestoo dwtestoo.o $(MLFLAGS) -l$(TARGET) $(LFLAGS) -lstdc++
 	-chmod +x $(srcdir)/mac/finishup.sh
 	-$(srcdir)/mac/finishup.sh $(srcdir) dwtestoo
 
