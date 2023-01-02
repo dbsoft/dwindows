@@ -4349,18 +4349,20 @@ int dw_app_id_set(const char *appid, const char *appname)
  */
 void API dw_debug(const char *format, ...)
 {
-   va_list args;
+    va_list args;
 
-   va_start(args, format);
-   dw_vdebug(format, args);
-   va_end(args);
+    va_start(args, format);
+    dw_vdebug(format, args);
+    va_end(args);
 }
 
 void API dw_vdebug(const char *format, va_list args)
 {
-   NSString *nformat = [[NSString stringWithUTF8String:format] autorelease];
+    DW_LOCAL_POOL_IN;
+    NSString *nformat = [NSString stringWithUTF8String:format];
 
-   NSLogv(nformat, args);
+    NSLogv(nformat, args);
+    DW_LOCAL_POOL_OUT;
 }
 
 /*
@@ -4384,6 +4386,7 @@ int API dw_messagebox(const char *title, int flags, const char *format, ...)
 
 int API dw_vmessagebox(const char *title, int flags, const char *format, va_list args)
 {
+    DW_LOCAL_POOL_IN;
     NSInteger iResponse;
     NSString *button1 = @"OK";
     NSString *button2 = nil;
@@ -4437,6 +4440,7 @@ int API dw_vmessagebox(const char *title, int flags, const char *format, va_list
         case NSAlertThirdButtonReturn:      /* user pressed the third button */
             return DW_MB_RETURN_CANCEL;
     }
+    DW_LOCAL_POOL_OUT;
     return 0;
 }
 
