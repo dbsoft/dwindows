@@ -1,3 +1,26 @@
+dwindows (3.3-1) unstable; urgency=low
+
+  * Fixed an API inconsistency in dw_notebook_page_destroy/set().
+    The page ID had been unsigned int when it should be unsigned long.
+    On some platforms apps compiled for versions prior to 3.3 may
+    malfunction when calling these API calls, so recompile with 3.3.
+  * Added tree widget/control support for iOS and Android.
+  * Removed the lib and dll directories previously used on Windows and OS/2.
+  * Added DW_FEATURE_CONTAINER_MODE on Mobile platforms: iOS and Android.
+    DW_CONTAINER_MODE_DEFAULT: Minimal container; icon and text only.
+    DW_CONTAINER_MODE_EXTRA: Extra columns displayed on a second line.
+    DW_CONTAINER_MODE_MULTI: A separate clickable line for each column.
+  * Added return values to several functions previously returning void.
+    Previous code should just be able to ignore the new return values.
+    Currently affected: dw_window_set_bitmap(_from_data)
+  * Added C++ language bindings in dw.hpp and an example C++ test
+    application in the form of dwtestoo.cpp, similar to godwindows.
+  * Added variadic versions of dw_debug() and dw_messagebox().
+    This is how the standard library does it so we can call the new
+    va_list versions from C++: dw_vdebug() and dw_vmessagebox().
+
+ -- Brian Smith <brian@dbsoft.org>  Fri, 6 Jan 2023 08:00:00 +1000
+ 
 dwindows (3.2-1) unstable; urgency=low
 
   * Added support for initial beta support for GTK 4.  --with-gtk4 is now available.
@@ -21,7 +44,7 @@ dwindows (3.2-1) unstable; urgency=low
   * Fixed GTK3 leaks when setting fonts or colors on a widget repeatedly.
   * Fixed a bug in dw_listbox_set_text() on GTK3.
 
- -- Brian Smith <brian@dbsoft.org>  Wed, 6 Jan 2022 08:00:00 +1000
+ -- Brian Smith <brian@dbsoft.org>  Thu, 6 Jan 2022 08:00:00 +1000
  
 dwindows (3.1-1) unstable; urgency=low
 

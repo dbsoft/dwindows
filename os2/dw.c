@@ -2,7 +2,7 @@
  * Dynamic Windows:
  *          A GTK like implementation of the PM GUI
  *
- * (C) 2000-2022 Brian Smith <brian@dbsoft.org>
+ * (C) 2000-2023 Brian Smith <brian@dbsoft.org>
  * (C) 2003-2021 Mark Hessling <mark@rexx.org>
  * (C) 2000 Achim Hasenmueller <achimha@innotek.de>
  * (C) 2000 Peter Nielsen <peter@pmview.com>
