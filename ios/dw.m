@@ -4374,7 +4374,7 @@ void API dw_debug(const char *format, ...)
 
 void API dw_vdebug(const char *format, va_list args)
 {
-   NSString *nformat = [[NSString stringWithUTF8String:format] autorelease];
+   NSString *nformat = [NSString stringWithUTF8String:format];
 
    NSLogv(nformat, args);
 }
