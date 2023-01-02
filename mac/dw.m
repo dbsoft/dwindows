@@ -4395,6 +4395,7 @@ int API dw_vmessagebox(const char *title, int flags, const char *format, va_list
     NSString *mtext;
     NSAlertStyle mstyle = DWAlertStyleWarning;
     NSArray *params;
+    int retval = 0;
 
     if(flags & DW_MB_OKCANCEL)
     {
@@ -4427,21 +4428,22 @@ int API dw_vmessagebox(const char *title, int flags, const char *format, va_list
     {
         case NSAlertFirstButtonReturn:    /* user pressed OK */
             if(flags & DW_MB_YESNO || flags & DW_MB_YESNOCANCEL)
-            {
-                return DW_MB_RETURN_YES;
-            }
-            return DW_MB_RETURN_OK;
+                retval = DW_MB_RETURN_YES;
+            else
+                retval = DW_MB_RETURN_OK;
+            break;
         case NSAlertSecondButtonReturn:  /* user pressed Cancel */
             if(flags & DW_MB_OKCANCEL)
-            {
-                return DW_MB_RETURN_CANCEL;
-            }
-            return DW_MB_RETURN_NO;
+                retval = DW_MB_RETURN_CANCEL;
+            else
+                retval = DW_MB_RETURN_NO;
+            break;
         case NSAlertThirdButtonReturn:      /* user pressed the third button */
-            return DW_MB_RETURN_CANCEL;
+            retval = DW_MB_RETURN_CANCEL;
+            break;
     }
     DW_LOCAL_POOL_OUT;
-    return 0;
+    return retval;
 }
 
 /*
