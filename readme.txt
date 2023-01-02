@@ -2,7 +2,7 @@ This is a stable release of Dynamic Windows version 3.3.
 
 The current Dynamic Windows source base is considered stable on:
 OS/2, Mac, Windows, Linux, FreeBSD, OpenSolaris and iOS.
-The source base is considered beta an Android, alpha on C++.
+The source base is considered beta on Android, alpha on C++.
 
 Build Recommendations:
 MacOS:
@@ -27,11 +27,11 @@ Windows:
         WebView2 and oldsockpipe() on all versions.
 C++: Recommends a C++11 compatible compiler.
     MacOS: PowerPC GCC 6 from Tiger Brew.
-           Intel Apple Clang from Xcode 4.1 or later.
+           Intel Apple Clang from Xcode 4.4 or later.
            Apple Silicon any supported Apple Clang.
     Windows: Visual Studio 2015, recent Clang-cl or MingW32.
-    Linux/FreeBSD: GCC 4.8.1  or Clang 3.3 recommended.
-    OS/2: GCC 9.2 from Bitwise Works.
+    Linux/FreeBSD: GCC 4.8.1 or Clang 3.3 recommended.
+    OS/2: GCC 9.2 from Bitwise Works recommended.
 
     If you build with a pre-C++11 compiler features will be 
     disabled, and you may ended up building an extremely 
@@ -41,8 +41,8 @@ Known problems:
 
 Boxes with no expandable items will have their contents centered on 
     GTK2 instead of top or left justified on the other platforms.
-    Pack an expandable NULL item at the end of the box to keep the
-    same appearance as other platforms. 
+    Pack an expandable DW_NOHWND item at the end of the box to keep
+    the same appearance as other platforms. 
 GTK3/4 due to changes in the core architecture does not support
     widgets that are smaller than what is contained within them,
     unless they use scrolled windows. GTK2 and other platforms do.
@@ -62,7 +62,7 @@ Some widget may not be completely created when the widget handle is
 returned.  Some need to be setup such as Container controls on GTK, 
 and others need to be packed before they are finalized.  Once setup
 and packed it is completely safe to operate on widgets.  If you choose
-to operate on widgets before setup and/or packed, then it depends 
+to operate on widgets before setup and/or packing, then it depends 
 on the platform if it will work or not.
 
 Changes from version 3.2:
