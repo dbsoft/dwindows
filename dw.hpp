@@ -924,14 +924,14 @@ public:
     }
     Pixmap(Render *window, const char *filename) { 
         SetHPIXMAP(dw_pixmap_new_from_file(window ? window->GetHWND() : DW_NOHWND, filename));
-        pwidth = hpixmap ? DW_PIXMAP_WIDTH(hpixmap) : 0;
-        pheight = hpixmap ? DW_PIXMAP_HEIGHT(hpixmap) : 0;
+        pwidth = dw_pixmap_get_width(hpixmap);
+        pheight = dw_pixmap_get_height(hpixmap);
         hpmprot = false;
     }
     Pixmap(HPIXMAP hpm) { 
         SetHPIXMAP(hpm);
-        pwidth = hpixmap ? DW_PIXMAP_WIDTH(hpixmap) : 0;
-        pheight = hpixmap ? DW_PIXMAP_HEIGHT(hpixmap) : 0;
+        pwidth = dw_pixmap_get_width(hpixmap);
+        pheight = dw_pixmap_get_height(hpixmap);
         hpmprot = true;
     }
     // Destructor

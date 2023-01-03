@@ -8386,7 +8386,7 @@ HPIXMAP API dw_pixmap_new_from_data(HWND handle, const char *data, int len)
  *       pixmap: Handle to a pixmap returned by
  *               dw_pixmap_new..
  *       color:  transparent color
- * Note: This does nothing on Mac as transparency
+ * Note: This does nothing on iOS as transparency
  *       is handled automatically
  */
 void API dw_pixmap_set_transparent_color(HPIXMAP pixmap, ULONG color)
@@ -8482,6 +8482,24 @@ void API dw_pixmap_destroy(HPIXMAP pixmap)
         free(pixmap);
         DW_LOCAL_POOL_OUT;
     }
+}
+
+/*
+ * Returns the width of the pixmap, same as the DW_PIXMAP_WIDTH() macro,
+ * but exported as an API, for non-C language bindings.
+ */
+unsigned long API dw_pixmap_get_width(HPIXMAP pixmap)
+{
+    return pixmap ? pixmap->width : 0;
+}
+
+/*
+ * Returns the height of the pixmap, same as the DW_PIXMAP_HEIGHT() macro,
+ * but exported as an API, for non-C language bindings.
+ */
+unsigned long API dw_pixmap_get_height(HPIXMAP pixmap)
+{
+    return pixmap ? pixmap->height : 0;
 }
 
 /*
