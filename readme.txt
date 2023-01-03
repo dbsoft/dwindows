@@ -88,6 +88,9 @@ Added C++ language bindings in dw.hpp and an example C++ test
 Added variadic versions of dw_debug() and dw_messagebox().
     This is how the standard library does it so we can call the new
     va_list versions from C++: dw_vdebug() and dw_vmessagebox().
+Added dw_pixmap_get_height() and dw_pixmap_get_width() APIs to
+    replace the DW_PIXMAP_HEIGHT() and DW_PIXMAP_WIDTH() macros.
+    This allows non-C bindings to call them directly.
 Added support for MacOS 13 Ventura and iOS 16.
 
 Dynamic Windows Documentation is available at:

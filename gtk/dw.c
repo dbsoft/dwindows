@@ -9359,7 +9359,7 @@ int API dw_pixmap_set_font(HPIXMAP pixmap, const char *fontname)
  *       pixmap: Handle to a pixmap returned by
  *               dw_pixmap_new..
  */
-void dw_pixmap_destroy(HPIXMAP pixmap)
+void API dw_pixmap_destroy(HPIXMAP pixmap)
 {
    int _dw_locked_by_me = FALSE;
 
@@ -9371,6 +9371,24 @@ void dw_pixmap_destroy(HPIXMAP pixmap)
       g_object_unref(pixmap->pixbuf);
    free(pixmap);
    DW_MUTEX_UNLOCK;
+}
+
+/*
+ * Returns the width of the pixmap, same as the DW_PIXMAP_WIDTH() macro,
+ * but exported as an API, for non-C language bindings.
+ */
+unsigned long API dw_pixmap_get_width(HPIXMAP pixmap)
+{
+    return pixmap ? pixmap->width : 0;
+}
+
+/*
+ * Returns the height of the pixmap, same as the DW_PIXMAP_HEIGHT() macro,
+ * but exported as an API, for non-C language bindings.
+ */
+unsigned long API dw_pixmap_get_height(HPIXMAP pixmap)
+{
+    return pixmap ? pixmap->height : 0;
 }
 
 #if GTK_CHECK_VERSION(2,10,0)

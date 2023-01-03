@@ -18,9 +18,12 @@ dwindows (3.3-1) unstable; urgency=low
   * Added variadic versions of dw_debug() and dw_messagebox().
     This is how the standard library does it so we can call the new
     va_list versions from C++: dw_vdebug() and dw_vmessagebox().
+  * Added dw_pixmap_get_height() and dw_pixmap_get_width() APIs to
+    replace the DW_PIXMAP_HEIGHT() and DW_PIXMAP_WIDTH() macros.
+    This allows non-C bindings to call them directly.
 
  -- Brian Smith <brian@dbsoft.org>  Fri, 6 Jan 2023 08:00:00 +1000
- 
+
 dwindows (3.2-1) unstable; urgency=low
 
   * Added support for initial beta support for GTK 4.  --with-gtk4 is now available.
@@ -45,7 +48,7 @@ dwindows (3.2-1) unstable; urgency=low
   * Fixed a bug in dw_listbox_set_text() on GTK3.
 
  -- Brian Smith <brian@dbsoft.org>  Thu, 6 Jan 2022 08:00:00 +1000
- 
+
 dwindows (3.1-1) unstable; urgency=low
 
   * Added notification APIs: dw_notification_new() dw_notification_send() dw_app_id_set()

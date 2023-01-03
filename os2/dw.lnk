@@ -233,6 +233,8 @@ export dw_pixmap_new_from_data.345
 export dw_pixmap_set_transparent_color.346
 export dw_pixmap_set_font.347
 export dw_pixmap_stretch_bitblt.348
+export dw_pixmap_get_width.355
+export dw_pixmap_get_height.356
 
 export dw_dialog_new.350
 export dw_dialog_dismiss.351
