@@ -10671,25 +10671,35 @@ DW_FUNCTION_RESTORE_PARAM3(window, HWND, dataname, const char *, data, void *)
         NSArray *subviews = [sv subviews];
         object = [subviews firstObject];
     }
-    WindowData *blah = (WindowData *)[object userdata];
-
-    if(!blah)
+    /* Failsafe so we don't crash */
+    if(![object respondsToSelector:NSSelectorFromString(@"userdata")])
     {
-        if(!dataname)
-            return;
-
-        blah = calloc(1, sizeof(WindowData));
-        [object setUserdata:blah];
+#ifdef DEBUG
+        NSLog(@"WARNING: Object class %@ does not support dw_window_set_data()\n", [object className]);
+#endif
     }
-
-    if(data)
-        _dw_new_userdata(&(blah->root), dataname, data);
     else
     {
-        if(dataname)
-            _dw_remove_userdata(&(blah->root), dataname, FALSE);
+        WindowData *blah = (WindowData *)[object userdata];
+
+        if(!blah)
+        {
+            if(!dataname)
+                return;
+
+            blah = calloc(1, sizeof(WindowData));
+            [object setUserdata:blah];
+        }
+
+        if(data)
+            _dw_new_userdata(&(blah->root), dataname, data);
         else
-            _dw_remove_userdata(&(blah->root), NULL, TRUE);
+        {
+            if(dataname)
+                _dw_remove_userdata(&(blah->root), dataname, FALSE);
+            else
+                _dw_remove_userdata(&(blah->root), NULL, TRUE);
+        }
     }
     DW_FUNCTION_RETURN_NOTHING;
 }
@@ -10728,13 +10738,23 @@ DW_FUNCTION_RESTORE_PARAM2(window, HWND, dataname, const char *)
         NSArray *subviews = [sv subviews];
         object = [subviews firstObject];
     }
-    WindowData *blah = (WindowData *)[object userdata];
-
-    if(blah && blah->root && dataname)
+    /* Failsafe so we don't crash */
+    if(![object respondsToSelector:NSSelectorFromString(@"userdata")])
     {
-        UserData *ud = _dw_find_userdata(&(blah->root), dataname);
-        if(ud)
-            retval = ud->data;
+#ifdef DEBUG
+        NSLog(@"WARNING: Object class %@ does not support dw_window_get_data()\n", [object className]);
+#endif
+    }
+    else
+    {
+        WindowData *blah = (WindowData *)[object userdata];
+
+        if(blah && blah->root && dataname)
+        {
+            UserData *ud = _dw_find_userdata(&(blah->root), dataname);
+            if(ud)
+                retval = ud->data;
+        }
     }
     DW_FUNCTION_RETURN_THIS(retval);
 }
