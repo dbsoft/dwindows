@@ -11638,6 +11638,14 @@ void dw_window_set_data(HWND window, const char *dataname, void *data)
         NSBox *box = window;
         object = [box contentView];
     }
+    /* Failsafe so we don't crash */
+    if(![object respondsToSelector:NSSelectorFromString(@"userdata")])
+    {
+#ifdef DEBUG
+        NSLog(@"WARNING: Object class %@ does not support dw_window_set_data()\n", [object className]);
+#endif
+        return;
+    }
     WindowData *blah = (WindowData *)[object userdata];
 
     if(!blah)
@@ -11684,6 +11692,14 @@ void *dw_window_get_data(HWND window, const char *dataname)
     {
         NSBox *box = window;
         object = [box contentView];
+    }
+    /* Failsafe so we don't crash */
+    if(![object respondsToSelector:NSSelectorFromString(@"userdata")])
+    {
+#ifdef DEBUG
+        NSLog(@"WARNING: Object class %@ does not support dw_window_get_data()\n", [object className]);
+#endif
+        return NULL;
     }
     WindowData *blah = (WindowData *)[object userdata];
 
