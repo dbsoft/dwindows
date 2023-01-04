@@ -452,10 +452,10 @@ private:
     }
 
     void MLESetFont(DW::MLE *mle, int fontsize, char *fontname) {
-        char font[101] = {0};
+        char font[151] = {0};
 
         if(fontname)
-            snprintf(font, 100, "%d.%s", fontsize, fontname);
+            snprintf(font, 150, "%d.%s", fontsize, fontname);
         mle->SetFont(fontname ? font : NULL);
     }
 
