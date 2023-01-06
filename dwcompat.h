@@ -236,6 +236,10 @@ static int _dw_snprintf(char *str, size_t size, const char *format, ...)
 
 #ifdef _MSC_VER
 /* Handle deprecated functions in Visual C */
+#  if _MSC_VER < 1500
+#  define vsnprintf _vsnprintf
+#  endif
+#define HAVE_VSNPRINTF
 #  if _MSC_VER >= 1400
 #  define strcasecmp(a, b) _stricmp(a, b)
 #  define strncasecmp(a, b, c) _strnicmp(a, b, c)
