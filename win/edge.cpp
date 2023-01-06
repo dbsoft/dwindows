@@ -74,7 +74,7 @@ LRESULT CALLBACK EdgeBrowser::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
 		case WM_PAINT:
 		{
 			PAINTSTRUCT ps;
-			HDC hdc = BeginPaint(hWnd, &ps);
+			BeginPaint(hWnd, &ps);
 			EndPaint(hWnd, &ps);
 			return(0);
 		}
