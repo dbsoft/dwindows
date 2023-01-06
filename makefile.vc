@@ -227,4 +227,4 @@ dwtestoo.exe: dwtestoo.obj
 
 zip: dw.dll
 	copy win\readme-win.txt .
-	zip dwindows-win-$(VERDOT).zip readme-win.txt readme.txt x64\dw.dll x64\dwcompat.dll x64\dw.lib x64\dwcompat.lib x86\dw.dll x86\dwcompat.dll x86\dw.lib x86\dwcompat.lib dw.h dwcompat.h
+	zip dwindows-win-$(VERDOT).zip readme-win.txt readme.txt x64\dw.dll x64\dwcompat.dll x64\dw.lib x64\dwcompat.lib x86\dw.dll x86\dwcompat.dll x86\dw.lib x86\dwcompat.lib dw.h dwcompat.h dw.hpp
