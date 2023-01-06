@@ -30,7 +30,7 @@ C++: Recommends a C++11 compatible compiler.
            Intel Apple Clang from Xcode 4.4 or later.
            Apple Silicon any supported Apple Clang.
     Windows: Visual Studio 2015, recent Clang-cl or MingW32.
-    Linux/FreeBSD: GCC 4.8.1 or Clang 3.3 recommended.
+    Linux/FreeBSD: GCC 5 or Clang 3.3 recommended.
     OS/2: GCC 9.2 from Bitwise Works recommended.
 
     If you build with a pre-C++11 compiler features will be 
