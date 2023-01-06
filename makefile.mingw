@@ -1,8 +1,9 @@
 
 # Dynamic Windows MINGW Makefile
 
-CC = gcc
-RM = del /f
+CC  = gcc
+CXX = g++
+RM  = rm -f
 
 DEFS =
 LIBS =
@@ -32,7 +33,7 @@ OBJECTS = dw.o browser.o XBrowseForFolder.o
 
 VPATH=../ ../win
 
-all: dw.dll dwcompat.dll dwtest.exe
+all: dw.dll dwcompat.dll dwtest.exe dwtestoo.exe
 
 dw.res:  win/dw.rc
 	windres --target=$(PLATFORM_TARGET) --input win/dw.rc --output dw.res --output-format=coff
@@ -47,9 +48,12 @@ dwcompat.dll:  $(COMPATOBJECTS) win/dwcompat-mingw.def
 
 dwtest.res: win/dwtest.rc
 	windres --target=$(PLATFORM_TARGET) --input win/dwtest.rc --output dwtest.res --output-format=coff
-   
+
 dwtest.exe: dwtest.o dw.a dwcompat.a dwtest.res
 	$(CC) $(CFLAGS) -o dwtest.exe dwtest.res dwtest.o dw.a dwcompat.a
+
+dwtestoo.exe: dwtestoo.o dw.a dwcompat.a dwtest.res
+	$(CXX) $(CFLAGS) -o dwtestoo.exe dwtest.res dwtestoo.o dw.a dwcompat.a
 
 clean:
 	$(RM) *.obj *.o *.lib *.res *~ dwtest.exe dw.dll dwcompat.dll SVN.REV
@@ -71,6 +75,9 @@ dirent.o: win/dirent.c
 
 dwtest.o: dwtest.c
 	$(CC) $(CFLAGS) -c $<	
+
+dwtestoo.o: dwtestoo.cpp
+	$(CXX) -std=c++11 $(CFLAGS) -c $<	
 
 DEPS := $(wildcard *.d)
 ifneq ($(DEPS),)

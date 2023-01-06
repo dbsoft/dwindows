@@ -599,11 +599,11 @@ void _dw_pool_drain(void);
 
 #if defined(MSVC) && !defined(API)
 # if defined(__MINGW32__) && defined(BUILD_DLL)
-#  define API _cdecl __declspec(dllexport)
+#  define API __cdecl __declspec(dllexport)
 # else
-#  define API _cdecl
+#  define API __cdecl
 #endif
-#define DWSIGNAL _cdecl
+#define DWSIGNAL __cdecl
 #endif
 
 #define DW_DT_LEFT               SS_LEFTNOWORDWRAP
