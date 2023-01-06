@@ -2,6 +2,7 @@
 // ground for Dynamic Windows features in C++.
 // By: Brian Smith and Mark Hessling
 #include "dw.hpp"
+#include <cstdio>
 
 // Select a fixed width font for our platform 
 #ifdef __OS2__
