@@ -59,19 +59,19 @@ clean:
 	$(RM) *.obj *.o *.lib *.res *~ dwtest.exe dw.dll dwcompat.dll SVN.REV
 
 dw.o: win/dw.c
-	$(CC) $(CFLAGS) -DBUILD_DLL -c $<	
+	$(CC) $(CFLAGS) -c $<	
 
 browser.o: win/browser.c
-	$(CC) $(CFLAGS) -DBUILD_DLL -c $<	
+	$(CC) $(CFLAGS) -c $<	
 
 XBrowseForFolder.o: win/XBrowseForFolder.cpp
-	$(CC) $(CFLAGS) -DBUILD_DLL -c $<	
+	$(CC) $(CFLAGS) -c $<	
 
 dwcompat.o: dwcompat.c
-	$(CC) $(CFLAGS) -DBUILD_DLL -c $<	
+	$(CC) $(CFLAGS) -c $<	
 
 dirent.o: win/dirent.c
-	$(CC) $(CFLAGS) -DBUILD_DLL -c $<	
+	$(CC) $(CFLAGS) -c $<	
 
 dwtest.o: dwtest.c
 	$(CC) $(CFLAGS) -c $<	

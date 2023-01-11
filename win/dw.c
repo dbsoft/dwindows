@@ -44,6 +44,13 @@
 int _DW_MLE_RICH_EDIT = DW_FEATURE_UNSUPPORTED;
 #endif
 
+/* For backwards compatibility BUILD_DLL will imply BUILD_HTML 
+ * unless it is explicitly denied by defining NO_BUILD_HTML
+ */
+#if defined(BUILD_DLL) && !defined(NO_BUILD_HTML) && !defined(BUILD_HTML)
+#define BUILD_HTML
+#endif
+
 #define STATICCLASSNAME TEXT("STATIC")
 #define COMBOBOXCLASSNAME TEXT("COMBOBOX")
 #define LISTBOXCLASSNAME TEXT("LISTBOX")
@@ -323,7 +330,7 @@ HBRUSH _dw_colors[18];
 
 HFONT _DWDefaultFont = NULL;
 
-#if (defined(BUILD_DLL) || defined(BUILD_HTML))
+#ifdef BUILD_HTML
 LRESULT CALLBACK _dw_browserwndproc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 #ifdef BUILD_EDGE
 BOOL _dw_edge_detect(LPWSTR AppID);
@@ -4810,7 +4817,7 @@ int API dw_init(int newthread, int argc, char *argv[])
       strncpy(_dw_app_name, pos ? pos : fullpath, _DW_APP_ID_SIZE);
    }
     
-#if (defined(BUILD_DLL) || defined(BUILD_HTML))
+#ifdef BUILD_HTML
    /* Register HTML renderer class */
    memset(&wc, 0, sizeof(WNDCLASS));
    wc.lpszClassName = BrowserClassName;
@@ -5537,9 +5544,12 @@ void _dw_control_size(HWND handle, int *width, int *height)
          thisheight = _DW_SCROLLED_MAX_HEIGHT;
    }
    /* Entryfields and MLE */
-   else if(_tcsnicmp(tmpbuf, EDITCLASSNAME, _tcslen(EDITCLASSNAME)+1) == 0 ||
-           _tcsnicmp(tmpbuf, RICHEDIT_CLASS, _tcslen(RICHEDIT_CLASS)+1) == 0 ||
-           _tcsnicmp(tmpbuf, MSFTEDIT_CLASS, _tcslen(MSFTEDIT_CLASS)+1) == 0)
+   else if(_tcsnicmp(tmpbuf, EDITCLASSNAME, _tcslen(EDITCLASSNAME)+1) == 0
+#ifdef RICHEDIT
+        || _tcsnicmp(tmpbuf, RICHEDIT_CLASS, _tcslen(RICHEDIT_CLASS)+1) == 0
+        || _tcsnicmp(tmpbuf, MSFTEDIT_CLASS, _tcslen(MSFTEDIT_CLASS)+1) == 0
+#endif
+           )
    {
       LONG style = GetWindowLong(handle, GWL_STYLE);
       if((style & ES_MULTILINE))
@@ -6266,7 +6276,7 @@ HWND API dw_mdi_new(unsigned long id)
  */
 HWND API dw_html_new(unsigned long id)
 {
-#if (defined(BUILD_DLL) || defined(BUILD_HTML))
+#ifdef BUILD_HTML
    return CreateWindow(BrowserClassName,
                   NULL,
                   WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS,
@@ -6281,7 +6291,7 @@ HWND API dw_html_new(unsigned long id)
 #endif
 }
 
-#if (defined(BUILD_DLL) || defined(BUILD_HTML))
+#ifdef BUILD_HTML
 void _dw_html_action(HWND hwnd, int action);
 int _dw_html_raw(HWND hwnd, const char *string);
 int _dw_html_url(HWND hwnd, const char *url);
@@ -6302,7 +6312,7 @@ int _dw_edge_javascript_run(HWND hwnd, const char *script, void *scriptdata);
  */
 void API dw_html_action(HWND handle, int action)
 {
-#if (defined(BUILD_DLL) || defined(BUILD_HTML))
+#ifdef BUILD_HTML
 #ifdef BUILD_EDGE
    if (_DW_EDGE_DETECTED)
       _dw_edge_action(handle, action);
@@ -6323,7 +6333,7 @@ void API dw_html_action(HWND handle, int action)
  */
 int API dw_html_raw(HWND handle, const char *string)
 {
-#if (defined(BUILD_DLL) || defined(BUILD_HTML))
+#ifdef BUILD_HTML
 #ifdef BUILD_EDGE
    if (_DW_EDGE_DETECTED)
       return _dw_edge_raw(handle, string);
@@ -6345,8 +6355,8 @@ int API dw_html_raw(HWND handle, const char *string)
  */
 int API dw_html_url(HWND handle, const char *url)
 {
-#if (defined(BUILD_DLL) || defined(BUILD_HTML))
-#if BUILD_EDGE
+#ifdef BUILD_HTML
+#ifdef BUILD_EDGE
    if (_DW_EDGE_DETECTED)
       return _dw_edge_url(handle, url);
 #endif
@@ -6368,8 +6378,8 @@ int API dw_html_url(HWND handle, const char *url)
  */
 int dw_html_javascript_run(HWND handle, const char *script, void *scriptdata)
 {
-#if (defined(BUILD_DLL) || defined(BUILD_HTML))
-#if BUILD_EDGE
+#ifdef BUILD_HTML
+#ifdef BUILD_EDGE
    if (_DW_EDGE_DETECTED)
       return _dw_edge_javascript_run(handle, script, scriptdata);
 #endif
@@ -13012,7 +13022,7 @@ void API dw_environment_query(DWEnv *env)
 
    strcpy(env->buildDate, __DATE__);
    strcpy(env->buildTime, __TIME__);
-#if (defined(BUILD_DLL) || defined(BUILD_HTML))
+#ifdef BUILD_HTML
 #  ifdef BUILD_EDGE
    strcpy(env->htmlEngine, _DW_EDGE_DETECTED ? "EDGE" : "IE");
 #  else
@@ -13917,7 +13927,7 @@ int API dw_feature_get(DWFEATURE feature)
 #ifdef UNICODE
         case DW_FEATURE_UTF8_UNICODE:
 #endif
-#if (defined(BUILD_DLL) || defined(BUILD_HTML))
+#ifdef BUILD_HTML
         case DW_FEATURE_HTML:
         case DW_FEATURE_HTML_RESULT:
 #endif
@@ -14000,7 +14010,7 @@ int API dw_feature_set(DWFEATURE feature, int state)
 #ifdef UNICODE
         case DW_FEATURE_UTF8_UNICODE:
 #endif
-#if (defined(BUILD_DLL) || defined(BUILD_HTML))
+#ifdef BUILD_HTML
         case DW_FEATURE_HTML:
         case DW_FEATURE_HTML_RESULT:
 #endif
