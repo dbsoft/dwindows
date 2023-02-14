@@ -5,7 +5,8 @@
 #ifndef _HPP_DW
 #define _HPP_DW
 #include <dw.h>
-#include <string.h>
+#include <cstring>
+#include <string>
 
 // Attempt to support compilers without nullptr type literal
 #if __cplusplus >= 201103L 
@@ -212,6 +213,11 @@ public:
     MenuItem *AppendItem(const char *title, unsigned long flags, int check);
     MenuItem *AppendItem(const char *title, Menus *submenu);
     MenuItem *AppendItem(const char *title);
+    MenuItem *AppendItem(std::string title, unsigned long id, unsigned long flags, int end, int check, Menus *submenu);
+    MenuItem *AppendItem(std::string title, unsigned long flags, int check, Menus *submenu);
+    MenuItem *AppendItem(std::string title, unsigned long flags, int check);
+    MenuItem *AppendItem(std::string title, Menus *submenu);
+    MenuItem *AppendItem(std::string title);
 };
 
 class Menu : public Menus
@@ -252,6 +258,21 @@ public:
     MenuItem(Menus *menu, const char *title) {
         SetHWND(dw_menu_append_item(menu->GetHMENUI(), title, DW_MENU_AUTO, 0, TRUE, FALSE, DW_NOMENU)); Setup();
     }
+    MenuItem(Menus *menu, std::string title, unsigned long id, unsigned long flags, int end, int check, Menus *submenu) { 
+        SetHWND(dw_menu_append_item(menu->GetHMENUI(), title.c_str(), id, flags, end, check, submenu ? submenu->GetHMENUI() : DW_NOMENU)); Setup();
+    }
+    MenuItem(Menus *menu, std::string title, unsigned long flags, int check, Menus *submenu) { 
+        SetHWND(dw_menu_append_item(menu->GetHMENUI(), title.c_str(), DW_MENU_AUTO, flags, TRUE, check, submenu ? submenu->GetHMENUI() : DW_NOMENU)); Setup();
+    }
+    MenuItem(Menus *menu, std::string title, unsigned long flags, int check) { 
+        SetHWND(dw_menu_append_item(menu->GetHMENUI(), title.c_str(), DW_MENU_AUTO, flags, TRUE, check, DW_NOMENU)); Setup();
+    }
+    MenuItem(Menus *menu, std::string title, Menus *submenu) {
+        SetHWND(dw_menu_append_item(menu->GetHMENUI(), title.c_str(), DW_MENU_AUTO, 0, TRUE, FALSE, submenu ? submenu->GetHMENUI() : DW_NOMENU)); Setup();
+    }
+    MenuItem(Menus *menu, std::string title) {
+        SetHWND(dw_menu_append_item(menu->GetHMENUI(), title.c_str(), DW_MENU_AUTO, 0, TRUE, FALSE, DW_NOMENU)); Setup();
+    }
 
     // User functions
     void SetState(unsigned long flags) { dw_window_set_style(hwnd, flags, flags); }
@@ -274,6 +295,25 @@ MenuItem *Menus::AppendItem(const char *title, Menus *submenu) {
 }
 MenuItem *Menus::AppendItem(const char *title) {
     return new MenuItem(this, title);
+}
+
+MenuItem *Menus::AppendItem(std::string title, unsigned long id, unsigned long flags, int end, int check, Menus *submenu) {
+    return new MenuItem(this, title.c_str(), id, flags, end, check, submenu);
+}
+
+MenuItem *Menus::AppendItem(std::string title, unsigned long flags, int check, Menus *submenu) {
+    return new MenuItem(this, title.c_str(), flags, check, submenu);
+}
+
+MenuItem *Menus::AppendItem(std::string title, unsigned long flags, int check) {
+    return new MenuItem(this, title.c_str(), flags, check);
+}
+
+MenuItem *Menus::AppendItem(std::string title, Menus *submenu) {
+    return new MenuItem(this, title.c_str(), submenu);
+}
+MenuItem *Menus::AppendItem(std::string title) {
+    return new MenuItem(this, title.c_str());
 }
 
 
@@ -332,6 +372,8 @@ public:
     // Constructors
     Window(HWND owner, const char *title, unsigned long style) { SetHWND(dw_window_new(owner, title, style)); Setup(); }
     Window(const char *title, unsigned long style) { SetHWND(dw_window_new(HWND_DESKTOP, title, style)); Setup(); }
+    Window(HWND owner, std::string title, unsigned long style) { SetHWND(dw_window_new(owner, title.c_str(), style)); Setup(); }
+    Window(std::string title, unsigned long style) { SetHWND(dw_window_new(HWND_DESKTOP, title.c_str(), style)); Setup(); }
     Window(unsigned long style) { SetHWND(dw_window_new(HWND_DESKTOP, "", style)); Setup(); }
     Window(const char *title) { SetHWND(dw_window_new(HWND_DESKTOP, title,  DW_FCF_SYSMENU | DW_FCF_TITLEBAR |
                         DW_FCF_TASKLIST | DW_FCF_SIZEBORDER | DW_FCF_MINMAX)); Setup(); }
@@ -340,6 +382,7 @@ public:
 
     // User functions
     void SetText(const char *text) { dw_window_set_text(hwnd, text); }
+    void SetText(std::string text) { dw_window_set_text(hwnd, text.c_str()); }
     char *GetText() { return dw_window_get_text(hwnd); }
     void SetSize(unsigned long width, unsigned long height) { dw_window_set_size(hwnd, width, height); }
     int Show() { return dw_window_show(hwnd); }
@@ -468,6 +511,7 @@ class TextButton : public Clickable, public Focusable
 public:
     // User functions
     void SetText(const char *text) { dw_window_set_text(hwnd, text); }
+    void SetText(std::string text) { dw_window_set_text(hwnd, text.c_str()); }
     char *GetText() { return dw_window_get_text(hwnd); }
 };
 
@@ -476,8 +520,10 @@ class Button : public TextButton
 public:
     // Constructors
     Button(const char *text, unsigned long id) { SetHWND(dw_button_new(text, id)); Setup(); }
+    Button(std::string text, unsigned long id) { SetHWND(dw_button_new(text.c_str(), id)); Setup(); }
     Button(unsigned long id) { SetHWND(dw_button_new("", id)); Setup(); }
     Button(const char *text) { SetHWND(dw_button_new(text, 0)); Setup(); }
+    Button(std::string text) { SetHWND(dw_button_new(text.c_str(), 0)); Setup(); }
     Button() { SetHWND(dw_button_new("", 0)); Setup(); }
 };
 
@@ -501,6 +547,11 @@ public:
     BitmapButton(const char *text, const char *file) { SetHWND(dw_bitmapbutton_new_from_file(text, 0, file)); Setup(); }
     BitmapButton(const char *text, unsigned long id, const char *data, int len) { SetHWND(dw_bitmapbutton_new_from_data(text, id, data, len)); Setup(); }
     BitmapButton(const char *text, const char *data, int len) { SetHWND(dw_bitmapbutton_new_from_data(text, 0, data, len)); Setup(); }
+    BitmapButton(std::string text, unsigned long id) { SetHWND(dw_bitmapbutton_new(text.c_str(), id)); Setup(); }
+    BitmapButton(std::string text, unsigned long id, std::string file) { SetHWND(dw_bitmapbutton_new_from_file(text.c_str(), id, file.c_str())); Setup(); }
+    BitmapButton(std::string text, std::string file) { SetHWND(dw_bitmapbutton_new_from_file(text.c_str(), 0, file.c_str())); Setup(); }
+    BitmapButton(std::string text, unsigned long id, const char *data, int len) { SetHWND(dw_bitmapbutton_new_from_data(text.c_str(), id, data, len)); Setup(); }
+    BitmapButton(std::string text, const char *data, int len) { SetHWND(dw_bitmapbutton_new_from_data(text.c_str(), 0, data, len)); Setup(); }
 };
 
 class CheckBoxes : virtual public TextButton
@@ -516,8 +567,10 @@ class CheckBox : public CheckBoxes
 public:
     // Constructors
     CheckBox(const char *text, unsigned long id) { SetHWND(dw_checkbox_new(text, id)); Setup(); }
+    CheckBox(std::string text, unsigned long id) { SetHWND(dw_checkbox_new(text.c_str(), id)); Setup(); }
     CheckBox(unsigned long id) { SetHWND(dw_checkbox_new("", id)); Setup(); }
     CheckBox(const char *text) { SetHWND(dw_checkbox_new(text, 0)); Setup(); }
+    CheckBox(std::string text) { SetHWND(dw_checkbox_new(text.c_str(), 0)); Setup(); }
     CheckBox() { SetHWND(dw_checkbox_new("", 0)); Setup(); }
 };
 
@@ -526,8 +579,10 @@ class RadioButton : public CheckBoxes
 public:
     // Constructors
     RadioButton(const char *text, unsigned long id) { SetHWND(dw_radiobutton_new(text, id)); Setup(); }
+    RadioButton(std::string text, unsigned long id) { SetHWND(dw_radiobutton_new(text.c_str(), id)); Setup(); }
     RadioButton(unsigned long id) { SetHWND(dw_radiobutton_new("", id)); Setup(); }
     RadioButton(const char *text) { SetHWND(dw_radiobutton_new(text, 0)); Setup(); }
+    RadioButton(std::string text) { SetHWND(dw_radiobutton_new(text.c_str(), 0)); Setup(); }
     RadioButton() { SetHWND(dw_radiobutton_new("", 0)); Setup(); }
 };
 
@@ -537,6 +592,7 @@ class TextWidget : virtual public Widget
 public:
     // User functions
     void SetText(const char *text) { dw_window_set_text(hwnd, text); }
+    void SetText(std::string text) { dw_window_set_text(hwnd, text.c_str()); }
     char *GetText() { return dw_window_get_text(hwnd); }
     int SetFont(const char *font) { return dw_window_set_font(hwnd, font); }
     char *GetFont() { return dw_window_get_font(hwnd); }
@@ -549,6 +605,8 @@ public:
     // Constructors
     Text(const char *text, unsigned long id) { SetHWND(dw_text_new(text, id)); }
     Text(const char *text) { SetHWND(dw_text_new(text, 0)); }
+    Text(std::string text, unsigned long id) { SetHWND(dw_text_new(text.c_str(), id)); }
+    Text(std::string text) { SetHWND(dw_text_new(text.c_str(), 0)); }
     Text(unsigned long id) { SetHWND(dw_text_new("", id)); }
     Text() { SetHWND(dw_text_new("", 0)); }
 };
@@ -559,6 +617,8 @@ public:
     // Constructors
     StatusText(const char *text, unsigned long id) { SetHWND(dw_status_text_new(text, id)); }
     StatusText(const char *text) { SetHWND(dw_status_text_new(text, 0)); }
+    StatusText(std::string text, unsigned long id) { SetHWND(dw_status_text_new(text.c_str(), id)); }
+    StatusText(std::string text) { SetHWND(dw_status_text_new(text.c_str(), 0)); }
     StatusText(unsigned long id) { SetHWND(dw_status_text_new("", id)); }
     StatusText() { SetHWND(dw_status_text_new("", 0)); }
 };
@@ -570,6 +630,7 @@ public:
     // Constructors
     Bitmap(const char *data, int len) { SetHWND(dw_bitmap_new(0)); dw_window_set_bitmap_from_data(hwnd, 0, data, len); }
     Bitmap(const char *file) { SetHWND(dw_bitmap_new(0)); dw_window_set_bitmap(hwnd, 0, file); }
+    Bitmap(std::string file) { SetHWND(dw_bitmap_new(0)); dw_window_set_bitmap(hwnd, 0, file.c_str()); }
     Bitmap(unsigned long id) { SetHWND(dw_bitmap_new(id)); }
     Bitmap() { SetHWND(dw_bitmap_new(0)); }
 };
@@ -599,6 +660,7 @@ public:
     virtual void DrawRect(int fill, int x, int y, int width, int height) = 0;
     virtual void DrawArc(int flags, int xorigin, int yorigin, int x1, int y1, int x2, int y2) = 0;
     virtual void DrawText(int x, int y, const char *text) = 0;
+    virtual void DrawText(int x, int y, std::string text) = 0;
     virtual int BitBltStretch(int xdest, int ydest, int width, int height, Render *src, int xsrc, int ysrc, int srcwidth, int srcheight) = 0;
     virtual int BitBltStretch(int xdest, int ydest, int width, int height, Pixmap *src, int xsrc, int ysrc, int srcwidth, int srcheight) = 0;
     virtual void BitBlt(int xdest, int ydest, int width, int height, Render *src, int xsrc, int ysrc) = 0;
@@ -744,6 +806,7 @@ public:
     void DrawRect(int fill, int x, int y, int width, int height) { dw_draw_rect(hwnd, DW_NULL, fill, x, y, width, height); }
     void DrawArc(int flags, int xorigin, int yorigin, int x1, int y1, int x2, int y2) { dw_draw_arc(hwnd, DW_NULL, flags, xorigin, yorigin, x1, y1, x2, y2); }
     void DrawText(int x, int y, const char *text) { dw_draw_text(hwnd, DW_NULL, x, y, text); }
+    void DrawText(int x, int y, std::string text) { dw_draw_text(hwnd, DW_NULL, x, y, text.c_str()); }
     int BitBltStretch(int xdest, int ydest, int width, int height, Render *src, int xsrc, int ysrc, int srcwidth, int srcheight) {
         return dw_pixmap_stretch_bitblt(hwnd, DW_NULL, xdest, ydest, width, height, src ? src->GetHWND() : DW_NOHWND, DW_NULL, xsrc, ysrc, srcwidth, srcheight);
     }
@@ -753,7 +816,9 @@ public:
     }
     void BitBlt(int xdest, int ydest, int width, int height, Pixmap *src, int xsrc, int ysrc);
     int SetFont(const char *fontname) { return dw_window_set_font(hwnd, fontname); }
+    int SetFont(std::string fontname) { return dw_window_set_font(hwnd, fontname.c_str()); }
     void GetTextExtents(const char *text, int *width, int *height) { dw_font_text_extents_get(hwnd, DW_NULL, text, width, height); }
+    void GetTextExtents(std::string text, int *width, int *height) { dw_font_text_extents_get(hwnd, DW_NULL, text.c_str(), width, height); }
     char *GetFont() { return dw_window_get_font(hwnd); }
     void Redraw() { dw_render_redraw(hwnd); }
     void Flush() { dw_flush(); }
@@ -928,6 +993,12 @@ public:
         pheight = dw_pixmap_get_height(hpixmap);
         hpmprot = false;
     }
+    Pixmap(Render *window, std::string filename) { 
+        SetHPIXMAP(dw_pixmap_new_from_file(window ? window->GetHWND() : DW_NOHWND, filename.c_str()));
+        pwidth = dw_pixmap_get_width(hpixmap);
+        pheight = dw_pixmap_get_height(hpixmap);
+        hpmprot = false;
+    }
     Pixmap(HPIXMAP hpm) { 
         SetHPIXMAP(hpm);
         pwidth = dw_pixmap_get_width(hpixmap);
@@ -945,6 +1016,7 @@ public:
     void DrawRect(int fill, int x, int y, int width, int height) { dw_draw_rect(DW_NOHWND, hpixmap, fill, x, y, width, height); }
     void DrawArc(int flags, int xorigin, int yorigin, int x1, int y1, int x2, int y2) { dw_draw_arc(DW_NOHWND, hpixmap, flags, xorigin, yorigin, x1, y1, x2, y2); }
     void DrawText(int x, int y, const char *text) { dw_draw_text(DW_NOHWND, hpixmap, x, y, text); }
+    void DrawText(int x, int y, std::string text) { dw_draw_text(DW_NOHWND, hpixmap, x, y, text.c_str()); }
     int BitBltStretch(int xdest, int ydest, int width, int height, Render *src, int xsrc, int ysrc, int srcwidth, int srcheight) {
         return dw_pixmap_stretch_bitblt(DW_NOHWND, hpixmap, xdest, ydest, width, height, src ? src->GetHWND() : DW_NOHWND, DW_NULL, xsrc, ysrc, srcwidth, srcheight);
     }
@@ -959,6 +1031,7 @@ public:
     }
     int SetFont(const char *fontname) { return dw_pixmap_set_font(hpixmap, fontname); }
     void GetTextExtents(const char *text, int *width, int *height) { dw_font_text_extents_get(DW_NOHWND, hpixmap, text, width, height); }
+    void GetTextExtents(std::string text, int *width, int *height) { dw_font_text_extents_get(DW_NOHWND, hpixmap, text.c_str(), width, height); }
     void SetTransparentColor(unsigned long color) { dw_pixmap_set_transparent_color(hpixmap, color); }
     unsigned long GetWidth() { return pwidth; }
     unsigned long GetHeight() { return pheight; }
@@ -1035,6 +1108,10 @@ public:
     int JavascriptRun(const char *script) { return dw_html_javascript_run(hwnd, script, NULL); }
     int Raw(const char *buffer) { return dw_html_raw(hwnd, buffer); }
     int URL(const char *url) { return dw_html_url(hwnd, url); }
+    int JavascriptRun(std::string script, void *scriptdata) { return dw_html_javascript_run(hwnd, script.c_str(), scriptdata); }
+    int JavascriptRun(std::string script) { return dw_html_javascript_run(hwnd, script.c_str(), NULL); }
+    int Raw(std::string buffer) { return dw_html_raw(hwnd, buffer.c_str()); }
+    int URL(std::string url) { return dw_html_url(hwnd, url.c_str()); }
 #ifdef DW_LAMBDA
     void ConnectChanged(std::function<int(int, char *)> userfunc)
     { 
@@ -1100,8 +1177,10 @@ class Entryfield : public TextEntry
 public:
     // Constructors
     Entryfield(const char *text, unsigned long id) { SetHWND(dw_entryfield_new(text, id)); }
+    Entryfield(std::string text, unsigned long id) { SetHWND(dw_entryfield_new(text.c_str(), id)); }
     Entryfield(unsigned long id) { SetHWND(dw_entryfield_new("", id)); }
     Entryfield(const char *text) { SetHWND(dw_entryfield_new(text, 0)); }
+    Entryfield(std::string text) { SetHWND(dw_entryfield_new(text.c_str(), 0)); }
     Entryfield() { SetHWND(dw_entryfield_new("", 0)); }
 };
 
@@ -1110,8 +1189,10 @@ class EntryfieldPassword : public TextEntry
 public:
     // Constructors
     EntryfieldPassword(const char *text, unsigned long id) { SetHWND(dw_entryfield_password_new(text, id)); }
+    EntryfieldPassword(std::string text, unsigned long id) { SetHWND(dw_entryfield_password_new(text.c_str(), id)); }
     EntryfieldPassword(unsigned long id) { SetHWND(dw_entryfield_password_new("", id)); }
     EntryfieldPassword(const char *text) { SetHWND(dw_entryfield_password_new(text, 0)); }
+    EntryfieldPassword(std::string text) { SetHWND(dw_entryfield_password_new(text.c_str(), 0)); }
     EntryfieldPassword() { SetHWND(dw_entryfield_password_new("", 0)); }
 };
 
@@ -1137,11 +1218,13 @@ private:
 public:
     // User functions
     void Append(const char *text) { dw_listbox_append(hwnd, text); }
+    void Append(std::string text) { dw_listbox_append(hwnd, text.c_str()); }
     void Clear() { dw_listbox_clear(hwnd); }
     int Count() { return dw_listbox_count(hwnd); }
     void Delete(int index) { dw_listbox_delete(hwnd, index); }
     void GetListText(unsigned int index, char *buffer, unsigned int length) { dw_listbox_get_text(hwnd, index, buffer, length); }
     void SetListText(unsigned int index, char *buffer) { dw_listbox_set_text(hwnd, index, buffer); }
+    void SetListText(unsigned int index, std::string buffer) { dw_listbox_set_text(hwnd, index, buffer.c_str()); }
     void Insert(const char *text, int pos) { dw_listbox_insert(hwnd, text, pos); }
     void ListAppend(char **text, int count) { dw_listbox_list_append(hwnd, text, count); }
     void Select(int index, int state) { dw_listbox_select(hwnd, index, state); }
@@ -1191,8 +1274,10 @@ class ComboBox : public TextEntry, public ListBoxes
 public:
     // Constructors
     ComboBox(const char *text, unsigned long id) { SetHWND(dw_combobox_new(text, id)); Setup(); }
+    ComboBox(std::string text, unsigned long id) { SetHWND(dw_combobox_new(text.c_str(), id)); Setup(); }
     ComboBox(unsigned long id) { SetHWND(dw_combobox_new("", id)); Setup(); }
     ComboBox(const char *text) { SetHWND(dw_combobox_new(text, 0)); Setup(); }
+    ComboBox(std::string text) { SetHWND(dw_combobox_new(text.c_str(), 0)); Setup(); }
     ComboBox() { SetHWND(dw_combobox_new("", 0)); Setup(); }
 };
 
@@ -1307,8 +1392,10 @@ class SpinButton : public Ranged, public TextEntry
 public:
     // Constructors
     SpinButton(const char *text, unsigned long id) { SetHWND(dw_spinbutton_new(text, id)); Setup(); }
+    SpinButton(std::string text, unsigned long id) { SetHWND(dw_spinbutton_new(text.c_str(), id)); Setup(); }
     SpinButton(unsigned long id) { SetHWND(dw_spinbutton_new("", id)); Setup(); }
     SpinButton(const char *text) { SetHWND(dw_spinbutton_new(text, 0)); Setup(); }
+    SpinButton(std::string text) { SetHWND(dw_spinbutton_new(text.c_str(), 0)); Setup(); }
     SpinButton() { SetHWND(dw_spinbutton_new("", 0)); Setup(); }
 
     // User functions
@@ -1332,8 +1419,10 @@ public:
     void Delete(int startpoint, int length) { dw_mle_delete(hwnd, startpoint, length); }
     void Export(char *buffer, int startpoint, int length) { dw_mle_export(hwnd, buffer, startpoint, length); }
     int Import(const char *buffer, int startpoint) { return dw_mle_import(hwnd, buffer, startpoint); }
+    int Import(std::string buffer, int startpoint) { return dw_mle_import(hwnd, buffer.c_str(), startpoint); }
     void GetSize(unsigned long *bytes, unsigned long *lines) { dw_mle_get_size(hwnd, bytes, lines); }
     void Search(const char *text, int point, unsigned long flags) { dw_mle_search(hwnd, text, point, flags); }
+    void Search(std::string text, int point, unsigned long flags) { dw_mle_search(hwnd, text.c_str(), point, flags); }
     void SetAutoComplete(int state) { dw_mle_set_auto_complete(hwnd, state); }
     void SetCursor(int point) { dw_mle_set_cursor(hwnd, point); }
     void SetEditable(int state) { dw_mle_set_editable(hwnd, state); }
@@ -1397,6 +1486,8 @@ public:
     void PageSet(unsigned long pageid) { dw_notebook_page_set(hwnd, pageid); }
     void PageSetStatusText(unsigned long pageid, const char *text) { dw_notebook_page_set_status_text(hwnd, pageid, text); }
     void PageSetText(unsigned long pageid, const char *text) { dw_notebook_page_set_text(hwnd, pageid, text); }
+    void PageSetStatusText(unsigned long pageid, std::string text) { dw_notebook_page_set_status_text(hwnd, pageid, text.c_str()); }
+    void PageSetText(unsigned long pageid, std::string text) { dw_notebook_page_set_text(hwnd, pageid, text.c_str()); }
 #ifdef DW_LAMBDA
     void ConnectSwitchPage(std::function<int(unsigned long)> userfunc)
     {
@@ -1588,12 +1679,15 @@ public:
     // User functions
     void Alloc(int rowcount) { allocpointer = dw_container_alloc(hwnd, rowcount); allocrowcount = rowcount; }
     void ChangeRowTitle(int row, char *title) { dw_container_change_row_title(hwnd, row, title); }
+    void ChangeRowTitle(int row, std::string title) { dw_container_change_row_title(hwnd, row, title.c_str()); }
     void Clear(int redraw) { dw_container_clear(hwnd, redraw); }
     void Clear() { dw_container_clear(hwnd, TRUE); }
     void Cursor(const char *text) { dw_container_cursor(hwnd, text); }
+    void Cursor(std::string text) { dw_container_cursor(hwnd, text.c_str()); }
     void Cursor(void *data) { dw_container_cursor_by_data(hwnd, data); }
     void Delete(int rowcount) { dw_container_delete(hwnd, rowcount); }
     void DeleteRow(char *title) { dw_container_delete_row(hwnd, title); }
+    void DeleteRow(std::string title) { dw_container_delete_row(hwnd, title.c_str()); }
     void DeleteRow(void *data) { dw_container_delete_row_by_data(hwnd, data); }
     void Insert() { dw_container_insert(hwnd, allocpointer, allocrowcount); }
     void Optimize() { dw_container_optimize(hwnd); }
@@ -1603,6 +1697,7 @@ public:
     void SetColumnWidth(int column, int width) { dw_container_set_column_width(hwnd, column, width); }
     void SetRowData(int row, void *data) { dw_container_set_row_data(allocpointer, row, data); }
     void SetRowTitle(int row, const char *title) { dw_container_set_row_title(allocpointer, row, title); }
+    void SetRowTitle(int row, const std::string title) { dw_container_set_row_title(allocpointer, row, title.c_str()); }
     void SetStripe(unsigned long oddcolor, unsigned long evencolor) { dw_container_set_stripe(hwnd, oddcolor, evencolor); }
 #ifdef DW_LAMBDA
     void ConnectItemEnter(std::function<int(char *, void *)> userfunc)
@@ -1679,6 +1774,7 @@ public:
     void ChangeItem(int column, int row, void *data) { dw_filesystem_change_item(hwnd, column, row, data); }
     int GetColumnType(int column) { return dw_filesystem_get_column_type(hwnd, column); }
     void SetColumnTitle(const char *title) { dw_filesystem_set_column_title(hwnd, title); }
+    void SetColumnTitle(std::string title) { dw_filesystem_set_column_title(hwnd, title.c_str()); }
     void SetFile(int row, const char *filename, HICN icon) { dw_filesystem_set_file(hwnd, allocpointer, row, filename, icon); }
     void SetItem(int column, int row, void *data) { dw_filesystem_set_item(hwnd, allocpointer, column, row, data); }
 };
@@ -1736,7 +1832,14 @@ public:
     HTREEITEM InsertAfter(const char *title, HTREEITEM item, HICN icon, HTREEITEM parent, void *itemdata) { return dw_tree_insert_after(hwnd, item, title, icon, parent, itemdata); }
     HTREEITEM InsertAfter(const char *title, HTREEITEM item, HICN icon, HTREEITEM parent) { return dw_tree_insert_after(hwnd, item, title, icon, parent, NULL); }
     HTREEITEM InsertAfter(const char *title, HTREEITEM item, HICN icon) { return dw_tree_insert_after(hwnd, item, title, icon, 0, NULL); }
+    HTREEITEM Insert(std::string title, HICN icon, HTREEITEM parent, void *itemdata) { return dw_tree_insert(hwnd, title.c_str(), icon, parent, itemdata); }
+    HTREEITEM Insert(std::string title, HICN icon, HTREEITEM parent) { return dw_tree_insert(hwnd, title.c_str(), icon, parent, NULL); }
+    HTREEITEM Insert(std::string title, HICN icon) { return dw_tree_insert(hwnd, title.c_str(), icon, 0, NULL); }
+    HTREEITEM InsertAfter(std::string title, HTREEITEM item, HICN icon, HTREEITEM parent, void *itemdata) { return dw_tree_insert_after(hwnd, item, title.c_str(), icon, parent, itemdata); }
+    HTREEITEM InsertAfter(std::string title, HTREEITEM item, HICN icon, HTREEITEM parent) { return dw_tree_insert_after(hwnd, item, title.c_str(), icon, parent, NULL); }
+    HTREEITEM InsertAfter(std::string title, HTREEITEM item, HICN icon) { return dw_tree_insert_after(hwnd, item, title.c_str(), icon, 0, NULL); }
     void Change(HTREEITEM item, const char *title, HICN icon) { dw_tree_item_change(hwnd, item, title, icon); }
+    void Change(HTREEITEM item, std::string title, HICN icon) { dw_tree_item_change(hwnd, item, title.c_str(), icon); }
     void Collapse(HTREEITEM item) { dw_tree_item_collapse(hwnd, item); }
     void Delete(HTREEITEM item) { dw_tree_item_delete(hwnd, item); }
     void Expand(HTREEITEM item) { dw_tree_item_expand(hwnd, item); }
@@ -1915,6 +2018,9 @@ public:
     Notification(const char *title, const char *imagepath, const char *description) { SetHWND(dw_notification_new(title, imagepath, description)); }
     Notification(const char *title, const char *imagepath) { SetHWND(dw_notification_new(title, imagepath, NULL)); }
     Notification(const char *title) { SetHWND(dw_notification_new(title, NULL, NULL)); }
+    Notification(std::string title, std::string imagepath, std::string description) { SetHWND(dw_notification_new(title.c_str(), imagepath.c_str(), description.c_str())); }
+    Notification(std::string title, std::string imagepath) { SetHWND(dw_notification_new(title.c_str(), imagepath.c_str(), NULL)); }
+    Notification(std::string title) { SetHWND(dw_notification_new(title.c_str(), NULL, NULL)); }
 
     // User functions
     int Send() { int retval = dw_notification_send(hwnd); delete this; return retval; }
@@ -2087,6 +2193,10 @@ public:
     static App *Init(int argc, char *argv[]) { if(!_app) { _app = new App(); dw_init(TRUE, argc, argv); } return _app; }
     static App *Init(int argc, char *argv[], const char *appid) { if(!_app) { _app = new App(); dw_app_id_set(appid, DW_NULL); dw_init(TRUE, argc, argv); } return _app; }
     static App *Init(int argc, char *argv[], const char *appid, const char *appname) { if(!_app) { _app = new App(); dw_app_id_set(appid, appname); dw_init(TRUE, argc, argv); } return _app; }
+    static App *Init(std::string appid) { if(!_app) { _app = new App(); dw_app_id_set(appid.c_str(), DW_NULL); dw_init(TRUE, 0, DW_NULL); } return _app; }
+    static App *Init(std::string appid, std::string appname) { if(!_app) { _app = new App(); dw_app_id_set(appid.c_str(), appname.c_str()); dw_init(TRUE, 0, DW_NULL); } return _app; }
+    static App *Init(int argc, char *argv[], std::string appid) { if(!_app) { _app = new App(); dw_app_id_set(appid.c_str(), DW_NULL); dw_init(TRUE, argc, argv); } return _app; }
+    static App *Init(int argc, char *argv[], std::string appid, std::string appname) { if(!_app) { _app = new App(); dw_app_id_set(appid.c_str(), appname.c_str()); dw_init(TRUE, argc, argv); } return _app; }
     // Destrouctor
     ~App() { dw_exit(0); }
 
@@ -2107,11 +2217,30 @@ public:
 
         return retval;
     }
+    int MessageBox(std::string title, int flags, std::string format, ...) { 
+        int retval;
+        const char *cformat = format.c_str();
+        va_list args;
+
+        va_start(args, format);
+        retval = dw_vmessagebox(title.c_str(), flags, cformat, args); 
+        va_end(args);
+
+        return retval;
+    }
     void Debug(const char *format, ...) { 
         va_list args;
 
         va_start(args, format);
         dw_vdebug(format, args); 
+        va_end(args);
+    }
+    void Debug(std::string format, ...) {
+        const char *cformat = format.c_str();
+        va_list args;
+
+        va_start(args, format);
+        dw_vdebug(cformat, args); 
         va_end(args);
     }
     void Beep(int freq, int dur) { dw_beep(freq, dur); }
@@ -2124,18 +2253,31 @@ public:
     char *GetClipboard() { return dw_clipboard_get_text(); }
     void SetClipboard(const char *text) { if(text) dw_clipboard_set_text(text, (int)strlen(text)); }
     void SetClipboard(const char *text, int len) { if(text) dw_clipboard_set_text(text, len); }
+    void SetClipboard(std::string text) { dw_clipboard_set_text(text.c_str(), (int)strlen(text.c_str())); }
+    void SetClipboard(std::string text, int len) { dw_clipboard_set_text(text.c_str(), len); }
     void SetDefaultFont(const char *fontname) { dw_font_set_default(fontname); }
+    void SetDefaultFont(std::string fontname) { dw_font_set_default(fontname.c_str()); }
     unsigned long ColorChoose(unsigned long initial) { return dw_color_choose(initial); }
     char *FileBrowse(const char *title, const char *defpath, const char *ext, int flags) { return dw_file_browse(title, defpath, ext, flags); }
     char *FontChoose(const char *currfont) { return dw_font_choose(currfont); }
+    std::string FileBrowse(std::string title, std::string defpath, std::string ext, int flags) {
+        char *retval = dw_file_browse(title.c_str(), defpath.c_str(), ext.c_str(), flags);
+        return retval ? std::string(retval) : std::string();
+    }
+    std::string FontChoose(std::string currfont) { 
+        char *retval = dw_font_choose(currfont.c_str()); 
+        return retval ? std::string(retval) : std::string();
+    }
     void Free(void *buff) { dw_free(buff); }
     int GetFeature(DWFEATURE feature) { return dw_feature_get(feature); }
     int SetFeature(DWFEATURE feature, int state) { return dw_feature_set(feature, state); }
     HICN LoadIcon(unsigned long id) { return dw_icon_load(0, id); }
     HICN LoadIcon(const char *filename) { return dw_icon_load_from_file(filename); }
+    HICN LoadIcon(std::string filename) { return dw_icon_load_from_file(filename.c_str()); }
     HICN LoadIcon(const char *data, int len) { return dw_icon_load_from_data(data, len); }
     void FreeIcon(HICN icon) { dw_icon_free(icon); }
     void TaskBarInsert(Widget *handle, HICN icon,  const char *bubbletext) { dw_taskbar_insert(handle ? handle->GetHWND() : DW_NOHWND, icon, bubbletext); }
+    void TaskBarInsert(Widget *handle, HICN icon,  std::string bubbletext) { dw_taskbar_insert(handle ? handle->GetHWND() : DW_NOHWND, icon, bubbletext.c_str()); }
     void TaskBarDelete(Widget *handle, HICN icon) { dw_taskbar_delete(handle ? handle->GetHWND() : DW_NOHWND, icon); }
     char * WideToUTF8(const wchar_t * wstring) { return dw_wchar_to_utf8(wstring); }
     wchar_t *UTF8ToWide(const char * utf8string) { return dw_utf8_to_wchar(utf8string); }
