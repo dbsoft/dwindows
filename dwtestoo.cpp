@@ -756,7 +756,7 @@ private:
         });
 
         copybutton->ConnectClicked([this, copypastefield, entryfield]() -> int {
-            char *test = copypastefield->GetText();
+            char *test = copypastefield->GetCText();
 
             if(test) {
                 this->app->SetClipboard(test);
@@ -768,7 +768,7 @@ private:
 
         pastebutton->ConnectClicked([this, copypastefield]() -> int 
         {
-            char *test = this->app->GetClipboard();
+            char *test = this->app->GetCClipboard();
             if(test) {
                 copypastefield->SetText(test);
                 this->app->Free(test);
@@ -917,7 +917,7 @@ private:
             image = new DW::Pixmap(render1, "~/test");
         if(!image || !image->GetHPIXMAP())
         {
-            char *appdir = app->GetDir();
+            char *appdir = app->GetCDir();
             char pathbuff[1025] = {0};
             int pos = (int)strlen(appdir);
             
@@ -1211,7 +1211,7 @@ private:
             tree->Change(t2, "tree folder 2", foldericon);
             tree->SetData(t2, DW_INT_TO_POINTER(100));
             tree->Expand(t1);
-            char *title = tree->GetTitle(t1);
+            char *title = tree->GetCTitle(t1);
             this->app->Debug("t1 title \"%s\" data %d t2 data %d\n", title, DW_POINTER_TO_INT(tree->GetData(t1)),
                      DW_POINTER_TO_INT(tree->GetData(t2)));
             this->app->Free(title);
@@ -1431,7 +1431,7 @@ private:
 
             mlefore->GetListText(pos, colortext, 100);
             fore = ComboboxColor(colortext);
-            char *text = mleback->GetText();
+            char *text = mleback->GetCText();
 
             if(text && *text)
             {
@@ -1449,7 +1449,7 @@ private:
 
             mleback->GetListText(pos, colortext, 100);
             back = ComboboxColor(colortext);
-            char *text = mlefore->GetText();
+            char *text = mlefore->GetCText();
 
             if(text && *text)
             {
@@ -1471,7 +1471,7 @@ private:
 
         fontsize->ConnectValueChanged([this, fontname, container_mle](int size) -> int
         {
-            char *font = fontname->GetText();
+            char *font = fontname->GetCText();
 
             if(font)
             {
@@ -1699,7 +1699,7 @@ private:
             hbox->PackStart(button, FALSE, FALSE, 0);
             button->ConnectClicked([this, javascript, html]() -> int
             {
-                char *script = javascript->GetText();
+                char *script = javascript->GetCText();
 
                 html->JavascriptRun(script);
                 this->app->Free(script);
@@ -1857,7 +1857,7 @@ public:
         // Finally try from the platform application directory
         if(!foldericon && !fileicon)
         {
-            char *appdir = app->GetDir();
+            char *appdir = app->GetCDir();
             char pathbuff[1025] = {0};
             int pos = (int)strlen(appdir);
 
