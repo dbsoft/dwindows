@@ -413,51 +413,50 @@ private:
         return combobox;
     }
 
-    unsigned long ComboboxColor(const char *colortext) {
+    unsigned long ComboboxColor(std::string colortext) {
         unsigned long color = DW_CLR_DEFAULT;
 
-        if(strcmp(colortext, "DW_CLR_BLACK") == 0)
+        if(colortext.compare("DW_CLR_BLACK") == 0)
             color = DW_CLR_BLACK;
-        else if(strcmp(colortext, "DW_CLR_DARKRED") == 0)
+        else if(colortext.compare("DW_CLR_DARKRED") == 0)
             color = DW_CLR_DARKRED;
-        else if(strcmp(colortext, "DW_CLR_DARKGREEN") == 0)
+        else if(colortext.compare("DW_CLR_DARKGREEN") == 0)
             color = DW_CLR_DARKGREEN;
-        else if(strcmp(colortext, "DW_CLR_BROWN") == 0)
+        else if(colortext.compare("DW_CLR_BROWN") == 0)
             color = DW_CLR_BROWN;
-        else if(strcmp(colortext, "DW_CLR_DARKBLUE") == 0)
+        else if(colortext.compare("DW_CLR_DARKBLUE") == 0)
             color = DW_CLR_DARKBLUE;
-        else if(strcmp(colortext, "DW_CLR_DARKPINK") == 0)
+        else if(colortext.compare("DW_CLR_DARKPINK") == 0)
             color = DW_CLR_DARKPINK;
-        else if(strcmp(colortext, "DW_CLR_DARKCYAN") == 0)
+        else if(colortext.compare("DW_CLR_DARKCYAN") == 0)
             color = DW_CLR_DARKCYAN;
-        else if(strcmp(colortext, "DW_CLR_PALEGRAY") == 0)
+        else if(colortext.compare("DW_CLR_PALEGRAY") == 0)
             color = DW_CLR_PALEGRAY;
-        else if(strcmp(colortext, "DW_CLR_DARKGRAY") == 0)
+        else if(colortext.compare("DW_CLR_DARKGRAY") == 0)
             color = DW_CLR_DARKGRAY;
-        else if(strcmp(colortext, "DW_CLR_RED") == 0)
+        else if(colortext.compare("DW_CLR_RED") == 0)
             color = DW_CLR_RED;
-        else if(strcmp(colortext, "DW_CLR_GREEN") == 0)
+        else if(colortext.compare("DW_CLR_GREEN") == 0)
             color = DW_CLR_GREEN;
-        else if(strcmp(colortext, "DW_CLR_YELLOW") == 0)
+        else if(colortext.compare("DW_CLR_YELLOW") == 0)
             color = DW_CLR_YELLOW;
-        else if(strcmp(colortext, "DW_CLR_BLUE") == 0)
+        else if(colortext.compare("DW_CLR_BLUE") == 0)
             color = DW_CLR_BLUE;
-        else if(strcmp(colortext, "DW_CLR_PINK") == 0)
+        else if(colortext.compare("DW_CLR_PINK") == 0)
             color = DW_CLR_PINK;
-        else if(strcmp(colortext, "DW_CLR_CYAN") == 0)
+        else if(colortext.compare("DW_CLR_CYAN") == 0)
             color = DW_CLR_CYAN;
-        else if(strcmp(colortext, "DW_CLR_WHITE") == 0)
+        else if(colortext.compare("DW_CLR_WHITE") == 0)
             color = DW_CLR_WHITE;
 
         return color;
     }
 
-    void MLESetFont(DW::MLE *mle, int fontsize, char *fontname) {
-        char font[151] = {0};
-
-        if(fontname)
-            snprintf(font, 150, "%d.%s", fontsize, fontname);
-        mle->SetFont(fontname ? font : NULL);
+    void MLESetFont(DW::MLE *mle, int fontsize, std::string fontname) {
+        if(fontname.size() && fontsize > 0) {
+            mle->SetFont(std::to_string(fontsize) + "." + fontname);
+        }
+        mle->SetFont(NULL);
     }
 
     // Thread and Event functions
@@ -756,11 +755,10 @@ private:
         });
 
         copybutton->ConnectClicked([this, copypastefield, entryfield]() -> int {
-            char *test = copypastefield->GetCText();
+            std::string test = copypastefield->GetText();
 
-            if(test) {
+            if(test.size()) {
                 this->app->SetClipboard(test);
-                this->app->Free(test);
             }
             entryfield->SetFocus();
             return TRUE; 
@@ -768,10 +766,9 @@ private:
 
         pastebutton->ConnectClicked([this, copypastefield]() -> int 
         {
-            char *test = this->app->GetCClipboard();
-            if(test) {
+            std::string test = this->app->GetClipboard();
+            if(test.size()) {
                 copypastefield->SetText(test);
-                this->app->Free(test);
             }
             return TRUE;
         });
@@ -917,15 +914,10 @@ private:
             image = new DW::Pixmap(render1, "~/test");
         if(!image || !image->GetHPIXMAP())
         {
-            char *appdir = app->GetCDir();
-            char pathbuff[1025] = {0};
-            int pos = (int)strlen(appdir);
-            
-            strncpy(pathbuff, appdir, 1024);
-            pathbuff[pos] = DW_DIR_SEPARATOR;
-            pos++;
-            strncpy(&pathbuff[pos], "test", 1024-pos);
-            image = new DW::Pixmap(render1, pathbuff);
+            std::string appdir = app->GetDir();
+            appdir.append(std::string(1, DW_DIR_SEPARATOR));
+            appdir.append("test");
+            image = new DW::Pixmap(render1, appdir);
         }
         if(image)
             image->SetTransparentColor(DW_CLR_WHITE);
@@ -1182,21 +1174,19 @@ private:
             notebookbox->PackStart(tree_status, 100, DW_SIZE_AUTO, TRUE, FALSE, 1);
 
             // set up our signal trappers...
-            tree->ConnectItemContext([this, tree_status](char *text, int x, int y, void *data) -> int
+            tree->ConnectItemContext([this, tree_status](std::string text, int x, int y, void *data) -> int
             {
-                char buf[201] = {0};
                 DW::Menu *popupmenu = ItemContextMenu(tree_status, "Item context menu clicked.");
-
-                snprintf(buf, 200, "DW_SIGNAL_ITEM_CONTEXT: Text: %s x: %d y: %d", text, x, y);
+                std::string buf = "DW_SIGNAL_ITEM_CONTEXT: Text: " + text + " x: " + std::to_string(x) + " y: " + std::to_string(y);
                 tree_status->SetText(buf);
                 popupmenu->Popup(this, x, y);
                 return FALSE;
             });
-            tree->ConnectItemSelect([tree_status](HTREEITEM item, char *text, void *itemdata)
+            tree->ConnectItemSelect([tree_status](HTREEITEM item, std::string text, void *itemdata)
             {
-                char buf[201] = {0};
-
-                snprintf(buf, 200, "DW_SIGNAL_ITEM_SELECT:Item: %x Text: %s Itemdata: %x", DW_POINTER_TO_UINT(item), text, DW_POINTER_TO_UINT(itemdata));
+                std::string sitem = std::to_string(DW_POINTER_TO_UINT(item));
+                std::string sitemdata = std::to_string(DW_POINTER_TO_UINT(itemdata));
+                std::string buf = "DW_SIGNAL_ITEM_SELECT: Item: " + sitem + " Text: " + text + " Itemdata: " + sitemdata;
                 tree_status->SetText(buf);
                 return FALSE;
             });
@@ -1211,10 +1201,11 @@ private:
             tree->Change(t2, "tree folder 2", foldericon);
             tree->SetData(t2, DW_INT_TO_POINTER(100));
             tree->Expand(t1);
-            char *title = tree->GetCTitle(t1);
-            this->app->Debug("t1 title \"%s\" data %d t2 data %d\n", title, DW_POINTER_TO_INT(tree->GetData(t1)),
-                     DW_POINTER_TO_INT(tree->GetData(t2)));
-            this->app->Free(title);
+            int t1data = DW_POINTER_TO_INT(tree->GetData(t1));
+            int t2data = DW_POINTER_TO_INT(tree->GetData(t2));
+            std::string message = "t1 title \"" + tree->GetTitle(t1) + "\" data " + std::to_string(t1data) + " t2 data " + std::to_string(t2data) + "\n";
+
+            this->app->Debug(message);
         }
         else
         {
@@ -1278,15 +1269,16 @@ private:
         DW::StatusText *container_status = new DW::StatusText();
         notebookbox->PackStart(container_status, 100, DW_SIZE_AUTO, TRUE, FALSE, 1);
 
-        const char *titles[] = { "Type", "Size", "Time", "Date" };
-        unsigned long flags[4] = {  DW_CFA_BITMAPORICON | DW_CFA_LEFT | DW_CFA_HORZSEPARATOR | DW_CFA_SEPARATOR,
-                                    DW_CFA_ULONG | DW_CFA_RIGHT | DW_CFA_HORZSEPARATOR | DW_CFA_SEPARATOR,
-                                    DW_CFA_TIME | DW_CFA_CENTER | DW_CFA_HORZSEPARATOR | DW_CFA_SEPARATOR,
-                                    DW_CFA_DATE | DW_CFA_LEFT | DW_CFA_HORZSEPARATOR | DW_CFA_SEPARATOR };
+        std::vector<std::string> titles = { "Type", "Size", "Time", "Date" };
+        std::vector<unsigned long> flags = {
+            DW_CFA_BITMAPORICON | DW_CFA_LEFT | DW_CFA_HORZSEPARATOR | DW_CFA_SEPARATOR,
+            DW_CFA_ULONG | DW_CFA_RIGHT | DW_CFA_HORZSEPARATOR | DW_CFA_SEPARATOR,
+            DW_CFA_TIME | DW_CFA_CENTER | DW_CFA_HORZSEPARATOR | DW_CFA_SEPARATOR,
+            DW_CFA_DATE | DW_CFA_LEFT | DW_CFA_HORZSEPARATOR | DW_CFA_SEPARATOR };
 
 
         container->SetColumnTitle("Test");
-        container->Setup(flags, titles, 4);
+        container->Setup(flags, titles);
         container->SetStripe(DW_CLR_DEFAULT, DW_CLR_DEFAULT);
         container->Alloc(3);
 
@@ -1348,42 +1340,37 @@ private:
         container_mle->SetCursor(mle_point);
 
         // connect our event trappers...
-        container->ConnectItemEnter([container_status](char *text, void *itemdata) -> int
+        container->ConnectItemEnter([container_status](std::string text, void *itemdata) -> int
         {
-            char buf[201] = {0};
-
-            snprintf(buf, 200, "DW_SIGNAL_ITEM_ENTER: Text: %s Itemdata: %x", text, DW_POINTER_TO_UINT(itemdata));
+            std::string buf = "DW_SIGNAL_ITEM_ENTER: Text: " + text + "Itemdata: " + std::to_string(DW_POINTER_TO_UINT(itemdata));
             container_status->SetText(buf);
             return FALSE;
         });
 
-        container->ConnectItemContext([this, container_status](char *text, int x, int y, void *itemdata) -> int
+        container->ConnectItemContext([this, container_status](std::string text, int x, int y, void *itemdata) -> int
         {
-            char buf[201] = {0};
             DW::Menu *popupmenu = ItemContextMenu(container_status, "Item context menu clicked.");
+            std::string buf = "DW_SIGNAL_ITEM_CONTEXT: Text: " + text + " x: " + std::to_string(x) + " y: " + 
+                std::to_string(y) + " Itemdata: " + std::to_string(DW_POINTER_TO_UINT(itemdata));
 
-            snprintf(buf, 200, "DW_SIGNAL_ITEM_CONTEXT: Text: %s x: %d y: %d Itemdata: %x", text, x, y, DW_POINTER_TO_UINT(itemdata));
             container_status->SetText(buf);
             popupmenu->Popup(this, x, y);
             return FALSE;
         });
 
-        container->ConnectItemSelect([this, container_mle, container, container_status](HTREEITEM item, char *text, void *itemdata) -> int
+        container->ConnectItemSelect([this, container_mle, container, container_status](HTREEITEM item, std::string text, void *itemdata) -> int
         {
-            char buf[201] = {0};
-
-            snprintf(buf, 200, "DW_SIGNAL_ITEM_SELECT:Item: %x Text: %s Itemdata: %x",
-                    DW_POINTER_TO_UINT(item), text, DW_POINTER_TO_UINT(itemdata));
+            std::string sitemdata = std::to_string(DW_POINTER_TO_UINT(itemdata));
+            std::string sitem = std::to_string(DW_POINTER_TO_UINT(item));
+            std::string buf = "DW_SIGNAL_ITEM_SELECT:Item: " + sitem + " Text: " + text + " Itemdata: " + sitemdata;
             container_status->SetText(buf);
-            snprintf(buf, 200, "\r\nDW_SIGNAL_ITEM_SELECT: Item: %x Text: %s Itemdata: %x\r\n",
-                    DW_POINTER_TO_UINT(item), text, DW_POINTER_TO_UINT(itemdata));
+            buf = "\r\nDW_SIGNAL_ITEM_SELECT: Item: " + sitem + " Text: " + text + " Itemdata: " +  sitemdata + "\r\n";
             this->mle_point = container_mle->Import(buf, mle_point);
-            char *str = container->QueryStart(DW_CRA_SELECTED);
-            while(str)
+            std::string str = container->QueryStart(DW_CRA_SELECTED);
+            while(str.size())
             {
-                snprintf(buf, 200, "Selected: %s\r\n", str);
+                std::string buf = "Selected: " + str + "%s\r\n";
                 mle_point = container_mle->Import(buf, mle_point);
-                this->app->Free(str);
                 str = container->QueryNext(DW_CRA_SELECTED);
             }
             // Make the last inserted point the cursor location
@@ -1426,17 +1413,14 @@ private:
 
         mlefore->ConnectListSelect([this, mlefore, mleback, container_mle](unsigned int pos) -> int
         {
-            char colortext[101] = {0};
             ULONG fore = DW_CLR_DEFAULT, back = DW_CLR_DEFAULT;
 
-            mlefore->GetListText(pos, colortext, 100);
+            std::string colortext = mlefore->GetListText(pos);
             fore = ComboboxColor(colortext);
-            char *text = mleback->GetCText();
+            std::string text = mleback->GetText();
 
-            if(text && *text)
-            {
+            if(text.size()) {
                 back = ComboboxColor(text);
-                this->app->Free(text);
             }
             container_mle->SetColor(fore, back);
             return FALSE;
@@ -1444,17 +1428,14 @@ private:
 
         mleback->ConnectListSelect([this, mlefore, mleback, container_mle](unsigned int pos) -> int
         {
-            char colortext[101] = {0};
             ULONG fore = DW_CLR_DEFAULT, back = DW_CLR_DEFAULT;
 
-            mleback->GetListText(pos, colortext, 100);
+            std::string colortext = mleback->GetListText(pos);
             back = ComboboxColor(colortext);
-            char *text = mlefore->GetCText();
+            std::string text = mlefore->GetText();
 
-            if(text && *text)
-            {
+            if(text.size()) {
                 fore = ComboboxColor(text);
-                this->app->Free(text);
             }
             container_mle->SetColor(fore, back);
             return FALSE;
@@ -1462,21 +1443,17 @@ private:
 
         fontname->ConnectListSelect([this, fontname, fontsize, container_mle](unsigned int pos) -> int
         {
-            char font[101] = {0};
-
-            fontname->GetListText(pos, font, 100);
-            MLESetFont(container_mle, (int)fontsize->GetPos(), strcmp(font, "Default") == 0 ? NULL : font);
+            std::string font = fontname->GetListText(pos);
+            MLESetFont(container_mle, (int)fontsize->GetPos(), font.compare("Default") == 0 ? NULL : font);
             return FALSE;
         });
 
         fontsize->ConnectValueChanged([this, fontname, container_mle](int size) -> int
         {
-            char *font = fontname->GetCText();
+            std::string font = fontname->GetText();
 
-            if(font)
-            {
-                MLESetFont(container_mle, size, strcmp(font, "Default") == 0 ? NULL : font);
-                this->app->Free(font);
+            if(font.size()) {
+                MLESetFont(container_mle, size, font.compare("Default") == 0 ? NULL : font);
             }
             else
                 MLESetFont(container_mle, size, NULL);
@@ -1697,12 +1674,13 @@ private:
 
             button = new DW::Button("Run");
             hbox->PackStart(button, FALSE, FALSE, 0);
-            button->ConnectClicked([this, javascript, html]() -> int
+            button->ConnectClicked([javascript, html]() -> int
             {
-                char *script = javascript->GetCText();
+                std::string script = javascript->GetText();
 
-                html->JavascriptRun(script);
-                this->app->Free(script);
+                if(script.size()) {
+                    html->JavascriptRun(script);
+                }
                 return FALSE;
             });
             javascript->ClickDefault(button);
@@ -1713,26 +1691,20 @@ private:
             notebookbox->PackStart(htmlstatus, 100, DW_SIZE_AUTO, TRUE, FALSE, 1);
 
             // Connect the signal handlers
-            html->ConnectChanged([htmlstatus](int status, char *url) -> int
+            html->ConnectChanged([htmlstatus](int status, std::string url) -> int
             {
-                const char *statusnames[] = { "none", "started", "redirect", "loading", "complete", NULL };
+                std::vector<std::string> statusnames = { "none", "started", "redirect", "loading", "complete" };
 
-                if(htmlstatus && url && status < 5)
-                {
-                    int length = (int)strlen(url) + (int)strlen(statusnames[status]) + 10;
-                    char *text = (char *)calloc(1, length+1);
-
-                    snprintf(text, length, "Status %s: %s", statusnames[status], url);
-                    htmlstatus->SetText(text);
-                    free(text);
+                if(htmlstatus && status < 5) {
+                    htmlstatus->SetText("Status " + statusnames[status] + ": " + url);
                 }
                 return FALSE;
             });
 
-            html->ConnectResult([this](int status, char *result, void *script_data)
+            html->ConnectResult([this](int status, std::string result, void *script_data)
             {
                 this->app->MessageBox("Javascript Result", DW_MB_OK | (status ? DW_MB_ERROR : DW_MB_INFORMATION),
-                              result ? result : "Javascript result is not a string value");
+                              result.size() ? result : "Javascript result is not a string value");
                 return TRUE;
             });
         }
@@ -1844,12 +1816,12 @@ public:
         // also check the appropriate platform subfolder
         if(!foldericon)
         {
-            strncpy(foldericonpath, PLATFORMFOLDER "folder", 1024);
+            foldericonpath = std::string(PLATFORMFOLDER) + "folder";
             foldericon = app->LoadIcon(foldericonpath);
         }
         if(!fileicon)
         {
-            strncpy(fileiconpath, PLATFORMFOLDER "file", 1024);
+            fileiconpath = std::string(PLATFORMFOLDER) + "file";
             fileicon = app->LoadIcon(fileiconpath);
         }
 #endif
@@ -1857,21 +1829,17 @@ public:
         // Finally try from the platform application directory
         if(!foldericon && !fileicon)
         {
-            char *appdir = app->GetCDir();
-            char pathbuff[1025] = {0};
-            int pos = (int)strlen(appdir);
-
-            strncpy(pathbuff, appdir, 1024);
-            pathbuff[pos] = DW_DIR_SEPARATOR;
-            pos++;
-            strncpy(&pathbuff[pos], "folder", 1024-pos);
-            foldericon = app->LoadIcon(pathbuff);
+            std::string appdir = app->GetDir();
+            
+            appdir.append(std::string(1, DW_DIR_SEPARATOR));
+            std::string folderpath = appdir + "folder";
+            foldericon = app->LoadIcon(folderpath);
             if(foldericon)
-                strncpy(foldericonpath, pathbuff, 1025);
-            strncpy(&pathbuff[pos], "file", 1024-pos);
-            fileicon = app->LoadIcon(pathbuff);
+                foldericonpath = folderpath;
+            std::string filepath = appdir + "file";
+            fileicon = app->LoadIcon(filepath);
             if(fileicon)
-                strncpy(fileiconpath, pathbuff, 1025);
+                fileiconpath = filepath;
         }
 
         DW::Notebook *notebook = new DW::Notebook();
@@ -1982,8 +1950,8 @@ public:
     // Miscellaneous
     int menu_enabled = TRUE;
     HICN fileicon, foldericon;
-    char fileiconpath[1025] = "file";
-    char foldericonpath[1025] = "folder";
+    std::string fileiconpath = "file";
+    std::string foldericonpath = "folder";
 
 
     int OnDelete() override {

@@ -7,6 +7,7 @@
 #include <dw.h>
 #include <cstring>
 #include <string>
+#include <vector>
 
 // Attempt to support compilers without nullptr type literal
 #if __cplusplus >= 201103L 
@@ -789,21 +790,18 @@ private:
         return classptr->OnConfigure(width, height); }
     static int _OnKeyPress(HWND window, char c, int vk, int state, void *data, char *utf8) {
         Render *classptr = reinterpret_cast<Render *>(data);
+        std::string utf8string = utf8 ? std::string(utf8) : std::string();
 #ifdef DW_LAMBDA
         if(classptr->_ConnectCKeyPress)
             return classptr->_ConnectCKeyPress(c, vk, state, utf8);
-        else if(classptr->_ConnectKeyPress) {
-            std::string utf8string = utf8 ? std::string(utf8) : std::string();
+        else if(classptr->_ConnectKeyPress)
             return classptr->_ConnectKeyPress(c, vk, state, utf8string);
-        }
 #endif
         if(classptr->_ConnectCKeyPressOld)
             return classptr->_ConnectCKeyPressOld(classptr, c, vk, state, utf8);
-        else if(classptr->_ConnectKeyPressOld) {
-            std::string utf8string = utf8 ? std::string(utf8) : std::string();
+        else if(classptr->_ConnectKeyPressOld)
             return classptr->_ConnectKeyPressOld(classptr, c, vk, state, utf8string);
-        }
-        return classptr->OnKeyPress(c, vk, state, utf8); }
+        return classptr->OnKeyPress(c, vk, state, utf8string); }
     static int _OnButtonPress(HWND window, int x, int y, int buttonmask, void *data) {
         Render *classptr = reinterpret_cast<Render *>(data);
 #ifdef DW_LAMBDA
@@ -1000,7 +998,7 @@ protected:
         ConfigureConnected = false;
         return FALSE;
     };
-    virtual int OnKeyPress(char c, int vk, int state, char *utf8) {
+    virtual int OnKeyPress(char c, int vk, int state, std::string utf8) {
         dw_signal_disconnect_by_name(hwnd, DW_SIGNAL_KEY_PRESS);
         KeyPressConnected = false;
         return FALSE;
@@ -1147,38 +1145,32 @@ private:
     }
     static int _OnChanged(HWND window, int status, char *url, void *data) {
         HTML *classptr = reinterpret_cast<HTML *>(data);
+        std::string utf8string = url ? std::string(url) : std::string();
 #ifdef DW_LAMBDA
         if(classptr->_ConnectCChanged)
             return classptr->_ConnectCChanged(status, url);
-        else if(classptr->_ConnectChanged) {
-            std::string utf8string = url ? std::string(url) : std::string();
+        else if(classptr->_ConnectChanged)
             return classptr->_ConnectChanged(status, utf8string);
-        }
 #endif
         if(classptr->_ConnectCChangedOld)
             return classptr->_ConnectCChangedOld(classptr, status, url);
-        else if(classptr->_ConnectChangedOld) {
-            std::string utf8string = url ? std::string(url) : std::string();
+        else if(classptr->_ConnectChangedOld)
             return classptr->_ConnectChangedOld(classptr, status, utf8string);
-        }
-        return classptr->OnChanged(status, url); }
+        return classptr->OnChanged(status, utf8string); }
     static int _OnResult(HWND window, int status, char *result, void *scriptdata, void *data) {
         HTML *classptr = reinterpret_cast<HTML *>(data);
+        std::string utf8string = result ? std::string(result) : std::string();
 #ifdef DW_LAMBDA
         if(classptr->_ConnectCResult)
             return classptr->_ConnectResult(status, result, scriptdata);
-        else if(classptr->_ConnectResult) {
-            std::string utf8string = result ? std::string(result) : std::string();
+        else if(classptr->_ConnectResult)
             return classptr->_ConnectResult(status, utf8string, scriptdata);
-        }
 #endif
         if(classptr->_ConnectCResultOld)
             return classptr->_ConnectCResultOld(classptr, status, result, scriptdata);
-        else if(classptr->_ConnectResultOld) {
-            std::string utf8string = result ? std::string(result) : std::string();
+        else if(classptr->_ConnectResultOld)
             return classptr->_ConnectResultOld(classptr, status, utf8string, scriptdata);
-        }
-        return classptr->OnResult(status, result, scriptdata); }
+        return classptr->OnResult(status, utf8string, scriptdata); }
 public:
     // Constructors
     HTML(unsigned long id) { SetHWND(dw_html_new(id)); Setup(); }
@@ -1195,7 +1187,7 @@ public:
     int Raw(std::string buffer) { return dw_html_raw(hwnd, buffer.c_str()); }
     int URL(std::string url) { return dw_html_url(hwnd, url.c_str()); }
 #ifdef DW_LAMBDA
-    void ConnectChanged(std::function<int(int, char *)> userfunc)
+    void ConnectChangedC(std::function<int(int, char *)> userfunc)
     { 
         _ConnectCChanged = userfunc;
         if(!ChangedConnected) {
@@ -1229,7 +1221,7 @@ public:
         }
     }
 #ifdef DW_LAMBDA
-    void ConnectResult(std::function<int(int, char *, void *)> userfunc)
+    void ConnectResultC(std::function<int(int, char *, void *)> userfunc)
     {
         _ConnectCResult = userfunc;
         if(!ResultConnected) {
@@ -1265,12 +1257,12 @@ public:
 protected:
     // Our signal handler functions to be overriden...
     // If they are not overridden and an event is generated, remove the unused handler
-    virtual int OnChanged(int status, char *url) {
+    virtual int OnChanged(int status, std::string url) {
         dw_signal_disconnect_by_name(hwnd, DW_SIGNAL_HTML_CHANGED); 
         ChangedConnected = false;
         return FALSE;
     }
-    virtual int OnResult(int status, char *result, void *scriptdata) {
+    virtual int OnResult(int status, std::string result, void *scriptdata) {
         dw_signal_disconnect_by_name(hwnd, DW_SIGNAL_HTML_RESULT);
         ResultConnected = false;
         return FALSE;
@@ -1337,11 +1329,33 @@ public:
     int Count() { return dw_listbox_count(hwnd); }
     void Delete(int index) { dw_listbox_delete(hwnd, index); }
     void GetListText(unsigned int index, char *buffer, unsigned int length) { dw_listbox_get_text(hwnd, index, buffer, length); }
+    std::string GetListText(unsigned int index) {
+        int length = 1025;
+        char *buffer = (char *)alloca(length);
+
+        if(buffer) {
+            memset(buffer, 0, length);
+            dw_listbox_get_text(hwnd, index, buffer, length);
+            return std::string(buffer);
+        }
+        return std::string();
+    }
     void SetListText(unsigned int index, char *buffer) { dw_listbox_set_text(hwnd, index, buffer); }
     void SetListText(unsigned int index, std::string buffer) { dw_listbox_set_text(hwnd, index, buffer.c_str()); }
     void Insert(const char *text, int pos) { dw_listbox_insert(hwnd, text, pos); }
     void Insert(std::string text, int pos) { dw_listbox_insert(hwnd, text.c_str(), pos); }
     void ListAppend(char **text, int count) { dw_listbox_list_append(hwnd, text, count); }
+    void ListAppend(std::vector<std::string> text) {
+        int count = (int)text.size();
+        const char **ctext = (const char **)alloca(sizeof(char *) * count);
+
+        if(count > 0 && ctext) {
+            for(int z=0; z<count; z++) {
+                ctext[z] = text[z].c_str();
+            }
+            dw_listbox_list_append(hwnd, (char **)ctext, count);
+        }
+    }
     void Select(int index, int state) { dw_listbox_select(hwnd, index, state); }
     int Selected() { return dw_listbox_selected(hwnd); }
     int Selected(int where) { return dw_listbox_selected_multi(hwnd, where); }
@@ -1533,6 +1547,16 @@ public:
     void Clear() { dw_mle_clear(hwnd); }
     void Delete(int startpoint, int length) { dw_mle_delete(hwnd, startpoint, length); }
     void Export(char *buffer, int startpoint, int length) { dw_mle_export(hwnd, buffer, startpoint, length); }
+    std::string Export(int startpoint, int length) {
+        char *buffer = (char *)alloca(length + 1);
+
+        if(buffer) {
+            memset(buffer, 0, length + 1);
+            dw_mle_export(hwnd, buffer, startpoint, length);
+            return std::string(buffer);
+        }
+        return std::string();
+    }
     int Import(const char *buffer, int startpoint) { return dw_mle_import(hwnd, buffer, startpoint); }
     int Import(std::string buffer, int startpoint) { return dw_mle_import(hwnd, buffer.c_str(), startpoint); }
     void GetSize(unsigned long *bytes, unsigned long *lines) { dw_mle_get_size(hwnd, bytes, lines); }
@@ -1644,39 +1668,33 @@ private:
     int (*_ConnectItemContextOld)(ObjectView *, std::string, int, int, void *);
     static int _OnItemSelect(HWND window, HTREEITEM item, char *text, void *data, void *itemdata) {
         ObjectView *classptr = reinterpret_cast<ObjectView *>(data);
+        std::string utf8string = text ? std::string(text) : std::string();
 #ifdef DW_LAMBDA
         if(classptr->_ConnectCItemSelect)
             return classptr->_ConnectCItemSelect(item, text, itemdata);
-        else if(classptr->_ConnectItemSelect) {
-            std::string utf8string = text ? std::string(text) : std::string();
+        else if(classptr->_ConnectItemSelect)
             return classptr->_ConnectItemSelect(item, utf8string, itemdata);
-        }
 #endif
         if(classptr->_ConnectItemSelectOld)
             return classptr->_ConnectItemSelectOld(classptr, item, text, itemdata);
-        else if(classptr->_ConnectItemSelectOld) {
-            std::string utf8string = text ? std::string(text) : std::string();
+        else if(classptr->_ConnectItemSelectOld)
             return classptr->_ConnectItemSelectOld(classptr, item, utf8string, itemdata);
-        }
-        return classptr->OnItemSelect(item, text, itemdata);
+        return classptr->OnItemSelect(item, utf8string, itemdata);
     }
     static int _OnItemContext(HWND window, char *text, int x, int y, void *data, void *itemdata) {
         ObjectView *classptr = reinterpret_cast<ObjectView *>(data);
+        std::string utf8string = text ? std::string(text) : std::string();
 #ifdef DW_LAMBDA
         if(classptr->_ConnectCItemContext)
             return classptr->_ConnectCItemContext(text, x, y, itemdata);
-        else if(classptr->_ConnectItemContext) {
-            std::string utf8string = text ? std::string(text) : std::string();
+        else if(classptr->_ConnectItemContext)
             return classptr->_ConnectItemContext(utf8string, x, y, itemdata);
-        }
 #endif
         if(classptr->_ConnectCItemContextOld)
             return classptr->_ConnectCItemContextOld(classptr, text, x, y, itemdata);
-        else if(classptr->_ConnectItemContextOld) {
-            std::string utf8string = text ? std::string(text) : std::string();
+        else if(classptr->_ConnectItemContextOld)
             return classptr->_ConnectItemContextOld(classptr, utf8string, x, y, itemdata);
-        }
-        return classptr->OnItemContext(text, x, y, itemdata);
+        return classptr->OnItemContext(utf8string, x, y, itemdata);
     }
 protected:
     void SetupObjectView() {
@@ -1705,19 +1723,19 @@ protected:
     }
     // Our signal handler functions to be overriden...
     // If they are not overridden and an event is generated, remove the unused handler
-    virtual int OnItemSelect(HTREEITEM item, char *text, void *itemdata) {
+    virtual int OnItemSelect(HTREEITEM item, std::string text, void *itemdata) {
         dw_signal_disconnect_by_name(hwnd, DW_SIGNAL_ITEM_SELECT);
         ItemSelectConnected = false;
         return FALSE;
     }
-    virtual int OnItemContext(char *text, int x, int y, void *itemdata) {
+    virtual int OnItemContext(std::string text, int x, int y, void *itemdata) {
         dw_signal_disconnect_by_name(hwnd, DW_SIGNAL_ITEM_CONTEXT);
         ItemContextConnected = false;
         return FALSE;
     }
 public:
 #ifdef DW_LAMBDA
-    void ConnectItemSelect(std::function<int(HTREEITEM, char *, void *)> userfunc)
+    void ConnectItemSelectC(std::function<int(HTREEITEM, char *, void *)> userfunc)
     {
         _ConnectCItemSelect = userfunc;
         if(!ItemSelectConnected) {
@@ -1751,7 +1769,7 @@ public:
         }
     }
 #ifdef DW_LAMBDA
-    void ConnectItemContext(std::function<int(char *, int, int, void *)> userfunc)
+    void ConnectItemContextC(std::function<int(char *, int, int, void *)> userfunc)
     {
         _ConnectCItemContext = userfunc;
         if(!ItemContextConnected) {
@@ -1800,21 +1818,18 @@ private:
     int (*_ConnectColumnClickOld)(Containers *, int);
     static int _OnItemEnter(HWND window, char *text, void *data, void *itemdata) {
         Containers *classptr = reinterpret_cast<Containers *>(data);
+        std::string utf8string = text ? std::string(text) : std::string();
 #ifdef DW_LAMBDA
         if(classptr->_ConnectCItemEnter)
             return classptr->_ConnectCItemEnter(text, itemdata);
-        else if(classptr->_ConnectItemEnter) {
-            std::string utf8string = text ? std::string(text) : std::string();
+        else if(classptr->_ConnectItemEnter)
             return classptr->_ConnectItemEnter(utf8string, itemdata);
-        }
 #endif
         if(classptr->_ConnectCItemEnterOld)
             return classptr->_ConnectCItemEnterOld(classptr, text, itemdata);
-        else if(classptr->_ConnectItemEnterOld) {
-            std::string utf8string = text ? std::string(text) : std::string();
+        else if(classptr->_ConnectItemEnterOld)
             return classptr->_ConnectItemEnterOld(classptr, utf8string, itemdata);
-        }
-        return classptr->OnItemEnter(text, itemdata);
+        return classptr->OnItemEnter(utf8string, itemdata);
     }
     static int _OnColumnClick(HWND window, int column, void *data) {
         Containers *classptr = reinterpret_cast<Containers *>(data);
@@ -1853,7 +1868,7 @@ protected:
     }
     // Our signal handler functions to be overriden...
     // If they are not overridden and an event is generated, remove the unused handler
-    virtual int OnItemEnter(char *text, void *itemdata) {
+    virtual int OnItemEnter(std::string text, void *itemdata) {
         dw_signal_disconnect_by_name(hwnd, DW_SIGNAL_ITEM_ENTER);
         ItemEnterConnected = false;
         return FALSE;
@@ -1879,8 +1894,16 @@ public:
     void DeleteRow(void *data) { dw_container_delete_row_by_data(hwnd, data); }
     void Insert() { dw_container_insert(hwnd, allocpointer, allocrowcount); }
     void Optimize() { dw_container_optimize(hwnd); }
-    char *QueryNext(unsigned long flags) { return dw_container_query_next(hwnd, flags); }
-    char *QueryStart(unsigned long flags) { return dw_container_query_start(hwnd, flags); }
+    char *QueryCNext(unsigned long flags) { return dw_container_query_next(hwnd, flags); }
+    char *QueryCStart(unsigned long flags) { return dw_container_query_start(hwnd, flags); }
+    std::string QueryNext(unsigned long flags) {
+        char *retval = dw_container_query_next(hwnd, flags);
+        return retval ? std::string(retval) : std::string();
+    }
+    std::string QueryStart(unsigned long flags) {
+        char *retval = dw_container_query_start(hwnd, flags);
+        return retval ? std::string(retval) : std::string();
+    }
     void Scroll(int direction, long rows) { dw_container_scroll(hwnd, direction, rows); }
     void SetColumnWidth(int column, int width) { dw_container_set_column_width(hwnd, column, width); }
     void SetRowData(int row, void *data) { dw_container_set_row_data(allocpointer, row, data); }
@@ -1888,7 +1911,7 @@ public:
     void SetRowTitle(int row, const std::string title) { dw_container_set_row_title(allocpointer, row, title.c_str()); }
     void SetStripe(unsigned long oddcolor, unsigned long evencolor) { dw_container_set_stripe(hwnd, oddcolor, evencolor); }
 #ifdef DW_LAMBDA
-    void ConnectItemEnter(std::function<int(char *, void *)> userfunc)
+    void ConnectItemEnterC(std::function<int(char *, void *)> userfunc)
     {
         _ConnectCItemEnter = userfunc;
         if(!ItemEnterConnected) {
@@ -1971,6 +1994,24 @@ public:
     // User functions
     int Setup(unsigned long *flags, const char *titles[], int count) { 
       int retval = dw_filesystem_setup(hwnd, flags, (char **)titles, count);
+      SetupObjectView(); SetupContainer();
+      return retval;
+    }    
+    int Setup(std::vector<unsigned long> flags, std::vector<std::string> titles) {
+      int count = (int)flags.size();
+
+      // Use the smallest of the two lists
+      if(count > titles.size()) {
+          count = (int)titles.size();
+      }
+      // Convert our vectors into a arrays of unsigned long and C strings
+      const char **ctitles = (const char **)alloca(sizeof(char *) * count); 
+      unsigned long *cflags = (unsigned long *)alloca(sizeof(unsigned long) * count);
+      for(int z=0; z<count; z++) {
+          ctitles[z] = titles[z].c_str();
+          cflags[z] = flags[z];
+      }
+      int retval = dw_filesystem_setup(hwnd, cflags, (char **)ctitles, count);
       SetupObjectView(); SetupContainer();
       return retval;
     }    
