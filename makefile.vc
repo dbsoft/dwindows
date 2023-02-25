@@ -216,7 +216,7 @@ dwtest.exe: dwtest.obj
 	-erase dwtest.exe.manifest
 
 dwtestoo.obj: $(SRCDIR)\dwtestoo.cpp $(SRCDIR)\dw.h  $(SRCDIR)\dw.hpp
-	$(CC) $(CFLAGS) /Zc:__cplusplus $(CFLAGS_DEBUG) $(SRCDIR)\dwtestoo.cpp
+	$(CC) $(CFLAGS) /Zc:__cplusplus /EHsc $(CFLAGS_DEBUG) $(SRCDIR)\dwtestoo.cpp
 
 dwtestoo: dwtestoo.exe
 

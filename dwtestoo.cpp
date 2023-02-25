@@ -358,7 +358,7 @@ private:
         render2->Redraw();
     }
 
-    DW::Menu *ItemContextMenu(DW::StatusText *status_text, const char *text) {
+    DW::Menu *ItemContextMenu(DW::StatusText *status_text, std::string text) {
         DW::Menu *menu = new DW::Menu();
         DW::Menu *submenu = new DW::Menu();
         DW::MenuItem *menuitem = submenu->AppendItem("File", 0L, TRUE);
@@ -460,7 +460,7 @@ private:
     }
 
     // Thread and Event functions
-    void UpdateMLE(DW::MLE *threadmle, const char *text, DW::Mutex *mutex) {
+    void UpdateMLE(DW::MLE *threadmle, std::string text, DW::Mutex *mutex) {
         static unsigned int pos = 0;
 
         // Protect pos from being changed by different threads
@@ -473,9 +473,9 @@ private:
     }
 
     void RunThread(int threadnum, DW::Mutex *mutex, DW::Event *controlevent, DW::Event *workevent, DW::MLE *threadmle) {
-        char buf[BUF_SIZE+1] = {0};
+        std::string buf;
 
-        snprintf(buf, BUF_SIZE, "Thread %d started.\r\n", threadnum);
+        buf = "Thread " + std::to_string(threadnum) + " started.\r\n";
         UpdateMLE(threadmle, buf, mutex);
 
         // Increment the ready count while protected by mutex
@@ -493,12 +493,12 @@ private:
 
             if(result == DW_ERROR_TIMEOUT)
             {
-                snprintf(buf, BUF_SIZE, "Thread %d timeout waiting for event.\r\n", threadnum);
+                buf = "Thread " + std::to_string(threadnum) + " timeout waiting for event.\r\n";
                 UpdateMLE(threadmle, buf, mutex);
             }
             else if(result == DW_ERROR_NONE)
             {
-                snprintf(buf, BUF_SIZE, "Thread %d doing some work.\r\n", threadnum);
+                buf = "Thread " + std::to_string(threadnum) + " doing some work.\r\n";
                 UpdateMLE(threadmle, buf, mutex);
                 // Pretend to do some work
                 app->MainSleep(1000 * threadnum);
@@ -506,32 +506,32 @@ private:
                 // Increment the ready count while protected by mutex
                 mutex->Lock();
                 ready++;
-                snprintf(buf, BUF_SIZE, "Thread %d work done. ready=%d", threadnum, ready);
+                buf = "Thread " + std::to_string(threadnum) + " work done. ready=" + std::to_string(ready);
                 // If all 4 threads have incrememted the ready count...
                 // Post the control event semaphore so things will get started.
                 if(ready == 4)
                 {
                     controlevent->Post();
-                    strcat(buf, " Control posted.");
+                    buf += " Control posted.";
                 }
                 mutex->Unlock();
-                strcat(buf, "\r\n");
+                buf += "\r\n";
                 UpdateMLE(threadmle, buf, mutex);
             }
             else
             {
-                snprintf(buf, BUF_SIZE, "Thread %d error %d.\r\n", threadnum, result);
+                buf = "Thread " + std::to_string(threadnum) + " error " + std::to_string(result) + ".\r\n";
                 UpdateMLE(threadmle, buf, mutex);
                 app->MainSleep(10000);
             }
         }
-        snprintf(buf, BUF_SIZE, "Thread %d finished.\r\n", threadnum);
+        buf = "Thread " + std::to_string(threadnum) + " finished.\r\n";
         UpdateMLE(threadmle, buf, mutex);
     }
 
     void ControlThread(DW::Mutex *mutex, DW::Event *controlevent, DW::Event *workevent, DW::MLE *threadmle) {
         int inprogress = 5;
-        char buf[BUF_SIZE+1] = {0};
+        std::string buf;
 
         while(inprogress)
         {
@@ -546,7 +546,7 @@ private:
                 // Reset the control event
                 controlevent->Reset();
                 ready = 0;
-                snprintf(buf, BUF_SIZE, "Control thread starting worker threads. Inprogress=%d\r\n", inprogress);
+                buf = "Control thread starting worker threads. Inprogress=" + std::to_string(inprogress) + "\r\n";
                 UpdateMLE(threadmle, buf, mutex);
                 // Start the work threads
                 workevent->Post();
@@ -557,7 +557,7 @@ private:
             }
             else
             {
-                snprintf(buf, BUF_SIZE, "Control thread error %d.\r\n", result);
+                buf = "Control thread error " + std::to_string(result) + ".\r\n";
                 UpdateMLE(threadmle, buf, mutex);
                 app->MainSleep(10000);
             }
@@ -721,14 +721,14 @@ private:
             if(tmp)
             {
                 char *errors = ReadFile(tmp);
-                const char *title = "New file load";
-                const char *image = "image/test.png";
+                std::string title = "New file load";
+                std::string image = "image/test.png";
                 DW::Notification *notification;
 
                 if(errors)
-                    notification = new DW::Notification(title, image, APP_TITLE " failed to load the file into the file browser.");
+                    notification = new DW::Notification(title, image, std::string(APP_TITLE) + " failed to load the file into the file browser.");
                 else
-                    notification = new DW::Notification(title, image, APP_TITLE " loaded the file into the file browser on the Render tab, with \"File Display\" selected from the drop down list.");
+                    notification = new DW::Notification(title, image, std::string(APP_TITLE) + " loaded the file into the file browser on the Render tab, with \"File Display\" selected from the drop down list.");
 
                 if(current_file)
                     this->app->Free(current_file);
@@ -1003,40 +1003,36 @@ private:
 
         hscrollbar->ConnectValueChanged([this, status1](int value) -> int
         {
-            char tmpbuf[101] = {0};
+            std::string buf = "Row:" + std::to_string(current_row) + " Col:" + std::to_string(current_col) + " Lines:" + std::to_string(num_lines) + " Cols:" + std::to_string(max_linewidth);
 
             this->current_col = value;
-            snprintf(tmpbuf, 100, "Row:%d Col:%d Lines:%d Cols:%d", current_row,current_col,num_lines,max_linewidth);
-            status1->SetText(tmpbuf);
+            status1->SetText(buf);
             this->RenderDraw();
             return TRUE;
         });
 
         vscrollbar->ConnectValueChanged([this, status1](int value) -> int
         {
-            char tmpbuf[101] = {0};
+            std::string buf = "Row:" + std::to_string(current_row) + " Col:" + std::to_string(current_col) + " Lines:" + std::to_string(num_lines) + " Cols:" + std::to_string(max_linewidth);
 
             this->current_row = value;
-            snprintf(tmpbuf, 100, "Row:%d Col:%d Lines:%d Cols:%d", current_row,current_col,num_lines,max_linewidth);
-            status1->SetText(tmpbuf);
+            status1->SetText(buf);
             this->RenderDraw();
             return TRUE;
         });
 
         render2->ConnectMotionNotify([status2](int x, int y, int buttonmask) -> int
         {
-            char buf[201] = {0};
+            std::string buf = "motion_notify: " + std::to_string(x) + "x" + std::to_string(y) + " buttons " + std::to_string(buttonmask);
 
-            snprintf(buf, 200, "motion_notify: %dx%d buttons %d", x, y, buttonmask);
             status2->SetText(buf);
             return FALSE;
         });
 
         render2->ConnectButtonPress([status2](int x, int y, int buttonmask) -> int
         {
-            char buf[201] = {0};
+            std::string buf = "button_press: " + std::to_string(x) + "x" + std::to_string(y) + " buttons " + std::to_string(buttonmask);
 
-            snprintf(buf, 200, "button_press: %dx%d buttons %d", x, y, buttonmask);
             status2->SetText(buf);
             return FALSE;
         });
@@ -1110,7 +1106,7 @@ private:
                    else
                    {
                        // We don't have a file so center an error message on the page
-                       const char *text = "No file currently selected!";
+                       std::string text = "No file currently selected!";
                        int posx, posy;
 
                        pixmap->GetTextExtents(text, &fwidth, &fheight);
@@ -1220,7 +1216,6 @@ private:
 
     // Page 4 - Container
     void CreateContainer(DW::Box *notebookbox) {
-        char buffer[101] = {0};
         CTIME time;
         CDATE date;
 
@@ -1288,13 +1283,11 @@ private:
 
         for(int z=0;z<3;z++)
         {
-            char names[101] = {0};
+            std::string names = "We can now allocate from the stack: Item: " + std::to_string(z);
             HICN thisicon = (z == 0 ? foldericon : fileicon);
 
-            snprintf(names, 100, "We can now allocate from the stack: Item: %d", z);
             unsigned long size = z*100;
-            snprintf(buffer, 100, "Filename %d", z+1);
-            container->SetFile(z, buffer, thisicon);
+            container->SetFile(z, "Filename " + std::to_string(z+1), thisicon);
             container->SetItem(0, z, &thisicon);
             container->SetItem(1, z, &size);
 
@@ -1330,17 +1323,14 @@ private:
         containerbox->PackStart(container_mle, 500, 200, TRUE, TRUE, 0);
 
         mle_point = container_mle->Import("", -1);
-        snprintf(buffer, 100, "[%d]", mle_point);
-        mle_point = container_mle->Import(buffer, mle_point);
-        snprintf(buffer, 100, "[%d]abczxydefijkl", mle_point);
-        mle_point = container_mle->Import(buffer, mle_point);
+        mle_point = container_mle->Import("[" + std::to_string(mle_point) + "]", mle_point);
+        mle_point = container_mle->Import("[" + std::to_string(mle_point) + "]abczxydefijkl", mle_point);
         container_mle->Delete(9, 3);
         mle_point = container_mle->Import("gh", 12);
         unsigned long newpoint;
         container_mle->GetSize(&newpoint, NULL);
         mle_point = (int)newpoint;
-        snprintf(buffer, 100, "[%d]\r\n\r\n", mle_point);
-        mle_point = container_mle->Import(buffer, mle_point);
+        mle_point = container_mle->Import("[" + std::to_string(mle_point) + "]\r\n\r\n", mle_point);
         container_mle->SetCursor(mle_point);
 
         // connect our event trappers...
@@ -1390,7 +1380,7 @@ private:
 
         container->ConnectColumnClick([container, container_status](int column_num) -> int
         {
-            const char *type_string = "Filename";
+            std::string type_string = "Filename";
 
             if(column_num != 0)
             {
@@ -1409,8 +1399,7 @@ private:
                 else
                     type_string = "Unknown";
             }
-            char buf[201] = {0};
-            snprintf(buf, 200, "DW_SIGNAL_COLUMN_CLICK: Column: %d Type: %s", column_num, type_string);
+            std::string buf = "DW_SIGNAL_COLUMN_CLICK: Column: " + std::to_string(column_num) + " Type: " + type_string;
             container_status->SetText(buf);
             return FALSE;
         });
@@ -1556,19 +1545,13 @@ private:
 
         // add LOTS of items
         app->Debug("before appending 500 items to combobox using DW::ListBox::ListAppend()\n");
-        char **text = (char **)malloc(500*sizeof(char *));
+        std::vector<std::string> text;
         for(int i = 0; i < 500; i++)
         {
-            text[i] = (char *)calloc(1, 50);
-            snprintf(text[i], 50, "item %d", i);
+            text.push_back("item " + std::to_string(i));
         }
-        combobox2->ListAppend(text, 500);
+        combobox2->ListAppend(text);
         app->Debug("after appending 500 items to combobox\n");
-        for(int i = 0; i < 500; i++)
-        {
-            free(text[i]);
-        }
-        free(text);
         // now insert a couple of items
         combobox2->Insert("inserted item 2", 2);
         combobox2->Insert("inserted item 5", 5);
@@ -1593,23 +1576,18 @@ private:
 
         topbutton->ConnectClicked([this, combobox1, combobox2, spinbutton, cal]() -> int 
         {
-            char buf1[101] = {0};
-            char buf2[101] = {0};
-            char buf3[501] = {0};
-
             unsigned int idx = combobox1->Selected();
-            combobox1->GetListText(idx, buf1, 100);
+            std::string buf1 = combobox1->GetListText(idx);
             idx = combobox2->Selected();
-            combobox2->GetListText(idx, buf2, 100);
+            std::string buf2 = combobox2->GetListText(idx);
             unsigned int y,m,d;
             cal->GetDate(&y, &m, &d);
             long spvalue = spinbutton->GetPos();
-            int len = snprintf(buf3, 500, "spinbutton: %ld\ncombobox1: \"%s\"\ncombobox2: \"%s\"\ncalendar: %d-%d-%d",
-                              spvalue,
-                              buf1, buf2,
-                              y, m, d);
+            std::string buf3 = "spinbutton: " + std::to_string(spvalue) + "\ncombobox1: \"" + buf1 + 
+                                "\"\ncombobox2: \"" + buf2 + "\"\ncalendar: " + std::to_string(y) + "-" +
+                                std::to_string(m) + "-" + std::to_string(d);
             this->app->MessageBox("Values", DW_MB_OK | DW_MB_INFORMATION, buf3);
-            this->app->SetClipboard(buf3, len);
+            this->app->SetClipboard(buf3);
             return 0;
         });
 
@@ -1721,8 +1699,6 @@ private:
 
     // Page 7 - ScrollBox
     void CreateScrollBox(DW::Box *notebookbox) {
-        char buf[101] = {0};
-
         // create a box to pack into the notebook page
         DW::ScrollBox *scrollbox = new DW::ScrollBox(DW_VERT, 0);
         notebookbox->PackStart(scrollbox, 0, 0, TRUE, TRUE, 1);
@@ -1741,11 +1717,9 @@ private:
         {
             DW::Box *tmpbox = new DW::Box(DW_HORZ, 0);
             scrollbox->PackStart(tmpbox, 0, 0, TRUE, FALSE, 2);
-            snprintf(buf, 100, "Label %d", i);
-            DW::Text *label = new DW::Text(buf );
+            DW::Text *label = new DW::Text("Label " + std::to_string(i));
             tmpbox->PackStart(label, 0, DW_SIZE_AUTO, TRUE, FALSE, 0);
-            snprintf(buf, 100, "Entry %d", i);
-            DW::Entryfield *entry = new DW::Entryfield(buf , i);
+            DW::Entryfield *entry = new DW::Entryfield("Entry " + std::to_string(i) , i);
             tmpbox->PackStart(entry, 0, DW_SIZE_AUTO, TRUE, FALSE, 0);
         }
     }
@@ -1800,7 +1774,7 @@ private:
     }
 public:
     // Constructor creates the application
-    DWTest(const char *title): DW::Window(title) {
+    DWTest(std::string title): DW::Window(title) {
         // Get our application singleton
         app = DW::App::Init();
 
@@ -1967,7 +1941,7 @@ public:
 };
 
 // Pretty list of features corresponding to the DWFEATURE enum in dw.h
-const char *DWFeatureList[] = {
+std::vector<std::string> DWFeatureList = {
     "Supports the HTML Widget",
     "Supports the DW_SIGNAL_HTML_RESULT callback",
     "Supports custom window border sizes",
@@ -1984,8 +1958,8 @@ const char *DWFeatureList[] = {
     "Supports icons in the taskbar or similar system widget",
     "Supports the Tree Widget",
     "Supports arbitrary window placement",
-    "Supports alternate container view modes",
-    NULL };
+    "Supports alternate container view modes"
+};
 
 // Let's demonstrate the functionality of this library. :)
 int dwmain(int argc, char* argv[]) 
@@ -2007,14 +1981,14 @@ int dwmain(int argc, char* argv[])
     {
         DWFEATURE feat = static_cast<DWFEATURE>(intfeat);
         int result = app->GetFeature(feat);
-        const char *status = "Unsupported";
+        std::string status = "Unsupported";
 
         if(result == 0)
             status = "Disabled";
         else if(result > 0)
             status = "Enabled";
 
-        app->Debug("%s: %s (%d)\n", DWFeatureList[feat], status, result);
+        app->Debug(DWFeatureList[intfeat] + ": " + status + " (" + std::to_string(result) + ")\n");
     }
 
     DWTest *window = new DWTest("dwindows test UTF8 中国語 (繁体) cañón");
