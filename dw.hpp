@@ -703,7 +703,6 @@ private:
 #ifdef DW_LAMBDA
     std::function<int(DWExpose *)> _ConnectExpose;
     std::function<int(int, int)> _ConnectConfigure;
-    std::function<int(char c, int, int, char *)> _ConnectCKeyPress;
     std::function<int(char c, int, int, std::string)> _ConnectKeyPress;
     std::function<int(int, int, int)> _ConnectButtonPress;
     std::function<int(int, int, int)> _ConnectButtonRelease;
@@ -720,7 +719,6 @@ private:
 #ifdef DW_LAMBDA
         _ConnectExpose = 0;
         _ConnectConfigure = 0;
-        _ConnectCKeyPress = 0;
         _ConnectKeyPress = 0;
         _ConnectButtonPress = 0;
         _ConnectButtonRelease = 0;
@@ -792,9 +790,7 @@ private:
         Render *classptr = reinterpret_cast<Render *>(data);
         std::string utf8string = utf8 ? std::string(utf8) : std::string();
 #ifdef DW_LAMBDA
-        if(classptr->_ConnectCKeyPress)
-            return classptr->_ConnectCKeyPress(c, vk, state, utf8);
-        else if(classptr->_ConnectKeyPress)
+        if(classptr->_ConnectKeyPress)
             return classptr->_ConnectKeyPress(c, vk, state, utf8string);
 #endif
         if(classptr->_ConnectCKeyPressOld)
@@ -898,14 +894,6 @@ public:
         }
     }
 #ifdef DW_LAMBDA
-    void ConnectKeyPress(std::function<int(char, int, int, char *)> userfunc)
-    {
-        _ConnectCKeyPress = userfunc;
-        if(!KeyPressConnected) {
-            dw_signal_connect(hwnd, DW_SIGNAL_KEY_PRESS, DW_SIGNAL_FUNC(_OnKeyPress), this);
-            KeyPressConnected = true;
-        }
-    }
     void ConnectKeyPress(std::function<int(char, int, int, std::string)> userfunc)
     {
         _ConnectKeyPress = userfunc;
@@ -1110,8 +1098,6 @@ class HTML : public Widget
 private:
     bool ChangedConnected, ResultConnected;
 #ifdef DW_LAMBDA
-    std::function<int(int, char *)> _ConnectCChanged;
-    std::function<int(int, char *, void *)> _ConnectCResult;
     std::function<int(int, std::string)> _ConnectChanged;
     std::function<int(int, std::string, void *)> _ConnectResult;
 #endif
@@ -1121,8 +1107,6 @@ private:
     int (*_ConnectResultOld)(HTML *, int status, std::string result, void *scriptdata);
     void Setup() {
 #ifdef DW_LAMBDA
-        _ConnectCChanged = 0;
-        _ConnectCResult = 0;
         _ConnectChanged = 0;
         _ConnectResult = 0;
 #endif
@@ -1147,9 +1131,7 @@ private:
         HTML *classptr = reinterpret_cast<HTML *>(data);
         std::string utf8string = url ? std::string(url) : std::string();
 #ifdef DW_LAMBDA
-        if(classptr->_ConnectCChanged)
-            return classptr->_ConnectCChanged(status, url);
-        else if(classptr->_ConnectChanged)
+        if(classptr->_ConnectChanged)
             return classptr->_ConnectChanged(status, utf8string);
 #endif
         if(classptr->_ConnectCChangedOld)
@@ -1161,9 +1143,7 @@ private:
         HTML *classptr = reinterpret_cast<HTML *>(data);
         std::string utf8string = result ? std::string(result) : std::string();
 #ifdef DW_LAMBDA
-        if(classptr->_ConnectCResult)
-            return classptr->_ConnectResult(status, result, scriptdata);
-        else if(classptr->_ConnectResult)
+        if(classptr->_ConnectResult)
             return classptr->_ConnectResult(status, utf8string, scriptdata);
 #endif
         if(classptr->_ConnectCResultOld)
@@ -1187,14 +1167,6 @@ public:
     int Raw(std::string buffer) { return dw_html_raw(hwnd, buffer.c_str()); }
     int URL(std::string url) { return dw_html_url(hwnd, url.c_str()); }
 #ifdef DW_LAMBDA
-    void ConnectChangedC(std::function<int(int, char *)> userfunc)
-    { 
-        _ConnectCChanged = userfunc;
-        if(!ChangedConnected) {
-            dw_signal_connect(hwnd, DW_SIGNAL_HTML_CHANGED, DW_SIGNAL_FUNC(_OnChanged), this);
-            ChangedConnected = true;
-        }
-    }
     void ConnectChanged(std::function<int(int, std::string)> userfunc)
     { 
         _ConnectChanged = userfunc;
@@ -1221,14 +1193,6 @@ public:
         }
     }
 #ifdef DW_LAMBDA
-    void ConnectResultC(std::function<int(int, char *, void *)> userfunc)
-    {
-        _ConnectCResult = userfunc;
-        if(!ResultConnected) {
-            dw_signal_connect(hwnd, DW_SIGNAL_HTML_RESULT, DW_SIGNAL_FUNC(_OnResult), this);
-            ResultConnected = true;
-        }
-    }    
     void ConnectResult(std::function<int(int, std::string, void *)> userfunc)
     {
         _ConnectResult = userfunc;
@@ -1657,8 +1621,6 @@ class ObjectView : virtual public Widget
 private:
     bool ItemSelectConnected, ItemContextConnected;
 #ifdef DW_LAMBDA
-    std::function<int(HTREEITEM, char *, void *)> _ConnectCItemSelect;
-    std::function<int(char *, int, int, void *)> _ConnectCItemContext;
     std::function<int(HTREEITEM, std::string, void *)> _ConnectItemSelect;
     std::function<int(std::string, int, int, void *)> _ConnectItemContext;
 #endif
@@ -1670,9 +1632,7 @@ private:
         ObjectView *classptr = reinterpret_cast<ObjectView *>(data);
         std::string utf8string = text ? std::string(text) : std::string();
 #ifdef DW_LAMBDA
-        if(classptr->_ConnectCItemSelect)
-            return classptr->_ConnectCItemSelect(item, text, itemdata);
-        else if(classptr->_ConnectItemSelect)
+        if(classptr->_ConnectItemSelect)
             return classptr->_ConnectItemSelect(item, utf8string, itemdata);
 #endif
         if(classptr->_ConnectItemSelectOld)
@@ -1685,9 +1645,7 @@ private:
         ObjectView *classptr = reinterpret_cast<ObjectView *>(data);
         std::string utf8string = text ? std::string(text) : std::string();
 #ifdef DW_LAMBDA
-        if(classptr->_ConnectCItemContext)
-            return classptr->_ConnectCItemContext(text, x, y, itemdata);
-        else if(classptr->_ConnectItemContext)
+        if(classptr->_ConnectItemContext)
             return classptr->_ConnectItemContext(utf8string, x, y, itemdata);
 #endif
         if(classptr->_ConnectCItemContextOld)
@@ -1699,8 +1657,6 @@ private:
 protected:
     void SetupObjectView() {
 #ifdef DW_LAMBDA
-        _ConnectCItemSelect = 0;
-        _ConnectCItemContext = 0;
         _ConnectItemSelect = 0;
         _ConnectItemContext = 0;
 #endif
@@ -1735,14 +1691,6 @@ protected:
     }
 public:
 #ifdef DW_LAMBDA
-    void ConnectItemSelectC(std::function<int(HTREEITEM, char *, void *)> userfunc)
-    {
-        _ConnectCItemSelect = userfunc;
-        if(!ItemSelectConnected) {
-            dw_signal_connect(hwnd, DW_SIGNAL_ITEM_SELECT, DW_SIGNAL_FUNC(_OnItemSelect), this);
-            ItemSelectConnected = true;
-        }
-    }
     void ConnectItemSelect(std::function<int(HTREEITEM, std::string, void *)> userfunc)
     {
         _ConnectItemSelect = userfunc;
@@ -1769,14 +1717,6 @@ public:
         }
     }
 #ifdef DW_LAMBDA
-    void ConnectItemContextC(std::function<int(char *, int, int, void *)> userfunc)
-    {
-        _ConnectCItemContext = userfunc;
-        if(!ItemContextConnected) {
-            dw_signal_connect(hwnd, DW_SIGNAL_ITEM_CONTEXT, DW_SIGNAL_FUNC(_OnItemContext), this);
-            ItemContextConnected = true;
-        }
-    }        
     void ConnectItemContext(std::function<int(std::string, int, int, void *)> userfunc)
     {
         _ConnectItemContext = userfunc;
@@ -1809,7 +1749,6 @@ class Containers : virtual public Focusable, virtual public ObjectView
 private:
     bool ItemEnterConnected, ColumnClickConnected;
 #ifdef DW_LAMBDA
-    std::function<int(char *, void *)> _ConnectCItemEnter;
     std::function<int(std::string, void *)> _ConnectItemEnter;
     std::function<int(int)> _ConnectColumnClick;
 #endif
@@ -1820,9 +1759,7 @@ private:
         Containers *classptr = reinterpret_cast<Containers *>(data);
         std::string utf8string = text ? std::string(text) : std::string();
 #ifdef DW_LAMBDA
-        if(classptr->_ConnectCItemEnter)
-            return classptr->_ConnectCItemEnter(text, itemdata);
-        else if(classptr->_ConnectItemEnter)
+        if(classptr->_ConnectItemEnter)
             return classptr->_ConnectItemEnter(utf8string, itemdata);
 #endif
         if(classptr->_ConnectCItemEnterOld)
@@ -1846,7 +1783,6 @@ protected:
     int allocrowcount;
     void SetupContainer() {
 #ifdef DW_LAMBDA
-        _ConnectCItemEnter = 0;
         _ConnectItemEnter = 0;
         _ConnectColumnClick = 0;
 #endif
@@ -1911,14 +1847,6 @@ public:
     void SetRowTitle(int row, const std::string title) { dw_container_set_row_title(allocpointer, row, title.c_str()); }
     void SetStripe(unsigned long oddcolor, unsigned long evencolor) { dw_container_set_stripe(hwnd, oddcolor, evencolor); }
 #ifdef DW_LAMBDA
-    void ConnectItemEnterC(std::function<int(char *, void *)> userfunc)
-    {
-        _ConnectCItemEnter = userfunc;
-        if(!ItemEnterConnected) {
-            dw_signal_connect(hwnd, DW_SIGNAL_ITEM_ENTER, DW_SIGNAL_FUNC(_OnItemEnter), this);
-            ItemEnterConnected = true;
-        }
-    }        
     void ConnectItemEnter(std::function<int(std::string, void *)> userfunc)
     {
         _ConnectItemEnter = userfunc;

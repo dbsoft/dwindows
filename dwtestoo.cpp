@@ -112,8 +112,8 @@ int dwmain(int argc, char* argv[])
 class DWTest : public DW::Window
 {
 private:
-    const char *ResolveKeyName(int vk) {
-        const char *keyname;
+    std::string ResolveKeyName(int vk) {
+        std::string keyname;
         switch(vk) {
             case  VK_LBUTTON : keyname =  "VK_LBUTTON"; break;
             case  VK_RBUTTON : keyname =  "VK_RBUTTON"; break;
@@ -194,7 +194,7 @@ private:
         return keyname;
     }
 
-    const char *ResolveKeyModifiers(int mask) {
+    std::string ResolveKeyModifiers(int mask) {
         if((mask & KC_CTRL) && (mask & KC_SHIFT) && (mask & KC_ALT))
             return "KC_CTRL KC_SHIFT KC_ALT";
         else if((mask & KC_CTRL) && (mask & KC_SHIFT))
@@ -986,14 +986,18 @@ private:
             return TRUE;
         });
 
-        render2->ConnectKeyPress([this, status1](char ch, int vk, int state, char *utf8) -> int
+        render2->ConnectKeyPress([this, status1](char ch, int vk, int state, std::string utf8) -> int
         {
-            char tmpbuf[101] = {0};
+            std::string buf = "Key: ";
+
             if(ch)
-                snprintf(tmpbuf, 100, "Key: %c(%d) Modifiers: %s(%d) utf8 %s", ch, ch, this->ResolveKeyModifiers(state), state,  utf8);
+                buf += std::string(1, ch) + "(" + std::to_string((int)ch) + ")";
             else
-                snprintf(tmpbuf, 100, "Key: %s(%d) Modifiers: %s(%d) utf8 %s", this->ResolveKeyName(vk), vk, ResolveKeyModifiers(state), state, utf8);
-            status1->SetText(tmpbuf);
+                buf += ResolveKeyName(vk) + "(" + std::to_string(vk) + ")";
+
+            buf += " Modifiers: " + ResolveKeyModifiers(state) + "(" + std::to_string(state) + ") utf8 " + utf8;
+
+            status1->SetText(buf);
             return FALSE;
         });
 
