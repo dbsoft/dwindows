@@ -212,21 +212,21 @@ private:
         else return "none";
     }
 
-    char *ReadFile(char *filename) {
+    char *ReadFile(std::string filename) {
         char *errors = NULL;
         FILE *fp=NULL;
 #ifdef __ANDROID__
         int fd = -1;
 
         // Special way to open for URIs on Android
-        if(strstr(filename, "://"))
+        if(strstr(filename.c_str(), "://"))
         {
-            fd = dw_file_open(filename, O_RDONLY);
+            fd = dw_file_open(filename.c_str(), O_RDONLY);
             fp = fdopen(fd, "r");
         }
         else
 #endif
-            fp = fopen(filename, "r");
+            fp = fopen(filename.c_str(), "r");
         if(!fp)
             errors = strerror(errno);
         else
@@ -269,7 +269,7 @@ private:
         int i,y,fileline;
         char *pLine;
 
-        if(current_file)
+        if(current_file.size())
         {
             pixmap->SetForegroundColor(DW_CLR_WHITE);
             if(!hpm)
@@ -717,8 +717,8 @@ private:
         // Connect signals
         browsefilebutton->ConnectClicked([this, entryfield, copypastefield]() -> int 
         {
-            char *tmp = this->app->FileBrowse("Pick a file", "dwtest.c", "c", DW_FILE_OPEN);
-            if(tmp)
+            std::string tmp = this->app->FileBrowse("Pick a file", "dwtest.c", "c", DW_FILE_OPEN);
+            if(tmp.size())
             {
                 char *errors = ReadFile(tmp);
                 std::string title = "New file load";
@@ -730,8 +730,6 @@ private:
                 else
                     notification = new DW::Notification(title, image, std::string(APP_TITLE) + " loaded the file into the file browser on the Render tab, with \"File Display\" selected from the drop down list.");
 
-                if(current_file)
-                    this->app->Free(current_file);
                 current_file = tmp;
                 entryfield->SetText(current_file);
                 current_col = current_row = 0;
@@ -749,8 +747,8 @@ private:
         
         browsefolderbutton->ConnectClicked([this]() -> int 
         {
-            char *tmp = this->app->FileBrowse("Pick a folder", ".", "c", DW_DIRECTORY_OPEN);
-            this->app->Debug("Folder picked: %s\n", tmp ? tmp : "None");
+            std::string tmp = this->app->FileBrowse("Pick a folder", ".", "c", DW_DIRECTORY_OPEN);
+            this->app->Debug("Folder picked: " + (tmp.size() ? tmp : "None") + "\n");
             return FALSE;
         });
 
@@ -1092,7 +1090,7 @@ private:
                    int fheight, fwidth;
 
                    // If we have a file to display...
-                   if(current_file)
+                   if(current_file.size())
                    {
                        int nrows;
 
@@ -1363,7 +1361,7 @@ private:
             std::string str = container->QueryStart(DW_CRA_SELECTED);
             while(str.size())
             {
-                std::string buf = "Selected: " + str + "%s\r\n";
+                std::string buf = "Selected: " + str + "\r\n";
                 mle_point = container_mle->Import(buf, mle_point);
                 str = container->QueryNext(DW_CRA_SELECTED);
             }
@@ -1917,7 +1915,7 @@ public:
     unsigned int render_type = SHAPES_DOUBLE_BUFFERED;
 
     char **lp;
-    char *current_file = NULL;
+    std::string current_file;
 
     // Page 4
     int mle_point=-1;
