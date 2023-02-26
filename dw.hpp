@@ -1926,16 +1926,16 @@ public:
       return retval;
     }    
     int Setup(std::vector<unsigned long> flags, std::vector<std::string> titles) {
-      int count = (int)flags.size();
+      unsigned int count = flags.size();
 
       // Use the smallest of the two lists
       if(count > titles.size()) {
-          count = (int)titles.size();
+          count = titles.size();
       }
       // Convert our vectors into a arrays of unsigned long and C strings
       const char **ctitles = (const char **)alloca(sizeof(char *) * count); 
       unsigned long *cflags = (unsigned long *)alloca(sizeof(unsigned long) * count);
-      for(int z=0; z<count; z++) {
+      for(unsigned int z=0; z<count; z++) {
           ctitles[z] = titles[z].c_str();
           cflags[z] = flags[z];
       }

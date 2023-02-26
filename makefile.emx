@@ -60,7 +60,7 @@ dirent.obj: os2/dirent.c
 dwtest.obj: dwtest.c
 	$(CC) $(CFLAGS) -c $<	
 
-dwtestoo.obj: dwtestoo.cpp
+dwtestoo.obj: dwtestoo.cpp dw.hpp
 	$(CC) $(CFLAGS) -std=c++11 -c $<	
 
 
