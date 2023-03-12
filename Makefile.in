@@ -197,7 +197,7 @@ dwtest.o: $(srcdir)/dwtest.c $(srcdir)/dw.h
 dwtest: dwtest.o
 	$(CC) -o dwtest dwtest.o $(MLFLAGS) -l$(TARGET) $(LFLAGS)
 	-chmod +x $(srcdir)/mac/finishup.sh
-	-$(srcdir)/mac/finishup.sh $(srcdir) dwtest
+	-$(srcdir)/mac/finishup.sh "$(srcdir)" dwtest "$(CODESIGNIDENTITY)"
 
 dwtestoo.o: $(srcdir)/dwtestoo.cpp $(srcdir)/dw.h $(srcdir)/dw.hpp
 	$(CXX) -c $(INCPATH) $(CXXFLAGS) $(CCFLAGS) -o $@ $(srcdir)/dwtestoo.cpp
@@ -205,7 +205,7 @@ dwtestoo.o: $(srcdir)/dwtestoo.cpp $(srcdir)/dw.h $(srcdir)/dw.hpp
 dwtestoo: dwtestoo.o
 	$(CXX) -o dwtestoo dwtestoo.o $(MLFLAGS) -l$(TARGET) $(LFLAGS) -lstdc++
 	-chmod +x $(srcdir)/mac/finishup.sh
-	-$(srcdir)/mac/finishup.sh $(srcdir) dwtestoo
+	-$(srcdir)/mac/finishup.sh "$(srcdir)" dwtestoo "$(CODESIGNIDENTITY)"
 
 zip:
 	zip dwindows$(VER_MAJ)$(VER_MIN).zip $(srcdir)/*.txt $(srcdir)/makefile.* \
