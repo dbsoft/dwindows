@@ -6,8 +6,8 @@ IDENTITY=$3
 
 if [ $PLATFORM = "Darwin" ]
 then
-    mkdir -p $2.app/Contents/MacOS
-    mkdir -p $2.app/Contents/Resources
+    mkdir -p $BINNAME.app/Contents/MacOS
+    mkdir -p $BINNAME.app/Contents/Resources
 
     cat $SRCDIR/mac/Info.template | sed s/APPNAME/$BINNAME/ >  $BINNAME.app/Contents/Info.plist
     cp -f $SRCDIR/mac/PkgInfo $BINNAME.app/Contents 
