@@ -1,5 +1,6 @@
 #!/bin/sh
 PLATFORM=`uname -s`
+RELEASE=`uname -r`
 SRCDIR=$1
 BINNAME=$2
 IDENTITY=$3
@@ -15,12 +16,15 @@ then
     cp -f $SRCDIR/mac/folder.png $BINNAME.app/Contents/Resources
     cp -f $SRCDIR/image/test.png $BINNAME.app/Contents/Resources
     cp -f $BINNAME $BINNAME.app/Contents/MacOS
+    if [ "$RELEASE" -gt "10.99" ]; then
+       DEEP="--deep"
+    fi
     # Check if there is a certificate to sign with...
     if [ -z "$IDENTITY" ]; then
         echo "No identity set signing AdHoc."
-        codesign --deep -s "-" $BINNAME.app
+        codesign $DEEP -s "-" $BINNAME.app
     else
         echo "Signing code with identity: $IDENTITY"
-        codesign --deep -s "$IDENTITY" $BINNAME.app
+        codesign $DEEP -s "$IDENTITY" $BINNAME.app
     fi
 fi
