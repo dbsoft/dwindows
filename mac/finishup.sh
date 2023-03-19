@@ -1,6 +1,7 @@
 #!/bin/sh
 PLATFORM=`uname -s`
 RELEASE=`uname -r`
+REQUIRED=11.0.0
 SRCDIR=$1
 BINNAME=$2
 IDENTITY=$3
@@ -16,7 +17,7 @@ then
     cp -f $SRCDIR/mac/folder.png $BINNAME.app/Contents/Resources
     cp -f $SRCDIR/image/test.png $BINNAME.app/Contents/Resources
     cp -f $BINNAME $BINNAME.app/Contents/MacOS
-    if [ "$RELEASE" -gt "10.99" ]; then
+    if [ "$(printf '%s\n' "$REQUIRED" "$RELEASE" | sort -n | head -n1)" = "$REQUIRED" ]; then
        DEEP="--deep"
     fi
     # Check if there is a certificate to sign with...
