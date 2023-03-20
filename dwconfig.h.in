@@ -1,59 +1,110 @@
-/* dwconfig.h.in.  Generated automatically from configure.in by autoheader.  */
+/* dwconfig.h.in.  Generated from configure.ac by autoheader.  */
 
-/* Define if you have the ANSI C header files.  */
-#undef STDC_HEADERS
+/* Uses GTK but not on X11 or Wayland */
+#undef DW_USE_GTK
 
-/* Define if you have the connect function.  */
+/* Define to 1 if you have the `connect' function. */
 #undef HAVE_CONNECT
 
-/* Define if you have the <dirent.h> header file.  */
+/* define if the compiler supports basic C++11 syntax */
+#undef HAVE_CXX11
+
+/* Define to 1 if you have the <dirent.h> header file, and it defines `DIR'.
+   */
 #undef HAVE_DIRENT_H
 
-/* Define if you have the <ndir.h> header file.  */
+/* Define to 1 if you have the <inttypes.h> header file. */
+#undef HAVE_INTTYPES_H
+
+/* Define to 1 if you have the <ndir.h> header file, and it defines `DIR'. */
 #undef HAVE_NDIR_H
-
-/* Define if you have the <sys/dir.h> header file.  */
-#undef HAVE_SYS_DIR_H
-
-/* Define if you have the <sys/ndir.h> header file.  */
-#undef HAVE_SYS_NDIR_H
-
-/* Define if you have the <unistd.h> header file.  */
-#undef HAVE_UNISTD_H
-
-/* Define if you have the <sys/stat.h> header file.  */
-#undef HAVE_SYS_STAT_H
-
-/* Determine whether we have the pipe function */
-#undef HAVE_PIPE
-
-/* Determine whether we have the vsnprintf function */
-#undef HAVE_VSNPRINTF
-
-/* Define if WebKit is available */
-#undef USE_WEBKIT
-
-/* Define if webkit-1.0 is available */
-#undef USE_WEBKIT10
-
-/* Define if webkit-1.1 is available */
-#undef USE_WEBKIT11
-
-/* Define if webkit2 is available */
-#undef USE_WEBKIT2
-
-/* Define if IMLIB is available. */
-#undef USE_IMLIB
-
-/* Define if PIXBUF is available. */
-#undef USE_PIXBUF
-
-/* Define if USING GTK (but not on X11). */
-#undef DW_USE_GTK
 
 /* Define if we have Ubuntu overlay scrollbars */
 #undef HAVE_OVERLAY_SCROLLBARS
 
-/* Define if we have Ubuntu overlay scrollbars (GTK2) */
+/* Define if we have Ubuntu overlay scrollbars */
 #undef HAVE_OVERLAY_SCROLLBARS2
 
+/* Define to 1 if you have the `pipe' function. */
+#undef HAVE_PIPE
+
+/* Define to 1 if you have the <stdint.h> header file. */
+#undef HAVE_STDINT_H
+
+/* Define to 1 if you have the <stdio.h> header file. */
+#undef HAVE_STDIO_H
+
+/* Define to 1 if you have the <stdlib.h> header file. */
+#undef HAVE_STDLIB_H
+
+/* Define to 1 if you have the <strings.h> header file. */
+#undef HAVE_STRINGS_H
+
+/* Define to 1 if you have the <string.h> header file. */
+#undef HAVE_STRING_H
+
+/* Define to 1 if you have the <sys/dir.h> header file, and it defines `DIR'.
+   */
+#undef HAVE_SYS_DIR_H
+
+/* Define to 1 if you have the <sys/ndir.h> header file, and it defines `DIR'.
+   */
+#undef HAVE_SYS_NDIR_H
+
+/* Define to 1 if you have the <sys/stat.h> header file. */
+#undef HAVE_SYS_STAT_H
+
+/* Define to 1 if you have the <sys/types.h> header file. */
+#undef HAVE_SYS_TYPES_H
+
+/* Define to 1 if you have the `ubuntu_gtk_set_use_overlay_scrollbar'
+   function. */
+#undef HAVE_UBUNTU_GTK_SET_USE_OVERLAY_SCROLLBAR
+
+/* Define to 1 if you have the `ubuntu_overlay_scrollbar_set_enabled'
+   function. */
+#undef HAVE_UBUNTU_OVERLAY_SCROLLBAR_SET_ENABLED
+
+/* Define to 1 if you have the <unistd.h> header file. */
+#undef HAVE_UNISTD_H
+
+/* Define to 1 if you have the `vsnprintf' function. */
+#undef HAVE_VSNPRINTF
+
+/* Define to the address where bug reports for this package should be sent. */
+#undef PACKAGE_BUGREPORT
+
+/* Define to the full name of this package. */
+#undef PACKAGE_NAME
+
+/* Define to the full name and version of this package. */
+#undef PACKAGE_STRING
+
+/* Define to the one symbol short name of this package. */
+#undef PACKAGE_TARNAME
+
+/* Define to the home page for this package. */
+#undef PACKAGE_URL
+
+/* Define to the version of this package. */
+#undef PACKAGE_VERSION
+
+/* Define to 1 if all of the C90 standard headers exist (not just the ones
+   required in a freestanding environment). This macro is provided for
+   backward compatibility; new code need not use it. */
+#undef STDC_HEADERS
+
+/* Uses some flavor of WebKit */
+#undef USE_WEBKIT
+
+/* Uses WebKit 1.0 */
+#undef USE_WEBKIT10
+
+/* Uses WebKit 1.1 */
+#undef USE_WEBKIT11
+
+/* Uses WebKit 2 */
+#undef USE_WEBKIT2
+
+/* Define to 1 if the X Window System is missing or not being used. */
+#undef X_DISPLAY_MISSING
