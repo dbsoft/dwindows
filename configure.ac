@@ -1,5 +1,5 @@
-AC_INIT(dwindows, 3.2)
-AC_CONFIG_HEADER(dwconfig.h)
+AC_INIT([dwindows],[3.3])
+AC_CONFIG_HEADERS([dwconfig.h])
 
 TARGET="dwindows"
 TARGET2="dwcompat"
@@ -20,6 +20,7 @@ INCLUDES="-I."
 
 AC_PROG_CC
 AC_PROG_CXX
+AX_CXX_COMPILE_STDCXX(11,,optional)
 
 AC_CHECK_PROG(MAKE, gmake, gmake)
 if test x"$MAKE" = x; then
@@ -39,7 +40,7 @@ AC_PROG_INSTALL
 AC_SUBST(MAKE)
 
 dnl Checks for system
-AC_CANONICAL_SYSTEM
+AC_CANONICAL_TARGET
 
 dnl ---------------------- check for '--with-dwcompat' switch -----------------
 AC_ARG_WITH(dwcompat,
@@ -90,7 +91,6 @@ AC_ARG_WITH(minver,
    [with_minver=no],
 )
 
-AC_HEADER_STDC
 AC_HEADER_DIRENT
 AC_CHECK_HEADERS(unistd.h)
 AC_CHECK_HEADERS(sys/stat.h)
@@ -131,7 +131,7 @@ case "$target" in
    *cygwin*)
    ;;
    *mingw32)
-      AC_DEFINE(DW_USE_GTK)
+      AC_DEFINE(DW_USE_GTK,1,Uses GTK but not on X11 or Wayland)
    ;;
    *linux*)
       SONAME="-Wl,-soname,lib$TARGET.so.\$(DW_MAJOR_VERSION)"
@@ -274,13 +274,13 @@ if test $build_gtk = "yes"; then
       # Add defintitions necessary for the correct code paths      
       if test x"$WEBKIT_LIBS" != x; then
          if test "$WEBKIT_PKG" = "webkit-1.0"; then
-            AC_DEFINE(USE_WEBKIT10)
+            AC_DEFINE(USE_WEBKIT10,1,Uses WebKit 1.0)
          fi
          if test "$WEBKIT_PKG" = "webkit-1.1"; then
-            AC_DEFINE(USE_WEBKIT11)
+            AC_DEFINE(USE_WEBKIT11,1,Uses WebKit 1.1)
          fi
          if test "$WEBKIT_PKG" = "webkit2gtk-4.0"; then
-            AC_DEFINE(USE_WEBKIT2)
+            AC_DEFINE(USE_WEBKIT2,1,Uses WebKit 2)
          fi
       fi
       if test x"$RPATH" != x; then
@@ -288,16 +288,9 @@ if test $build_gtk = "yes"; then
       fi
    fi
 
-   if test x"$GTK_LIBS" = x; then
-      AM_PATH_GLIB(1.2.0,,AC_MSG_ERROR(AC_MSG_ERROR(Cannot find GLIB: Is glib-config in path?)))
-      AM_PATH_GTK(1.2.0,,AC_MSG_ERROR(AC_MSG_ERROR(Cannot find GTK: Is gtk-config in path?)), gthread)
-      AM_PATH_GDK_IMLIB(1.9.4, AC_DEFINE(USE_IMLIB), AC_MSG_ERROR(IMLIB not found or too old. Dynamic Windows cannot build without it.))
-      CFLAGS="$CFLAGS -DDW_INCLUDE_DEPRECATED_RESOURCES=1"
-   else
-      GTK_CFLAGS=`$PKG_CFG --cflags $GTK_PACKAGES`
-      GTK_LIBS=`$PKG_CFG --libs $GTK_PACKAGES`
-      PKG_CHECK_MODULES([GLIB], [glib-2.0 >= 2.32.0], [DW_GRESOURCE="enabled"], [CFLAGS="$CFLAGS -DDW_INCLUDE_DEPRECATED_RESOURCES=1"])
-   fi
+   GTK_CFLAGS=`$PKG_CFG --cflags $GTK_PACKAGES`
+   GTK_LIBS=`$PKG_CFG --libs $GTK_PACKAGES`
+   PKG_CHECK_MODULES([GLIB], [glib-2.0 >= 2.32.0], [DW_GRESOURCE="enabled"], [CFLAGS="$CFLAGS -DDW_INCLUDE_DEPRECATED_RESOURCES=1"])
 fi
 
 if test $check_pthreads = "yes"; then
@@ -328,7 +321,7 @@ if test $with_deprecated = yes; then
 fi
 if test x"$WEBKIT_LIBS" != x; then
    WEBKIT_LIB=`$PKG_CFG --silence-errors --libs-only-l $WEBKIT_PKG | cut -b 3-`
-   AC_CHECK_LIB($WEBKIT_LIB,webkit_web_view_new,AC_DEFINE(USE_WEBKIT),)
+   AC_CHECK_LIB($WEBKIT_LIB,webkit_web_view_new,AC_DEFINE(USE_WEBKIT,1,Uses some flavor of WebKit),)
 fi
 
 LIBS="$RPATH $LIBS $GTK_LIBS $PTHREAD_LIBS $GDK_IMLIB_LIBS $WEBKIT_LIBS $PLATLIBS"
