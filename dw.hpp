@@ -8,6 +8,8 @@
 #include <cstring>
 #include <string>
 #include <vector>
+// For alloca() and calloc()
+#include <stdlib.h>
 
 // Attempt to support compilers without nullptr type literal
 #if __cplusplus >= 201103L 
