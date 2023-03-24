@@ -2169,6 +2169,7 @@ char *DWFeatureList[] = {
     "Supports the Tree Widget",
     "Supports arbitrary window placement",
     "Supports alternate container view modes",
+    "Supports the DW_SIGNAL_HTML_MESSAGE callback",
     NULL };
 
 /*

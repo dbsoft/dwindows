@@ -1847,6 +1847,7 @@ typedef enum
     DW_FEATURE_TREE,                    /* Supports the Tree Widget */
     DW_FEATURE_WINDOW_PLACEMENT,        /* Supports arbitrary window placement */
     DW_FEATURE_CONTAINER_MODE,          /* Supports alternate container view modes */
+    DW_FEATURE_HTML_MESSAGE,            /* Supports the DW_SIGNAL_HTML_MESSAGE callback */
     DW_FEATURE_MAX
 } DWFEATURE;
 

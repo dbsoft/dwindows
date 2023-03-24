@@ -1964,7 +1964,8 @@ std::vector<std::string> DWFeatureList = {
     "Supports icons in the taskbar or similar system widget",
     "Supports the Tree Widget",
     "Supports arbitrary window placement",
-    "Supports alternate container view modes"
+    "Supports alternate container view modes",
+    "Supports the DW_SIGNAL_HTML_MESSAGE callback"
 };
 
 // Let's demonstrate the functionality of this library. :)
