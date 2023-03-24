@@ -7151,8 +7151,9 @@ fi
          fi
          if test x"$GTK_LIBS" != x; then
             DW_DIR=gtk4
-            # WebKit2GTK built for GTK4 becomes 5.0
-            WEBKIT_PKG="webkit2gtk-5.0"
+            # WebKit2GTK built for GTK4 becomes 5.0 or 6.0
+            WEBKIT_PKG="webkitgtk-6.0"
+            WEBKIT_ALT_PKG="webkit2gtk-5.0"
          fi
       else
          # Put the GTK2 test here since --with-gtk2 is mutually
@@ -7206,6 +7207,11 @@ printf "%s\n" "#define USE_WEBKIT11 1" >>confdefs.h
          if test "$WEBKIT_PKG" = "webkit2gtk-4.0"; then
 
 printf "%s\n" "#define USE_WEBKIT2 1" >>confdefs.h
+
+         fi
+         if test "$WEBKIT_PKG" = "webkitgtk-6.0"; then
+
+printf "%s\n" "#define USE_WEBKIT6 1" >>confdefs.h
 
          fi
       fi
