@@ -13285,6 +13285,20 @@ static void _dw_html_populate_popup_cb(WebKitWebView *web_view, GtkMenu *menu, g
 #endif
 
 /*
+ * Install a javascript function with name that can call native code.
+ * Parameters:
+ *       handle: Handle to the HTML window.
+ *       name: Javascript function name.
+ * Notes: A DW_SIGNAL_HTML_MESSAGE event will be raised with scriptdata.
+ * Returns:
+ *       DW_ERROR_NONE (0) on success.
+ */
+int API dw_html_javascript_add(HWND handle, const char *name)
+{
+    return DW_ERROR_UNKNOWN;
+}
+
+/*
  * Create a new Entryfield window (widget) to be packed.
  * Parameters:
  *       text: The default text to be in the entryfield widget.
