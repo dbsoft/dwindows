@@ -1098,24 +1098,30 @@ void Render::BitBlt(int xdest, int ydest, int width, int height, Pixmap *src, in
 class HTML : public Widget
 {
 private:
-    bool ChangedConnected, ResultConnected;
+    bool ChangedConnected, ResultConnected, MessageConnected;
 #ifdef DW_LAMBDA
     std::function<int(int, std::string)> _ConnectChanged;
     std::function<int(int, std::string, void *)> _ConnectResult;
+    std::function<int(std::string, std::string)> _ConnectMessage;
 #endif
     int (*_ConnectCChangedOld)(HTML *, int status, char *url);
     int (*_ConnectCResultOld)(HTML *, int status, char *result, void *scriptdata);
+    int (*_ConnectCMessageOld)(HTML *, char *name, char *message);
     int (*_ConnectChangedOld)(HTML *, int status, std::string url);
     int (*_ConnectResultOld)(HTML *, int status, std::string result, void *scriptdata);
+    int (*_ConnectMessageOld)(HTML *, std::string, std::string message);
     void Setup() {
 #ifdef DW_LAMBDA
         _ConnectChanged = 0;
         _ConnectResult = 0;
+        _ConnectMessage = 0;
 #endif
         _ConnectCChangedOld = 0;
         _ConnectCResultOld = 0;
+        _ConnectCMessageOld = 0;
         _ConnectChangedOld = 0;
         _ConnectResultOld = 0;
+        _ConnectMessageOld = 0;
         if(IsOverridden(HTML::OnChanged, this)) {
             dw_signal_connect(hwnd, DW_SIGNAL_HTML_CHANGED, DW_SIGNAL_FUNC(_OnChanged), this);
             ChangedConnected = true;
@@ -1127,7 +1133,13 @@ private:
             ResultConnected = true;
         } else {
             ResultConnected = false;
-    }
+        }
+        if(IsOverridden(HTML::OnMessage, this)) {
+            dw_signal_connect(hwnd, DW_SIGNAL_HTML_MESSAGE, DW_SIGNAL_FUNC(_OnMessage), this);
+            MessageConnected = true;
+        } else {
+            MessageConnected = false;
+        }
     }
     static int _OnChanged(HWND window, int status, char *url, void *data) {
         HTML *classptr = reinterpret_cast<HTML *>(data);
@@ -1153,6 +1165,19 @@ private:
         else if(classptr->_ConnectResultOld)
             return classptr->_ConnectResultOld(classptr, status, utf8string, scriptdata);
         return classptr->OnResult(status, utf8string, scriptdata); }
+        static int _OnMessage(HWND window, char *name, char *message, void *data) {
+            HTML *classptr = reinterpret_cast<HTML *>(data);
+            std::string utf8name = name ? std::string(name) : std::string();
+            std::string utf8message = message ? std::string(message) : std::string();
+    #ifdef DW_LAMBDA
+            if(classptr->_ConnectMessage)
+                return classptr->_ConnectMessage(utf8name, utf8message);
+    #endif
+            if(classptr->_ConnectCMessageOld)
+                return classptr->_ConnectCMessageOld(classptr, name, message);
+            else if(classptr->_ConnectMessageOld)
+                return classptr->_ConnectMessageOld(classptr, utf8name, utf8message);
+            return classptr->OnMessage(utf8name, utf8message); }
 public:
     // Constructors
     HTML(unsigned long id) { SetHWND(dw_html_new(id)); Setup(); }
@@ -1162,10 +1187,12 @@ public:
     void Action(int action) { dw_html_action(hwnd, action); }
     int JavascriptRun(const char *script, void *scriptdata) { return dw_html_javascript_run(hwnd, script, scriptdata); }
     int JavascriptRun(const char *script) { return dw_html_javascript_run(hwnd, script, NULL); }
+    int JavascriptAdd(const char *name) { return dw_html_javascript_add(hwnd, name); }
     int Raw(const char *buffer) { return dw_html_raw(hwnd, buffer); }
     int URL(const char *url) { return dw_html_url(hwnd, url); }
     int JavascriptRun(std::string script, void *scriptdata) { return dw_html_javascript_run(hwnd, script.c_str(), scriptdata); }
     int JavascriptRun(std::string script) { return dw_html_javascript_run(hwnd, script.c_str(), NULL); }
+    int JavascriptAdd(std::string name) { return dw_html_javascript_add(hwnd, name.c_str()); }
     int Raw(std::string buffer) { return dw_html_raw(hwnd, buffer.c_str()); }
     int URL(std::string url) { return dw_html_url(hwnd, url.c_str()); }
 #ifdef DW_LAMBDA
@@ -1220,6 +1247,32 @@ public:
             ResultConnected = true;
         }
     }    
+#ifdef DW_LAMBDA
+    void ConnectMessage(std::function<int(std::string, std::string)> userfunc)
+    {
+        _ConnectMessage = userfunc;
+        if(!MessageConnected) {
+            dw_signal_connect(hwnd, DW_SIGNAL_HTML_MESSAGE, DW_SIGNAL_FUNC(_OnMessage), this);
+            MessageConnected = true;
+        }
+    }    
+#endif
+    void ConnectMessage(int (*userfunc)(HTML *, char *, char *))
+    {
+        _ConnectCMessageOld = userfunc;
+        if(!MessageConnected) {
+            dw_signal_connect(hwnd, DW_SIGNAL_HTML_MESSAGE, DW_SIGNAL_FUNC(_OnMessage), this);
+            MessageConnected = true;
+        }
+    }    
+    void ConnectMessage(int (*userfunc)(HTML *, std::string, std::string))
+    {
+        _ConnectMessageOld = userfunc;
+        if(!MessageConnected) {
+            dw_signal_connect(hwnd, DW_SIGNAL_HTML_MESSAGE, DW_SIGNAL_FUNC(_OnMessage), this);
+            MessageConnected = true;
+        }
+    }    
 protected:
     // Our signal handler functions to be overriden...
     // If they are not overridden and an event is generated, remove the unused handler
@@ -1231,6 +1284,11 @@ protected:
     virtual int OnResult(int status, std::string result, void *scriptdata) {
         dw_signal_disconnect_by_name(hwnd, DW_SIGNAL_HTML_RESULT);
         ResultConnected = false;
+        return FALSE;
+    };
+    virtual int OnMessage(std::string name, std::string message) {
+        dw_signal_disconnect_by_name(hwnd, DW_SIGNAL_HTML_MESSAGE);
+        MessageConnected = false;
         return FALSE;
     };
 };

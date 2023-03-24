@@ -592,9 +592,7 @@ typedef struct
 } DWSignalList;
 
 /* List of signals */
-#define SIGNALMAX 19
-
-static DWSignalList DWSignalTranslate[SIGNALMAX] = {
+static DWSignalList DWSignalTranslate[] = {
     { _DW_EVENT_CONFIGURE,       DW_SIGNAL_CONFIGURE },
     { _DW_EVENT_KEY_PRESS,       DW_SIGNAL_KEY_PRESS },
     { _DW_EVENT_BUTTON_PRESS,    DW_SIGNAL_BUTTON_PRESS },
@@ -613,7 +611,8 @@ static DWSignalList DWSignalTranslate[SIGNALMAX] = {
     { _DW_EVENT_TREE_EXPAND,     DW_SIGNAL_TREE_EXPAND },
     { _DW_EVENT_COLUMN_CLICK,    DW_SIGNAL_COLUMN_CLICK },
     { _DW_EVENT_HTML_RESULT,     DW_SIGNAL_HTML_RESULT },
-    { _DW_EVENT_HTML_CHANGED,    DW_SIGNAL_HTML_CHANGED }
+    { _DW_EVENT_HTML_CHANGED,    DW_SIGNAL_HTML_CHANGED },
+    { _DW_EVENT_HTML_MESSAGE,    DW_SIGNAL_HTML_MESSAGE }
 };
 
 int _dw_event_handler1(id object, NSEvent *event, int message)
@@ -877,7 +876,8 @@ int _dw_event_handler1(id object, NSEvent *event, int message)
                 void **params = (void **)event;
                 NSString *result = params[0];
 
-                return htmlresultfunc(handler->window, [result length] ? DW_ERROR_NONE : DW_ERROR_UNKNOWN, [result length] ? (char *)[result UTF8String] : NULL, params[1], handler->data);
+                return htmlresultfunc(handler->window, [result length] ? DW_ERROR_NONE : DW_ERROR_UNKNOWN, [result length] ? 
+                                      (char *)[result UTF8String] : NULL, params[1], handler->data);
             }
             /* HTML changed event */
             case _DW_EVENT_HTML_CHANGED:
@@ -887,6 +887,15 @@ int _dw_event_handler1(id object, NSEvent *event, int message)
                 NSString *uri = params[1];
 
                 return htmlchangedfunc(handler->window, DW_POINTER_TO_INT(params[0]), (char *)[uri UTF8String], handler->data);
+            }
+            /* HTML message event */
+            case _DW_EVENT_HTML_MESSAGE:
+            {
+                int (* API htmlmessagefunc)(HWND, char *, char *, void *) = handler->signalfunction;
+                WKScriptMessage *message = (WKScriptMessage *)event;
+
+                return htmlmessagefunc(handler->window, (char *)[[message name] UTF8String], [[message body] isKindOfClass:[NSString class]] ?
+                                       (char *)[[message body] UTF8String] : NULL, handler->data);
             }
         }
     }
@@ -1447,7 +1456,7 @@ DWObject *DWObj;
  * WKWebKit on intel 64 and the old WebKit on intel 32 bit and earlier.
  */
 #if WK_API_ENABLED
-@interface DWWebView : WKWebView <WKNavigationDelegate>
+@interface DWWebView : WKWebView <WKNavigationDelegate, WKScriptMessageHandler>
 {
     void *userdata;
 }
@@ -1457,6 +1466,7 @@ DWObject *DWObj;
 -(void)webView:(WKWebView *)webView didFinishNavigation:(WKNavigation *)navigation;
 -(void)webView:(WKWebView *)webView didStartProvisionalNavigation:(WKNavigation *)navigation;
 -(void)webView:(WKWebView *)webView didReceiveServerRedirectForProvisionalNavigation:(WKNavigation *)navigation;
+-(void)userContentController:(WKUserContentController *)userContentController didReceiveScriptMessage:(WKScriptMessage *)message;
 @end
 
 @implementation DWWebView : WKWebView
@@ -1481,6 +1491,10 @@ DWObject *DWObj;
 {
     void *params[2] = { DW_INT_TO_POINTER(DW_HTML_CHANGE_REDIRECT), [[self URL] absoluteString] };
     _dw_event_handler(self, (NSEvent *)params, _DW_EVENT_HTML_CHANGED);
+}
+-(void)userContentController:(WKUserContentController *)userContentController didReceiveScriptMessage:(WKScriptMessage *)message
+{
+    _dw_event_handler(self, (NSEvent *)message, _DW_EVENT_HTML_MESSAGE);
 }
 -(void)dealloc { UserData *root = userdata; _dw_remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
@@ -3695,7 +3709,7 @@ ULONG _dw_findsigmessage(const char *signame)
 {
     int z;
 
-    for(z=0;z<SIGNALMAX;z++)
+    for(z=0;z<(_DW_EVENT_MAX-1);z++)
     {
         if(strcasecmp(signame, DWSignalTranslate[z].name) == 0)
             return DWSignalTranslate[z].message;
@@ -9466,6 +9480,38 @@ int dw_html_javascript_run(HWND handle, const char *script, void *scriptdata)
     DW_LOCAL_POOL_OUT;
     return DW_ERROR_NONE;
 }
+
+/*
+ * Install a javascript function with name that can call native code.
+ * Parameters:
+ *       handle: Handle to the HTML window.
+ *       name: Javascript function name.
+ * Notes: A DW_SIGNAL_HTML_MESSAGE event will be raised with scriptdata.
+ * Returns:
+ *       DW_ERROR_NONE (0) on success.
+ */
+int API dw_html_javascript_add(HWND handle, const char *name)
+{
+#if WK_API_ENABLED
+    DWWebView *html = handle;
+    WKUserContentController *controller = [[html configuration] userContentController];
+    
+    if(controller && name) 
+    {
+        DW_LOCAL_POOL_IN;
+        /* Script to inject that will call the handler we are adding */
+        NSString *script = [NSString stringWithFormat:@"function %s(body) {window.webkit.messageHandlers.%s.postMessage(body);}", 
+                            name, name];
+        [controller addScriptMessageHandler:handle name:[NSString stringWithUTF8String:name]];
+        [controller addUserScript:[[WKUserScript alloc] initWithSource:script 
+                injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:NO]];
+        DW_LOCAL_POOL_OUT;
+        return DW_ERROR_NONE;
+    }
+#endif
+    return DW_ERROR_UNKNOWN;
+}
+
 
 /*
  * Create a new HTML window (widget) to be packed.

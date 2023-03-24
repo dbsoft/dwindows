@@ -108,6 +108,7 @@ extern "C" {
 #define DW_SIGNAL_TREE_EXPAND    "tree-expand"
 #define DW_SIGNAL_HTML_CHANGED   "html-changed"
 #define DW_SIGNAL_HTML_RESULT    "html-result"
+#define DW_SIGNAL_HTML_MESSAGE   "html-message"
 
 /* status of menu items */
 #define DW_MIS_ENABLED           1
@@ -1659,6 +1660,7 @@ typedef enum
     _DW_EVENT_COLUMN_CLICK,             /* Internal message for (container) column clicked */
     _DW_EVENT_HTML_RESULT,              /* Internal message for HTML javascript result */
     _DW_EVENT_HTML_CHANGED,             /* Internal message for HTML status changed */
+    _DW_EVENT_HTML_MESSAGE,             /* Internal message for HTML javascript message */
     _DW_EVENT_MAX
 } _DW_EVENTS;
 #endif
@@ -2235,6 +2237,7 @@ void API dw_html_action(HWND hwnd, int action);
 int API dw_html_raw(HWND hwnd, const char *string);
 int API dw_html_url(HWND hwnd, const char *url);
 int API dw_html_javascript_run(HWND hwnd, const char *script, void *scriptdata);
+int API dw_html_javascript_add(HWND hwnd, const char *name);
 HWND API dw_html_new(unsigned long id);
 char * API dw_clipboard_get_text(void);
 void API dw_clipboard_set_text(const char *str, int len);
