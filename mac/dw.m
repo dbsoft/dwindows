@@ -888,6 +888,7 @@ int _dw_event_handler1(id object, NSEvent *event, int message)
 
                 return htmlchangedfunc(handler->window, DW_POINTER_TO_INT(params[0]), (char *)[uri UTF8String], handler->data);
             }
+#if WK_API_ENABLED
             /* HTML message event */
             case _DW_EVENT_HTML_MESSAGE:
             {
@@ -897,6 +898,7 @@ int _dw_event_handler1(id object, NSEvent *event, int message)
                 return htmlmessagefunc(handler->window, (char *)[[message name] UTF8String], [[message body] isKindOfClass:[NSString class]] ?
                                        (char *)[[message body] UTF8String] : NULL, handler->data);
             }
+#endif
         }
     }
     return -1;
@@ -13467,6 +13469,9 @@ int API dw_feature_get(DWFEATURE feature)
 #endif
         case DW_FEATURE_HTML:
         case DW_FEATURE_HTML_RESULT:
+#if WK_API_ENABLED
+        case DW_FEATURE_HTML_MESSAGE:
+#endif
         case DW_FEATURE_CONTAINER_STRIPE:
         case DW_FEATURE_MLE_WORD_WRAP:
         case DW_FEATURE_UTF8_UNICODE:
@@ -13548,6 +13553,9 @@ int API dw_feature_set(DWFEATURE feature, int state)
 #endif
         case DW_FEATURE_HTML:
         case DW_FEATURE_HTML_RESULT:
+#if WK_API_ENABLED
+        case DW_FEATURE_HTML_MESSAGE:
+#endif
         case DW_FEATURE_CONTAINER_STRIPE:
         case DW_FEATURE_MLE_WORD_WRAP:
         case DW_FEATURE_UTF8_UNICODE:
