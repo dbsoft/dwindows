@@ -306,7 +306,7 @@ export dw_html_action.471
 export dw_html_raw.472
 export dw_html_url.473
 export dw_html_javascript_run.474
-export dw_html_javascript_run.475
+export dw_html_javascript_add.475
 
 export dw_calendar_new.480
 export dw_calendar_set_date.481
