@@ -1616,7 +1616,14 @@ private:
             javascript->Append("window.navigator.userAgent;");
 
             notebookbox->PackStart(rawhtml, 0, 100, TRUE, FALSE, 0);
-            rawhtml->Raw("<html><body><center><h1>dwtest</h1></center></body></html>");
+            rawhtml->JavascriptAdd("test");
+            rawhtml->ConnectMessage([this](std::string name, std::string message) -> int
+            {
+                this->app->MessageBox("Javascript Message", DW_MB_OK | DW_MB_INFORMATION,
+                              "Name: " + name + " Message: " + message);
+                return TRUE;
+            });
+            rawhtml->Raw("<html><body><center><h1><a href=\"javascript:test('This is the message');\">dwtest</a></h1></center></body></html>");
             DW::HTML *html = new DW::HTML();
 
             notebookbox->PackStart(hbox, 0, 0, TRUE, FALSE, 0);
@@ -1682,7 +1689,7 @@ private:
                 return FALSE;
             });
 
-            html->ConnectResult([this](int status, std::string result, void *script_data)
+            html->ConnectResult([this](int status, std::string result, void *script_data) -> int
             {
                 this->app->MessageBox("Javascript Result", DW_MB_OK | (status ? DW_MB_ERROR : DW_MB_INFORMATION),
                               result.size() ? result : "Javascript result is not a string value");

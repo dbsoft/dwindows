@@ -2080,6 +2080,14 @@ int DWSIGNAL web_html_changed(HWND html, int status, char *url, void *data)
     return FALSE;
 }
 
+/* Handle web javascript message */
+int DWSIGNAL web_html_message(HWND html, char *name, char *message, void *data)
+{
+    dw_messagebox("Javascript Message", DW_MB_OK | DW_MB_INFORMATION, "Name: %s Message: %s",
+                  name, message);
+    return TRUE;
+}
+
 void html_add(void)
 {
     rawhtml = dw_html_new(1001);
@@ -2095,7 +2103,9 @@ void html_add(void)
         dw_listbox_append(javascript, "window.navigator.userAgent;");
 
         dw_box_pack_start(notebookbox7, rawhtml, 0, 100, TRUE, FALSE, 0);
-        dw_html_raw(rawhtml, "<html><body><center><h1>dwtest</h1></center></body></html>");
+        dw_html_javascript_add(rawhtml, "test");
+        dw_signal_connect(rawhtml, DW_SIGNAL_HTML_MESSAGE, DW_SIGNAL_FUNC(web_html_message), DW_POINTER(javascript));
+        dw_html_raw(rawhtml, "<html><body><center><h1><a href=\"javascript:test('This is the message');\">dwtest</a></h1></center></body></html>");
         html = dw_html_new(1002);
 
         dw_box_pack_start(notebookbox7, hbox, 0, 0, TRUE, FALSE, 0);
