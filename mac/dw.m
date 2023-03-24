@@ -9514,7 +9514,6 @@ int API dw_html_javascript_add(HWND handle, const char *name)
     return DW_ERROR_UNKNOWN;
 }
 
-
 /*
  * Create a new HTML window (widget) to be packed.
  * Not available under OS/2, eCS

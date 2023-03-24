@@ -106,5 +106,8 @@
 /* Uses WebKit 2 */
 #undef USE_WEBKIT2
 
+/* Uses WebKit 6 */
+#undef USE_WEBKIT6
+
 /* Define to 1 if the X Window System is missing or not being used. */
 #undef X_DISPLAY_MISSING
