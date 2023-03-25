@@ -12859,6 +12859,7 @@ int API dw_feature_get(DWFEATURE feature)
 #endif
 #ifdef USE_WEBKIT2
         case DW_FEATURE_HTML_RESULT:
+        case DW_FEATURE_HTML_MESSAGE:
 #endif
 #if GLIB_CHECK_VERSION(2,40,0)
         case DW_FEATURE_NOTIFICATION:
@@ -12917,6 +12918,7 @@ int API dw_feature_set(DWFEATURE feature, int state)
 #endif
 #ifdef USE_WEBKIT2
         case DW_FEATURE_HTML_RESULT:
+        case DW_FEATURE_HTML_MESSAGE:
 #endif
 #if GLIB_CHECK_VERSION(2,40,0)
         case DW_FEATURE_NOTIFICATION:

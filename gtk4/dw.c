@@ -11441,6 +11441,7 @@ int API dw_feature_get(DWFEATURE feature)
 #ifdef USE_WEBKIT
         case DW_FEATURE_HTML:
         case DW_FEATURE_HTML_RESULT:
+        case DW_FEATURE_HTML_MESSAGE:
 #endif
         case DW_FEATURE_NOTIFICATION:
         case DW_FEATURE_UTF8_UNICODE:
@@ -11475,6 +11476,7 @@ int API dw_feature_set(DWFEATURE feature, int state)
 #ifdef USE_WEBKIT
         case DW_FEATURE_HTML:
         case DW_FEATURE_HTML_RESULT:
+        case DW_FEATURE_HTML_MESSAGE:
 #endif
         case DW_FEATURE_NOTIFICATION:
         case DW_FEATURE_UTF8_UNICODE:
