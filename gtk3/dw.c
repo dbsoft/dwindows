@@ -171,6 +171,7 @@ static gint _dw_tree_expand_event(GtkTreeView *treeview, GtkTreeIter *arg1, GtkT
 static gint _dw_switch_page_event(GtkNotebook *notebook, GtkWidget *page, guint page_num, gpointer data);
 static gint _dw_column_click_event(GtkWidget *widget, gpointer data);
 static void _dw_html_result_event(GObject *object, GAsyncResult *result, gpointer script_data);
+static void _dw_html_message_event(WebKitUserContentManager *manager, WebKitJavascriptResult *result, gpointer *data);
 #ifdef USE_WEBKIT
 #ifdef USE_WEBKIT2
 static void _dw_html_changed_event(WebKitWebView  *web_view, WebKitLoadEvent load_event, gpointer data);
@@ -205,10 +206,8 @@ typedef struct
 
 } DWSignalHandler;
 
-#define SIGNALMAX 20
-
-/* A list of signal forwarders, to account for paramater differences. */
-static DWSignalList DWSignalTranslate[SIGNALMAX] = {
+/* A list of signal forwarders, to account for parameter differences. */
+static DWSignalList DWSignalTranslate[] = {
    { _dw_configure_event,         DW_SIGNAL_CONFIGURE },
    { _dw_key_press_event,         DW_SIGNAL_KEY_PRESS },
    { _dw_button_press_event,      DW_SIGNAL_BUTTON_PRESS },
@@ -232,7 +231,9 @@ static DWSignalList DWSignalTranslate[SIGNALMAX] = {
 #else
    { _dw_generic_event,           DW_SIGNAL_HTML_CHANGED },
 #endif
-   { _dw_html_result_event,       DW_SIGNAL_HTML_RESULT }
+   { _dw_html_result_event,       DW_SIGNAL_HTML_RESULT },
+   { _dw_html_message_event,      DW_SIGNAL_HTML_MESSAGE },
+   { NULL,                        "" }
 };
 
 /* Alignment flags */
@@ -1127,16 +1128,18 @@ static void _dw_msleep(long period)
 }
 
 /* Finds the translation function for a given signal name */
-static void *_dw_findsigfunc(const char *signame)
+static DWSignalList _dw_findsignal(const char *signame)
 {
-   int z;
+   int z=0;
+   static DWSignalList empty = {0};
 
-   for(z=0;z<SIGNALMAX;z++)
+   while(DWSignalTranslate[z].func)
    {
       if(strcasecmp(signame, DWSignalTranslate[z].name) == 0)
-         return DWSignalTranslate[z].func;
+         return DWSignalTranslate[z];
+      z++;
    }
-   return NULL;
+   return empty;
 }
 
 static DWSignalHandler _dw_get_signal_handler(gpointer data)
@@ -1298,6 +1301,68 @@ static void _dw_html_result_event(GObject *object, GAsyncResult *result, gpointe
    _dw_thread = saved_thread;
 #endif
 }
+
+#ifdef USE_WEBKIT2
+static void _dw_html_message_event(WebKitUserContentManager *manager, WebKitJavascriptResult *js_result, gpointer *data)
+{
+    HWND window = (HWND)data[0];
+    int (*htmlmessagefunc)(HWND, char *, char *, void *) = NULL;
+    void *user_data = NULL;
+    gchar *name = (gchar *)data[1];
+    gint handlerdata;
+#if WEBKIT_CHECK_VERSION(2, 22, 0)
+    JSCValue *value;
+#else
+    JSValueRef value;
+    JSGlobalContextRef context;
+#endif
+
+    if(window && (handlerdata = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(window), "_dw_html_message_id"))))
+    {
+        void *params[3] = { GINT_TO_POINTER(handlerdata-1), 0, window };
+        DWSignalHandler work = _dw_get_signal_handler(params);
+
+        if(work.window)
+        {
+            htmlmessagefunc = work.func;
+            user_data = work.data;
+        }
+    }
+
+#if WEBKIT_CHECK_VERSION(2, 22, 0)
+    value = webkit_javascript_result_get_js_value(js_result);
+    if(jsc_value_is_string(value))
+    {
+        gchar *str_value = jsc_value_to_string(value);
+        JSCException *exception = jsc_context_get_exception(jsc_value_get_context(value));
+#else
+    context = webkit_javascript_result_get_global_context(js_result);
+    value = webkit_javascript_result_get_value(js_result);
+    if (JSValueIsString(context, value))
+    {
+        JSStringRef js_str_value;
+        gchar *str_value;
+        gsize str_length;
+
+        js_str_value = JSValueToStringCopy(context, value, NULL);
+        str_length = JSStringGetMaximumUTF8CStringSize(js_str_value);
+        str_value = (gchar *)g_malloc (str_length);
+        JSStringGetUTF8CString(js_str_value, str_value, str_length);
+        JSStringRelease(js_str_value);
+#endif
+
+        if(htmlmessagefunc && !exception)
+            htmlmessagefunc(window, name, str_value, user_data);
+
+        g_free(str_value);
+
+        if(!exception)
+          return;
+    }
+    if(htmlmessagefunc)
+        htmlmessagefunc(window, name, NULL, user_data);
+}
+#endif
 
 #ifdef USE_WEBKIT
 #ifdef USE_WEBKIT2
@@ -11898,6 +11963,60 @@ int dw_html_javascript_run(HWND handle, const char *script, void *scriptdata)
 #endif
 }
 
+/* Free the name when the signal disconnects */
+void _dw_html_message_disconnect(gpointer gdata, GClosure *closure)
+{
+    gpointer *data = (gpointer *)gdata;
+
+    if(data)
+    {
+        gchar *name = (gchar *)data[1];
+
+        if(name)
+            g_free(name);
+        free(data);
+    }
+}
+
+/*
+ * Install a javascript function with name that can call native code.
+ * Parameters:
+ *       handle: Handle to the HTML window.
+ *       name: Javascript function name.
+ * Notes: A DW_SIGNAL_HTML_MESSAGE event will be raised with scriptdata.
+ * Returns:
+ *       DW_ERROR_NONE (0) on success.
+ */
+int API dw_html_javascript_add(HWND handle, const char *name)
+{
+#ifdef USE_WEBKIT2
+   WebKitWebView *web_view= _dw_html_web_view(handle);
+   WebKitUserContentManager *manager;
+
+    if(web_view && (manager = webkit_web_view_get_user_content_manager(web_view)) && name) 
+    {
+        /* Script to inject that will call the handler we are adding */
+        gchar *script = g_strdup_printf("function %s(body) {window.webkit.messageHandlers.%s.postMessage(body);}", 
+                            name, name);
+        gchar *signal = g_strdup_printf("script-message-received::%s", name);
+        WebKitUserScript *userscript = webkit_user_script_new(script, WEBKIT_USER_CONTENT_INJECT_ALL_FRAMES,
+                                                              WEBKIT_USER_SCRIPT_INJECT_AT_DOCUMENT_START, NULL, NULL);
+        gpointer *data = calloc(sizeof(gpointer), 2);
+
+        data[0] = handle;
+        data[1] = g_strdup(name);
+        g_signal_connect_data(manager, signal, G_CALLBACK(_dw_html_message_event), data, _dw_html_message_disconnect, 0);
+        webkit_user_content_manager_register_script_message_handler(manager, name);
+        webkit_user_content_manager_add_script(manager, userscript);
+
+        g_free(script);
+        g_free(signal);
+        return DW_ERROR_NONE;
+    }
+#endif
+    return DW_ERROR_UNKNOWN;
+}
+
 #if defined(USE_WEBKIT) && !defined(USE_WEBKIT2)
 static void _dw_html_print_cb(GtkWidget *widget, gpointer *data)
 {
@@ -12390,7 +12509,8 @@ static void _dw_signal_disconnect(gpointer data, GClosure *closure)
  */
 void dw_signal_connect_data(HWND window, const char *signame, void *sigfunc, void *discfunc, void *data)
 {
-   void *thisfunc  = _dw_findsigfunc(signame);
+   DWSignalList signal = _dw_findsignal(signame);
+   void *thisfunc  = signal.func;
    char *thisname = (char *)signame;
    HWND thiswindow = window;
    int sigid, _dw_locked_by_me = FALSE;
@@ -12433,8 +12553,9 @@ void dw_signal_connect_data(HWND window, const char *signame, void *sigfunc, voi
    }
    else if (GTK_IS_MENU_ITEM(thiswindow) && strcmp(signame, DW_SIGNAL_CLICKED) == 0)
    {
+      DWSignalList signal = _dw_findsignal(signame);
       thisname = "activate";
-      thisfunc = _dw_findsigfunc(thisname);
+      thisfunc = signal.func;
    }
    else if (GTK_IS_TREE_VIEW(thiswindow)  && strcmp(signame, DW_SIGNAL_ITEM_CONTEXT) == 0)
    {
@@ -12477,6 +12598,7 @@ void dw_signal_connect_data(HWND window, const char *signame, void *sigfunc, voi
    }
    else if (GTK_IS_TREE_VIEW(thiswindow) && strcmp(signame, DW_SIGNAL_ITEM_ENTER) == 0)
    {
+      DWSignalList signal = _dw_findsignal(DW_SIGNAL_ITEM_ENTER);
       sigid = _dw_set_signal_handler(thiswindow, window, sigfunc, data, _dw_container_enter_event, discfunc);
       params[0] = GINT_TO_POINTER(sigid);
       params[2] = (void *)thiswindow;
@@ -12486,7 +12608,7 @@ void dw_signal_connect_data(HWND window, const char *signame, void *sigfunc, voi
       params = calloc(sizeof(void *), _DW_INTERNAL_CALLBACK_PARAMS);
 
       thisname = "button_press_event";
-      thisfunc = _dw_findsigfunc(DW_SIGNAL_ITEM_ENTER);
+      thisfunc = signal.func;
    }
    else if (GTK_IS_TREE_VIEW(thiswindow) && strcmp(signame, DW_SIGNAL_COLUMN_CLICK) == 0)
    {
@@ -12545,6 +12667,18 @@ void dw_signal_connect_data(HWND window, const char *signame, void *sigfunc, voi
       DW_MUTEX_UNLOCK;
       return;
    }
+#ifdef USE_WEBKIT2
+   else if (WEBKIT_IS_WEB_VIEW(thiswindow) && strcmp(signame, DW_SIGNAL_HTML_MESSAGE) == 0)
+   {
+      /* We don't actually need a signal handler here... just need to assign the handler ID
+       * Since the handler is created in dw_html_javasript_add()
+       */
+      sigid = _dw_set_signal_handler(thiswindow, window, sigfunc, data, _dw_html_message_event, discfunc);
+      g_object_set_data(G_OBJECT(thiswindow), "_dw_html_message_id", GINT_TO_POINTER(sigid+1));
+      DW_MUTEX_UNLOCK;
+      return;
+   }
+#endif
 #endif
 #if 0
    else if (strcmp(signame, DW_SIGNAL_LOSE_FOCUS) == 0)
@@ -12585,15 +12719,15 @@ void dw_signal_connect_data(HWND window, const char *signame, void *sigfunc, voi
  */
 void dw_signal_disconnect_by_name(HWND window, const char *signame)
 {
+   DWSignalList signal = _dw_findsignal(signame);
+   void *thisfunc = signal.func;
    int z, count;
-   void *thisfunc;
    int _dw_locked_by_me = FALSE;
    void **params = alloca(sizeof(void *) * 3);
 
    DW_MUTEX_LOCK;
    params[2] = _dw_find_signal_window(window, signame);
    count = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(params[2]), "_dw_sigcounter"));
-   thisfunc = _dw_findsigfunc(signame);
 
    for(z=0;z<count;z++)
    {
