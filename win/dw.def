@@ -311,6 +311,7 @@ EXPORTS
   dw_html_raw                            @472
   dw_html_url                            @473
   dw_html_javascript_run                 @474
+  dw_html_javascript_add                 @475
 
   dw_calendar_new                        @480
   dw_calendar_set_date                   @481

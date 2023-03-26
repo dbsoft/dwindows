@@ -9,12 +9,14 @@
 #include "dw.h"
 #include "WebView2.h"
 #include <wrl.h>
+#include <string>
 
 using namespace Microsoft::WRL;
 
 #define _DW_HTML_DATA_NAME "_dw_edge"
 #define _DW_HTML_DATA_LOCATION "_dw_edge_location"
 #define _DW_HTML_DATA_RAW "_dw_edge_raw"
+#define _DW_HTML_DATA_ADD "_dw_edge_add"
 
 extern "C" {
 
@@ -44,6 +46,7 @@ public:
 	int Raw(const char* string);
 	int URL(const char* url);
 	int JavascriptRun(const char* script, void* scriptdata);
+	int JavascriptAdd(const char* name);
 	VOID DoSize(VOID);
 	VOID Setup(HWND hwnd, ICoreWebView2Controller* webview);
 	VOID Close(VOID);
@@ -166,6 +169,32 @@ LRESULT CALLBACK EdgeBrowser::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
 
 									return S_OK;
 								}).Get(), &token);
+								
+						// Register a handler for the WebMessageReceived event.
+						webview->add_WebMessageReceived(
+							Callback<ICoreWebView2WebMessageReceivedEventHandler>(
+								[hWnd](ICoreWebView2* sender,
+									ICoreWebView2WebMessageReceivedEventArgs* args) -> HRESULT
+								{
+									LPWSTR message, name = NULL, body = NULL;
+									args->TryGetWebMessageAsString(&message);
+
+									// Locate the DWindows|<function name>| signature and body
+									if(message && !wcsncmp(message, L"DWindows|", 9)) {
+										name = message + 9;
+										if(*name) {
+											body = wcschr(name, L'|');
+											if(body) {
+												*body = 0;
+												body++;
+											}
+										}
+									}
+									if(name && body)
+										_dw_wndproc(hWnd, WM_USER + 103, (WPARAM)WideToUTF8(name), (LPARAM)WideToUTF8(body));
+
+									return S_OK;
+								}).Get(), &token);
 					}
 
 					// Resize WebView to fit the bounds of the parent window
@@ -186,6 +215,21 @@ LRESULT CALLBACK EdgeBrowser::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
 						WebView->Raw(raw);
 						dw_window_set_data(hWnd, _DW_HTML_DATA_RAW, NULL);
 						free((void*)raw);
+					}
+					char *adds = (char *)dw_window_get_data(hWnd, _DW_HTML_DATA_ADD);
+					if(adds)
+					{
+						char *start = adds, *separator;
+
+						while((separator = strchr(start, '|')))
+						{
+							*separator = 0;
+							WebView->JavascriptAdd(start);
+							start = separator + 1;
+						}
+						WebView->JavascriptAdd(start);
+						dw_window_set_data(hWnd, _DW_HTML_DATA_ADD, NULL);
+						free((void *)adds);
 					}
 					return S_OK;
 				}).Get());
@@ -366,6 +410,21 @@ int EdgeWebView::JavascriptRun(const char* script, void* scriptdata)
 	return DW_ERROR_NONE;
 }
 
+int EdgeWebView::JavascriptAdd(const char* name)
+{
+	if (WebView) {
+		std::wstring wname = std::wstring(UTF8toWide(name));
+		std::wstring script = L"function " + wname + L"(body) {window.chrome.webview.postMessage('DWindows|" + wname + L"|' + body);}";
+		WebView->AddScriptToExecuteOnDocumentCreated(script.c_str(),
+			Callback<ICoreWebView2AddScriptToExecuteOnDocumentCreatedCompletedHandler>(
+					[this](HRESULT error, PCWSTR id) -> HRESULT {
+						return S_OK;
+					}).Get());
+		return DW_ERROR_NONE;
+	}
+	return DW_ERROR_UNKNOWN;
+}
+
 VOID EdgeWebView::Setup(HWND hwnd, ICoreWebView2Controller* host)
 {
 	hWnd = hwnd;
@@ -506,8 +565,12 @@ extern "C" {
 		EdgeWebView* webview = (EdgeWebView*)dw_window_get_data(hwnd, _DW_HTML_DATA_NAME);
 		if (webview)
 			return webview->Raw(string);
-		else
+		else {
+			char *oldstring = (char *)dw_window_get_data(hwnd, _DW_HTML_DATA_RAW);
 			dw_window_set_data(hwnd, _DW_HTML_DATA_RAW, _strdup(string));
+			if(oldstring)
+				free((void *)oldstring);
+		}
 		return DW_ERROR_NONE;
 	}
 
@@ -525,8 +588,12 @@ extern "C" {
 		EdgeWebView* webview = (EdgeWebView*)dw_window_get_data(hwnd, _DW_HTML_DATA_NAME);
 		if (webview)
 			return webview->URL(url);
-		else
+		else {
+			char *oldurl = (char *)dw_window_get_data(hwnd, _DW_HTML_DATA_LOCATION);
 			dw_window_set_data(hwnd, _DW_HTML_DATA_LOCATION, _strdup(url));
+			if(oldurl)
+				free((void *)oldurl);
+		}
 		return DW_ERROR_NONE;
 	}
 
@@ -545,6 +612,38 @@ extern "C" {
 		EdgeWebView* webview = (EdgeWebView*)dw_window_get_data(hwnd, _DW_HTML_DATA_NAME);
 		if (webview)
 			return webview->JavascriptRun(script, scriptdata);
+		return DW_ERROR_UNKNOWN;
+	}
+
+	/******************************* dw_edge_javascript_add() ****************************
+	 * Adds a javascript function in the specified browser context.
+	 *
+	 * hwnd			=	Handle to the window hosting the browser object.
+	 * name			=	Pointer to nul-terminated javascript function name string.
+	 *
+	 * RETURNS: 0 if success, or non-zero if an error.
+	 */
+
+	int _dw_edge_javascript_add(HWND hwnd, const char* name)
+	{
+		if(name) {
+			EdgeWebView* webview = (EdgeWebView*)dw_window_get_data(hwnd, _DW_HTML_DATA_NAME);
+			if (webview)
+				return webview->JavascriptAdd(name);
+			else {
+				char *oldadd = (char *)dw_window_get_data(hwnd, _DW_HTML_DATA_ADD);
+				char *newadd = (char *)calloc(strlen(name) + (oldadd ? strlen(oldadd) : 0) + 2, 1);
+				if(oldadd) {
+					strcpy(newadd, oldadd);
+					strcat(newadd, "|");
+				}
+				strcat(newadd, name);
+				dw_window_set_data(hwnd, _DW_HTML_DATA_ADD, newadd);
+				if(oldadd)
+					free((void *)oldadd);
+				return DW_ERROR_NONE;
+			}
+		}
 		return DW_ERROR_UNKNOWN;
 	}
 
