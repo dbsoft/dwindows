@@ -392,9 +392,7 @@ typedef struct
 static int in_checkbox_handler = 0;
 
 /* List of signals and their equivalent Win32 message */
-#define SIGNALMAX 19
-
-DWSignalList DWSignalTranslate[SIGNALMAX] = {
+DWSignalList DWSignalTranslate[] = {
    { WM_SIZE,         DW_SIGNAL_CONFIGURE },
    { WM_CHAR,         DW_SIGNAL_KEY_PRESS },
    { WM_LBUTTONDOWN,  DW_SIGNAL_BUTTON_PRESS },
@@ -413,7 +411,9 @@ DWSignalList DWSignalTranslate[SIGNALMAX] = {
    { LVN_COLUMNCLICK, DW_SIGNAL_COLUMN_CLICK },
    { TVN_ITEMEXPANDED,DW_SIGNAL_TREE_EXPAND },
    { WM_USER+100,     DW_SIGNAL_HTML_RESULT },
-   { WM_USER+101,     DW_SIGNAL_HTML_CHANGED }
+   { WM_USER+101,     DW_SIGNAL_HTML_CHANGED },
+   { WM_USER+103,     DW_SIGNAL_HTML_MESSAGE },
+   { 0,               "" }
 };
 
 #ifdef BUILD_DLL
@@ -1133,12 +1133,13 @@ void _dw_new_signal(ULONG message, HWND window, int id, void *signalfunction, vo
 /* Finds the message number for a given signal name */
 ULONG _dw_findsigmessage(const char *signame)
 {
-   int z;
+   int z = 0;
 
-   for(z=0;z<SIGNALMAX;z++)
+   while(DWSignalTranslate[z].message)
    {
       if(_stricmp(signame, DWSignalTranslate[z].name) == 0)
          return DWSignalTranslate[z].message;
+      z++;
    }
    return 0L;
 }
@@ -2744,6 +2745,16 @@ LRESULT CALLBACK _dw_wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                         int (DWSIGNAL *clickfunc)(HWND, void *) = tmp->signalfunction;
 
                         return clickfunc(tmp->window, tmp->data);
+                     }
+                  }
+                  break;
+               case WM_USER+103:
+                  {
+                     if(hWnd == tmp->window)
+                     {
+                        int (DWSIGNAL *htmlmessagefunc)(HWND, char *, char *, void *) = tmp->signalfunction;
+
+                        return htmlmessagefunc(tmp->window, (char *)mp1, (char *)mp2, tmp->data);
                      }
                   }
                   break;
@@ -6301,6 +6312,7 @@ void _dw_edge_action(HWND hwnd, int action);
 int _dw_edge_raw(HWND hwnd, const char *string);
 int _dw_edge_url(HWND hwnd, const char *url);
 int _dw_edge_javascript_run(HWND hwnd, const char *script, void *scriptdata);
+int _dw_edge_javascript_add(HWND hwnd, const char *name);
 #endif
 #endif
 
@@ -6387,6 +6399,26 @@ int dw_html_javascript_run(HWND handle, const char *script, void *scriptdata)
 #else
    return DW_ERROR_UNKNOWN;
 #endif
+}
+
+/*
+ * Install a javascript function with name that can call native code.
+ * Parameters:
+ *       handle: Handle to the HTML window.
+ *       name: Javascript function name.
+ * Notes: A DW_SIGNAL_HTML_MESSAGE event will be raised with scriptdata.
+ * Returns:
+ *       DW_ERROR_NONE (0) on success.
+ */
+int API dw_html_javascript_add(HWND handle, const char *name)
+{
+#ifdef BUILD_HTML
+#ifdef BUILD_EDGE
+   if (_DW_EDGE_DETECTED)
+      return _dw_edge_javascript_add(handle, name);
+#endif
+#endif
+   return DW_ERROR_UNKNOWN;
 }
 
 /*
@@ -13937,6 +13969,10 @@ int API dw_feature_get(DWFEATURE feature)
         case DW_FEATURE_TREE:
         case DW_FEATURE_WINDOW_PLACEMENT:
             return DW_FEATURE_ENABLED;
+#if defined(BUILD_HTML) && defined(BUILD_EDGE)
+        case DW_FEATURE_HTML_MESSAGE:
+            return _DW_EDGE_DETECTED ? DW_FEATURE_ENABLED : DW_FEATURE_UNSUPPORTED;
+#endif
 #ifdef BUILD_TOAST
         case DW_FEATURE_NOTIFICATION:
         {
@@ -14023,6 +14059,10 @@ int API dw_feature_set(DWFEATURE feature, int state)
         case DW_FEATURE_TREE:
         case DW_FEATURE_WINDOW_PLACEMENT:
             return DW_ERROR_GENERAL;
+#if defined(BUILD_HTML) && defined(BUILD_EDGE)
+        case DW_FEATURE_HTML_MESSAGE:
+            return _DW_EDGE_DETECTED ? DW_ERROR_GENERAL : DW_FEATURE_UNSUPPORTED;
+#endif
 #ifdef BUILD_TOAST
         case DW_FEATURE_NOTIFICATION:
         {
