@@ -272,7 +272,7 @@ static DWSignalList DWSignalTranslate[] = {
         { _DW_EVENT_HTML_RESULT,    DW_SIGNAL_HTML_RESULT },
         { _DW_EVENT_HTML_CHANGED,   DW_SIGNAL_HTML_CHANGED },
         { _DW_EVENT_HTML_MESSAGE,   DW_SIGNAL_HTML_MESSAGE },
-        { 0,                                    "" }
+        { 0,                        "" }
 };
 
 #define _DW_EVENT_PARAM_SIZE 10
@@ -592,8 +592,7 @@ int _dw_event_handler(jobject object, void **params)
         params[9] = (void *)handler;
 
         /* We have to handle draw events in the main thread...
-         * If it isn't a draw event, either queue the event
-         * or launch a new thread to handle it.
+         * If it isn't a draw event, queue the event.
          */
         if(DW_POINTER_TO_INT(params[8]) != _DW_EVENT_EXPOSE)
         {
@@ -690,6 +689,9 @@ Java_org_dbsoft_dwindows_DWWebViewInterface_eventHandlerHTMLMessage(JNIEnv *env,
                                            DW_POINTER(body ? strdup(body) : nullptr),
                                            nullptr, nullptr, nullptr, nullptr, nullptr,
                                            DW_INT_TO_POINTER(message), nullptr };
+
+    // This seems callback seems to run on an uninitialized thread...
+    pthread_setspecific(_dw_env_key, env);
 
     _dw_event_handler(obj1, params);
     if(name)
