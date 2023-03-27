@@ -40,11 +40,13 @@ import android.util.Base64
 import android.view.*
 import android.view.View.OnTouchListener
 import android.view.inputmethod.EditorInfo
+import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.*
 import android.widget.AdapterView.OnItemClickListener
 import android.widget.SeekBar.OnSeekBarChangeListener
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.AppCompatEditText
@@ -1495,6 +1497,7 @@ object DWEvent {
     const val COLUMN_CLICK = 17
     const val HTML_RESULT = 18
     const val HTML_CHANGED = 19
+    const val HTML_MESSAGE = 20
 }
 
 val DWImageExts = arrayOf("", ".png", ".webp", ".jpg", ".jpeg", ".gif")
@@ -1524,6 +1527,8 @@ class DWTabViewPagerAdapter : RecyclerView.Adapter<DWTabViewPagerAdapter.DWEvent
 }
 
 private class DWWebViewClient : WebViewClient() {
+    val HTMLAdds = mutableListOf<String>()
+
     //Implement shouldOverrideUrlLoading//
     @Deprecated("Deprecated in Java")
     override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
@@ -1537,11 +1542,25 @@ private class DWWebViewClient : WebViewClient() {
     }
 
     override fun onPageFinished(view: WebView, url: String) {
+        // Inject the functions on the page on complete
+        HTMLAdds.forEach { e -> view.loadUrl("javascript:function $e(body) { DWindows.postMessage($e, body) }") }
+
         // Handle the DW_HTML_CHANGE_COMPLETE event
         eventHandlerHTMLChanged(view, DWEvent.HTML_CHANGED, url, 4)
     }
 
     external fun eventHandlerHTMLChanged(obj1: View, message: Int, URI: String, status: Int)
+}
+
+class DWWebViewInterface internal constructor(var view: View) {
+    /* Show a toast from the web page  */
+    @JavascriptInterface
+    fun postMessage(name: String?, body: String?) {
+        // Handle the DW_HTML_CHANGE_COMPLETE event
+        eventHandlerHTMLMessage(view, DWEvent.HTML_CHANGED, name, body)
+    }
+
+    external fun eventHandlerHTMLMessage(obj1: View, message: Int, hmltName: String?, htmlBody: String?)
 }
 
 class DWPrintDocumentAdapter : PrintDocumentAdapter()
@@ -4740,6 +4759,7 @@ class DWindows : AppCompatActivity() {
             // Configure a few settings to make it behave as we expect
             html!!.webViewClient = DWWebViewClient()
             html!!.settings.javaScriptEnabled = true
+            html!!.addJavascriptInterface(DWWebViewInterface(html!!), "DWindows");
         }
         return html
     }
@@ -4766,6 +4786,14 @@ class DWindows : AppCompatActivity() {
                 // Execute onReceiveValue's code
                 eventHandlerHTMLResult(html, DWEvent.HTML_RESULT, value, data)
             }
+        }
+    }
+
+    fun htmlJavascriptAdd(html: WebView, name: String)
+    {
+        waitOnUiThread {
+            val client = html.webViewClient as DWWebViewClient
+            client.HTMLAdds += name
         }
     }
 
