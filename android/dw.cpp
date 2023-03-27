@@ -5229,7 +5229,7 @@ int API dw_html_raw(HWND handle, const char *string)
     JNIEnv *env;
     int retval = DW_ERROR_GENERAL;
 
-    if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    if(handle && string && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
         // Construct a String
         jstring jstr = env->NewStringUTF(string);
@@ -5261,7 +5261,7 @@ int API dw_html_url(HWND handle, const char *url)
     JNIEnv *env;
     int retval = DW_ERROR_GENERAL;
 
-    if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    if(handle && url && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
         // Construct a String
         jstring jstr = env->NewStringUTF(url);
@@ -5294,7 +5294,7 @@ int API dw_html_javascript_run(HWND handle, const char *script, void *scriptdata
     JNIEnv *env;
     int retval = DW_ERROR_GENERAL;
 
-    if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    if(handle && script && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
         // Construct a String
         jstring jstr = env->NewStringUTF(script);
@@ -6190,11 +6190,11 @@ int API dw_window_destroy(HWND handle)
 char * API dw_window_get_text(HWND handle)
 {
     JNIEnv *env;
+    char *retval = nullptr;
 
     if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
         const char *utf8 = nullptr;
-        char *retval = nullptr;
 
         // First get the class that contains the method you need to call
         jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
@@ -6212,7 +6212,7 @@ char * API dw_window_get_text(HWND handle)
             env->ReleaseStringUTFChars(result, utf8);
         }
     }
-    return nullptr;
+    return retval;
 }
 
 /*
