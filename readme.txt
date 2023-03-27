@@ -1,4 +1,4 @@
-This is a stable release of Dynamic Windows version 3.3.
+This is a stable release of Dynamic Windows version 3.4.
 
 The current Dynamic Windows source base is considered stable on:
 OS/2, Mac, Windows, Linux, FreeBSD, OpenSolaris and iOS.
@@ -65,33 +65,14 @@ and packed it is completely safe to operate on widgets.  If you choose
 to operate on widgets before setup and/or packing, then it depends 
 on the platform if it will work or not.
 
-Changes from version 3.2:
-WARNING: Fixed an API inconsistency in dw_notebook_page_destroy/set().
-    The page ID had been unsigned int when it should be unsigned long.
-    On some platforms apps compiled for versions prior to 3.3 may
-    malfunction when calling these API calls, so recompile with 3.3.
-Added tree widget/control support for iOS and Android.
-Removed the lib and dll directories previously used on Windows and OS/2.
-    On Windows x86 and x64 subdirectories are created automatically
-    This allows platform specific versions to be accessible without a 
-    rebuild. Also removed the DWDLLDIR variable on Windows. If you have
-    DWLIBDIR pointing to the "lib" subdirectory please remove "\lib".
-Added DW_FEATURE_CONTAINER_MODE on Mobile platforms: iOS and Android.
-    DW_CONTAINER_MODE_DEFAULT: Minimal container; icon and text only.
-    DW_CONTAINER_MODE_EXTRA: Extra columns displayed on a second line.
-    DW_CONTAINER_MODE_MULTI: A separate clickable line for each column.
-Added return values to several functions previously returning void.
-    Previous code should just be able to ignore the new return values.
-    Currently affected: dw_window_set_bitmap(_from_data)
-Added C++ language bindings in dw.hpp and an example C++ test
-    application in the form of dwtestoo.cpp, similar to godwindows.
-Added variadic versions of dw_debug() and dw_messagebox().
-    This is how the standard library does it so we can call the new
-    va_list versions from C++: dw_vdebug() and dw_vmessagebox().
-Added dw_pixmap_get_height() and dw_pixmap_get_width() APIs to
-    replace the DW_PIXMAP_HEIGHT() and DW_PIXMAP_WIDTH() macros.
-    This allows non-C bindings to call them directly.
-Added support for MacOS 13 Ventura and iOS 16.
+Changes from version 3.3:
+Pushed up the Android requirements to Android 8 (API 26 Oreo).
+Added dw_html_javascript_add() and DW_SIGNAL_HTML_MESSAGE.
+    This allows HTML embedded javascript to call into native code.
+    Supported on Windows, Mac, GTK3/4, iOS and Android.
+    Windows 7+ with Edge WebView2. MacOS 10.10+.
+    GTK3/4 with WebKitGTK 2 or higher.
+    iOS and Android, all supported versions.
 
 Dynamic Windows Documentation is available at:
 

@@ -8202,6 +8202,7 @@ int API dw_feature_get(DWFEATURE feature)
     {
         case DW_FEATURE_HTML:                    /* Supports the HTML Widget */
         case DW_FEATURE_HTML_RESULT:             /* Supports the DW_SIGNAL_HTML_RESULT callback */
+        case DW_FEATURE_HTML_MESSAGE:            /* Supports the DW_SIGNAL_HTML_MESSAGE callback */
         case DW_FEATURE_NOTIFICATION:            /* Supports sending system notifications */
         case DW_FEATURE_UTF8_UNICODE:            /* Supports UTF8 encoded Unicode text */
         case DW_FEATURE_MLE_WORD_WRAP:           /* Supports word wrapping in Multi-line Edit boxes */
@@ -8243,6 +8244,7 @@ int API dw_feature_set(DWFEATURE feature, int state)
         /* These features are supported but not configurable */
         case DW_FEATURE_HTML:                    /* Supports the HTML Widget */
         case DW_FEATURE_HTML_RESULT:             /* Supports the DW_SIGNAL_HTML_RESULT callback */
+        case DW_FEATURE_HTML_MESSAGE:            /* Supports the DW_SIGNAL_HTML_MESSAGE callback */
         case DW_FEATURE_NOTIFICATION:            /* Supports sending system notifications */
         case DW_FEATURE_UTF8_UNICODE:            /* Supports UTF8 encoded Unicode text */
         case DW_FEATURE_MLE_WORD_WRAP:           /* Supports word wrapping in Multi-line Edit boxes */
