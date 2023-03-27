@@ -1543,7 +1543,7 @@ private class DWWebViewClient : WebViewClient() {
 
     override fun onPageFinished(view: WebView, url: String) {
         // Inject the functions on the page on complete
-        HTMLAdds.forEach { e -> view.loadUrl("javascript:function $e(body) { DWindows.postMessage($e, body) }") }
+        HTMLAdds.forEach { e -> view.loadUrl("javascript:function $e(body) { DWindows.postMessage('$e', body) }") }
 
         // Handle the DW_HTML_CHANGE_COMPLETE event
         eventHandlerHTMLChanged(view, DWEvent.HTML_CHANGED, url, 4)
@@ -1556,8 +1556,8 @@ class DWWebViewInterface internal constructor(var view: View) {
     /* Show a toast from the web page  */
     @JavascriptInterface
     fun postMessage(name: String?, body: String?) {
-        // Handle the DW_HTML_CHANGE_COMPLETE event
-        eventHandlerHTMLMessage(view, DWEvent.HTML_CHANGED, name, body)
+        // Handle the DW_HTML_MESSAGE event
+        eventHandlerHTMLMessage(view, DWEvent.HTML_MESSAGE, name, body)
     }
 
     external fun eventHandlerHTMLMessage(obj1: View, message: Int, hmltName: String?, htmlBody: String?)
