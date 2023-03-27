@@ -83,7 +83,7 @@ Android Studio
     "Package name" with "org.dbsoft.dwindows"
     "Save location" can be the default
     "Language" select "Kotlin"
-    "Minimum SDK" select "API 23: Android 6.0 (Marshmallow)"
+    "Minimum SDK" select "API 26: Android 8.0 (Oreo)"
     click "Next"
 4.  Select "Toolchain Default" and click "Finish"
 
