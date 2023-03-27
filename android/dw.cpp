@@ -5,7 +5,7 @@
  * (C) 2011-2023 Brian Smith <brian@dbsoft.org>
  * (C) 2011-2022 Mark Hessling <mark@rexx.org>
  *
- * Requires Android API 23 (Marshmallow) or higher.
+ * Requires Android API 26 (Oreo) or higher.
  *
  */
 
@@ -251,9 +251,7 @@ typedef struct
 } DWSignalList;
 
 /* List of signals */
-#define SIGNALMAX 19
-
-static DWSignalList DWSignalTranslate[SIGNALMAX] = {
+static DWSignalList DWSignalTranslate[] = {
         { _DW_EVENT_CONFIGURE,      DW_SIGNAL_CONFIGURE },
         { _DW_EVENT_KEY_PRESS,      DW_SIGNAL_KEY_PRESS },
         { _DW_EVENT_BUTTON_PRESS,   DW_SIGNAL_BUTTON_PRESS },
@@ -272,7 +270,9 @@ static DWSignalList DWSignalTranslate[SIGNALMAX] = {
         { _DW_EVENT_TREE_EXPAND,    DW_SIGNAL_TREE_EXPAND },
         { _DW_EVENT_COLUMN_CLICK,   DW_SIGNAL_COLUMN_CLICK },
         { _DW_EVENT_HTML_RESULT,    DW_SIGNAL_HTML_RESULT },
-        { _DW_EVENT_HTML_CHANGED,   DW_SIGNAL_HTML_CHANGED }
+        { _DW_EVENT_HTML_CHANGED,   DW_SIGNAL_HTML_CHANGED },
+        { _DW_EVENT_HTML_MESSAGE,   DW_SIGNAL_HTML_MESSAGE },
+        { 0,                                    "" }
 };
 
 #define _DW_EVENT_PARAM_SIZE 10
@@ -475,6 +475,20 @@ int _dw_event_handler2(void **params)
                     free(uri);
                 break;
             }
+                /* HTML message event */
+            case _DW_EVENT_HTML_MESSAGE:
+            {
+                int (* API htmlmessagefunc)(HWND, char *, char *, void *) = (int (* API)(HWND, char *, char *, void *))handler->signalfunction;
+                char *name = (char *)params[1];
+                char *body = (char *)params[2];
+
+                retval = htmlmessagefunc(handler->window, name, body, handler->data);
+                if(name)
+                    free(name);
+                if(body)
+                    free(body);
+                break;
+            }
         }
     }
     return retval;
@@ -665,6 +679,25 @@ Java_org_dbsoft_dwindows_DWWebViewClient_eventHandlerHTMLChanged(JNIEnv* env, jo
     if(uri)
         env->ReleaseStringUTFChars(URI, uri);
 }
+
+JNIEXPORT void JNICALL
+Java_org_dbsoft_dwindows_DWWebViewInterface_eventHandlerHTMLMessage(JNIEnv *env, jobject thiz,
+                                                                    jobject obj1, jint message,
+                                                                    jstring htmlName, jstring htmlBody) {
+    const char *name = env->GetStringUTFChars(htmlName, nullptr);
+    const char *body = env->GetStringUTFChars(htmlBody, nullptr);
+    void *params[_DW_EVENT_PARAM_SIZE] = { nullptr, DW_POINTER(name ? strdup(name) : nullptr),
+                                           DW_POINTER(body ? strdup(body) : nullptr),
+                                           nullptr, nullptr, nullptr, nullptr, nullptr,
+                                           DW_INT_TO_POINTER(message), nullptr };
+
+    _dw_event_handler(obj1, params);
+    if(name)
+        env->ReleaseStringUTFChars(htmlName, name);
+    if(body)
+        env->ReleaseStringUTFChars(htmlBody, body);
+}
+
 
 typedef struct _dwprint
 {
@@ -885,12 +918,13 @@ void _dw_new_signal(ULONG message, HWND window, int msgid, void *signalfunction,
 /* Finds the message number for a given signal name */
 ULONG _dw_findsigmessage(const char *signame)
 {
-    int z;
+    int z = 0;
 
-    for(z=0;z<SIGNALMAX;z++)
+    while(DWSignalTranslate[z].message)
     {
         if(strcasecmp(signame, DWSignalTranslate[z].name) == 0)
             return DWSignalTranslate[z].message;
+        z++;
     }
     return 0L;
 }
@@ -5269,6 +5303,38 @@ int API dw_html_javascript_run(HWND handle, const char *script, void *scriptdata
                                                        "(Landroid/webkit/WebView;Ljava/lang/String;J)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, htmlJavascriptRun, handle, jstr, (jlong)scriptdata);
+        if(!_dw_jni_check_exception(env))
+            retval = DW_ERROR_NONE;
+        env->DeleteLocalRef(jstr);
+    }
+    return retval;
+}
+
+/*
+ * Install a javascript function with name that can call native code.
+ * Parameters:
+ *       handle: Handle to the HTML window.
+ *       name: Javascript function name.
+ * Notes: A DW_SIGNAL_HTML_MESSAGE event will be raised with scriptdata.
+ * Returns:
+ *       DW_ERROR_NONE (0) on success.
+ */
+int API dw_html_javascript_add(HWND handle, const char *name)
+{
+    JNIEnv *env;
+    int retval = DW_ERROR_UNKNOWN;
+
+    if(handle && name && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // Construct a String
+        jstring jstr = env->NewStringUTF(name);
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID htmlJavascriptAdd = env->GetMethodID(clazz, "htmlJavascriptAdd",
+                                                       "(Landroid/webkit/WebView;Ljava/lang/String;)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, htmlJavascriptAdd, handle, jstr);
         if(!_dw_jni_check_exception(env))
             retval = DW_ERROR_NONE;
         env->DeleteLocalRef(jstr);
