@@ -171,9 +171,9 @@ static gint _dw_tree_expand_event(GtkTreeView *treeview, GtkTreeIter *arg1, GtkT
 static gint _dw_switch_page_event(GtkNotebook *notebook, GtkWidget *page, guint page_num, gpointer data);
 static gint _dw_column_click_event(GtkWidget *widget, gpointer data);
 static void _dw_html_result_event(GObject *object, GAsyncResult *result, gpointer script_data);
-static void _dw_html_message_event(WebKitUserContentManager *manager, WebKitJavascriptResult *result, gpointer *data);
 #ifdef USE_WEBKIT
 #ifdef USE_WEBKIT2
+static void _dw_html_message_event(WebKitUserContentManager *manager, WebKitJavascriptResult *result, gpointer *data);
 static void _dw_html_changed_event(WebKitWebView  *web_view, WebKitLoadEvent load_event, gpointer data);
 #else
 static void _dw_html_changed_event(WebKitWebView  *web_view, WebKitWebFrame *frame, gpointer user_data);
@@ -232,7 +232,9 @@ static DWSignalList DWSignalTranslate[] = {
    { _dw_generic_event,           DW_SIGNAL_HTML_CHANGED },
 #endif
    { _dw_html_result_event,       DW_SIGNAL_HTML_RESULT },
+#ifdef USE_WEBKIT2
    { _dw_html_message_event,      DW_SIGNAL_HTML_MESSAGE },
+#endif
    { NULL,                        "" }
 };
 
