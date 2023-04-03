@@ -7,6 +7,12 @@
  *
  */
 
+/* Check that the compiler can support AEROGLASS */
+#if defined(_MSC_VER) && _MSC_VER < 1600 && defined(AEROGLASS)
+#pragma message ( "WARNING: Disabling AEROGLASS support, upgrade to Visual C 2010 and Windows XP." )
+#undef AEROGLASS
+#endif
+
 #ifdef AEROGLASS
 #define _WIN32_IE 0x0501
 #define WINVER 0x501

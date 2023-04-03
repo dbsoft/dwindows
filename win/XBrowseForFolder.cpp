@@ -32,6 +32,11 @@
 /* Make sure we get the right version */
 #define _WIN32_IE 0x0500
 
+/* Check that the compiler can support AEROGLASS */
+#if defined(_MSC_VER) && _MSC_VER < 1600 && defined(AEROGLASS)
+#undef AEROGLASS
+#endif
+
 #ifndef __AFX_H__
 #include <windows.h>
 #include <tchar.h>
