@@ -4310,7 +4310,7 @@ void API dw_free(void *ptr)
  * current user directory.  Or the root directory (C:\ on
  * OS/2 and Windows).
  */
-char *dw_user_dir(void)
+char * API dw_user_dir(void)
 {
     static char _user_dir[PATH_MAX+1] = { 0 };
 
@@ -4351,7 +4351,7 @@ char * API dw_app_dir(void)
  *          The appname is only required on Windows.  If NULL is passed the detected
  *          application name will be used, but a prettier name may be desired.
  */
-int dw_app_id_set(const char *appid, const char *appname)
+int API dw_app_id_set(const char *appid, const char *appname)
 {
     strncpy(_dw_app_id, appid, _DW_APP_ID_SIZE);
     return DW_ERROR_NONE;
@@ -4687,7 +4687,7 @@ char * API dw_file_browse(const char *title, const char *defpath, const char *ex
  *       Pointer to an allocated string of text or NULL if clipboard empty or contents could not
  *       be converted to text.
  */
-char *dw_clipboard_get_text()
+char * API dw_clipboard_get_text(void)
 {
     NSPasteboard *pasteboard = [NSPasteboard generalPasteboard];
     NSString *str = [pasteboard stringForType:DWPasteboardTypeString];
@@ -4703,7 +4703,7 @@ char *dw_clipboard_get_text()
  * Parameters:
  *       Text.
  */
-void dw_clipboard_set_text(const char *str, int len)
+void API dw_clipboard_set_text(const char *str, int len)
 {
     NSPasteboard *pasteboard = [NSPasteboard generalPasteboard];
     SEL scc = NSSelectorFromString(@"clearContents");
@@ -9343,7 +9343,7 @@ HWND API dw_calendar_new(ULONG cid)
  *       handle: The handle to the calendar returned by dw_calendar_new().
  *       year...
  */
-void dw_calendar_set_date(HWND handle, unsigned int year, unsigned int month, unsigned int day)
+void API dw_calendar_set_date(HWND handle, unsigned int year, unsigned int month, unsigned int day)
 {
     DWCalendar *calendar = handle;
     NSDate *date;
@@ -9366,7 +9366,7 @@ void dw_calendar_set_date(HWND handle, unsigned int year, unsigned int month, un
  * Parameters:
  *       handle: The handle to the calendar returned by dw_calendar_new().
  */
-void dw_calendar_get_date(HWND handle, unsigned int *year, unsigned int *month, unsigned int *day)
+void API dw_calendar_get_date(HWND handle, unsigned int *year, unsigned int *month, unsigned int *day)
 {
     DWCalendar *calendar = handle;
     DW_LOCAL_POOL_IN;
@@ -9463,7 +9463,7 @@ int API dw_html_url(HWND handle, const char *url)
  * Returns:
  *       DW_ERROR_NONE (0) on success.
  */
-int dw_html_javascript_run(HWND handle, const char *script, void *scriptdata)
+int API dw_html_javascript_run(HWND handle, const char *script, void *scriptdata)
 {
     DWWebView *html = handle;
     DW_LOCAL_POOL_IN;
@@ -11408,7 +11408,7 @@ unsigned long API dw_color_depth_get(void)
  *          This will create a system notification that will show in the notifaction panel
  *          on supported systems, which may be clicked to perform another task.
  */
-HWND dw_notification_new(const char *title, const char *imagepath, const char *description, ...)
+HWND API dw_notification_new(const char *title, const char *imagepath, const char *description, ...)
 {
 #ifdef BUILDING_FOR_MOUNTAIN_LION
     char outbuf[1025] = {0};
@@ -11481,7 +11481,7 @@ HWND dw_notification_new(const char *title, const char *imagepath, const char *d
  * Returns:
  *         DW_ERROR_NONE on success, DW_ERROR_UNKNOWN on error or not supported.
  */
-int dw_notification_send(HWND notification)
+int API dw_notification_send(HWND notification)
 {
 #ifdef BUILDING_FOR_MOUNTAIN_LION
     if(notification)
@@ -11523,7 +11523,7 @@ int dw_notification_send(HWND notification)
  * Parameters:
  *       env: Pointer to a DWEnv struct.
  */
-void dw_environment_query(DWEnv *env)
+void API dw_environment_query(DWEnv *env)
 {
     memset(env, '\0', sizeof(DWEnv));
     strcpy(env->osName, "MacOS");
@@ -11667,7 +11667,7 @@ int _dw_remove_userdata(UserData **root, const char *varname, int all)
  *       dataname: A string pointer identifying which signal to be hooked.
  *       data: User data to be passed to the handler function.
  */
-void dw_window_set_data(HWND window, const char *dataname, void *data)
+void API dw_window_set_data(HWND window, const char *dataname, void *data)
 {
     id object = window;
     if([object isMemberOfClass:[DWWindow class]])
@@ -11722,7 +11722,7 @@ void dw_window_set_data(HWND window, const char *dataname, void *data)
  *       dataname: A string pointer identifying which signal to be hooked.
  *       data: User data to be passed to the handler function.
  */
-void *dw_window_get_data(HWND window, const char *dataname)
+void * API dw_window_get_data(HWND window, const char *dataname)
 {
     id object = window;
     if([object isMemberOfClass:[DWWindow class]])
@@ -12041,7 +12041,7 @@ void _dw_my_strlwr(char *buf)
  *         handle: Pointer to a module handle,
  *                 will be filled in with the handle.
  */
-int dw_module_load(const char *name, HMOD *handle)
+int API dw_module_load(const char *name, HMOD *handle)
 {
    int len;
    char *newname;
@@ -12084,7 +12084,7 @@ int dw_module_load(const char *name, HMOD *handle)
  *         func: A pointer to a function pointer, to obtain
  *               the address.
  */
-int dw_module_symbol(HMOD handle, const char *name, void**func)
+int API dw_module_symbol(HMOD handle, const char *name, void**func)
 {
    if(!func || !name)
       return   -1;
@@ -12100,7 +12100,7 @@ int dw_module_symbol(HMOD handle, const char *name, void**func)
  * Parameters:
  *         handle: Module handle returned by dw_module_load()
  */
-int dw_module_close(HMOD handle)
+int API dw_module_close(HMOD handle)
 {
    if(handle)
       return dlclose(handle);
@@ -12110,7 +12110,7 @@ int dw_module_close(HMOD handle)
 /*
  * Returns the handle to an unnamed mutex semaphore.
  */
-HMTX dw_mutex_new(void)
+HMTX API dw_mutex_new(void)
 {
     HMTX mutex = malloc(sizeof(pthread_mutex_t));
 
@@ -12123,7 +12123,7 @@ HMTX dw_mutex_new(void)
  * Parameters:
  *       mutex: The handle to the mutex returned by dw_mutex_new().
  */
-void dw_mutex_close(HMTX mutex)
+void API dw_mutex_close(HMTX mutex)
 {
    if(mutex)
    {
@@ -12137,7 +12137,7 @@ void dw_mutex_close(HMTX mutex)
  * Parameters:
  *       mutex: The handle to the mutex returned by dw_mutex_new().
  */
-void dw_mutex_lock(HMTX mutex)
+void API dw_mutex_lock(HMTX mutex)
 {
     /* We need to handle locks from the main thread differently...
      * since we can't stop message processing... otherwise we
@@ -12180,7 +12180,7 @@ int API dw_mutex_trylock(HMTX mutex)
  * Parameters:
  *       mutex: The handle to the mutex returned by dw_mutex_new().
  */
-void dw_mutex_unlock(HMTX mutex)
+void API dw_mutex_unlock(HMTX mutex)
 {
    pthread_mutex_unlock(mutex);
 }
@@ -12188,7 +12188,7 @@ void dw_mutex_unlock(HMTX mutex)
 /*
  * Returns the handle to an unnamed event semaphore.
  */
-HEV dw_event_new(void)
+HEV API dw_event_new(void)
 {
    HEV eve = (HEV)malloc(sizeof(struct _dw_unix_event));
 
@@ -12215,7 +12215,7 @@ HEV dw_event_new(void)
  * Parameters:
  *       eve: The handle to the event returned by dw_event_new().
  */
-int dw_event_reset (HEV eve)
+int API dw_event_reset(HEV eve)
 {
    if(!eve)
       return DW_ERROR_NON_INIT;
@@ -12234,7 +12234,7 @@ int dw_event_reset (HEV eve)
  * Parameters:
  *       eve: The handle to the event returned by dw_event_new().
  */
-int dw_event_post (HEV eve)
+int API dw_event_post(HEV eve)
 {
    if(!eve)
       return FALSE;
@@ -12252,7 +12252,7 @@ int dw_event_post (HEV eve)
  * Parameters:
  *       eve: The handle to the event returned by dw_event_new().
  */
-int dw_event_wait(HEV eve, unsigned long timeout)
+int API dw_event_wait(HEV eve, unsigned long timeout)
 {
     int rc;
 
@@ -12292,7 +12292,7 @@ int dw_event_wait(HEV eve, unsigned long timeout)
  * Parameters:
  *       eve: The handle to the event returned by dw_event_new().
  */
-int dw_event_close(HEV *eve)
+int API dw_event_close(HEV *eve)
 {
    if(!eve || !(*eve))
       return DW_ERROR_NON_INIT;
@@ -12471,7 +12471,7 @@ static void _dw_handle_sem(int *tmpsock)
  *         name: Name given to semaphore which can be opened
  *               by other processes.
  */
-HEV dw_named_event_new(const char *name)
+HEV API dw_named_event_new(const char *name)
 {
     struct sockaddr_un un;
     int ev, *tmpsock = (int *)malloc(sizeof(int)*2);
@@ -12532,7 +12532,7 @@ HEV dw_named_event_new(const char *name)
  *         name: Name given to semaphore which can be opened
  *               by other processes.
  */
-HEV dw_named_event_get(const char *name)
+HEV API dw_named_event_get(const char *name)
 {
     struct sockaddr_un un;
     HEV eve;
@@ -12563,7 +12563,7 @@ HEV dw_named_event_get(const char *name)
  *         eve: Handle to the semaphore obtained by
  *              an open or create call.
  */
-int dw_named_event_reset(HEV eve)
+int API dw_named_event_reset(HEV eve)
 {
    /* signal reset */
    char tmp = (char)0;
@@ -12582,7 +12582,7 @@ int dw_named_event_reset(HEV eve)
  *         eve: Handle to the semaphore obtained by
  *              an open or create call.
  */
-int dw_named_event_post(HEV eve)
+int API dw_named_event_post(HEV eve)
 {
 
    /* signal post */
@@ -12604,7 +12604,7 @@ int dw_named_event_post(HEV eve)
  *         timeout: Number of milliseconds before timing out
  *                  or -1 if indefinite.
  */
-int dw_named_event_wait(HEV eve, unsigned long timeout)
+int API dw_named_event_wait(HEV eve, unsigned long timeout)
 {
    fd_set rd;
    struct timeval tv, *useme = NULL;
@@ -12654,7 +12654,7 @@ int dw_named_event_wait(HEV eve, unsigned long timeout)
  *         eve: Handle to the semaphore obtained by
  *              an open or create call.
  */
-int dw_named_event_close(HEV eve)
+int API dw_named_event_close(HEV eve)
 {
    /* Finally close the domain socket,
     * cleanup will continue in _dw_handle_sem.
@@ -12901,7 +12901,7 @@ int API dw_init(int newthread, int argc, char *argv[])
  *         size: Size in bytes of the shared memory region to allocate.
  *         name: A string pointer to a unique memory name.
  */
-HSHM dw_named_memory_new(void **dest, int size, const char *name)
+HSHM API dw_named_memory_new(void **dest, int size, const char *name)
 {
    char namebuf[1025] = {0};
    struct _dw_unix_shm *handle = malloc(sizeof(struct _dw_unix_shm));
@@ -12942,7 +12942,7 @@ HSHM dw_named_memory_new(void **dest, int size, const char *name)
  *         size: Size in bytes of the shared memory region to requested.
  *         name: A string pointer to a unique memory name.
  */
-HSHM dw_named_memory_get(void **dest, int size, const char *name)
+HSHM API dw_named_memory_get(void **dest, int size, const char *name)
 {
    char namebuf[1025];
    struct _dw_unix_shm *handle = malloc(sizeof(struct _dw_unix_shm));
@@ -12980,7 +12980,7 @@ HSHM dw_named_memory_get(void **dest, int size, const char *name)
  *         handle: Handle obtained from DB_named_memory_allocate.
  *         ptr: The memory address aquired with DB_named_memory_allocate.
  */
-int dw_named_memory_free(HSHM handle, void *ptr)
+int API dw_named_memory_free(HSHM handle, void *ptr)
 {
    struct _dw_unix_shm *h = handle;
    int rc = munmap(ptr, h->size);
@@ -13005,7 +13005,7 @@ int dw_named_memory_free(HSHM handle, void *ptr)
  *       data: Parameter(s) passed to the function.
  *       stack: Stack size of new thread (OS/2 and Windows only).
  */
-DWTID dw_thread_new(void *func, void *data, int stack)
+DWTID API dw_thread_new(void *func, void *data, int stack)
 {
     DWTID thread;
     void **tmp = malloc(sizeof(void *) * 2);
@@ -13023,7 +13023,7 @@ DWTID dw_thread_new(void *func, void *data, int stack)
 /*
  * Ends execution of current thread immediately.
  */
-void dw_thread_end(void)
+void API dw_thread_end(void)
 {
    pthread_exit(NULL);
 }
@@ -13031,7 +13031,7 @@ void dw_thread_end(void)
 /*
  * Returns the current thread's ID.
  */
-DWTID dw_thread_id(void)
+DWTID API dw_thread_id(void)
 {
    return (DWTID)pthread_self();
 }
@@ -13218,7 +13218,7 @@ int dw_exec(const char *program, int type, char **params)
  * Parameters:
  *       url: Uniform resource locator.
  */
-int dw_browse(const char *url)
+int API dw_browse(const char *url)
 {
     NSURL *myurl = [NSURL URLWithString:[NSString stringWithUTF8String:url]];
     [[NSWorkspace sharedWorkspace] openURL:myurl];
@@ -13371,11 +13371,11 @@ int API dw_print_run(HPRINT print, unsigned long flags)
         {
            /* Internal representation is flipped... so flip again so we can print */
            _dw_flip_image(image, rep2, size);
-   #ifdef DEBUG_PRINT
+#ifdef DEBUG_PRINT
            /* Save it to file to see what we have */
            NSData *data = [rep2 representationUsingType: NSPNGFileType properties: nil];
            [data writeToFile: @"print.png" atomically: NO];
-   #endif
+#endif
            /* Print the image view */
            [po runOperation];
            /* Fill the pixmap with white in case we are printing more pages */
