@@ -1623,7 +1623,9 @@ private:
                               "Name: " + name + " Message: " + message);
                 return TRUE;
             });
-            rawhtml->Raw("<html><body><center><h1><a href=\"javascript:test('This is the message');\">dwtest</a></h1></center></body></html>");
+            rawhtml->Raw(dw_feature_get(DW_FEATURE_HTML_MESSAGE) == DW_FEATURE_ENABLED ?
+                         "<html><body><center><h1><a href=\"javascript:test('This is the message');\">dwtest</a></h1></center></body></html>" :
+                         "<html><body><center><h1>dwtest</h1></center></body></html>");
             DW::HTML *html = new DW::HTML();
 
             notebookbox->PackStart(hbox, 0, 0, TRUE, FALSE, 0);
