@@ -1228,7 +1228,9 @@ static void _dw_html_result_event(GObject *object, GAsyncResult *result, gpointe
 {
 #if USE_WEBKIT2
     pthread_t saved_thread = _dw_thread;
+#if !WEBKIT_CHECK_VERSION(2, 40, 0)
     WebKitJavascriptResult *js_result;
+#endif
 #if WEBKIT_CHECK_VERSION(2, 22, 0)
     JSCValue *value;
 #else
@@ -1255,17 +1257,23 @@ static void _dw_html_result_event(GObject *object, GAsyncResult *result, gpointe
         }
     }
 
+#if WEBKIT_CHECK_VERSION(2, 40, 0)
+    if(!(value = webkit_web_view_evaluate_javascript_finish(WEBKIT_WEB_VIEW(object), result, &error)))
+#else
     if(!(js_result = webkit_web_view_run_javascript_finish(WEBKIT_WEB_VIEW(object), result, &error)))
+#endif
     {
         if(htmlresultfunc)
            htmlresultfunc((HWND)object, DW_ERROR_UNKNOWN, error->message, script_data, user_data);
-        g_error_free (error);
+        g_error_free(error);
         _dw_thread = saved_thread;
         return;
     }
 
 #if WEBKIT_CHECK_VERSION(2, 22, 0)
+#if !WEBKIT_CHECK_VERSION(2, 40, 0)
     value = webkit_javascript_result_get_js_value(js_result);
+#endif
     if(jsc_value_is_string(value))
     {
         gchar *str_value = jsc_value_to_string(value);
@@ -1299,7 +1307,9 @@ static void _dw_html_result_event(GObject *object, GAsyncResult *result, gpointe
     }
     else if(htmlresultfunc)
         htmlresultfunc((HWND)object, DW_ERROR_UNKNOWN, NULL, script_data, user_data);
+#if !WEBKIT_CHECK_VERSION(2, 40, 0)
     webkit_javascript_result_unref (js_result);
+#endif
    _dw_thread = saved_thread;
 #endif
 }
@@ -1307,6 +1317,7 @@ static void _dw_html_result_event(GObject *object, GAsyncResult *result, gpointe
 #ifdef USE_WEBKIT2
 static void _dw_html_message_event(WebKitUserContentManager *manager, WebKitJavascriptResult *js_result, gpointer *data)
 {
+    pthread_t saved_thread = _dw_thread;
     HWND window = (HWND)data[0];
     int (*htmlmessagefunc)(HWND, char *, char *, void *) = NULL;
     void *user_data = NULL;
@@ -1319,6 +1330,7 @@ static void _dw_html_message_event(WebKitUserContentManager *manager, WebKitJava
     JSGlobalContextRef context;
 #endif
 
+    _dw_thread = (pthread_t)-1;
     if(window && (handlerdata = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(window), "_dw_html_message_id"))))
     {
         void *params[3] = { GINT_TO_POINTER(handlerdata-1), 0, window };
@@ -1360,10 +1372,15 @@ static void _dw_html_message_event(WebKitUserContentManager *manager, WebKitJava
         g_free(str_value);
 
         if(!exception)
-          return;
+        {
+            _dw_thread = saved_thread;
+            return;
+        }
     }
+
     if(htmlmessagefunc)
         htmlmessagefunc(window, name, NULL, user_data);
+   _dw_thread = saved_thread;
 }
 #endif
 
@@ -11953,9 +11970,13 @@ int dw_html_javascript_run(HWND handle, const char *script, void *scriptdata)
    WebKitWebView *web_view;
 
    DW_MUTEX_LOCK;
-   if((web_view = _dw_html_web_view(handle)))
+   if(script && (web_view = _dw_html_web_view(handle)))
 #ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION(2, 40, 0)
+      webkit_web_view_evaluate_javascript(web_view, script, strlen(script), NULL, NULL, NULL, _dw_html_result_event, scriptdata);
+#else
       webkit_web_view_run_javascript(web_view, script, NULL, _dw_html_result_event, scriptdata);
+#endif
 #else
       webkit_web_view_execute_script(web_view, script);
 #endif
