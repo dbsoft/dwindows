@@ -1340,11 +1340,12 @@ static void _dw_html_message_event(WebKitUserContentManager *manager, WebKitJava
 #else
     context = webkit_javascript_result_get_global_context(js_result);
     value = webkit_javascript_result_get_value(js_result);
-    if (JSValueIsString(context, value))
+    if(JSValueIsString(context, value))
     {
         JSStringRef js_str_value;
         gchar *str_value;
         gsize str_length;
+        void *exception = NULL;
 
         js_str_value = JSValueToStringCopy(context, value, NULL);
         str_length = JSStringGetMaximumUTF8CStringSize(js_str_value);
@@ -12057,12 +12058,18 @@ HWND dw_html_new(unsigned long id)
    WebKitWebView *web_view;
 #ifdef USE_WEBKIT2
    WebKitSettings *settings;
+   WebKitUserContentManager *manager;
 #else
    WebKitWebSettings *settings;
 #endif
 
    DW_MUTEX_LOCK;
+#ifdef USE_WEBKIT2
+   manager = webkit_user_content_manager_new();
+   web_view = (WebKitWebView *)webkit_web_view_new_with_user_content_manager(manager);
+#else
    web_view = (WebKitWebView *)webkit_web_view_new();
+#endif
    /* WebKit2 no longer requires a scrolled window...
     * So only create a scrolled window and pack it in older versions.
     */
