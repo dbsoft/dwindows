@@ -22,9 +22,9 @@ Windows:
     XP: Visual Studio 2010.
         Should run on XP and later, with Aero on Vista and 7.
         No Notifications nor WebView2 and oldsockpipe() on all.
-    2000: Visual Studio 2005. Remove -DAEROGLASS from CFLAGS.
-        Should run on 2000 and later, no Aero, Notifications, 
-        WebView2 and oldsockpipe() on all versions.
+    2000: Visual Studio 2005. Should run on 2000 and later,
+        no Aero, no Notifications, no WebView2 and oldsockpipe()
+        on all versions.
 C++: Recommends a C++11 compatible compiler.
     MacOS: PowerPC GCC 6 from Tiger Brew.
            Intel Apple Clang from Xcode 4.4 or later.

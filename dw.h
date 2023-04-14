@@ -9,7 +9,7 @@ extern "C" {
 
 /* Dynamic Windows version numbers */
 #define DW_MAJOR_VERSION 3
-#define DW_MINOR_VERSION 3
+#define DW_MINOR_VERSION 4
 #define DW_SUB_VERSION 0
 
 /* General application type defines */
