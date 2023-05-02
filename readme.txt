@@ -73,6 +73,14 @@ Added dw_html_javascript_add() and DW_SIGNAL_HTML_MESSAGE.
     Windows 7+ with Edge WebView2. MacOS 10.10+.
     GTK3/4 with WebKitGTK 2 or higher.
     iOS and Android, all supported versions.
+Added DW_FEATURE_RENDER_SAFE that requires safe rendering.
+    This means only allowing drawing in the EXPOSE callback.
+    On Android this also enables off main thread expose events.
+    Added high and low priority event queues on Android and
+    increased the queue length. This should prevent important
+    events from being dropped, only superfluous expose events.
+    This feature is enabled by default on Android.
+    This feature is disabled by default or unavailable on others.
 
 Dynamic Windows Documentation is available at:
 

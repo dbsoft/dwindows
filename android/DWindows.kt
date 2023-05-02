@@ -1859,24 +1859,53 @@ class DWListBox(context: Context) : ListView(context), OnItemClickListener {
 
 class DWRender(context: Context) : View(context) {
     var cachedCanvas: Canvas? = null
+    var backingBitmap: Bitmap? = null
     var typeface: Typeface? = null
     var fontsize: Float? = null
     var evx: Float = 0f
     var evy: Float = 0f
     var button: Int = 1
 
+    fun createBitmap() {
+        // If we don't have a backing bitmap, or its size in invalid
+        if(backingBitmap == null ||
+            backingBitmap!!.width != this.width || backingBitmap!!.height != this.height) {
+            // Create the backing bitmap
+            backingBitmap = Bitmap.createBitmap(this.width, this.height, Bitmap.Config.ARGB_8888)
+        }
+        cachedCanvas = Canvas(backingBitmap!!)
+    }
+
+    fun finishDraw() {
+        cachedCanvas = null
+        this.invalidate()
+    }
+
     override fun onSizeChanged(width: Int, height: Int, oldWidth: Int, oldHeight: Int) {
         super.onSizeChanged(width, height, oldWidth, oldHeight)
+        if(backingBitmap != null &&
+            (backingBitmap!!.width != width || backingBitmap!!.height != height)) {
+            backingBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        }
         // Send DW_SIGNAL_CONFIGURE
         eventHandlerInt(DWEvent.CONFIGURE, width, height, 0, 0)
+        if(backingBitmap != null) {
+            // Send DW_SIGNAL_EXPOSE
+            eventHandlerInt(DWEvent.EXPOSE, 0, 0, width, height)
+        }
     }
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        cachedCanvas = canvas
-        // Send DW_SIGNAL_EXPOSE
-        eventHandlerInt(DWEvent.EXPOSE, 0, 0, this.width, this.height)
-        cachedCanvas = null
+        if(backingBitmap != null && cachedCanvas == null) {
+            canvas.drawBitmap(backingBitmap!!, 0f, 0f, null)
+        } else {
+            val savedCanvas = cachedCanvas
+            cachedCanvas = canvas
+            // Send DW_SIGNAL_EXPOSE
+            eventHandlerInt(DWEvent.EXPOSE, 0, 0, this.width, this.height)
+            cachedCanvas = savedCanvas
+        }
     }
 
     external fun eventHandlerInt(
@@ -6086,10 +6115,28 @@ class DWindows : AppCompatActivity() {
         return render
     }
 
-    fun renderRedraw(render: DWRender)
+    fun renderRedraw(render: DWRender, safe: Int)
     {
         runOnUiThread {
-            render.invalidate()
+            if(safe != 0) {
+                render.eventHandlerInt(DWEvent.EXPOSE, 0, 0, render.width, render.height)
+            } else {
+                render.invalidate()
+            }
+        }
+    }
+
+    fun renderCreateBitmap(render: DWRender)
+    {
+        runOnUiThread {
+            render.createBitmap()
+        }
+    }
+
+    fun renderFinishDraw(render: DWRender)
+    {
+        runOnUiThread {
+            render.finishDraw()
         }
     }
 
