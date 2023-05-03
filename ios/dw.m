@@ -12262,6 +12262,7 @@ int API dw_feature_get(DWFEATURE feature)
         case DW_FEATURE_MLE_WORD_WRAP:
         case DW_FEATURE_UTF8_UNICODE:
         case DW_FEATURE_TREE:
+        case DW_FEATURE_RENDER_SAFE:
             return DW_FEATURE_ENABLED;
         case DW_FEATURE_CONTAINER_MODE:
             return _dw_container_mode;
@@ -12313,6 +12314,7 @@ int API dw_feature_set(DWFEATURE feature, int state)
         case DW_FEATURE_MLE_WORD_WRAP:
         case DW_FEATURE_UTF8_UNICODE:
         case DW_FEATURE_TREE:
+        case DW_FEATURE_RENDER_SAFE:
             return DW_ERROR_GENERAL;
         case DW_FEATURE_CONTAINER_MODE:
         {

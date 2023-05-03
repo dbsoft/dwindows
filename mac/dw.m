@@ -521,6 +521,22 @@ pthread_key_t _dw_bg_color_key;
 static int DWOSMajor, DWOSMinor, DWOSBuild;
 static char _dw_bundle_path[PATH_MAX+1] = { 0 };
 static char _dw_app_id[_DW_APP_ID_SIZE+1]= {0};
+static int _dw_render_safe_mode = DW_FEATURE_DISABLED;
+static id _dw_render_expose = nil;
+
+/* Return TRUE if it is safe to draw on the window handle.
+ * Either we are in unsafe mode, or we are in an EXPOSE
+ * event for the requested render window handle.
+ */
+int _dw_render_safe_check(id handle)
+{
+    if(_dw_render_safe_mode == DW_FEATURE_DISABLED || 
+       (handle && _dw_render_expose == handle))
+           return TRUE;
+    return FALSE;
+}
+
+int _dw_is_render(id handle);
 
 /* Create a default colors for a thread */
 void _dw_init_colors(void)
@@ -732,12 +748,17 @@ int _dw_event_handler1(id object, NSEvent *event, int message)
                 DWExpose exp;
                 int (* API exposefunc)(HWND, DWExpose *, void *) = (int (* API)(HWND, DWExpose *, void *))handler->signalfunction;
                 NSRect rect = [object frame];
+                id oldrender = _dw_render_expose;
 
                 exp.x = rect.origin.x;
                 exp.y = rect.origin.y;
                 exp.width = rect.size.width;
                 exp.height = rect.size.height;
+                /* The render expose is only valid for render class windows */
+                if(_dw_is_render(object))
+                    _dw_render_expose = object;
                 int result = exposefunc(object, &exp, handler->data);
+                _dw_render_expose = oldrender;
 #ifndef BUILDING_FOR_MOJAVE
                 [[object window] flushWindow];
 #endif
@@ -1262,6 +1283,14 @@ typedef struct _bitbltinfo
 }
 -(BOOL)acceptsFirstResponder { return YES; }
 @end
+
+/* So we can check before DWRender is declared */
+int _dw_is_render(id handle)
+{
+    if([handle isMemberOfClass:[DWRender class]])
+        return TRUE;
+    return FALSE;
+}
 
 @implementation DWObject
 -(void)uselessThread:(id)sender { /* Thread only to initialize threading */ }
@@ -7004,17 +7033,22 @@ DW_FUNCTION_RESTORE_PARAM4(handle, HWND, pixmap, HPIXMAP, x, int, y, int)
         bi = (id)pixmap->image;
     else
     {
-#ifdef BUILDING_FOR_MOJAVE
-        if([image isMemberOfClass:[DWRender class]])
+        if(_dw_render_safe_check(handle))
         {
-            DWRender *render = image;
+#ifdef BUILDING_FOR_MOJAVE
+            if([image isMemberOfClass:[DWRender class]])
+            {
+                DWRender *render = image;
 
-            bi = [render cachedDrawingRep];
-        }
+                bi = [render cachedDrawingRep];
+            }
 #else
-        if((bCanDraw = [image lockFocusIfCanDraw]) == YES)
-            _DWLastDrawable = handle;
+            if((bCanDraw = [image lockFocusIfCanDraw]) == YES)
+                _DWLastDrawable = handle;
 #endif
+        } 
+        else
+            bCanDraw = NO;
     }
     if(bi)
     {
@@ -7068,17 +7102,22 @@ DW_FUNCTION_RESTORE_PARAM6(handle, HWND, pixmap, HPIXMAP, x1, int, y1, int, x2, 
         bi = (id)pixmap->image;
     else
     {
-#ifdef BUILDING_FOR_MOJAVE
-        if([image isMemberOfClass:[DWRender class]])
+        if(_dw_render_safe_check(handle))
         {
-            DWRender *render = image;
+#ifdef BUILDING_FOR_MOJAVE
+            if([image isMemberOfClass:[DWRender class]])
+            {
+                DWRender *render = image;
 
-            bi = [render cachedDrawingRep];
-        }
+                bi = [render cachedDrawingRep];
+            }
 #else
-        if((bCanDraw = [image lockFocusIfCanDraw]) == YES)
-            _DWLastDrawable = handle;
+            if((bCanDraw = [image lockFocusIfCanDraw]) == YES)
+                _DWLastDrawable = handle;
 #endif
+        }
+        else
+            bCanDraw = NO;
     }
     if(bi)
     {
@@ -7143,14 +7182,19 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pixmap, HPIXMAP, x, int, y, int, text, 
     }
     else if(image && [image isMemberOfClass:[DWRender class]])
     {
-        render = image;
-        font = [render font];
+        if(_dw_render_safe_check(handle))
+        {
+            render = image;
+            font = [render font];
 #ifdef BUILDING_FOR_MOJAVE
-        bi = [render cachedDrawingRep];
+            bi = [render cachedDrawingRep];
 #else
-        if((bCanDraw = [image lockFocusIfCanDraw]) == YES)
-            _DWLastDrawable = handle;
+            if((bCanDraw = [image lockFocusIfCanDraw]) == YES)
+                _DWLastDrawable = handle;
 #endif
+        }
+        else
+            bCanDraw = NO;
     }
     if(bi)
     {
@@ -7275,20 +7319,25 @@ DW_FUNCTION_RESTORE_PARAM6(handle, HWND, pixmap, HPIXMAP, flags, int, npoints, i
         bi = (id)pixmap->image;
     else
     {
+        if(_dw_render_safe_check(handle))
+        {
 #ifdef BUILDING_FOR_MOJAVE
-        if([image isMemberOfClass:[DWRender class]])
-        {
-            DWRender *render = image;
+            if([image isMemberOfClass:[DWRender class]])
+            {
+                DWRender *render = image;
 
-            bi = [render cachedDrawingRep];
-        }
+                bi = [render cachedDrawingRep];
+            }
 #else
-        if((bCanDraw = [image lockFocusIfCanDraw]) == YES)
-        {
-            _DWLastDrawable = handle;
-            [[NSGraphicsContext currentContext] setShouldAntialias:(flags & DW_DRAW_NOAA ? NO : YES)];
-        }
+            if((bCanDraw = [image lockFocusIfCanDraw]) == YES)
+            {
+                _DWLastDrawable = handle;
+                [[NSGraphicsContext currentContext] setShouldAntialias:(flags & DW_DRAW_NOAA ? NO : YES)];
+            }
 #endif
+        }
+        else
+            bCanDraw = NO;
     }
     if(bi)
     {
@@ -7354,20 +7403,25 @@ DW_FUNCTION_RESTORE_PARAM7(handle, HWND, pixmap, HPIXMAP, flags, int, x, int, y,
         bi = (id)pixmap->image;
     else
     {
+        if(_dw_render_safe_check(handle))
+        {
 #ifdef BUILDING_FOR_MOJAVE
-        if([image isMemberOfClass:[DWRender class]])
-        {
-            DWRender *render = image;
+            if([image isMemberOfClass:[DWRender class]])
+            {
+                DWRender *render = image;
 
-            bi = [render cachedDrawingRep];
-        }
+                bi = [render cachedDrawingRep];
+            }
 #else
-        if((bCanDraw = [image lockFocusIfCanDraw]) == YES)
-        {
-            _DWLastDrawable = handle;
-            [[NSGraphicsContext currentContext] setShouldAntialias:(flags & DW_DRAW_NOAA ? NO : YES)];
-        }
+            if((bCanDraw = [image lockFocusIfCanDraw]) == YES)
+            {
+                _DWLastDrawable = handle;
+                [[NSGraphicsContext currentContext] setShouldAntialias:(flags & DW_DRAW_NOAA ? NO : YES)];
+            }
 #endif
+        }
+        else
+            bCanDraw = NO;
     }
     if(bi)
     {
@@ -7428,20 +7482,25 @@ DW_FUNCTION_RESTORE_PARAM9(handle, HWND, pixmap, HPIXMAP, flags, int, xorigin, i
         bi = (id)pixmap->image;
     else
     {
+        if(_dw_render_safe_check(handle))
+        {
 #ifdef BUILDING_FOR_MOJAVE
-        if([image isMemberOfClass:[DWRender class]])
-        {
-            DWRender *render = image;
+            if([image isMemberOfClass:[DWRender class]])
+            {
+                DWRender *render = image;
 
-            bi = [render cachedDrawingRep];
-        }
+                bi = [render cachedDrawingRep];
+            }
 #else
-        if((bCanDraw = [image lockFocusIfCanDraw]) == YES)
-        {
-            _DWLastDrawable = handle;
-            [[NSGraphicsContext currentContext] setShouldAntialias:(flags & DW_DRAW_NOAA ? NO : YES)];
-        }
+            if((bCanDraw = [image lockFocusIfCanDraw]) == YES)
+            {
+                _DWLastDrawable = handle;
+                [[NSGraphicsContext currentContext] setShouldAntialias:(flags & DW_DRAW_NOAA ? NO : YES)];
+            }
 #endif
+        }
+        else
+            bCanDraw = NO;
     }
     if(bi)
     {
@@ -9284,7 +9343,8 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
 
     /* Sanity checks */
     if((!dest && !destp) || (!src && !srcp) ||
-       ((srcwidth == -1 || srcheight == -1) && srcwidth != srcheight))
+       ((srcwidth == -1 || srcheight == -1) && srcwidth != srcheight) ||
+           (dest && !_dw_render_safe_check(dest)))
     {
         DW_LOCAL_POOL_OUT;
         return DW_ERROR_GENERAL;
@@ -13477,6 +13537,8 @@ int API dw_feature_get(DWFEATURE feature)
         case DW_FEATURE_TREE:
         case DW_FEATURE_WINDOW_PLACEMENT:
             return DW_FEATURE_ENABLED;
+        case DW_FEATURE_RENDER_SAFE:
+            return _dw_render_safe_mode;
 #ifdef BUILDING_FOR_MOJAVE
         case DW_FEATURE_DARK_MODE:
         {
@@ -13562,6 +13624,15 @@ int API dw_feature_set(DWFEATURE feature, int state)
         case DW_FEATURE_WINDOW_PLACEMENT:
             return DW_ERROR_GENERAL;
         /* These features are supported and configurable */
+        case DW_FEATURE_RENDER_SAFE:
+        {
+            if (state == DW_FEATURE_ENABLED || state == DW_FEATURE_DISABLED)
+            {
+                _dw_render_safe_mode = state;
+                return DW_ERROR_NONE;
+            }
+            return DW_ERROR_GENERAL;
+        }
 #ifdef BUILDING_FOR_MOJAVE
         case DW_FEATURE_DARK_MODE:
         {
