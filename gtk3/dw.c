@@ -188,6 +188,26 @@ static char _dw_app_id[_DW_APP_ID_SIZE+1] = { 0 };
 #endif
 char *_DWDefaultFont = NULL;
 static char _dw_share_path[PATH_MAX+1] = { 0 };
+static int _dw_render_safe_mode = DW_FEATURE_UNSUPPORTED;
+
+/* Return TRUE if it is safe to draw on the window handle.
+ * Either we are in unsafe mode, or we are in an EXPOSE
+ * event for the requested render window handle.
+ */
+int _dw_render_safe_check(GtkWidget *handle)
+{
+    if(_dw_render_safe_mode == DW_FEATURE_DISABLED || 
+       (handle && g_object_get_data(G_OBJECT(handle), "_dw_expose")))
+           return TRUE;
+    return FALSE;
+}
+
+int _dw_is_render(GtkWidget *handle)
+{
+   if(GTK_IS_DRAWING_AREA(handle))
+       return TRUE;
+   return FALSE;
+}
 
 typedef struct
 {
@@ -1605,6 +1625,7 @@ static gint _dw_expose_event(GtkWidget *widget, cairo_t *cr, gpointer data)
    {
       DWExpose exp;
       int (*exposefunc)(HWND, DWExpose *, void *) = work.func;
+      gpointer oldrender = NULL;
 
       /* Remove the currently drawn widget from the dirty list */
       _dw_dirty_list = g_list_remove(_dw_dirty_list, widget);
@@ -1613,7 +1634,14 @@ static gint _dw_expose_event(GtkWidget *widget, cairo_t *cr, gpointer data)
       exp.width = gtk_widget_get_allocated_width(widget);
       exp.height = gtk_widget_get_allocated_height(widget);
       g_object_set_data(G_OBJECT(work.window), "_dw_cr", (gpointer)cr);
+      if(_dw_render_safe_mode == DW_FEATURE_ENABLED && _dw_is_render(work.window))
+      {
+      	oldrender = g_object_get_data(G_OBJECT(work.window), "_dw_expose");
+      	g_object_set_data(G_OBJECT(work.window), "_dw_expose", (gpointer)1);
+      }
       retval = exposefunc(work.window, &exp, work.data);
+      if(_dw_render_safe_mode == DW_FEATURE_ENABLED)
+      	g_object_set_data(G_OBJECT(work.window), "_dw_expose", oldrender);
       g_object_set_data(G_OBJECT(work.window), "_dw_cr", NULL);
    }
    return retval;
@@ -2243,7 +2271,19 @@ int dw_init(int newthread, int argc, char *argv[])
       g_application_activate(_DWApp);
    }
 #endif
-   return TRUE;
+   if(_dw_render_safe_mode == DW_FEATURE_UNSUPPORTED)
+   {
+#ifdef GDK_WINDOWING_X11
+   	GdkDisplay *display = gdk_display_get_default();
+   
+	   /* If we are in X11 mode safe mode should be disabled by default */
+	   if(display && GDK_IS_X11_DISPLAY(display))
+	   	_dw_render_safe_mode = DW_FEATURE_DISABLED;
+	   else
+#endif
+			_dw_render_safe_mode = DW_FEATURE_ENABLED;
+	}
+	return DW_ERROR_NONE;
 }
 
 /*
@@ -7483,7 +7523,7 @@ void dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
 #endif
 
    DW_MUTEX_LOCK;
-   if(handle)
+   if(handle && _dw_render_safe_check(handle))
    {
       GdkDisplay *display = gdk_display_get_default();
 
@@ -7559,7 +7599,7 @@ void dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y2)
 #endif
 
    DW_MUTEX_LOCK;
-   if(handle)
+   if(handle && _dw_render_safe_check(handle))
    {
       GdkDisplay *display = gdk_display_get_default();
       
@@ -7637,7 +7677,7 @@ void dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, int *x
 #endif
 
    DW_MUTEX_LOCK;
-   if(handle)
+   if(handle && _dw_render_safe_check(handle))
    {
       GdkDisplay *display = gdk_display_get_default();
       
@@ -7723,7 +7763,7 @@ void dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int widt
 #endif
 
    DW_MUTEX_LOCK;
-   if(handle)
+   if(handle && _dw_render_safe_check(handle))
    {
       GdkDisplay *display = gdk_display_get_default();
       
@@ -7811,7 +7851,7 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
 #endif
 
    DW_MUTEX_LOCK;
-   if(handle)
+   if(handle && _dw_render_safe_check(handle))
    {
       GdkDisplay *display = gdk_display_get_default();
       
@@ -7911,7 +7951,7 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, const char *text)
       return;
 
    DW_MUTEX_LOCK;
-   if(handle)
+   if(handle && _dw_render_safe_check(handle))
    {
       GdkDisplay *display = gdk_display_get_default();
       
@@ -8388,7 +8428,7 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
       return retval;
 
    DW_MUTEX_LOCK;
-   if(dest)
+   if(dest && _dw_render_safe_check(dest))
    {
       GdkDisplay *display = gdk_display_get_default();
       
@@ -12905,6 +12945,8 @@ int API dw_feature_get(DWFEATURE feature)
         case DW_FEATURE_MLE_WORD_WRAP:
         case DW_FEATURE_TREE:
             return DW_FEATURE_ENABLED;
+        case DW_FEATURE_RENDER_SAFE:
+            return _dw_render_safe_mode;
 #ifdef GDK_WINDOWING_X11
         case DW_FEATURE_WINDOW_PLACEMENT:
         {
@@ -12980,6 +13022,15 @@ int API dw_feature_set(DWFEATURE feature, int state)
         }
 #endif
         /* These features are supported and configurable */
+        case DW_FEATURE_RENDER_SAFE:
+        {
+            if(state == DW_FEATURE_ENABLED || state == DW_FEATURE_DISABLED)
+            {
+                _dw_render_safe_mode = state;
+                return DW_ERROR_NONE;
+            }
+            return DW_ERROR_GENERAL;
+        }
         default:
             return DW_FEATURE_UNSUPPORTED;
     }
