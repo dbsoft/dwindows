@@ -755,7 +755,7 @@ int _dw_event_handler1(id object, NSEvent *event, int message)
                 exp.width = rect.size.width;
                 exp.height = rect.size.height;
                 /* The render expose is only valid for render class windows */
-                if(_dw_is_render(object))
+                if(_dw_render_safe_mode == DW_FEATURE_ENABLED && _dw_is_render(object))
                     _dw_render_expose = object;
                 int result = exposefunc(object, &exp, handler->data);
                 _dw_render_expose = oldrender;
@@ -13626,7 +13626,7 @@ int API dw_feature_set(DWFEATURE feature, int state)
         /* These features are supported and configurable */
         case DW_FEATURE_RENDER_SAFE:
         {
-            if (state == DW_FEATURE_ENABLED || state == DW_FEATURE_DISABLED)
+            if(state == DW_FEATURE_ENABLED || state == DW_FEATURE_DISABLED)
             {
                 _dw_render_safe_mode = state;
                 return DW_ERROR_NONE;

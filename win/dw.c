@@ -306,6 +306,31 @@ static char _dw_alternate_temp_dir[MAX_PATH+1] = {0};
 static char _dw_exec_dir[MAX_PATH+1] = {0};
 static char _dw_app_id[_DW_APP_ID_SIZE+1]= {0};
 static char _dw_app_name[_DW_APP_ID_SIZE+1]= {0};
+static int _dw_render_safe_mode = DW_FEATURE_DISABLED;
+static HWND _dw_render_expose = DW_NOHWND;
+
+/* Return TRUE if it is safe to draw on the window handle.
+ * Either we are in unsafe mode, or we are in an EXPOSE
+ * event for the requested render window handle.
+ */
+int _dw_render_safe_check(HWND handle)
+{
+    if(_dw_render_safe_mode == DW_FEATURE_DISABLED || 
+       (handle && _dw_render_expose == handle))
+           return TRUE;
+    return FALSE;
+}
+
+int _dw_is_render(HWND handle)
+{
+   TCHAR tmpbuf[100] = {0};
+
+   GetClassName(handle, tmpbuf, 99);
+
+   if(_tcsnicmp(tmpbuf, ObjectClassName, _tcslen(ObjectClassName)+1) == 0)
+       return TRUE;
+   return FALSE;
+}
 
 int main(int argc, char *argv[]);
 
@@ -2462,14 +2487,19 @@ LRESULT CALLBACK _dw_wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                      DWExpose exp;
                      int (DWSIGNAL *exposefunc)(HWND, DWExpose *, void *) = tmp->signalfunction;
 
-                     if ( hWnd == tmp->window )
+                     if(hWnd == tmp->window)
                      {
+                        HWND oldrender = _dw_render_expose;
+
                         BeginPaint(hWnd, &ps);
                         exp.x = ps.rcPaint.left;
                         exp.y = ps.rcPaint.top;
                         exp.width = ps.rcPaint.right - ps.rcPaint.left;
                         exp.height = ps.rcPaint.bottom - ps.rcPaint.top;
+                        if(_dw_render_safe_mode == DW_FEATURE_ENABLED && _dw_is_render(hWnd))
+                            _dw_render_expose = hWnd;
                         result = exposefunc(hWnd, &exp, tmp->data);
+                        _dw_render_expose = oldrender;
                         EndPaint(hWnd, &ps);
                      }
                   }
@@ -11242,7 +11272,7 @@ void API dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
 #else
    HDC hdcPaint;
 
-   if(handle)
+   if(handle && _dw_render_safe_check(handle))
       hdcPaint = GetDC(handle);
    else if(pixmap)
       hdcPaint = pixmap->hdc;
@@ -11270,7 +11300,7 @@ void API dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y
    GpGraphics *graphics = NULL;
    GpPen *pen = TlsGetValue(_dw_gppen);
 
-   if(handle)
+   if(handle && _dw_render_safe_check(handle))
       GdipCreateFromHWND(handle, &graphics);
    else if(pixmap)
       GdipCreateFromHDC(pixmap->hdc, &graphics);
@@ -11284,7 +11314,7 @@ void API dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y
    HDC hdcPaint;
    HPEN oldPen;
 
-   if(handle)
+   if(handle && _dw_render_safe_check(handle))
       hdcPaint = GetDC(handle);
    else if(pixmap)
       hdcPaint = pixmap->hdc;
@@ -11358,7 +11388,7 @@ void API dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, in
    {
       GpGraphics *graphics = NULL;
 
-      if(handle)
+      if(handle && _dw_render_safe_check(handle))
          GdipCreateFromHWND(handle, &graphics);
       else if(pixmap)
          GdipCreateFromHDC(pixmap->hdc, &graphics);
@@ -11390,9 +11420,9 @@ void API dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, in
    {
       HDC hdcPaint;
 
-      if ( handle )
+      if(handle && _dw_render_safe_check(handle))
          hdcPaint = GetDC( handle );
-      else if ( pixmap )
+      else if(pixmap)
          hdcPaint = pixmap->hdc;
       else
          return;
@@ -11434,7 +11464,7 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int 
 #ifdef GDIPLUS
    GpGraphics *graphics = NULL;
 
-   if(handle)
+   if(handle && _dw_render_safe_check(handle))
       GdipCreateFromHWND(handle, &graphics);
    else if(pixmap)
       GdipCreateFromHDC(pixmap->hdc, &graphics);
@@ -11462,7 +11492,7 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int 
    HDC hdcPaint;
    RECT Rect;
 
-   if(handle)
+   if(handle && _dw_render_safe_check(handle))
       hdcPaint = GetDC(handle);
    else if(pixmap)
       hdcPaint = pixmap->hdc;
@@ -11498,7 +11528,7 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
    GpGraphics *graphics = NULL;
    GpPen *pen = TlsGetValue(_dw_gppen);
 
-   if(handle)
+   if(handle && _dw_render_safe_check(handle))
       GdipCreateFromHWND(handle, &graphics);
    else if(pixmap)
       GdipCreateFromHDC(pixmap->hdc, &graphics);
@@ -11547,7 +11577,7 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
    double r = sqrt(dx*dx + dy*dy);
    int ri = (int)r;
 
-   if(handle)
+   if(handle && _dw_render_safe_check(handle))
       hdcPaint = GetDC(handle);
    else if(pixmap)
       hdcPaint = pixmap->hdc;
@@ -11616,7 +11646,7 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, const char *tex
    COLORREF background;
    TCHAR *wtext = UTF8toWide(text);
 
-   if(handle)
+   if(handle && _dw_render_safe_check(handle))
       hdc = GetDC(handle);
    else if(pixmap)
       hdc = pixmap->hdc;
@@ -12109,16 +12139,16 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
    int swidth = srcwidth, sheight = srcheight;
 
    /* Do some sanity checks */
-   if ( dest )
-      hdcdest = GetDC( dest );
-   else if ( destp )
+   if(dest && _dw_render_safe_check(dest))
+      hdcdest = GetDC(dest);
+   else if(destp)
       hdcdest = destp->hdc;
    else
       return DW_ERROR_GENERAL;
 
-   if ( src )
-      hdcsrc = GetDC( src );
-   else if ( srcp )
+   if(src)
+      hdcsrc = GetDC(src);
+   else if(srcp)
       hdcsrc = srcp->hdc;
    else
       return DW_ERROR_GENERAL;
@@ -12141,27 +12171,27 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
 #endif
 
    /* If it is a 32bpp bitmap (with alpha) use AlphaBlend unless it fails */
-   if ( srcp && srcp->depth == 32 && AlphaBlend( hdcdest, xdest, ydest, width, height, hdcsrc, xsrc, ysrc, swidth, sheight, bf ) )
+   if(srcp && srcp->depth == 32 && AlphaBlend(hdcdest, xdest, ydest, width, height, hdcsrc, xsrc, ysrc, swidth, sheight, bf))
    {
         /* Don't do anything */
    }
    /* Otherwise perform special bitblt with manual transparency */
-   else if ( srcp && srcp->transcolor != DW_RGB_TRANSPARENT )
+   else if(srcp && srcp->transcolor != DW_RGB_TRANSPARENT)
    {
       TransparentBlt( hdcdest, xdest, ydest, width, height, hdcsrc, xsrc, ysrc, swidth, sheight, RGB( DW_RED_VALUE(srcp->transcolor), DW_GREEN_VALUE(srcp->transcolor), DW_BLUE_VALUE(srcp->transcolor)) );
    }
    else
    {
       /* Finally fall back to the classic BitBlt */
-      if( srcwidth == -1 && srcheight == -1)
-         BitBlt( hdcdest, xdest, ydest, width, height, hdcsrc, xsrc, ysrc, SRCCOPY );
+      if(srcwidth == -1 && srcheight == -1)
+         BitBlt(hdcdest, xdest, ydest, width, height, hdcsrc, xsrc, ysrc, SRCCOPY);
       else
-         StretchBlt( hdcdest, xdest, ydest, width, height, hdcsrc, xsrc, ysrc, swidth, sheight, SRCCOPY );
+         StretchBlt(hdcdest, xdest, ydest, width, height, hdcsrc, xsrc, ysrc, swidth, sheight, SRCCOPY);
    }
-   if ( !destp )
-      ReleaseDC( dest, hdcdest );
-   if ( !srcp )
-      ReleaseDC( src, hdcsrc );
+   if(!destp)
+      ReleaseDC(dest, hdcdest);
+   if(!srcp)
+      ReleaseDC(src, hdcsrc);
 
    return DW_ERROR_NONE;
 }
@@ -13975,6 +14005,8 @@ int API dw_feature_get(DWFEATURE feature)
         case DW_FEATURE_TREE:
         case DW_FEATURE_WINDOW_PLACEMENT:
             return DW_FEATURE_ENABLED;
+        case DW_FEATURE_RENDER_SAFE:
+            return _dw_render_safe_mode;
 #if defined(BUILD_HTML) && defined(BUILD_EDGE)
         case DW_FEATURE_HTML_MESSAGE:
             return _DW_EDGE_DETECTED ? DW_FEATURE_ENABLED : DW_FEATURE_UNSUPPORTED;
@@ -14078,6 +14110,15 @@ int API dw_feature_set(DWFEATURE feature, int state)
         }
 #endif
         /* These features are supported and configurable */
+        case DW_FEATURE_RENDER_SAFE:
+        {
+            if(state == DW_FEATURE_ENABLED || state == DW_FEATURE_DISABLED)
+            {
+                _dw_render_safe_mode = state;
+                return DW_ERROR_NONE;
+            }
+            return DW_ERROR_GENERAL;
+        }
 #ifdef AEROGLASS
         case DW_FEATURE_DARK_MODE:
         {
