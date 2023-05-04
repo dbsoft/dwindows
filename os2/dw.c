@@ -141,7 +141,7 @@ int _dw_render_safe_check(HWND handle)
 
 int _dw_is_render(HWND handle)
 {
-   if(dw_window_get_data(hwndframe, "_dw_render"))
+   if(dw_window_get_data(handle, "_dw_render"))
        return TRUE;
    return FALSE;
 }
