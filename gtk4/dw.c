@@ -1883,7 +1883,7 @@ DW_FUNCTION_RESTORE_PARAM3(title, const char *, flags, int, outbuf, char *)
    gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(dialog), "%s", outbuf);
    if(flags & DW_MB_YESNOCANCEL)
       gtk_dialog_add_button(GTK_DIALOG(dialog), "Cancel", GTK_RESPONSE_CANCEL);
-   gtk_widget_show(GTK_WIDGET(dialog));
+   gtk_widget_set_visible(GTK_WIDGET(dialog), TRUE);
    g_signal_connect(G_OBJECT(dialog), "response", G_CALLBACK(_dw_dialog_response), (gpointer)tmp);
    /* Center the dialog on the screen since there is no parent */
    dw_window_get_pos_size((HWND)dialog, NULL, NULL, &width, &height);
@@ -2051,7 +2051,7 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
             gtk_widget_grab_focus(defaultitem);
       }
       else if(GTK_IS_WIDGET(handle))
-         gtk_widget_show(handle);
+         gtk_widget_set_visible(handle, TRUE);
    }
    DW_FUNCTION_RETURN_THIS(retval);
 }
@@ -2069,7 +2069,7 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
    int retval = DW_ERROR_NONE;
 
    if(handle && GTK_IS_WIDGET(handle))
-      gtk_widget_hide(handle);
+      gtk_widget_set_visible(handle, FALSE);
    DW_FUNCTION_RETURN_THIS(retval);
 }
 
@@ -2369,7 +2369,7 @@ DW_FUNCTION_RESTORE_PARAM1(currfont, const char *)
       free(font);
    }
 
-   gtk_widget_show(GTK_WIDGET(fd));
+   gtk_widget_set_visible(GTK_WIDGET(fd), TRUE);
    g_signal_connect(G_OBJECT(fd), "response", G_CALLBACK(_dw_dialog_response), (gpointer)tmp);
 
    if(DW_POINTER_TO_INT(dw_dialog_wait(tmp)) == GTK_RESPONSE_OK)
@@ -2682,7 +2682,7 @@ DW_FUNCTION_RESTORE_PARAM3(DW_UNUSED(hwndOwner), HWND, title, char *, flStyle, U
    GtkWidget *grid = gtk_grid_new();
    GtkWidget *tmp = gtk_window_new();
 
-   gtk_widget_show(grid);
+   gtk_widget_set_visible(grid, TRUE);
 
    /* Handle the window style flags */
    gtk_window_set_title(GTK_WINDOW(tmp), title);
@@ -2726,7 +2726,7 @@ DW_FUNCTION_RESTORE_PARAM2(type, int, pad, int)
    GtkWidget *tmp = gtk_grid_new();
    g_object_set_data(G_OBJECT(tmp), "_dw_boxtype", GINT_TO_POINTER(type));
    _dw_widget_set_pad(tmp, pad);
-   gtk_widget_show(tmp);
+   gtk_widget_set_visible(tmp, TRUE);
    DW_FUNCTION_RETURN_THIS(tmp);
 }
 
@@ -2754,8 +2754,8 @@ DW_FUNCTION_RESTORE_PARAM2(type, int, pad, int)
    
    gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(tmp), box);
    g_object_set_data(G_OBJECT(tmp), "_dw_user", box);
-   gtk_widget_show(box);
-   gtk_widget_show(tmp);
+   gtk_widget_set_visible(box, TRUE);
+   gtk_widget_set_visible(tmp, TRUE);
 
    DW_FUNCTION_RETURN_THIS(tmp);
 }
@@ -2832,8 +2832,8 @@ DW_FUNCTION_RESTORE_PARAM3(type, int, pad, int, title, const char *)
    g_object_set_data(G_OBJECT(frame), "_dw_boxhandle", (gpointer)tmp);
    _dw_widget_set_pad(tmp, pad);
    gtk_frame_set_child(GTK_FRAME(frame), tmp);
-   gtk_widget_show(tmp);
-   gtk_widget_show(frame);
+   gtk_widget_set_visible(tmp, TRUE);
+   gtk_widget_set_visible(frame, TRUE);
    if(_DWDefaultFont)
       dw_window_set_font(frame, _DWDefaultFont);
    DW_FUNCTION_RETURN_THIS(frame);
@@ -2858,7 +2858,7 @@ DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
 #endif
    gtk_widget_set_halign(GTK_WIDGET(tmp), GTK_ALIGN_CENTER);
    gtk_widget_set_valign(GTK_WIDGET(tmp), GTK_ALIGN_CENTER);
-   gtk_widget_show(tmp);
+   gtk_widget_set_visible(tmp, TRUE);
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(cid));
    DW_FUNCTION_RETURN_THIS(tmp);
 }
@@ -2882,7 +2882,7 @@ DW_FUNCTION_RESTORE_PARAM2(cid, ULONG, top, int)
    else
       gtk_notebook_set_tab_pos(GTK_NOTEBOOK(tmp), GTK_POS_BOTTOM);
    gtk_notebook_set_scrollable(GTK_NOTEBOOK(tmp), TRUE);
-   gtk_widget_show(tmp);
+   gtk_widget_set_visible(tmp, TRUE);
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(cid));
    g_object_set_data(G_OBJECT(tmp), "_dw_pagearray", (gpointer)pagearray);
    DW_FUNCTION_RETURN_THIS(tmp);
@@ -2982,7 +2982,7 @@ DW_FUNCTION_RESTORE_PARAM1(location, HWND)
       tmp = gtk_popover_menu_bar_new_from_model(G_MENU_MODEL(menu));
       snprintf(tempbuf, 24, "menu%d", ++_dw_menugroup);
       gtk_widget_insert_action_group(GTK_WIDGET(tmp), tempbuf, G_ACTION_GROUP(group));
-      gtk_widget_show(tmp);
+      gtk_widget_set_visible(tmp, TRUE);
 
       /* Save pointers to each other */
       g_object_set_data(G_OBJECT(location), "_dw_menubar", (gpointer)tmp);
@@ -3471,7 +3471,7 @@ GtkWidget *_dw_tree_create(unsigned long id)
                GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
-   gtk_widget_show(tmp);
+   gtk_widget_set_visible(tmp, TRUE);
    return tmp;
 }
 
@@ -3543,7 +3543,7 @@ DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
 
       sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree));
       gtk_tree_selection_set_mode(sel, GTK_SELECTION_SINGLE);
-      gtk_widget_show(tree);
+      gtk_widget_set_visible(tree, TRUE);
 
       if(_DWDefaultFont)
          dw_window_set_font(tmp, _DWDefaultFont);
@@ -3568,7 +3568,7 @@ DW_FUNCTION_RESTORE_PARAM2(text, const char *, cid, ULONG)
    /* Left and centered */
    gtk_label_set_xalign(GTK_LABEL(tmp), 0.0f);
    gtk_label_set_yalign(GTK_LABEL(tmp), 0.5f);
-   gtk_widget_show(tmp);
+   gtk_widget_set_visible(tmp, TRUE);
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(cid));
    if(_DWDefaultFont)
       dw_window_set_font(tmp, _DWDefaultFont);
@@ -3589,8 +3589,8 @@ DW_FUNCTION_RESTORE_PARAM2(text, const char *, cid, ULONG)
    GtkWidget *tmp, *frame = gtk_frame_new(NULL);
    tmp = gtk_label_new(text);
    gtk_frame_set_child(GTK_FRAME(frame), tmp);
-   gtk_widget_show(tmp);
-   gtk_widget_show(frame);
+   gtk_widget_set_visible(tmp, TRUE);
+   gtk_widget_set_visible(frame, TRUE);
 
    /* Left and centered */
    gtk_label_set_xalign(GTK_LABEL(tmp), 0.0f);
@@ -3621,8 +3621,8 @@ DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
 
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(cid));
    g_object_set_data(G_OBJECT(tmpbox), "_dw_user", (gpointer)tmp);
-   gtk_widget_show(tmp);
-   gtk_widget_show(tmpbox);
+   gtk_widget_set_visible(tmp, TRUE);
+   gtk_widget_set_visible(tmpbox, TRUE);
    if(_DWDefaultFont)
       dw_window_set_font(tmpbox, _DWDefaultFont);
    DW_FUNCTION_RETURN_THIS(tmpbox);
@@ -3642,7 +3642,7 @@ DW_FUNCTION_RESTORE_PARAM2(text, const char *, cid, ULONG)
    GtkEntryBuffer *buffer = gtk_entry_buffer_new(text, -1);
    GtkWidget *tmp = gtk_entry_new_with_buffer(buffer);
 
-   gtk_widget_show(tmp);
+   gtk_widget_set_visible(tmp, TRUE);
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(cid));
 
     if(_DWDefaultFont)
@@ -3666,7 +3666,7 @@ DW_FUNCTION_RESTORE_PARAM2(text, const char *, cid, ULONG)
 
    gtk_entry_set_visibility(GTK_ENTRY(tmp), FALSE);
 
-   gtk_widget_show(tmp);
+   gtk_widget_set_visible(tmp, TRUE);
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(cid));
 
    if(_DWDefaultFont)
@@ -3693,7 +3693,7 @@ DW_FUNCTION_RESTORE_PARAM2(text, const char *, cid, ULONG)
    buffer = gtk_entry_get_buffer(GTK_ENTRY(gtk_combo_box_get_child(GTK_COMBO_BOX(tmp))));
    gtk_entry_buffer_set_max_length(buffer, 0);
    gtk_entry_buffer_set_text(buffer, text, -1);
-   gtk_widget_show(tmp);
+   gtk_widget_set_visible(tmp, TRUE);
    g_object_set_data(G_OBJECT(tmp), "_dw_tree_type", GINT_TO_POINTER(_DW_TREE_TYPE_COMBOBOX));
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(cid));
    if(_DWDefaultFont)
@@ -3713,7 +3713,7 @@ DW_FUNCTION_RETURN(dw_button_new, HWND)
 DW_FUNCTION_RESTORE_PARAM2(text, const char *, cid, ULONG)
 {
    GtkWidget *tmp = gtk_button_new_with_label(text);
-   gtk_widget_show(tmp);
+   gtk_widget_set_visible(tmp, TRUE);
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(cid));
    if(_DWDefaultFont)
       dw_window_set_font(tmp, _DWDefaultFont);
@@ -3740,7 +3740,7 @@ DW_FUNCTION_RESTORE_PARAM2(text, const char *, cid, ULONG)
       gtk_button_set_child(GTK_BUTTON(tmp), bitmap);
       g_object_set_data(G_OBJECT(tmp), "_dw_bitmap", bitmap);
    }
-   gtk_widget_show(tmp);
+   gtk_widget_set_visible(tmp, TRUE);
    if(text)
       gtk_widget_set_tooltip_text(tmp, text);
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(cid));
@@ -3771,7 +3771,7 @@ DW_FUNCTION_RESTORE_PARAM3(text, const char *, cid, ULONG, filename, const char 
       gtk_button_set_child(GTK_BUTTON(tmp), bitmap);
       g_object_set_data(G_OBJECT(tmp), "_dw_bitmap", bitmap);
    }
-   gtk_widget_show(tmp);
+   gtk_widget_set_visible(tmp, TRUE);
    if(text)
       gtk_widget_set_tooltip_text(tmp, text);
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(cid));
@@ -3801,7 +3801,7 @@ DW_FUNCTION_RESTORE_PARAM4(text, const char *, cid, ULONG, data, const char *, l
       gtk_button_set_child(GTK_BUTTON(tmp), bitmap);
       g_object_set_data(G_OBJECT(tmp), "_dw_bitmap", bitmap);
    }
-   gtk_widget_show(tmp);
+   gtk_widget_set_visible(tmp, TRUE);
    if(text)
       gtk_widget_set_tooltip_text(tmp, text);
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(cid));
@@ -3824,7 +3824,7 @@ DW_FUNCTION_RESTORE_PARAM2(text, const char *, cid, ULONG)
 
    gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(tmp), TRUE);
    gtk_spin_button_set_wrap(GTK_SPIN_BUTTON(tmp), TRUE);
-   gtk_widget_show(tmp);
+   gtk_widget_set_visible(tmp, TRUE);
    g_object_set_data(G_OBJECT(tmp), "_dw_adjustment", (gpointer)adj);
    g_object_set_data(G_OBJECT(adj), "_dw_spinbutton", (gpointer)tmp);
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(cid));
@@ -3846,7 +3846,7 @@ DW_FUNCTION_RESTORE_PARAM2(text, const char *, cid, ULONG)
 {
    GtkWidget *tmp = gtk_toggle_button_new_with_label(text);
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(cid));
-   gtk_widget_show(tmp);
+   gtk_widget_set_visible(tmp, TRUE);
 
    if(_DWDefaultFont)
       dw_window_set_font(tmp, _DWDefaultFont);
@@ -3869,7 +3869,7 @@ DW_FUNCTION_RESTORE_PARAM3(vertical, int, increments, int, cid, ULONG)
    GtkAdjustment *adjustment = (GtkAdjustment *)gtk_adjustment_new(0, 0, (gfloat)increments, 1, 1, 1);
    GtkWidget *tmp = gtk_scale_new(vertical ? GTK_ORIENTATION_VERTICAL : GTK_ORIENTATION_HORIZONTAL, adjustment);
 
-   gtk_widget_show(tmp);
+   gtk_widget_set_visible(tmp, TRUE);
    gtk_scale_set_draw_value(GTK_SCALE(tmp), 0);
    gtk_scale_set_digits(GTK_SCALE(tmp), 0);
    g_object_set_data(G_OBJECT(tmp), "_dw_adjustment", (gpointer)adjustment);
@@ -3894,7 +3894,7 @@ DW_FUNCTION_RESTORE_PARAM2(vertical, int, cid, ULONG)
    GtkWidget *tmp = gtk_scrollbar_new(vertical ? GTK_ORIENTATION_VERTICAL : GTK_ORIENTATION_HORIZONTAL, adjustment);
 
    gtk_widget_set_can_focus(tmp, FALSE);
-   gtk_widget_show(tmp);
+   gtk_widget_set_visible(tmp, TRUE);
    g_object_set_data(G_OBJECT(tmp), "_dw_adjustment", (gpointer)adjustment);
    g_object_set_data(G_OBJECT(adjustment), "_dw_scrollbar", (gpointer)tmp);
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(cid));
@@ -3913,7 +3913,7 @@ DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
 
 {
    GtkWidget *tmp = gtk_progress_bar_new();
-   gtk_widget_show(tmp);
+   gtk_widget_set_visible(tmp, TRUE);
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(cid));
    DW_FUNCTION_RETURN_THIS(tmp);
 }
@@ -3930,7 +3930,7 @@ DW_FUNCTION_RETURN(dw_checkbox_new, HWND)
 DW_FUNCTION_RESTORE_PARAM2(text, const char *, cid, ULONG)
 {
    GtkWidget *tmp = gtk_check_button_new_with_label(text);
-   gtk_widget_show(tmp);
+   gtk_widget_set_visible(tmp, TRUE);
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(cid));
    if(_DWDefaultFont)
       dw_window_set_font(tmp, _DWDefaultFont);
@@ -3975,7 +3975,7 @@ DW_FUNCTION_RESTORE_PARAM2(cid, ULONG, multi, int)
          gtk_tree_selection_set_mode(sel, GTK_SELECTION_MULTIPLE);
       else
          gtk_tree_selection_set_mode(sel, GTK_SELECTION_SINGLE);
-      gtk_widget_show(tree);
+      gtk_widget_set_visible(tree, TRUE);
       if(_DWDefaultFont)
          dw_window_set_font(tmp, _DWDefaultFont);
    }
@@ -5466,7 +5466,7 @@ static int _dw_container_setup_int(HWND handle, unsigned long *flags, char **tit
       gtk_tree_selection_set_mode(sel, GTK_SELECTION_MULTIPLE);
    else
       gtk_tree_selection_set_mode(sel, GTK_SELECTION_SINGLE);
-   gtk_widget_show(tree);
+   gtk_widget_set_visible(tree, TRUE);
    free(array);
    if(_DWDefaultFont)
       dw_window_set_font(handle, _DWDefaultFont);
@@ -6616,7 +6616,7 @@ DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(cid));
    g_signal_connect(G_OBJECT(tmp), "destroy", G_CALLBACK(_dw_render_destroy), NULL);
    gtk_widget_set_can_focus(tmp, TRUE);
-   gtk_widget_show(tmp);
+   gtk_widget_set_visible(tmp, TRUE);
    if(_DWDefaultFont)
       dw_window_set_font(tmp, _DWDefaultFont);
    DW_FUNCTION_RETURN_THIS(tmp);
@@ -6715,7 +6715,7 @@ DW_FUNCTION_RESTORE_PARAM1(value, ULONG)
    gtk_color_chooser_set_use_alpha(cd, FALSE);
    gtk_color_chooser_set_rgba(cd, &color);
 
-   gtk_widget_show(GTK_WIDGET(cd));
+   gtk_widget_set_visible(GTK_WIDGET(cd), TRUE);
    g_signal_connect(G_OBJECT(cd), "response", G_CALLBACK(_dw_dialog_response), (gpointer)tmp);
 
    if(DW_POINTER_TO_INT(dw_dialog_wait(tmp)) == GTK_RESPONSE_OK)
@@ -8496,7 +8496,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
    {
       item = gtk_label_new("");
       g_object_set_data(G_OBJECT(item), "_dw_padding", GINT_TO_POINTER(1));
-      gtk_widget_show(item);
+      gtk_widget_set_visible(item, TRUE);
    }
 
    /* Check if the item to be packed is a special box */
@@ -9989,7 +9989,7 @@ DW_FUNCTION_RESTORE_PARAM4(type, int, topleft, HWND, bottomright, HWND, cid, uns
    *percent = 50.0;
    g_object_set_data(G_OBJECT(tmp), "_dw_percent", (gpointer)percent);
    g_signal_connect(G_OBJECT(tmp), "realize", G_CALLBACK(_dw_splitbar_realize), NULL);
-   gtk_widget_show(tmp);
+   gtk_widget_set_visible(tmp, TRUE);
    DW_FUNCTION_RETURN_THIS(tmp);
 }
 
@@ -10057,7 +10057,7 @@ DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
    GTimeZone *tz = g_time_zone_new_local();
    GDateTime *now = g_date_time_new_now(tz);
 
-   gtk_widget_show(tmp);
+   gtk_widget_set_visible(tmp, TRUE);
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(cid));
    /* select today */
    gtk_calendar_set_show_day_names(GTK_CALENDAR(tmp), TRUE);
@@ -10364,7 +10364,7 @@ DW_FUNCTION_RESTORE_PARAM4(title, const char *, defpath, const char *, ext, cons
          }
       }
 
-      gtk_widget_show(GTK_WIDGET(filew));
+      gtk_widget_set_visible(GTK_WIDGET(filew), TRUE);
       g_signal_connect(G_OBJECT(filew), "response", G_CALLBACK(_dw_dialog_response), (gpointer)tmp);
 
       if(DW_POINTER_TO_INT(dw_dialog_wait(tmp)) == GTK_RESPONSE_ACCEPT)
@@ -10529,7 +10529,7 @@ int API dw_html_raw(HWND handle, const char *string)
    if((web_view = _dw_html_web_view(handle)))
    {
       webkit_web_view_load_html(web_view, string, "file:///");
-      gtk_widget_show(GTK_WIDGET(handle));
+      gtk_widget_set_visible(GTK_WIDGET(handle), TRUE);
    }
    return DW_ERROR_NONE;
 #else
@@ -10554,7 +10554,7 @@ int API dw_html_url(HWND handle, const char *url)
    if((web_view = _dw_html_web_view(handle)))
    {
       webkit_web_view_load_uri(web_view, url);
-      gtk_widget_show(GTK_WIDGET(handle));
+      gtk_widget_set_visible(GTK_WIDGET(handle), TRUE);
    }
    return DW_ERROR_NONE;
 #else
@@ -10669,7 +10669,7 @@ DW_FUNCTION_RESTORE_PARAM1(DW_UNUSED(cid), ULONG)
    webkit_web_view_set_settings(web_view, settings);
    widget = (GtkWidget *)web_view;
    g_object_set_data(G_OBJECT(widget), "_dw_id", GINT_TO_POINTER(cid));
-   gtk_widget_show(widget);
+   gtk_widget_set_visible(widget, TRUE);
 #else
    dw_debug( "HTML widget not available; you do not have access to webkit.\n" );
 #endif
