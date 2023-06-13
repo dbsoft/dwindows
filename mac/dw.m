@@ -190,6 +190,11 @@
 #define BUILDING_FOR_VENTURA
 #endif
 
+/* Handle deprecation of constants in 14.0 */
+#if defined(MAC_OS_VERSION_14_0) && ((defined(MAC_OS_X_VERSION_MAX_ALLOWED) && MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_VERSION_14_0) || !defined(MAC_OS_X_VERSION_MAX_ALLOWED))
+#define BUILDING_FOR_SONOMA
+#endif
+
 #ifdef __clang__
 #define _DW_ELSE_AVAILABLE  \
     _Pragma("clang diagnostic push") \
@@ -5890,7 +5895,13 @@ HWND API dw_percent_new(ULONG cid)
 {
     DWPercent *percent = [[[DWPercent alloc] init] retain];
     [percent setStyle:DWProgressIndicatorStyleBar];
+	/* This is deprecated in 14.0 and does nothing in 10.15 and later...
+	 * So don't compile if targeting 10.15 or higher and using SDK 14 or later
+	 */
+#if !defined(MAC_OS_VERSION_14_0) || (defined(MAC_OS_X_VERSION_MIN_REQUIRED) && defined(MAC_OS_X_VERSION_10_15) && \
+	 MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_15)
     [percent setBezeled:YES];
+#endif
     [percent setMaxValue:100];
     [percent setMinValue:0];
     [percent incrementBy:1];

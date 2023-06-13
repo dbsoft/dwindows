@@ -6,7 +6,7 @@ The source base is considered beta on Android, alpha on C++.
 
 Build Recommendations:
 MacOS:
-    11-13: configure --with-arch=modern --with-minver=10.14
+    11-13: configure --with-arch=modern --with-minver=10.15
         64bit Intel and Apple Silicon (ARM64) with Dark Mode.
     10.13-10.15: configure --with-minver=10.8
         64bit Intel with Notifications, Dark Mode for 10.14-15.
@@ -81,6 +81,7 @@ Added DW_FEATURE_RENDER_SAFE that requires safe rendering.
     events from being dropped, only superfluous expose events.
     This feature is enabled by default on Android.
     This feature is disabled by default or unavailable on others.
+Added support for MacOS 14 Sonoma and iOS 17.
 
 Dynamic Windows Documentation is available at:
 
