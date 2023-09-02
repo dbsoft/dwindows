@@ -128,11 +128,6 @@ ARFLAGS="cqs"
 ARCH=""
 
 case "$target" in
-   *cygwin*)
-   ;;
-   *mingw32)
-      AC_DEFINE(DW_USE_GTK,1,Uses GTK but not on X11 or Wayland)
-   ;;
    *linux*)
       SONAME="-Wl,-soname,lib$TARGET.so.\$(DW_MAJOR_VERSION)"
    ;;
