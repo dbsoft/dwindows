@@ -127,14 +127,7 @@ extern "C" {
 /* Control size constants */
 #define DW_SIZE_AUTO    -1
 
-/* ensure we can build the Gtk port with MingW on Windows */
-#if defined(DW_USE_GTK) && defined(__MINGW32__)
-# ifndef GDK_WINDOWING_WIN32
-#   define GDK_WINDOWING_WIN32
-# endif
-#endif
-
-#if defined(__OS2__) || (defined(__WIN32__) && !defined(GDK_WINDOWING_WIN32)) || defined(__MAC__) || defined(__IOS__) || defined(__EMX__) || defined(__ANDROID__) || defined(__TEMPLATE__)
+#if defined(__OS2__) || defined(__WIN32__) || defined(__MAC__) || defined(__IOS__) || defined(__EMX__) || defined(__ANDROID__) || defined(__TEMPLATE__)
 /* OS/2, Windows or MacOS */
 
 #ifdef __OS2__
@@ -1260,7 +1253,7 @@ extern "C" {
 #endif
 
 #include <pthread.h>
-# include <dlfcn.h>
+#include <dlfcn.h>
 
 #define DW_DT_LEFT               1
 #define DW_DT_UNDERSCORE         (1 << 1)
@@ -1621,8 +1614,7 @@ typedef CTIME *PCTIME;
 #endif
 
 /* Define a few things missing on OS/2 and Windows */
-#if defined(__OS2__) || (defined(__WIN32__) && !defined(GDK_WINDOWING_WIN32)) || \
-    (defined(WINNT) && !defined(GDK_WINDOWING_WIN32)) || defined(__EMX__)
+#if defined(__OS2__) || defined(__WIN32__) || defined(WINNT) || defined(__EMX__)
 typedef unsigned long DWTID;
 #define DW_DIR_SEPARATOR '\\'
 #endif
