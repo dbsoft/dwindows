@@ -1,8 +1,5 @@
 /* dwconfig.h.in.  Generated from configure.ac by autoheader.  */
 
-/* Uses GTK but not on X11 or Wayland */
-#undef DW_USE_GTK
-
 /* Define to 1 if you have the `connect' function. */
 #undef HAVE_CONNECT
 

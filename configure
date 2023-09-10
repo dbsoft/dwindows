@@ -6144,13 +6144,6 @@ ARFLAGS="cqs"
 ARCH=""
 
 case "$target" in
-   *cygwin*)
-   ;;
-   *mingw32)
-
-printf "%s\n" "#define DW_USE_GTK 1" >>confdefs.h
-
-   ;;
    *linux*)
       SONAME="-Wl,-soname,lib$TARGET.so.\$(DW_MAJOR_VERSION)"
    ;;

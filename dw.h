@@ -127,15 +127,8 @@ extern "C" {
 /* Control size constants */
 #define DW_SIZE_AUTO    -1
 
-/* ensure we can build the Gtk port with MingW on Windows */
-#if defined(DW_USE_GTK) && defined(__MINGW32__)
-# ifndef GDK_WINDOWING_WIN32
-#   define GDK_WINDOWING_WIN32
-# endif
-#endif
-
-#if defined(__OS2__) || (defined(__WIN32__) && !defined(GDK_WINDOWING_WIN32)) || defined(__MAC__) || defined(__IOS__) || defined(__EMX__) || defined(__ANDROID__) || defined(__TEMPLATE__)
-/* OS/2, Windows or MacOS */
+#if defined(__OS2__) || defined(__WIN32__) || defined(__MAC__) || defined(__IOS__) || defined(__EMX__) || defined(__ANDROID__) || defined(__TEMPLATE__)
+/* Non-GTK platforms */
 
 #ifdef __OS2__
 # if (defined(__IBMC__) || defined(__WATCOMC__) || defined(_System)) && !defined(API)
