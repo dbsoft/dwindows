@@ -12,12 +12,10 @@
 #include <glib/gi18n.h>
 #include <string.h>
 #include <stdlib.h>
-#if !defined(GDK_WINDOWING_WIN32)
-# include <sys/utsname.h>
-# include <sys/socket.h>
-# include <sys/un.h>
-# include <sys/mman.h>
-#endif
+#include <sys/utsname.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <sys/mman.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <unistd.h>
