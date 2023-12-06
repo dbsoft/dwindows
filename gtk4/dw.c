@@ -4226,7 +4226,7 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, bubbletext, char *)
  * Parameters:
  *       handle: Handle to the window.
  * Returns:
- *       text: The text associsated with a given window.
+ *       text: The text associated with a given window.
  */
 DW_FUNCTION_DEFINITION(dw_window_get_text, char *, HWND handle)
 DW_FUNCTION_ADD_PARAM1(handle)
@@ -9929,16 +9929,24 @@ gboolean _dw_splitbar_set_percent(gpointer data)
 
    if(percent)
    {
+     int width, height;
+#if GTK_CHECK_VERSION(4,12,0)
+     width = gtk_widget_get_width(widget);
+     height = gtk_widget_get_height(widget);
+#else
       GtkAllocation alloc;
 
       gtk_widget_get_allocation(widget, &alloc);
+      width = alloc.width;
+      height = alloc.height;
+#endif
 
-      if(alloc.width > 10 && alloc.height > 10)
+      if(width > 10 && height > 10)
       {
          if(gtk_orientable_get_orientation(GTK_ORIENTABLE(widget)) == GTK_ORIENTATION_HORIZONTAL)
-            gtk_paned_set_position(GTK_PANED(widget), (int)(alloc.width * (*percent / 100.0)));
+            gtk_paned_set_position(GTK_PANED(widget), (int)(width * (*percent / 100.0)));
          else
-            gtk_paned_set_position(GTK_PANED(widget), (int)(alloc.height * (*percent / 100.0)));
+            gtk_paned_set_position(GTK_PANED(widget), (int)(height * (*percent / 100.0)));
          g_object_set_data(G_OBJECT(widget), "_dw_percent", NULL);
          free(percent);
       }
@@ -10007,9 +10015,21 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, percent, float)
    int size = 0, position;
 
    if(gtk_orientable_get_orientation(GTK_ORIENTABLE(handle)) == GTK_ORIENTATION_HORIZONTAL)
+   {
+#if GTK_CHECK_VERSION(4,12,0)
+      size = gtk_widget_get_width(handle);
+#else
       size = gtk_widget_get_allocated_width(handle);
+#endif
+   }
    else
+   {
+#if GTK_CHECK_VERSION(4,12,0)
+      size = gtk_widget_get_height(handle);
+#else
       size = gtk_widget_get_allocated_height(handle);
+#endif
+   }
 
    if(mypercent)
       *mypercent = percent;
@@ -10278,12 +10298,48 @@ void API dw_environment_query(DWEnv *env)
    env->MajorVersion = atoi(tempbuf);
 }
 
+#if GTK_CHECK_VERSION(4,10,0)
+static void _dw_file_browse_response(GObject *gobject, GAsyncResult *result, gpointer data)
+{
+  DWDialog *tmp = data;
+  GError *error = NULL;
+  char *filename = NULL;
+  GFile *file = NULL;
+
+  /* Bail out if there is no DWDialog */
+  if(!tmp)
+    return;
+
+  switch(DW_POINTER_TO_INT(tmp->data))
+  {
+     case DW_DIRECTORY_OPEN:
+        gtk_file_dialog_select_folder_finish(GTK_FILE_DIALOG(gobject), result, &error);
+        break;
+     case DW_FILE_OPEN:
+        gtk_file_dialog_open_finish(GTK_FILE_DIALOG(gobject), result, &error);
+        break;
+     case DW_FILE_SAVE:
+        gtk_file_dialog_save_finish(GTK_FILE_DIALOG(gobject), result, &error);
+        break;
+     default:
+        break;
+   }
+
+  if(error == NULL)
+  {
+    filename = g_file_get_path(file);
+    g_object_unref(G_OBJECT(file));
+  }
+  dw_dialog_dismiss(tmp, filename);
+}
+#endif
+
 /*
  * Opens a file dialog and queries user selection.
  * Parameters:
  *       title: Title bar text for dialog.
  *       defpath: The default path of the open dialog.
- *       ext: Default file extention.
+ *       ext: Default file extension.
  *       flags: DW_FILE_OPEN or DW_FILE_SAVE or DW_DIRECTORY_OPEN
  * Returns:
  *       NULL on error. A malloced buffer containing
@@ -10295,15 +10351,68 @@ DW_FUNCTION_ADD_PARAM4(title, defpath, ext, flags)
 DW_FUNCTION_RETURN(dw_file_browse, char *)
 DW_FUNCTION_RESTORE_PARAM4(title, const char *, defpath, const char *, ext, const char *, flags, int)
 {
-   GtkWidget *filew;
-
-   GtkFileChooserAction action;
-   GtkFileFilter *filter1 = NULL;
-   GtkFileFilter *filter2 = NULL;
-   gchar *button = NULL;
-   char *filename = NULL;
    char buf[1001] = {0};
-   DWDialog *tmp = dw_dialog_new(NULL);
+   char *filename = NULL;
+   DWDialog *tmp = dw_dialog_new(DW_INT_TO_POINTER(flags));
+#if GTK_CHECK_VERSION(4,10,0)
+   GtkFileDialog *dialog = gtk_file_dialog_new();
+
+   gtk_file_dialog_set_title(dialog, title);
+   if(defpath)
+   {
+      GFile *path = g_file_new_for_path(defpath);
+
+      /* See if the path exists */
+      if(path)
+      {
+         /* If the path is a directory... set the current folder */
+         if(g_file_query_file_type(path, G_FILE_QUERY_INFO_NONE, NULL) == G_FILE_TYPE_DIRECTORY)
+            gtk_file_dialog_set_initial_folder(dialog, path);
+         else
+            gtk_file_dialog_set_initial_file(dialog, path);
+
+         g_object_unref(G_OBJECT(path));
+      }
+   }
+   if(ext)
+   {
+      GListStore *filters = g_list_store_new (GTK_TYPE_FILE_FILTER);
+      GtkFileFilter *filter = gtk_file_filter_new();
+      snprintf(buf, 1000, "*.%s", ext);
+      gtk_file_filter_add_pattern(filter, (gchar *)buf);
+      snprintf(buf, 1000, "\"%s\" files", ext);
+      gtk_file_filter_set_name(filter, (gchar *)buf);
+      g_list_store_append(filters, filter);
+      filter = gtk_file_filter_new();
+      gtk_file_filter_add_pattern(filter, (gchar *)"*");
+      gtk_file_filter_set_name(filter, (gchar *)"All Files");
+      g_list_store_append(filters, filter);
+      gtk_file_dialog_set_filters(dialog, G_LIST_MODEL(filters));
+   }
+
+   switch(flags)
+   {
+      case DW_DIRECTORY_OPEN:
+         gtk_file_dialog_select_folder(dialog, NULL, NULL, (GAsyncReadyCallback)_dw_file_browse_response, tmp);
+         break;
+      case DW_FILE_OPEN:
+         gtk_file_dialog_open(dialog, NULL, NULL, (GAsyncReadyCallback)_dw_file_browse_response, tmp);
+         break;
+      case DW_FILE_SAVE:
+         gtk_file_dialog_save(dialog, NULL, NULL, (GAsyncReadyCallback)_dw_file_browse_response, tmp);
+         break;
+      default:
+         dw_messagebox( "Coding error", DW_MB_OK|DW_MB_ERROR, "dw_file_browse() flags argument invalid.");
+         tmp = NULL;
+         break;
+   }
+
+   if(tmp)
+     filename = dw_dialog_wait(tmp);
+#else
+   GtkWidget *filew;
+   GtkFileChooserAction action;
+   gchar *button = NULL;
 
    switch(flags)
    {
@@ -10335,16 +10444,16 @@ DW_FUNCTION_RESTORE_PARAM4(title, const char *, defpath, const char *, ext, cons
 
       if(ext)
       {
-         filter1 = gtk_file_filter_new();
+         GtkFileFilter *filter = gtk_file_filter_new();
          snprintf(buf, 1000, "*.%s", ext);
-         gtk_file_filter_add_pattern( filter1, (gchar *)buf);
+         gtk_file_filter_add_pattern(filter, (gchar *)buf);
          snprintf(buf, 1000, "\"%s\" files", ext);
-         gtk_file_filter_set_name(filter1, (gchar *)buf);
-         filter2 = gtk_file_filter_new();
-         gtk_file_filter_add_pattern(filter2, (gchar *)"*");
-         gtk_file_filter_set_name(filter2, (gchar *)"All Files");
-         gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(filew), filter1);
-         gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(filew), filter2);
+         gtk_file_filter_set_name(filter, (gchar *)buf);
+         gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(filew), filter);
+         filter = gtk_file_filter_new();
+         gtk_file_filter_add_pattern(filter, (gchar *)"*");
+         gtk_file_filter_set_name(filter, (gchar *)"All Files");
+         gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(filew), filter);
       }
 
       if(defpath)
@@ -10377,6 +10486,7 @@ DW_FUNCTION_RESTORE_PARAM4(title, const char *, defpath, const char *, ext, cons
       if(GTK_IS_WINDOW(filew))
          gtk_window_destroy(GTK_WINDOW(filew));
    }
+#endif
    DW_FUNCTION_RETURN_THIS(filename);
 }
 
