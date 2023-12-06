@@ -2333,6 +2333,62 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, fontname, const char *)
    DW_FUNCTION_RETURN_THIS(retval);
 }
 
+/* Internal function to convert from a pango font description to Dynamic Windows style font string */
+char *_dw_font_from_pango_font_description(PangoFontDescription *pfont)
+{
+  char *retfont = NULL;
+
+  if(pfont)
+  {
+     char *font = pango_font_description_to_string(pfont);
+     int len, x;
+
+     retfont = strdup(font);
+     len = strlen(font);
+  
+     /* Convert to Dynamic Windows format if we can... */
+     if(len > 0 && isdigit(font[len-1]))
+     {
+        int size;
+
+        x=len-1;
+        while(x > 0 && font[x] != ' ')
+        {
+           x--;
+        }
+        size = atoi(&font[x]);
+        /* If we were able to find a valid size... */
+        if(size > 0)
+        {
+           /* Null terminate after the name...
+            * and create the Dynamic Windows style font.
+            */
+           font[x] = 0;
+           snprintf(retfont, len+1, "%d.%s", size, font);
+        }
+     }
+     g_free(font);
+  }
+  return retfont;
+}
+
+#if GTK_CHECK_VERSION(4,10,0)
+static void _dw_font_choose_response(GObject *gobject, GAsyncResult *result, gpointer data)
+{
+  DWDialog *tmp = data;
+  GError *error = NULL;
+  char *fontname = NULL;
+  PangoFontDescription *pfd = gtk_font_dialog_choose_font_finish(GTK_FONT_DIALOG(gobject), result, &error);
+
+  if(error == NULL && pfd != NULL)
+  {
+    fontname = _dw_font_from_pango_font_description(pfd);
+    pango_font_description_free(pfd);
+  }
+  dw_dialog_dismiss(tmp, fontname);
+}
+#endif
+
 /* Allows the user to choose a font using the system's font chooser dialog.
  * Parameters:
  *       currfont: current font
@@ -2344,11 +2400,20 @@ DW_FUNCTION_ADD_PARAM1(currfont)
 DW_FUNCTION_RETURN(dw_font_choose, char *)
 DW_FUNCTION_RESTORE_PARAM1(currfont, const char *)
 {
-   GtkFontChooser *fd;
-   char *font = currfont ? strdup(currfont) : NULL;
-   char *name = font ? strchr(font, '.') : NULL;
    char *retfont = NULL;
    DWDialog *tmp = dw_dialog_new(NULL);
+#if GTK_CHECK_VERSION(4,10,0)
+   char *font = _dw_convert_font(currfont);
+   PangoFontDescription *pfd = font ? pango_font_description_from_string(font) : NULL;
+   GtkFontDialog *fd = gtk_font_dialog_new();
+
+   gtk_font_dialog_choose_font(fd, NULL, pfd, NULL, (GAsyncReadyCallback)_dw_font_choose_response, tmp);
+   
+   retfont = dw_dialog_wait(tmp);
+#else
+   char *font = currfont ? strdup(currfont) : NULL;
+   char *name = font ? strchr(font, '.') : NULL;
+   GtkFontChooser *fd;
 
    /* Detect Dynamic Windows style font name...
     * Format: ##.Fontname
@@ -2403,6 +2468,7 @@ DW_FUNCTION_RESTORE_PARAM1(currfont, const char *)
    }
    if(GTK_IS_WINDOW(fd))
       gtk_window_destroy(GTK_WINDOW(fd));
+#endif
    DW_FUNCTION_RETURN_THIS(retfont);
 }
 
@@ -2440,36 +2506,7 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
    if(pcontext)
    {
       pfont = pango_context_get_font_description(pcontext);
-      if(pfont)
-      {
-         int len, x;
-
-         font = pango_font_description_to_string(pfont);
-         retfont = strdup(font);
-         len = strlen(font);
-         /* Convert to Dynamic Windows format if we can... */
-         if(len > 0 && isdigit(font[len-1]))
-         {
-            int size;
-
-            x=len-1;
-            while(x > 0 && font[x] != ' ')
-            {
-               x--;
-            }
-            size = atoi(&font[x]);
-            /* If we were able to find a valid size... */
-            if(size > 0)
-            {
-               /* Null terminate after the name...
-                * and create the Dynamic Windows style font.
-                */
-               font[x] = 0;
-               snprintf(retfont, len+1, "%d.%s", size, font);
-            }
-         }
-         g_free(font);
-      }
+      retfont = _dw_font_from_pango_font_description(pfont);
    }
    DW_FUNCTION_RETURN_THIS(retfont);
 }
@@ -10313,19 +10350,19 @@ static void _dw_file_browse_response(GObject *gobject, GAsyncResult *result, gpo
   switch(DW_POINTER_TO_INT(tmp->data))
   {
      case DW_DIRECTORY_OPEN:
-        gtk_file_dialog_select_folder_finish(GTK_FILE_DIALOG(gobject), result, &error);
+        file = gtk_file_dialog_select_folder_finish(GTK_FILE_DIALOG(gobject), result, &error);
         break;
      case DW_FILE_OPEN:
-        gtk_file_dialog_open_finish(GTK_FILE_DIALOG(gobject), result, &error);
+        file = gtk_file_dialog_open_finish(GTK_FILE_DIALOG(gobject), result, &error);
         break;
      case DW_FILE_SAVE:
-        gtk_file_dialog_save_finish(GTK_FILE_DIALOG(gobject), result, &error);
+        file = gtk_file_dialog_save_finish(GTK_FILE_DIALOG(gobject), result, &error);
         break;
      default:
         break;
    }
 
-  if(error == NULL)
+  if(error == NULL && file != NULL)
   {
     filename = g_file_get_path(file);
     g_object_unref(G_OBJECT(file));
