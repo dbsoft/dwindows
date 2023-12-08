@@ -6732,6 +6732,22 @@ void API dw_color_background_set(unsigned long value)
    }
 }
 
+#if GTK_CHECK_VERSION(4,10,0)
+static void _dw_color_choose_response(GObject *gobject, GAsyncResult *result, gpointer data)
+{
+  DWDialog *tmp = data;
+  GError *error = NULL;
+  GdkRGBA *newcol = gtk_color_dialog_choose_rgba_finish(GTK_COLOR_DIALOG(gobject), result, &error);
+
+  if(error != NULL && newcol != NULL)
+  {
+      g_free(newcol);
+      newcol = NULL;
+  }
+  dw_dialog_dismiss(tmp, newcol);
+}
+#endif
+
 /* Allows the user to choose a color using the system's color chooser dialog.
  * Parameters:
  *       value: current color
@@ -6743,10 +6759,24 @@ DW_FUNCTION_ADD_PARAM1(value)
 DW_FUNCTION_RETURN(dw_color_choose, ULONG)
 DW_FUNCTION_RESTORE_PARAM1(value, ULONG)
 {
-   GtkColorChooser *cd;
    GdkRGBA color = _dw_internal_color(value);
    unsigned long retcolor = value;
    DWDialog *tmp = dw_dialog_new(NULL);
+#if GTK_CHECK_VERSION(4,10,0)
+   GtkColorDialog *cd = gtk_color_dialog_new();
+   GdkRGBA *newcol;
+
+   gtk_color_dialog_choose_rgba(cd, NULL, &color, NULL, (GAsyncReadyCallback)_dw_color_choose_response, tmp);
+
+   newcol = dw_dialog_wait(tmp);
+
+   if(newcol)
+   {
+      retcolor = DW_RGB((int)(newcol->red * 255), (int)(newcol->green * 255), (int)(newcol->blue * 255));
+      g_free(newcol);
+   }
+#else
+   GtkColorChooser *cd;
 
    cd = (GtkColorChooser *)gtk_color_chooser_dialog_new("Choose color", NULL);
    gtk_color_chooser_set_use_alpha(cd, FALSE);
@@ -6762,6 +6792,7 @@ DW_FUNCTION_RESTORE_PARAM1(value, ULONG)
    }
    if(GTK_IS_WINDOW(cd))
       gtk_window_destroy(GTK_WINDOW(cd));
+#endif
    DW_FUNCTION_RETURN_THIS(retcolor);
 }
 
