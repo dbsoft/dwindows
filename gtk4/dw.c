@@ -1850,17 +1850,68 @@ void API dw_vdebug(const char *format, va_list args)
    vfprintf(stderr, format, args);
 }
 
+#if GTK_CHECK_VERSION(4,10,0)
+static void _dw_alert_dialog_choose_response(GObject *gobject, GAsyncResult *result, gpointer data)
+{
+  DWDialog *tmp = data;
+  GError *error = NULL;
+  int retval = gtk_alert_dialog_choose_finish(GTK_ALERT_DIALOG(gobject), result, &error);
+
+  if(error != NULL)
+  {
+      retval = -1;
+  }
+  dw_dialog_dismiss(tmp, DW_INT_TO_POINTER(retval));
+}
+
+static char *_DW_BUTTON_OK = "Ok";
+static char *_DW_BUTTON_YES = "Yes";
+static char *_DW_BUTTON_NO = "No";
+static char *_DW_BUTTON_CANCEL = "Cancel";
+#endif
+
 /* Internal version that does not use variable arguments */
 DW_FUNCTION_DEFINITION(dw_messagebox_int, int, const char *title, int flags, char *outbuf)
 DW_FUNCTION_ADD_PARAM3(title, flags, outbuf)
 DW_FUNCTION_RETURN(dw_messagebox_int, int)
 DW_FUNCTION_RESTORE_PARAM3(title, const char *, flags, int, outbuf, char *)
 {
+   int response, retval = DW_MB_RETURN_OK;
+   DWDialog *tmp = dw_dialog_new(NULL);
+#if GTK_CHECK_VERSION(4,10,0)
+   GtkAlertDialog *ad = gtk_alert_dialog_new("%s", title);
+   char *buttons[4] = { 0 };
+   int button = 0;
+
+   gtk_alert_dialog_set_message(ad, outbuf);
+   gtk_alert_dialog_set_modal(ad, TRUE);
+
+   if(flags & (DW_MB_OK | DW_MB_OKCANCEL))
+      buttons[button++] = _DW_BUTTON_OK;
+   if(flags & (DW_MB_YESNO | DW_MB_YESNOCANCEL))
+      buttons[button++] = _DW_BUTTON_YES;
+   if(flags & (DW_MB_YESNO | DW_MB_YESNOCANCEL))
+      buttons[button++] = _DW_BUTTON_NO;
+   if(flags & (DW_MB_OKCANCEL | DW_MB_YESNOCANCEL))
+      buttons[button++] = _DW_BUTTON_CANCEL;
+   gtk_alert_dialog_set_buttons(ad, (const char * const*)buttons);
+
+   gtk_alert_dialog_choose(ad, NULL, NULL, (GAsyncReadyCallback)_dw_alert_dialog_choose_response, tmp);
+
+   response = DW_POINTER_TO_INT(dw_dialog_wait(tmp));
+
+   if(response < 0 || response >= button || buttons[response] == _DW_BUTTON_OK)
+      retval = DW_MB_RETURN_OK;
+   else if(buttons[response] == _DW_BUTTON_CANCEL)
+      retval = DW_MB_RETURN_CANCEL;
+   else if(buttons[response] == _DW_BUTTON_YES)
+      retval = DW_MB_RETURN_YES;
+   else if(buttons[response] == _DW_BUTTON_NO)
+      retval = DW_MB_RETURN_NO;
+#else
    GtkMessageType gtkicon = GTK_MESSAGE_OTHER;
    GtkButtonsType gtkbuttons = GTK_BUTTONS_OK;
    GtkWidget *dialog;
-   int response, retval = DW_MB_RETURN_OK;
-   DWDialog *tmp = dw_dialog_new(NULL);
    ULONG width, height;
 
    if(flags & DW_MB_ERROR)
@@ -1914,6 +1965,7 @@ DW_FUNCTION_RESTORE_PARAM3(title, const char *, flags, int, outbuf, char *)
             retval = DW_MB_RETURN_NO;
       }
    }
+#endif
    DW_FUNCTION_RETURN_THIS(retval);
 }
 
