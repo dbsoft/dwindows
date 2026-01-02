@@ -1573,7 +1573,7 @@ typedef void *HICN;
  * Test for GResource using: dwindows-config --gresource
  */
 #ifndef DW_INCLUDE_DEPRECATED_RESOURCES
-#if defined(DW_INCLUDE_DEPRECATED) || GTK_MAJOR_VERSION < 2 || !GLIB_CHECK_VERSION(2,32,0)
+#if (defined(DW_INCLUDE_DEPRECATED) && GTK_MAJOR_VERSION < 4) || GTK_MAJOR_VERSION < 2 || !GLIB_CHECK_VERSION(2,32,0)
 #define DW_INCLUDE_DEPRECATED_RESOURCES 1
 #endif
 #endif
