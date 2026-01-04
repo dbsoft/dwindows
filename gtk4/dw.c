@@ -460,6 +460,237 @@ static GList *_dw_dirty_list = NULL;
 
 #define _DW_RESOURCE_PATH "/org/dbsoft/dwindows/resources/"
 
+// GTK4 ListView support objects
+#if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
+
+G_BEGIN_DECLS
+
+#define DW_TYPE_TREE_NODE (_dw_tree_node_get_type())
+#define DW_TREE_NODE(obj) (G_TYPE_CHECK_INSTANCE_CAST((obj), DW_TYPE_TREE_NODE, DWTreeNode))
+#define DW_IS_TREE_NODE(obj) (G_TYPE_CHECK_INSTANCE_TYPE((obj), DW_TYPE_TREE_NODE))
+#define DW_TREE_NODE_CLASS(klass) (G_TYPE_CHECK_CLASS_CAST((klass), DW_TYPE_TREE_NODE, DWTreeNodeClass))
+#define DW_IS_TREE_NODE_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE((klass), DW_TYPE_TREE_NODE))
+#define DW_TREE_NODE_GET_CLASS(obj) (G_TYPE_INSTANCE_GET_CLASS((obj), DW_TYPE_TREE_NODE, DWTreeNodeClass))
+
+typedef struct _DWTreeNode DWTreeNode;
+typedef struct _DWTreeNodeClass DWTreeNodeClass;
+
+struct _DWTreeNode {
+    GObject parent_instance;
+    gchar *name;
+    GdkPixbuf *icon;
+    void *itemdata;
+    GListStore *children; // Store for child items
+    DWTreeNode *parent; // Back pointer to the parent store
+    GList *data_list; /* The embedded GList */
+};
+
+struct _DWTreeNodeClass {
+    GObjectClass parent_class;
+};
+
+G_DEFINE_TYPE_WITH_CODE(DWTreeNode, _dw_tree_node, G_TYPE_OBJECT,);
+
+G_END_DECLS
+
+/* GObject methods */
+static void _dw_tree_node_dispose(GObject *object);
+static void _dw_tree_node_finalize(GObject *object);
+static void _dw_tree_node_set_property(GObject *object, guint prop_id, const GValue *value, GParamSpec *pspec);
+static void _dw_tree_node_get_property(GObject *object, guint prop_id, GValue *value, GParamSpec *pspec);
+
+static void _dw_tree_node_class_init(DWTreeNodeClass *klass) {
+    GObjectClass *gobject_class = G_OBJECT_CLASS(klass);
+
+    gobject_class->dispose = _dw_tree_node_dispose;
+    gobject_class->finalize = _dw_tree_node_finalize;
+    gobject_class->set_property = _dw_tree_node_set_property;
+    gobject_class->get_property = _dw_tree_node_get_property;
+    
+    /* Register properties here if needed */
+}
+
+static void _dw_tree_node_init(DWTreeNode *self) {
+    self->name = NULL; /* Initialize name to NULL */
+    self->icon = NULL; /* Initialize icon to NULL */
+    self->itemdata = NULL; /* Initialize itemdata to NULL */
+    self->children = g_list_store_new(DW_TYPE_TREE_NODE);
+    self->parent = NULL; /* Parent is NULL until inserted */
+    g_object_ref(G_OBJECT(self->children));
+    self->data_list = NULL; /* Initialize the list pointer to NULL */
+}
+
+/* 
+ * Dispose function: Drop references to other GObjects 
+ * This is where you would unref GObjects stored in the list.
+*/
+static void _dw_tree_node_dispose(GObject *object) {
+    DWTreeNode *self = DW_TREE_NODE(object);
+
+    g_object_unref(G_OBJECT(self->children));
+    /* If the list contains GObjects, unref them here */
+    g_list_foreach(self->data_list, (GFunc)g_object_unref, NULL);
+
+    G_OBJECT_CLASS(_dw_tree_node_parent_class)->dispose(object);
+}
+
+/* 
+ * Finalize function: Free non-GObject resources (like the GList structure itself)
+ */
+static void _dw_tree_node_finalize(GObject *object) {
+    DWTreeNode *self = DW_TREE_NODE(object);
+
+    /* Free the GList structure itself. The data should have been freed in dispose() if they were GObjects */
+    g_list_free(self->data_list);
+    self->data_list = NULL;
+
+    g_free(self->name);
+    self->name = NULL;
+
+    g_object_unref(G_OBJECT(self->icon));
+    self->icon = NULL;
+
+    G_OBJECT_CLASS(_dw_tree_node_parent_class)->finalize(object);
+}
+
+static void _dw_tree_node_set_property(GObject *object, guint prop_id, const GValue *value, GParamSpec *pspec) {
+    /* Handle property setting here */
+}
+
+static void _dw_tree_node_get_property(GObject *object, guint prop_id, GValue *value, GParamSpec *pspec) {
+    /* Handle property getting here */
+}
+
+/* Semi-public API method to add data to the list */
+void _dw_tree_node_add_data(DWTreeNode *self, gpointer data) {
+    g_return_if_fail(DW_IS_TREE_NODE(self));
+    self->data_list = g_list_append(self->data_list, data);
+}
+
+GdkPixbuf *_dw_tree_node_get_icon(DWTreeNode *self) {
+    g_return_val_if_fail(DW_IS_TREE_NODE(self), NULL);
+    return self->icon;
+}
+
+gchar *_dw_tree_node_get_name(DWTreeNode *self) {
+    g_return_val_if_fail(DW_IS_TREE_NODE(self), NULL);
+    return self->name;
+}
+
+void *_dw_tree_node_get_itemdata(DWTreeNode *self) {
+    g_return_val_if_fail(DW_IS_TREE_NODE(self), NULL);
+    return self->itemdata;
+}
+
+DWTreeNode *_dw_tree_node_get_parent(DWTreeNode *self) {
+    g_return_val_if_fail(DW_IS_TREE_NODE(self), NULL);
+    return self->parent;
+}
+
+GListStore *_dw_tree_node_get_parent_store(DWTreeNode *self) {
+    if(!self)
+        return NULL;
+    g_return_val_if_fail(DW_IS_TREE_NODE(self), NULL);
+    return self->parent ? self->parent->children : NULL;
+}
+
+void _dw_tree_node_set_icon(DWTreeNode *self, GdkPixbuf *icon) {
+    g_return_if_fail(DW_IS_TREE_NODE(self));
+    if(self->icon)
+        g_object_unref(G_OBJECT(self->icon));
+    self->icon = icon;
+    /* Make sure it doesn't get freed while in use */
+    g_object_ref(G_OBJECT(self->icon));
+}
+
+void _dw_tree_node_set_name(DWTreeNode *self, gchar *name) {
+    g_return_if_fail(DW_IS_TREE_NODE(self));
+    self->name = g_strdup(name);
+}
+
+void _dw_tree_node_set_itemdata(DWTreeNode *self, void *itemdata) {
+    g_return_if_fail(DW_IS_TREE_NODE(self));
+    self->itemdata = itemdata;
+}
+
+void _dw_tree_node_set_parent(DWTreeNode *self, DWTreeNode *parent) {
+    g_return_if_fail(DW_IS_TREE_NODE(self));
+    self->parent = parent;
+}
+
+DWTreeNode *_dw_tree_node_new(void) {
+    return g_object_new(DW_TYPE_TREE_NODE, NULL);
+}
+
+static void _dw_list_model_refresh(GListModel *model)
+{
+    if(model) {
+        guint items = g_list_model_get_n_items(model);
+        g_list_model_items_changed(model, 0, items, items);
+    }
+}
+
+static GListModel *_dw_tree_node_create_children_model(gpointer item, gpointer user_data)
+{
+    DWTreeNode *dw_tree_node = DW_TREE_NODE(item);
+    // If the folder has children, return its GListStore model.
+    // GtkTreeListModel takes ownership of the reference.
+    if (g_list_model_get_n_items(G_LIST_MODEL(dw_tree_node->children)) > 0) {
+        g_object_ref(dw_tree_node->children);
+        return G_LIST_MODEL(dw_tree_node->children);
+    }
+    return NULL;
+}
+
+static void _dw_tree_node_setup_listitem_cb(GtkListItemFactory *factory, GtkListItem *list_item, gpointer user_data)
+{
+    GtkWidget *treexpander, *hbox, *image, *label;
+
+    // A box to hold icon and name
+    hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+
+    // Image and Label
+    image = gtk_image_new();
+    label = gtk_label_new(NULL);
+    gtk_box_append(GTK_BOX(hbox), image);
+    gtk_box_append(GTK_BOX(hbox), label);
+
+    // The GtkTreeExpander wraps the actual content widget
+    treexpander = gtk_tree_expander_new();
+    gtk_tree_expander_set_child(GTK_TREE_EXPANDER(treexpander), hbox);
+    
+    // Set the expander as the child of the list item
+    gtk_list_item_set_child(list_item, treexpander);
+}
+
+static void _dw_tree_node_bind_listitem_cb(GtkListItemFactory *factory, GtkListItem *list_item, gpointer user_data)
+{
+    GtkTreeListRow *tree_list_row = GTK_TREE_LIST_ROW(gtk_list_item_get_item(list_item));
+    DWTreeNode *dw_tree_node = DW_TREE_NODE(gtk_tree_list_row_get_item(tree_list_row));
+
+    GtkWidget *treexpander = gtk_list_item_get_child(list_item);
+    GtkWidget *hbox = gtk_tree_expander_get_child(GTK_TREE_EXPANDER(treexpander));
+    GtkWidget *image = gtk_widget_get_first_child(hbox);
+    GtkWidget *label = gtk_widget_get_last_child(hbox);
+
+    // Update widgets with data from MyItem
+    gtk_image_set_from_pixbuf(GTK_IMAGE(image), _dw_tree_node_get_icon(dw_tree_node));
+    gtk_label_set_text(GTK_LABEL(label), _dw_tree_node_get_name(dw_tree_node));
+    
+    // Crucial: link the GtkTreeExpander to the specific GtkTreeListRow
+    gtk_tree_expander_set_list_row(GTK_TREE_EXPANDER(treexpander), tree_list_row);
+}
+#else
+GtkWidget *_dw_tree_view_setup(GtkWidget *tmp, GtkTreeModel *store)
+{
+   GtkWidget *tree = gtk_tree_view_new_with_model(store);
+   gtk_tree_view_set_enable_search(GTK_TREE_VIEW(tree), FALSE);
+   gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(tmp), tree);
+   g_object_set_data(G_OBJECT(tmp), "_dw_user", (gpointer)tree);
+   return tree;
+}
+#endif
+
 /* Signal forwarder prototypes */
 static gint _dw_button_press_event(GtkGestureSingle *gesture, int n_press, double x, double y, gpointer data);
 static gint _dw_button_release_event(GtkGestureSingle *gesture, int n_press, double x, double y, gpointer data);
@@ -474,7 +705,11 @@ static gint _dw_expose_event(GtkWidget *widget, cairo_t *cr, int width, int heig
 static void _dw_set_focus_event(GObject *window, GParamSpec *pspec, gpointer data);
 static gint _dw_tree_context_event(GtkGestureSingle *gesture, int n_press, double x, double y, gpointer data);
 static gint _dw_value_changed_event(GtkWidget *widget, gpointer user_data);
+#if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
+static void _dw_tree_select_event(GtkSelectionModel *model, guint position, guint n_items, gpointer data);
+#else
 static gint _dw_tree_select_event(GtkTreeSelection *sel, gpointer data);
+#endif
 static gint _dw_tree_expand_event(GtkTreeView *treeview, GtkTreeIter *arg1, GtkTreePath *arg2, gpointer data);
 static gint _dw_switch_page_event(GtkNotebook *notebook, GtkWidget *page, guint page_num, gpointer data);
 static gint _dw_column_click_event(GtkWidget *widget, gpointer data);
@@ -531,6 +766,12 @@ typedef struct
 
 } DWSignalHandler;
 
+#if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
+#define _DW_CHANGED "selection-changed"
+#else
+#define _DW_CHANGED "changed"
+#endif
+
 /* A list of signal forwarders, to account for parameter differences. */
 static DWSignalList DWSignalTranslate[] = {
    { _dw_configure_event,         DW_SIGNAL_CONFIGURE,      "resize",            NULL },
@@ -543,8 +784,8 @@ static DWSignalList DWSignalTranslate[] = {
    { _dw_generic_event,           DW_SIGNAL_CLICKED,        "clicked",           _dw_button_setup },
    { _dw_container_enter_event,   DW_SIGNAL_ITEM_ENTER,     "key-pressed",       _dw_key_setup },
    { _dw_tree_context_event,      DW_SIGNAL_ITEM_CONTEXT,   "pressed",           _dw_tree_setup },
-   { _dw_combobox_select_event,   DW_SIGNAL_LIST_SELECT,    "changed",           NULL },
-   { _dw_tree_select_event,       DW_SIGNAL_ITEM_SELECT,    "changed",           _dw_tree_setup },
+   { _dw_combobox_select_event,   DW_SIGNAL_LIST_SELECT,    _DW_CHANGED,         NULL },
+   { _dw_tree_select_event,       DW_SIGNAL_ITEM_SELECT,    _DW_CHANGED,         _dw_tree_setup },
    { _dw_set_focus_event,         DW_SIGNAL_SET_FOCUS,      "notify::is-active", _dw_focus_setup },
    { _dw_value_changed_event,     DW_SIGNAL_VALUE_CHANGED,  "value-changed",     _dw_value_setup },
    { _dw_switch_page_event,       DW_SIGNAL_SWITCH_PAGE,    "switch-page",       NULL },
@@ -1182,6 +1423,36 @@ static gint _dw_tree_context_event(GtkGestureSingle *gesture, int n_press, doubl
    return retval;
 }
 
+#if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
+static void _dw_tree_select_event(GtkSelectionModel *model, guint position, guint n_items, gpointer data)
+{
+  DWSignalHandler work = _dw_get_signal_handler(data);
+
+  // This callback is triggered when the selection changes.
+  // For GtkSingleSelection, 'position' indicates the new selected index.
+  // For GtkMultiSelection, you would need to iterate through the model.
+  if(GTK_IS_SINGLE_SELECTION(model))
+  {
+      GtkSingleSelection *single_selection = GTK_SINGLE_SELECTION(model);
+      GObject *item = gtk_single_selection_get_selected_item(single_selection);
+      
+      /* If we are in a tree, need to pull the item out of the row */
+      if(item && GTK_IS_TREE_LIST_ROW(item))
+      {
+          item = gtk_tree_list_row_get_item(GTK_TREE_LIST_ROW(item));
+      }
+      
+      if(item)
+      {
+         int (*treeselectfunc)(HWND, HTREEITEM, char *, void *, void *) = work.func;
+         char *text = _dw_tree_node_get_name(DW_TREE_NODE(item));
+         void *itemdata = _dw_tree_node_get_itemdata(DW_TREE_NODE(item));
+
+         int retval = treeselectfunc(work.window, (HTREEITEM)item, text, work.data, itemdata);
+      }
+   }
+}
+#else
 static gint _dw_tree_select_event(GtkTreeSelection *sel, gpointer data)
 {
    GtkWidget *item = NULL, *widget = (GtkWidget *)gtk_tree_selection_get_tree_view(sel);
@@ -1278,6 +1549,7 @@ static gint _dw_tree_select_event(GtkTreeSelection *sel, gpointer data)
    }
    return retval;
 }
+#endif
 
 static gint _dw_tree_expand_event(GtkTreeView *widget, GtkTreeIter *iter, GtkTreePath *path, gpointer data)
 {
@@ -3564,231 +3836,6 @@ GtkWidget *_dw_tree_create(unsigned long id)
    return tmp;
 }
 
-
-// GTK4 ListView support objects
-#if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
-
-G_BEGIN_DECLS
-
-#define DW_TYPE_TREE_NODE (_dw_tree_node_get_type())
-#define DW_TREE_NODE(obj) (G_TYPE_CHECK_INSTANCE_CAST((obj), DW_TYPE_TREE_NODE, DWTreeNode))
-#define DW_IS_TREE_NODE(obj) (G_TYPE_CHECK_INSTANCE_TYPE((obj), DW_TYPE_TREE_NODE))
-#define DW_TREE_NODE_CLASS(klass) (G_TYPE_CHECK_CLASS_CAST((klass), DW_TYPE_TREE_NODE, DWTreeNodeClass))
-#define DW_IS_TREE_NODE_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE((klass), DW_TYPE_TREE_NODE))
-#define DW_TREE_NODE_GET_CLASS(obj) (G_TYPE_INSTANCE_GET_CLASS((obj), DW_TYPE_TREE_NODE, DWTreeNodeClass))
-
-typedef struct _DWTreeNode DWTreeNode;
-typedef struct _DWTreeNodeClass DWTreeNodeClass;
-
-struct _DWTreeNode {
-    GObject parent_instance;
-    gchar *name;
-    GdkPixbuf *icon;
-    void *itemdata;
-    GListStore *children; // Store for child items
-    GListStore *parent; // Back pointer to the parent store
-    GList *data_list; /* The embedded GList */
-};
-
-struct _DWTreeNodeClass {
-    GObjectClass parent_class;
-};
-
-G_DEFINE_TYPE_WITH_CODE(DWTreeNode, _dw_tree_node, G_TYPE_OBJECT,);
-
-G_END_DECLS
-
-/* GObject methods */
-static void _dw_tree_node_dispose(GObject *object);
-static void _dw_tree_node_finalize(GObject *object);
-static void _dw_tree_node_set_property(GObject *object, guint prop_id, const GValue *value, GParamSpec *pspec);
-static void _dw_tree_node_get_property(GObject *object, guint prop_id, GValue *value, GParamSpec *pspec);
-
-static void _dw_tree_node_class_init(DWTreeNodeClass *klass) {
-    GObjectClass *gobject_class = G_OBJECT_CLASS(klass);
-
-    gobject_class->dispose = _dw_tree_node_dispose;
-    gobject_class->finalize = _dw_tree_node_finalize;
-    gobject_class->set_property = _dw_tree_node_set_property;
-    gobject_class->get_property = _dw_tree_node_get_property;
-    
-    /* Register properties here if needed */
-}
-
-static void _dw_tree_node_init(DWTreeNode *self) {
-    self->name = NULL; /* Initialize name to NULL */
-    self->icon = NULL; /* Initialize icon to NULL */
-    self->itemdata = NULL; /* Initialize itemdata to NULL */
-    self->children = g_list_store_new(DW_TYPE_TREE_NODE);
-    self->parent = NULL; /* Parent is NULL until inserted */
-    g_object_ref(G_OBJECT(self->children));
-    self->data_list = NULL; /* Initialize the list pointer to NULL */
-}
-
-/* 
- * Dispose function: Drop references to other GObjects 
- * This is where you would unref GObjects stored in the list.
-*/
-static void _dw_tree_node_dispose(GObject *object) {
-    DWTreeNode *self = DW_TREE_NODE(object);
-
-    g_object_unref(G_OBJECT(self->children));
-    /* If the list contains GObjects, unref them here */
-    g_list_foreach(self->data_list, (GFunc)g_object_unref, NULL);
-
-    G_OBJECT_CLASS(_dw_tree_node_parent_class)->dispose(object);
-}
-
-/* 
- * Finalize function: Free non-GObject resources (like the GList structure itself)
- */
-static void _dw_tree_node_finalize(GObject *object) {
-    DWTreeNode *self = DW_TREE_NODE(object);
-
-    /* Free the GList structure itself. The data should have been freed in dispose() if they were GObjects */
-    g_list_free(self->data_list);
-    self->data_list = NULL;
-
-    g_free(self->name);
-    self->name = NULL;
-
-    g_object_unref(G_OBJECT(self->icon));
-    self->icon = NULL;
-
-    G_OBJECT_CLASS(_dw_tree_node_parent_class)->finalize(object);
-}
-
-static void _dw_tree_node_set_property(GObject *object, guint prop_id, const GValue *value, GParamSpec *pspec) {
-    /* Handle property setting here */
-}
-
-static void _dw_tree_node_get_property(GObject *object, guint prop_id, GValue *value, GParamSpec *pspec) {
-    /* Handle property getting here */
-}
-
-/* Semi-public API method to add data to the list */
-void _dw_tree_node_add_data(DWTreeNode *self, gpointer data) {
-    g_return_if_fail(DW_IS_TREE_NODE(self));
-    self->data_list = g_list_append(self->data_list, data);
-}
-
-GdkPixbuf *_dw_tree_node_get_icon(DWTreeNode *self) {
-    g_return_val_if_fail(DW_IS_TREE_NODE(self), NULL);
-    return self->icon;
-}
-
-gchar *_dw_tree_node_get_name(DWTreeNode *self) {
-    g_return_val_if_fail(DW_IS_TREE_NODE(self), NULL);
-    return self->name;
-}
-
-void *_dw_tree_node_get_itemdata(DWTreeNode *self) {
-    g_return_val_if_fail(DW_IS_TREE_NODE(self), NULL);
-    return self->itemdata;
-}
-
-GListStore *_dw_tree_node_get_parent(DWTreeNode *self) {
-    g_return_val_if_fail(DW_IS_TREE_NODE(self), NULL);
-    return self->parent;
-}
-
-void _dw_tree_node_set_icon(DWTreeNode *self, GdkPixbuf *icon) {
-    g_return_if_fail(DW_IS_TREE_NODE(self));
-    if(self->icon)
-        g_object_unref(G_OBJECT(self->icon));
-    self->icon = icon;
-    /* Make sure it doesn't get freed while in use */
-    g_object_ref(G_OBJECT(self->icon));
-}
-
-void _dw_tree_node_set_name(DWTreeNode *self, gchar *name) {
-    g_return_if_fail(DW_IS_TREE_NODE(self));
-    self->name = g_strdup(name);
-}
-
-void _dw_tree_node_set_itemdata(DWTreeNode *self, void *itemdata) {
-    g_return_if_fail(DW_IS_TREE_NODE(self));
-    self->itemdata = itemdata;
-}
-
-void _dw_tree_node_set_parent(DWTreeNode *self, GListStore *parent) {
-    g_return_if_fail(DW_IS_TREE_NODE(self));
-    self->parent = parent;
-}
-
-DWTreeNode *_dw_tree_node_new(void) {
-    return g_object_new(DW_TYPE_TREE_NODE, NULL);
-}
-
-static void _dw_list_model_refresh(GListModel *model)
-{
-    if(model) {
-        guint items = g_list_model_get_n_items(model);
-        g_list_model_items_changed(model, 0, items, items);
-    }
-}
-
-static GListModel *_dw_tree_node_create_children_model(gpointer item, gpointer user_data)
-{
-    DWTreeNode *dw_tree_node = DW_TREE_NODE(item);
-    // If the folder has children, return its GListStore model.
-    // GtkTreeListModel takes ownership of the reference.
-    if (g_list_model_get_n_items(G_LIST_MODEL(dw_tree_node->children)) > 0) {
-        g_object_ref(dw_tree_node->children);
-        return G_LIST_MODEL(dw_tree_node->children);
-    }
-    return NULL;
-}
-
-static void _dw_tree_node_setup_listitem_cb(GtkListItemFactory *factory, GtkListItem *list_item, gpointer user_data)
-{
-    GtkWidget *treexpander, *hbox, *image, *label;
-
-    // A box to hold icon and name
-    hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
-
-    // Image and Label
-    image = gtk_image_new();
-    label = gtk_label_new(NULL);
-    gtk_box_append(GTK_BOX(hbox), image);
-    gtk_box_append(GTK_BOX(hbox), label);
-
-    // The GtkTreeExpander wraps the actual content widget
-    treexpander = gtk_tree_expander_new();
-    gtk_tree_expander_set_child(GTK_TREE_EXPANDER(treexpander), hbox);
-    
-    // Set the expander as the child of the list item
-    gtk_list_item_set_child(list_item, treexpander);
-}
-
-static void _dw_tree_node_bind_listitem_cb(GtkListItemFactory *factory, GtkListItem *list_item, gpointer user_data)
-{
-    GtkTreeListRow *tree_list_row = GTK_TREE_LIST_ROW(gtk_list_item_get_item(list_item));
-    DWTreeNode *dw_tree_node = DW_TREE_NODE(gtk_tree_list_row_get_item(tree_list_row));
-
-    GtkWidget *treexpander = gtk_list_item_get_child(list_item);
-    GtkWidget *hbox = gtk_tree_expander_get_child(GTK_TREE_EXPANDER(treexpander));
-    GtkWidget *image = gtk_widget_get_first_child(hbox);
-    GtkWidget *label = gtk_widget_get_last_child(hbox);
-
-    // Update widgets with data from MyItem
-    gtk_image_set_from_pixbuf(GTK_IMAGE(image), _dw_tree_node_get_icon(dw_tree_node));
-    gtk_label_set_text(GTK_LABEL(label), _dw_tree_node_get_name(dw_tree_node));
-    
-    // Crucial: link the GtkTreeExpander to the specific GtkTreeListRow
-    gtk_tree_expander_set_list_row(GTK_TREE_EXPANDER(treexpander), tree_list_row);
-}
-#else
-GtkWidget *_dw_tree_view_setup(GtkWidget *tmp, GtkTreeModel *store)
-{
-   GtkWidget *tree = gtk_tree_view_new_with_model(store);
-   gtk_tree_view_set_enable_search(GTK_TREE_VIEW(tree), FALSE);
-   gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(tmp), tree);
-   g_object_set_data(G_OBJECT(tmp), "_dw_user", (gpointer)tree);
-   return tree;
-}
-#endif
-
 /*
  * Create a container object to be packed.
  * Parameters:
@@ -3834,7 +3881,7 @@ DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
       GtkTreeListModel *tree_model = gtk_tree_list_model_new(
            G_LIST_MODEL(root_store),
            FALSE, // Not passthrough, we use GtkTreeExpander
-           TRUE, // Autoexpand
+           FALSE, // Autoexpand
            _dw_tree_node_create_children_model,
            NULL, NULL);
 
@@ -5352,6 +5399,7 @@ DW_FUNCTION_RESTORE_PARAM6(handle, HWND, item, HTREEITEM, title, char *, icon, H
    {
        DWTreeNode *node = _dw_tree_node_new();
        guint insertion_position = sibling_position + 1;
+       GListStore *parent_store = _dw_tree_node_get_parent_store(parent);
    
        if(title)
            _dw_tree_node_set_name(node, title);
@@ -5361,12 +5409,12 @@ DW_FUNCTION_RESTORE_PARAM6(handle, HWND, item, HTREEITEM, title, char *, icon, H
            _dw_tree_node_set_icon(node, pixbuf);
        }
        _dw_tree_node_set_itemdata(node, itemdata);
-       _dw_tree_node_set_parent(node, store);
+       _dw_tree_node_set_parent(node, parentnode);
 
        // The g_list_store_insert function handles memory management by taking a ref on new_item.
        g_list_store_insert(store, insertion_position, node);
    
-       _dw_list_model_refresh(G_LIST_MODEL(parent ? _dw_tree_node_get_parent(parent) : root_store));
+       _dw_list_model_refresh(G_LIST_MODEL(parent_store ? parent_store : root_store));
        retval = (HTREEITEM)node;
    }
 #else
@@ -5411,7 +5459,6 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, title, char *, icon, HICN, parent, HTRE
    HTREEITEM retval = 0;
 #if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
    DWTreeNode *parentnode = (DWTreeNode *)parent;
-   guint sibling_position;
    GtkListView *tree;
    GListStore *store = parentnode ? parentnode->children : NULL;
    GListStore *root_store = NULL;
@@ -5448,6 +5495,7 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, title, char *, icon, HICN, parent, HTRE
    if(store)
    {
        DWTreeNode *node = _dw_tree_node_new();
+       GListStore *parent_store = _dw_tree_node_get_parent_store(parent);
    
        if(title)
            _dw_tree_node_set_name(node, title);
@@ -5457,12 +5505,12 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, title, char *, icon, HICN, parent, HTRE
            _dw_tree_node_set_icon(node, pixbuf);
        }
        _dw_tree_node_set_itemdata(node, itemdata);
-       _dw_tree_node_set_parent(node, store);
+       _dw_tree_node_set_parent(node, parentnode);
 
        // The g_list_store_insert function handles memory management by taking a ref on new_item.
        g_list_store_append(store, node);
    
-       _dw_list_model_refresh(G_LIST_MODEL(parent ? _dw_tree_node_get_parent(parent) : root_store));
+       _dw_list_model_refresh(G_LIST_MODEL(parent_store ? parent_store : root_store));
        retval = (HTREEITEM)node;
    }
 #else
@@ -5503,24 +5551,32 @@ DW_FUNCTION_ADD_PARAM4(handle, item, title, icon)
 DW_FUNCTION_NO_RETURN(dw_tree_item_change)
 DW_FUNCTION_RESTORE_PARAM4(handle, HWND, item, HTREEITEM, title, char *, icon, HICN)
 {
-#if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
-#else
-   GtkWidget *tree;
-   GtkTreeStore *store;
-   GdkPixbuf *pixbuf;
-
-   if(handle)
+   if(handle && item)
    {
-      if((tree = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user"))
-         && GTK_IS_TREE_VIEW(tree) &&
-         (store = (GtkTreeStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(tree))))
-      {
-         pixbuf = _dw_find_pixbuf(icon, NULL, NULL);
+      GtkWidget *tree;
 
-         gtk_tree_store_set(store, (GtkTreeIter *)item, 0, title, 1, pixbuf, -1);
-      }
-   }
+      if((tree = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user")))
+      {
+          GdkPixbuf *pixbuf = _dw_find_pixbuf(icon, NULL, NULL);
+#if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
+          DWTreeNode *node = DW_TREE_NODE(item);
+          
+          if(GTK_IS_LIST_VIEW(tree))
+          {
+              _dw_tree_node_set_name(node, title);
+              _dw_tree_node_set_icon(node, pixbuf);
+          }
+#else
+         GtkTreeStore *store;
+
+          if(GTK_IS_TREE_VIEW(tree) &&
+            (store = (GtkTreeStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(tree))))
+          {
+              gtk_tree_store_set(store, (GtkTreeIter *)item, 0, title, 1, pixbuf, -1);
+          }
 #endif
+       }
+   }
    DW_FUNCTION_RETURN_NOTHING;
 }
 
@@ -5536,19 +5592,30 @@ DW_FUNCTION_ADD_PARAM3(handle, item, itemdata)
 DW_FUNCTION_NO_RETURN(dw_tree_item_set_data)
 DW_FUNCTION_RESTORE_PARAM3(DW_UNUSED(handle), HWND, item, HTREEITEM, itemdata, void *)
 {
-#if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
-#else
-   GtkWidget *tree;
-   GtkTreeStore *store;
-
    if(handle && item)
    {
-      if((tree = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user"))
-         && GTK_IS_TREE_VIEW(tree) &&
-         (store = (GtkTreeStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(tree))))
+      GtkWidget *tree;
+
+      if((tree = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user")))
+      {
+#if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
+         DWTreeNode *node = DW_TREE_NODE(item);
+         
+         if(GTK_IS_LIST_VIEW(tree))
+         {
+            _dw_tree_node_set_itemdata(node, itemdata);
+         }
+#else
+         GtkTreeStore *store;
+
+         if(GTK_IS_TREE_VIEW(tree) &&
+            (store = (GtkTreeStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(tree))))
+         {
             gtk_tree_store_set(store, (GtkTreeIter *)item, 2, itemdata, -1);
-   }
+         }
 #endif
+      }
+   }
    DW_FUNCTION_RETURN_NOTHING;
 }
 
@@ -5564,26 +5631,38 @@ DW_FUNCTION_RETURN(dw_tree_get_title, char *)
 DW_FUNCTION_RESTORE_PARAM2(DW_UNUSED(handle), HWND, item, HTREEITEM)
 {
    char *text = NULL;
-#if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
-#else
-   GtkWidget *tree;
-   GtkTreeModel *store;
 
    if(handle && item)
    {
-      tree = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
+      GtkWidget *tree;
 
-      if(tree && GTK_IS_TREE_VIEW(tree) &&
-         (store = (GtkTreeModel *)gtk_tree_view_get_model(GTK_TREE_VIEW(tree))))
-         gtk_tree_model_get(store, (GtkTreeIter *)item, _DW_DATA_TYPE_STRING, &text, -1);
-      if(text)
+      if((tree = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user")))
       {
-         char *temp = text;
-         text = strdup(temp);
-         g_free(temp);
+#if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
+         DWTreeNode *node = DW_TREE_NODE(item);
+         
+         if(GTK_IS_LIST_VIEW(tree))
+         {
+            text = _dw_tree_node_get_name(node);
+         }
+#else
+         GtkTreeModel *store;
+
+         if(GTK_IS_TREE_VIEW(tree) &&
+            (store = (GtkTreeModel *)gtk_tree_view_get_model(GTK_TREE_VIEW(tree))))
+         {
+             gtk_tree_model_get(store, (GtkTreeIter *)item, _DW_DATA_TYPE_STRING, &text, -1);
+         }
+#endif
       }
    }
-#endif
+   /* Make sure it is a local copy */
+   if(text)
+   {
+      char *temp = text;
+      text = strdup(temp);
+      g_free(temp);
+   }
    DW_FUNCTION_RETURN_THIS(text);
 }
 
@@ -5599,25 +5678,36 @@ DW_FUNCTION_RETURN(dw_tree_get_parent, HTREEITEM)
 DW_FUNCTION_RESTORE_PARAM2(handle, HWND, item, HTREEITEM)
 {
    HTREEITEM parent = (HTREEITEM)0;
-#if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
-#else
-   GtkWidget *tree;
-   GtkTreeModel *store;
 
    if(handle && item)
    {
-      tree = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
+      GtkWidget *tree;
 
-      if(tree && GTK_IS_TREE_VIEW(tree) &&
-         (store = (GtkTreeModel *)gtk_tree_view_get_model(GTK_TREE_VIEW(tree))))
+      if((tree = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user")))
       {
-         GtkTreeIter iter;
+#if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
+         DWTreeNode *node = DW_TREE_NODE(item);
+         
+         if(GTK_IS_LIST_VIEW(tree))
+         {
+            parent = (HTREEITEM)_dw_tree_node_get_parent(node);
+         }
+#else
+         GtkTreeModel *store;
 
-         if(gtk_tree_model_iter_parent(store, &iter, (GtkTreeIter *)item))
-            gtk_tree_model_get(store, &iter, 3, &parent, -1);
+         if(GTK_IS_TREE_VIEW(tree) &&
+            (store = (GtkTreeModel *)gtk_tree_view_get_model(GTK_TREE_VIEW(tree))))
+         {
+            GtkTreeIter iter;
+
+            if(gtk_tree_model_iter_parent(store, &iter, (GtkTreeIter *)item))
+            {
+               gtk_tree_model_get(store, &iter, 3, &parent, -1);
+            }
+         }
+#endif
       }
    }
-#endif
    DW_FUNCTION_RETURN_THIS(parent);
 }
 
@@ -5633,19 +5723,31 @@ DW_FUNCTION_RETURN(dw_tree_item_get_data, void *)
 DW_FUNCTION_RESTORE_PARAM2(DW_UNUSED(handle), HWND, item, HTREEITEM)
 {
    void *ret = NULL;
-#if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
-#else
-   GtkWidget *tree;
-   GtkTreeModel *store;
 
    if(handle && item)
    {
-      if((tree = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user"))
-         && GTK_IS_TREE_VIEW(tree) &&
-         (store = (GtkTreeModel *)gtk_tree_view_get_model(GTK_TREE_VIEW(tree))))
+      GtkWidget *tree;
+
+      if((tree = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user")))
+      {
+#if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
+         DWTreeNode *node = DW_TREE_NODE(item);
+         
+         if(GTK_IS_LIST_VIEW(tree))
+         {
+            ret = _dw_tree_node_get_itemdata(node);
+         }
+#else
+         GtkTreeModel *store;
+
+         if(GTK_IS_TREE_VIEW(tree) &&
+            (store = (GtkTreeModel *)gtk_tree_view_get_model(GTK_TREE_VIEW(tree))))
+         {
             gtk_tree_model_get(store, (GtkTreeIter *)item, 2, &ret, -1);
-   }
+         }
 #endif
+      }
+   }
    DW_FUNCTION_RETURN_THIS(ret);
 }
 
@@ -5660,26 +5762,51 @@ DW_FUNCTION_ADD_PARAM2(handle, item)
 DW_FUNCTION_NO_RETURN(dw_tree_item_select)
 DW_FUNCTION_RESTORE_PARAM2(handle, HWND, item, HTREEITEM)
 {
-#if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
-#else
-   GtkWidget *tree;
-   GtkTreeStore *store;
-
    if(handle && item)
    {
-      if((tree = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user"))
-         && GTK_IS_TREE_VIEW(tree) &&
-         (store = (GtkTreeStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(tree))))
-      {
-         GtkTreePath *path = gtk_tree_model_get_path(GTK_TREE_MODEL(store), (GtkTreeIter *)item);
-         GtkTreeSelection *sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree));
+      GtkWidget *tree;
 
-         gtk_tree_view_set_cursor(GTK_TREE_VIEW(tree), path, NULL, FALSE);
-         gtk_tree_selection_select_iter(sel, (GtkTreeIter *)item);
-         gtk_tree_path_free(path);
+      if((tree = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user")))
+      {
+#if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
+         if(GTK_IS_LIST_VIEW(tree))
+         {
+            GtkSelectionModel *selection_model = gtk_list_view_get_model(GTK_LIST_VIEW(tree));
+            guint count = g_list_model_get_n_items(G_LIST_MODEL(selection_model));
+
+            for (guint x = 0; x < count; x++)
+            {
+                // Get the first item (at position 0)
+                GObject *thisitem = g_list_model_get_item(G_LIST_MODEL(selection_model), x);
+                if(thisitem)
+                {
+                    if(thisitem == G_OBJECT(item))
+                    {
+                        // Cast the model and set the selected item (for single selection)
+                        gtk_single_selection_set_selected(GTK_SINGLE_SELECTION(selection_model), x);
+                        x=count;
+                    }
+                    // Do something with first_item (e.g., cast to specific GObject type)
+                    g_object_unref(thisitem); // Remember to unreference when done
+                }
+            }
+         }
+#else
+         GtkTreeModel *store;
+
+         if(GTK_IS_TREE_VIEW(tree) &&
+            (store = (GtkTreeModel *)gtk_tree_view_get_model(GTK_TREE_VIEW(tree))))
+          {
+             GtkTreePath *path = gtk_tree_model_get_path(GTK_TREE_MODEL(store), (GtkTreeIter *)item);
+             GtkTreeSelection *sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree));
+
+             gtk_tree_view_set_cursor(GTK_TREE_VIEW(tree), path, NULL, FALSE);
+             gtk_tree_selection_select_iter(sel, (GtkTreeIter *)item);
+             gtk_tree_path_free(path);
+          }
+#endif
       }
    }
-#endif
    DW_FUNCTION_RETURN_NOTHING;
 }
 
@@ -5714,16 +5841,34 @@ DW_FUNCTION_ADD_PARAM1(handle)
 DW_FUNCTION_NO_RETURN(dw_tree_clear)
 DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
 {
-#if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
-#else
-   GtkWidget *tree;
-   GtkTreeStore *store;
-
    if(handle)
    {
-      if((tree = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user"))
-         && GTK_IS_TREE_VIEW(tree) &&
-         (store = (GtkTreeStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(tree))))
+      GtkWidget *tree;
+
+      if((tree = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user")))
+      {
+#if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
+         if(GTK_IS_LIST_VIEW(tree))
+         {
+            // Get the model associated with the list view.
+            // The model will be a GtkSelectionModel (or subclass) which wraps the actual GListModel.
+            GtkSelectionModel *selection_model = gtk_list_view_get_model(GTK_LIST_VIEW(tree));
+
+            // Get the underlying GListModel from the selection model (e.g., GioListStore).
+            GListModel *list_model = gtk_single_selection_get_model(GTK_SINGLE_SELECTION(selection_model));
+
+            // Ensure it's the correct type before calling the specific remove function
+            if (G_IS_LIST_STORE(list_model))
+            {
+                // Remove all items from the GtkListStore. The ListView will update automatically.
+                g_list_store_remove_all(G_LIST_STORE(list_model)); // This is the function you need
+            }
+         }
+#else
+         GtkTreeStore *store;
+
+         if(GTK_IS_TREE_VIEW(tree) &&
+            (store = GTK_TREE_STORE(gtk_tree_view_get_model(GTK_TREE_VIEW(tree)))))
          {
             GtkTreeIter iter;
 
@@ -5735,10 +5880,40 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
             }
             gtk_tree_store_clear(store);
          }
-   }
 #endif
+      }
+   }
    DW_FUNCTION_RETURN_NOTHING;
 }
+
+#if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
+static void _dw_tree_expand_or_collapse(GtkListView *tree, GObject *item, gboolean state)
+{
+    // Get the model associated with the list view.
+    // The model will be a GtkSelectionModel (or subclass) which wraps the actual GListModel.
+    GtkSelectionModel *selection_model = gtk_list_view_get_model(GTK_LIST_VIEW(tree));
+    GtkTreeListModel *model = G_TYPE_CHECK_INSTANCE_CAST(selection_model, GTK_TYPE_TREE_LIST_MODEL, GtkTreeListModel);
+    guint count = g_list_model_get_n_items(G_LIST_MODEL(model));
+
+    for (guint x = 0; x < count; x++)
+    {
+      // Get the first item (at position 0)
+      GObject *thisitem = g_list_model_get_item(G_LIST_MODEL(model), x);
+      if(thisitem)
+      {
+          if(thisitem == item)
+          {
+              GtkTreeListRow *row = gtk_tree_list_model_get_row(model, x);
+              gtk_tree_list_row_set_expanded(row, state);
+              g_object_unref(row);
+              x=count;
+          }
+          // Do something with thisitem (e.g., cast to specific GObject type)
+          g_object_unref(thisitem); // Remember to unreference when done
+      }
+   }
+}
+#endif
 
 /*
  * Expands a node on a tree.
@@ -5751,23 +5926,31 @@ DW_FUNCTION_ADD_PARAM2(handle, item)
 DW_FUNCTION_NO_RETURN(dw_tree_item_expand)
 DW_FUNCTION_RESTORE_PARAM2(handle, HWND, item, HTREEITEM)
 {
-#if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
-#else
-   GtkWidget *tree;
-   GtkTreeStore *store;
-
-   if(handle)
+   if(handle && item)
    {
-      if((tree = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user"))
-         && GTK_IS_TREE_VIEW(tree) &&
-         (store = (GtkTreeStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(tree))))
+      GtkWidget *tree;
+
+      if((tree = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user")))
       {
-         GtkTreePath *path = gtk_tree_model_get_path(GTK_TREE_MODEL(store), (GtkTreeIter *)item);
-         gtk_tree_view_expand_row(GTK_TREE_VIEW(tree), path, FALSE);
-         gtk_tree_path_free(path);
+#if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
+         if(GTK_IS_LIST_VIEW(tree))
+         {
+            // Use TRUE to expand, FALSE to collapse
+            _dw_tree_expand_or_collapse(GTK_LIST_VIEW(tree), G_OBJECT(item), TRUE);
+         }
+#else
+         GtkTreeModel *store;
+
+         if(GTK_IS_TREE_VIEW(tree) &&
+            (store = (GtkTreeModel *)gtk_tree_view_get_model(GTK_TREE_VIEW(tree))))
+          {
+             GtkTreePath *path = gtk_tree_model_get_path(GTK_TREE_MODEL(store), (GtkTreeIter *)item);
+             gtk_tree_view_expand_row(GTK_TREE_VIEW(tree), path, FALSE);
+             gtk_tree_path_free(path);
+          }
+#endif
       }
    }
-#endif
    DW_FUNCTION_RETURN_NOTHING;
 }
 
@@ -5782,23 +5965,32 @@ DW_FUNCTION_ADD_PARAM2(handle, item)
 DW_FUNCTION_NO_RETURN(dw_tree_item_collapse)
 DW_FUNCTION_RESTORE_PARAM2(handle, HWND, item, HTREEITEM)
 {
-#if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
-#else
-   GtkWidget *tree;
-   GtkTreeStore *store;
-
-   if(handle)
+   if(handle && item)
    {
-      if((tree = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user"))
-         && GTK_IS_TREE_VIEW(tree) &&
-         (store = (GtkTreeStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(tree))))
+      GtkWidget *tree;
+
+      if((tree = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user")))
       {
-         GtkTreePath *path = gtk_tree_model_get_path(GTK_TREE_MODEL(store), (GtkTreeIter *)item);
-         gtk_tree_view_collapse_row(GTK_TREE_VIEW(tree), path);
-         gtk_tree_path_free(path);
+#if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
+         if(GTK_IS_LIST_VIEW(tree))
+         {
+            // Use TRUE to expand, FALSE to collapse
+            _dw_tree_expand_or_collapse(GTK_LIST_VIEW(tree), G_OBJECT(item), FALSE);
+         }
+#else
+         GtkTreeModel *store;
+
+         if(GTK_IS_TREE_VIEW(tree) &&
+            (store = (GtkTreeModel *)gtk_tree_view_get_model(GTK_TREE_VIEW(tree))))
+
+          {
+             GtkTreePath *path = gtk_tree_model_get_path(GTK_TREE_MODEL(store), (GtkTreeIter *)item);
+             gtk_tree_view_collapse_row(GTK_TREE_VIEW(tree), path);
+             gtk_tree_path_free(path);
+          }
+#endif
       }
    }
-#endif
    DW_FUNCTION_RETURN_NOTHING;
 }
 
@@ -5813,22 +6005,37 @@ DW_FUNCTION_ADD_PARAM2(handle, item)
 DW_FUNCTION_NO_RETURN(dw_tree_item_delete)
 DW_FUNCTION_RESTORE_PARAM2(handle, HWND, item, HTREEITEM)
 {
-#if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
-#else
-   GtkWidget *tree;
-   GtkTreeStore *store;
-
-   if(handle)
+   if(handle && item)
    {
-      if((tree = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user"))
-         && GTK_IS_TREE_VIEW(tree) &&
-         (store = (GtkTreeStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(tree))))
+      GtkWidget *tree;
+
+      if((tree = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user")))
       {
-         gtk_tree_store_remove(store, (GtkTreeIter *)item);
-         free(item);
-      }
-   }
+#if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
+         if(GTK_IS_LIST_VIEW(tree))
+         {
+            DWTreeNode *node = DW_TREE_NODE(item);
+            guint position;
+         
+            GListStore *store = _dw_tree_node_get_parent_store(node);
+            
+            if(store && g_list_store_find(store, G_OBJECT(item), &position))
+            {
+                g_list_store_remove(store, position);
+            }
+         }
+#else
+         GtkTreeStore *store;
+
+         if(GTK_IS_TREE_VIEW(tree) &&
+            (store = GTK_TREE_STORE(gtk_tree_view_get_model(GTK_TREE_VIEW(tree)))))
+          {
+             gtk_tree_store_remove(store, (GtkTreeIter *)item);
+             free(item);
+          }
 #endif
+       }
+   }
    DW_FUNCTION_RETURN_NOTHING;
 }
 
@@ -11917,6 +12124,19 @@ GObject *_dw_draw_setup(struct _dw_signal_list *signal, GObject *object, void *s
 
 GObject *_dw_tree_setup(struct _dw_signal_list *signal, GObject *object, void *sigfunc, void *discfunc, void *data)
 {
+#if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
+   if(GTK_IS_LIST_VIEW(object))
+   {
+      if(strcmp(signal->name, DW_SIGNAL_COLUMN_CLICK) == 0)
+      {
+         return NULL;
+      }
+      else if(strcmp(signal->name, DW_SIGNAL_ITEM_SELECT) == 0)
+      {
+         GtkSelectionModel *selection_model = gtk_list_view_get_model(GTK_LIST_VIEW(object));
+         return G_OBJECT(selection_model);
+      }
+#else
    if(GTK_IS_TREE_VIEW(object))
    {
       if(strcmp(signal->name, DW_SIGNAL_COLUMN_CLICK) == 0)
@@ -11928,8 +12148,6 @@ GObject *_dw_tree_setup(struct _dw_signal_list *signal, GObject *object, void *s
          g_object_set_data(object, "_dw_column_click_id", GINT_TO_POINTER(sigid+1));
          return NULL;
       }
-#if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
-#else
       else if(strcmp(signal->name, DW_SIGNAL_ITEM_SELECT) == 0)
       {
          GtkTreeSelection *sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(object));
