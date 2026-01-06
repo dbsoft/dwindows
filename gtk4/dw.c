@@ -460,7 +460,7 @@ static GList *_dw_dirty_list = NULL;
 
 #define _DW_RESOURCE_PATH "/org/dbsoft/dwindows/resources/"
 
-// GTK4 ListView support objects
+/* GTK4 ListView support objects */
 #if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
 
 G_BEGIN_DECLS
@@ -480,8 +480,8 @@ struct _DWTreeNode {
     gchar *name;
     GdkPixbuf *icon;
     void *itemdata;
-    GListStore *children; // Store for child items
-    DWTreeNode *parent; // Back pointer to the parent store
+    GListStore *children; /* Store for child items */
+    DWTreeNode *parent; /* Back pointer to the parent store */
     GList *data_list; /* The embedded GList */
 };
 
@@ -567,6 +567,11 @@ void _dw_tree_node_add_data(DWTreeNode *self, gpointer data) {
     self->data_list = g_list_append(self->data_list, data);
 }
 
+gpointer _dw_tree_node_get_data(DWTreeNode *self, guint index) {
+    g_return_val_if_fail(DW_IS_TREE_NODE(self), NULL);
+    return g_list_nth_data(self->data_list, index);
+}
+
 GdkPixbuf *_dw_tree_node_get_icon(DWTreeNode *self) {
     g_return_val_if_fail(DW_IS_TREE_NODE(self), NULL);
     return self->icon;
@@ -633,8 +638,8 @@ static void _dw_list_model_refresh(GListModel *model)
 static GListModel *_dw_tree_node_create_children_model(gpointer item, gpointer user_data)
 {
     DWTreeNode *dw_tree_node = DW_TREE_NODE(item);
-    // If the folder has children, return its GListStore model.
-    // GtkTreeListModel takes ownership of the reference.
+    /* If the folder has children, return its GListStore model. */
+    /* GtkTreeListModel takes ownership of the reference. */
     if (g_list_model_get_n_items(G_LIST_MODEL(dw_tree_node->children)) > 0) {
         g_object_ref(dw_tree_node->children);
         return G_LIST_MODEL(dw_tree_node->children);
@@ -646,20 +651,20 @@ static void _dw_tree_node_setup_listitem_cb(GtkListItemFactory *factory, GtkList
 {
     GtkWidget *treexpander, *hbox, *image, *label;
 
-    // A box to hold icon and name
+    /* A box to hold icon and name */
     hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
 
-    // Image and Label
+    /* Image and Label */
     image = gtk_image_new();
     label = gtk_label_new(NULL);
     gtk_box_append(GTK_BOX(hbox), image);
     gtk_box_append(GTK_BOX(hbox), label);
 
-    // The GtkTreeExpander wraps the actual content widget
+    /* The GtkTreeExpander wraps the actual content widget */
     treexpander = gtk_tree_expander_new();
     gtk_tree_expander_set_child(GTK_TREE_EXPANDER(treexpander), hbox);
     
-    // Set the expander as the child of the list item
+    /* Set the expander as the child of the list item */
     gtk_list_item_set_child(list_item, treexpander);
 }
 
@@ -673,12 +678,37 @@ static void _dw_tree_node_bind_listitem_cb(GtkListItemFactory *factory, GtkListI
     GtkWidget *image = gtk_widget_get_first_child(hbox);
     GtkWidget *label = gtk_widget_get_last_child(hbox);
 
-    // Update widgets with data from MyItem
+    /* Update widgets with data from DWTreeNode */
     gtk_image_set_from_pixbuf(GTK_IMAGE(image), _dw_tree_node_get_icon(dw_tree_node));
     gtk_label_set_text(GTK_LABEL(label), _dw_tree_node_get_name(dw_tree_node));
     
-    // Crucial: link the GtkTreeExpander to the specific GtkTreeListRow
+    /* Crucial: link the GtkTreeExpander to the specific GtkTreeListRow */
     gtk_tree_expander_set_list_row(GTK_TREE_EXPANDER(treexpander), tree_list_row);
+}
+
+static void _dw_container_setup_cb(GtkListItemFactory *factory, GtkListItem *list_item, gpointer data)
+{
+    guint flags = DW_POINTER_TO_INT(data);
+    if(flags & DW_CFA_BITMAPORICON)
+        gtk_list_item_set_child(list_item, gtk_image_new());
+    else    
+        gtk_list_item_set_child(list_item, gtk_label_new(NULL));
+}
+
+static void _dw_container_bind_cb(GtkListItemFactory *factory, GtkListItem *list_item, gpointer data)
+{
+    guint column = DW_POINTER_TO_INT(data);
+    GtkWidget *widget = gtk_list_item_get_child(list_item);
+    DWTreeNode *node = DW_TREE_NODE(gtk_list_item_get_item(list_item));
+    GObject *obj = G_OBJECT(_dw_tree_node_get_data(node, column));
+    if(GTK_IS_IMAGE(widget) && GDK_IS_PIXBUF(obj))
+        gtk_image_set_from_pixbuf(GTK_IMAGE(widget), GDK_PIXBUF(obj));
+    else if(GTK_IS_LABEL(widget) && GTK_IS_STRING_OBJECT(obj))
+    {
+        char *label = gtk_string_object_get_string(GTK_STRING_OBJECT(obj));
+        gtk_label_set_label(GTK_LABEL(widget), label);
+        g_free(label);
+    }
 }
 #else
 GtkWidget *_dw_tree_view_setup(GtkWidget *tmp, GtkTreeModel *store)
@@ -3873,28 +3903,27 @@ DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
    if((tmp = _dw_tree_create(cid)))
    {
 #if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
-      // 1. Create a root GListStore and populate it with DWTreeNode objects
+      /* 1. Create a root GListStore and populate it with DWTreeNode objects */
       GListStore *root_store = g_list_store_new(DW_TYPE_TREE_NODE);
-      // populate_store_with_data(root_store);
+      /* populate_store_with_data(root_store); */
 
-      // 2. Create the GtkTreeListModel
+      /* 2. Create the GtkTreeListModel */
       GtkTreeListModel *tree_model = gtk_tree_list_model_new(
            G_LIST_MODEL(root_store),
-           FALSE, // Not passthrough, we use GtkTreeExpander
-           FALSE, // Autoexpand
+           FALSE, /* Not passthrough, we use GtkTreeExpander */
+           FALSE, /* Autoexpand */
            _dw_tree_node_create_children_model,
            NULL, NULL);
 
-      // 3. Wrap in a selection model (e.g., single selection)
+      /* 3. Wrap in a selection model (e.g., single selection) */
       GtkSingleSelection *selection_model = gtk_single_selection_new(G_LIST_MODEL(tree_model));
-      //g_object_unref(tree_model); 
 
-      // 4. Create a factory and connect signals
+      /* 4. Create a factory and connect signals */
       GtkListItemFactory *factory = gtk_signal_list_item_factory_new();
       g_signal_connect(factory, "setup", G_CALLBACK(_dw_tree_node_setup_listitem_cb), NULL);
       g_signal_connect(factory, "bind", G_CALLBACK(_dw_tree_node_bind_listitem_cb), NULL);
 
-      // 5. Create GtkListView and set model and factory
+      /* 5. Create GtkListView and set model and factory */
       tree = gtk_list_view_new(GTK_SELECTION_MODEL(selection_model), factory);
       gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(tmp), tree);
       g_object_set_data(G_OBJECT(tmp), "_dw_user", (gpointer)tree);
@@ -6044,6 +6073,37 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, item, HTREEITEM)
 static int _dw_container_setup_int(HWND handle, unsigned long *flags, char **titles, int count, int separator, int extra)
 {
 #if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
+   /* Create Model */
+   GListStore *store = g_list_store_new(DW_TYPE_TREE_NODE);
+   GtkSelectionModel *selection;
+   int z;
+
+   /* Create Selection Model */
+   if(g_object_get_data(G_OBJECT(handle), "_dw_multi_sel"))
+       selection = GTK_SELECTION_MODEL(gtk_single_selection_new(G_LIST_MODEL(store)));
+   else
+       selection = GTK_SELECTION_MODEL(gtk_multi_selection_new(G_LIST_MODEL(store)));
+    
+   /* Create ColumnView */
+   GtkWidget *column_view = gtk_column_view_new(selection);
+   gtk_column_view_set_show_column_separators(GTK_COLUMN_VIEW(column_view), TRUE);
+   gtk_column_view_set_show_row_separators(GTK_COLUMN_VIEW(column_view), TRUE);
+
+   /* Create the columns */
+   for(z=0;z<count;z++)
+   {
+      GtkListItemFactory *factory = gtk_signal_list_item_factory_new();
+      g_signal_connect(factory, "setup", G_CALLBACK(_dw_container_setup_cb), DW_INT_TO_POINTER(flags[z]));
+      g_signal_connect(factory, "bind", G_CALLBACK(_dw_container_bind_cb), DW_INT_TO_POINTER(z));
+
+      GtkColumnViewColumn *col = gtk_column_view_column_new(titles[z], factory);
+
+      gtk_column_view_append_column(GTK_COLUMN_VIEW(column_view), col);
+   }
+   gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(handle), column_view);
+   gtk_widget_set_visible(column_view, TRUE);
+   if(_DWDefaultFont)
+      dw_window_set_font(handle, _DWDefaultFont);
 #else
    int z;
    char numbuf[25] = {0};
