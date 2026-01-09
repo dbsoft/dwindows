@@ -4150,7 +4150,12 @@ DW_FUNCTION_RESTORE_PARAM2(text, const char *, cid, ULONG)
 {
    GtkWidget *tmp;
 #if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
-   tmp = NULL;
+  /* Create a GtkStringList model */
+  GtkStringList *string_list = gtk_string_list_new(NULL);
+
+  /* Create the GtkDropDown with the model */
+  /* The second argument (expression) is NULL to use the default factory for GtkStringList */
+  tmp = gtk_drop_down_new(G_LIST_MODEL (string_list), NULL);
 #else
    GtkEntryBuffer *buffer;
    GtkListStore *store = gtk_list_store_new(1, G_TYPE_STRING);
@@ -4160,9 +4165,9 @@ DW_FUNCTION_RESTORE_PARAM2(text, const char *, cid, ULONG)
    gtk_entry_buffer_set_max_length(buffer, 0);
    gtk_entry_buffer_set_text(buffer, text, -1);
    gtk_widget_set_visible(tmp, TRUE);
+#endif
    g_object_set_data(G_OBJECT(tmp), "_dw_tree_type", GINT_TO_POINTER(_DW_TREE_TYPE_COMBOBOX));
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(cid));
-#endif
    if(_DWDefaultFont)
       dw_window_set_font(tmp, _DWDefaultFont);
    DW_FUNCTION_RETURN_THIS(tmp);
@@ -10451,58 +10456,71 @@ DW_FUNCTION_ADD_PARAM3(handle, text, pos)
 DW_FUNCTION_NO_RETURN(dw_listbox_insert)
 DW_FUNCTION_RESTORE_PARAM3(handle, HWND, text, const char *, pos, int)
 {
-   GtkWidget *tmp = handle ? (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user") : NULL;
+  GtkWidget *tmp = handle ? (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user") : NULL;
 
 #if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
-   if(tmp && GTK_IS_LIST_VIEW(tmp))
-   {
-       GListStore *store = _dw_listbox_get_store(GTK_LIST_VIEW(tmp));
-       
-       if(store)
-       {
-            DWTreeNode *node = _dw_tree_node_new();
-            
-            _dw_tree_node_set_name(node, text);
-            if(pos < 0)
-            {
-                /* Insert an entry at the end */
-                g_list_store_append(store, node);
-            }
-            else
-            {
-                /* Insert at position */
-                g_list_store_insert(store, pos, node);
-            }
-      }
-#else
-   if(tmp && GTK_IS_TREE_VIEW(tmp))
-   {
-      GtkTreeIter iter;
-      GtkListStore *store = NULL;
-
-      /* Make sure it is the correct tree type */
-      if(GTK_IS_TREE_VIEW(tmp) && g_object_get_data(G_OBJECT(tmp), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX))
-         store = (GtkListStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(tmp));
-      else if(GTK_IS_COMBO_BOX(tmp))
-         store = (GtkListStore *)gtk_combo_box_get_model(GTK_COMBO_BOX(tmp));
-
+  if(tmp && GTK_IS_LIST_VIEW(tmp)
+     && g_object_get_data(G_OBJECT(tmp), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX))
+  {
+     GListStore *store = _dw_listbox_get_store(GTK_LIST_VIEW(tmp));
+     
       if(store)
       {
-         if(pos < 0)
-         {
-            /* Insert an entry at the end */
-            gtk_list_store_append(store, &iter);
-         }
-         else
-         {
-            /* Insert at position */
-            gtk_list_store_insert(store, &iter, pos);
-         }
-         gtk_list_store_set (store, &iter, 0, text, -1);
+          DWTreeNode *node = _dw_tree_node_new();
+          
+          _dw_tree_node_set_name(node, text);
+          if(pos < 0)
+          {
+              /* Insert an entry at the end */
+              g_list_store_append(store, node);
+          }
+          else
+          {
+              /* Insert at position */
+              g_list_store_insert(store, pos, node);
+          }
       }
+  }
+  else if(handle && GTK_IS_DROP_DOWN(handle) &&
+          g_object_get_data(G_OBJECT(handle), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_COMBOBOX))
+  {
+      GListModel *model = gtk_drop_down_get_model(GTK_DROP_DOWN(handle));
+      
+      if(GTK_IS_STRING_LIST(model))
+      {
+          gtk_string_list_append(GTK_STRING_LIST(model), text);
+          /* TODO: Need to handle insert, GtkStringList does not have that method,
+           * but it does have gtk_string_list_splice() which may work?
+           */
+      }
+  }
+#else
+  GtkTreeIter iter;
+  GtkListStore *store = NULL;
+
+  /* Make sure it is the correct tree type */
+  if(tmp && GTK_IS_TREE_VIEW(tmp) &&
+     g_object_get_data(G_OBJECT(tmp), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX))
+     store = (GtkListStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(tmp));
+  else if(tmp && GTK_IS_COMBO_BOX(tmp))
+     store = (GtkListStore *)gtk_combo_box_get_model(GTK_COMBO_BOX(tmp));
+
+    if(store)
+    {
+       if(pos < 0)
+       {
+          /* Insert an entry at the end */
+          gtk_list_store_append(store, &iter);
+       }
+       else
+       {
+          /* Insert at position */
+          gtk_list_store_insert(store, &iter, pos);
+       }
+       gtk_list_store_set (store, &iter, 0, text, -1);
+    }
 #endif
-   }
-   DW_FUNCTION_RETURN_NOTHING;
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -10517,41 +10535,49 @@ DW_FUNCTION_ADD_PARAM3(handle, text, count)
 DW_FUNCTION_NO_RETURN(dw_listbox_list_append)
 DW_FUNCTION_RESTORE_PARAM3(handle, HWND, text, char **, count, int)
 {
-   GtkWidget *handle2 = handle;
+  GtkWidget *tmp = handle ? (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user") : NULL;
+  int z;
 
-   /* Get the inner handle for scrolled controls */
-   if(GTK_IS_SCROLLED_WINDOW(handle))
-   {
-      GtkWidget *tmp = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
-      if(tmp)
-         handle2 = tmp;
-   }
-   if(handle2)
-   {
 #if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
+    if(tmp && GTK_IS_LIST_VIEW(tmp) &&
+       g_object_get_data(G_OBJECT(tmp), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX))
+    {
+       GListStore *store = _dw_listbox_get_store(GTK_LIST_VIEW(tmp));
+       
+       if(store)
+       {
+            /* Insert entries at the end */
+            for(z=0;z<count;z++)
+            {
+                DWTreeNode *node = _dw_tree_node_new();
+                
+                _dw_tree_node_set_name(node, text[z]);
+                g_list_store_append(store, node);
+            }
+        }
+    }
 #else
-      int z;
-      GtkTreeIter iter;
-      GtkListStore *store = NULL;
+    GtkTreeIter iter;
+    GtkListStore *store = NULL;
 
-      /* Make sure it is the correct tree type */
-      if(GTK_IS_TREE_VIEW(handle2) && g_object_get_data(G_OBJECT(handle2), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX))
-         store = (GtkListStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(handle2));
-      else if(GTK_IS_COMBO_BOX(handle2))
-         store = (GtkListStore *)gtk_combo_box_get_model(GTK_COMBO_BOX(handle2));
+    /* Make sure it is the correct tree type */
+    if(tmp && GTK_IS_TREE_VIEW(tmp)
+       && g_object_get_data(G_OBJECT(tmp), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX))
+       store = (GtkListStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(tmp));
+    else if(tmp && GTK_IS_COMBO_BOX(tmp))
+       store = (GtkListStore *)gtk_combo_box_get_model(GTK_COMBO_BOX(tmp));
 
-      if(store)
-      {
-         /* Insert entries at the end */
-         for(z=0;z<count;z++)
-         {
-            gtk_list_store_append(store, &iter);
-            gtk_list_store_set (store, &iter, 0, text[z], -1);
-         }
-      }
+    if(store)
+    {
+       /* Insert entries at the end */
+       for(z=0;z<count;z++)
+       {
+          gtk_list_store_append(store, &iter);
+          gtk_list_store_set (store, &iter, 0, text[z], -1);
+       }
+    }
 #endif
-   }
-   DW_FUNCTION_RETURN_NOTHING;
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -10565,35 +10591,36 @@ DW_FUNCTION_NO_RETURN(dw_listbox_clear)
 DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
 
 {
-   GtkWidget *handle2 = handle;
+  GtkWidget *tmp = handle ? (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user") : NULL;
 
-   /* Get the inner handle for scrolled controls */
-   if(GTK_IS_SCROLLED_WINDOW(handle))
-   {
-      GtkWidget *tmp = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
-      if(tmp)
-         handle2 = tmp;
-   }
-   if(handle2)
-   {
 #if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
+    if(tmp && GTK_IS_LIST_VIEW(tmp) &&
+       g_object_get_data(G_OBJECT(tmp), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX))
+    {
+       GListStore *store = _dw_listbox_get_store(GTK_LIST_VIEW(tmp));
+       
+        if(store)
+        {
+            g_list_store_remove_all(store);
+        }
+    }
 #else
-      GtkListStore *store = NULL;
+    GtkListStore *store = NULL;
 
-      /* Make sure it is the correct tree type */
-      if(GTK_IS_TREE_VIEW(handle2) && g_object_get_data(G_OBJECT(handle2), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX))
-         store = (GtkListStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(handle2));
-      else if(GTK_IS_COMBO_BOX(handle2))
-         store = (GtkListStore *)gtk_combo_box_get_model(GTK_COMBO_BOX(handle2));
+    /* Make sure it is the correct tree type */
+    if(tmp && GTK_IS_TREE_VIEW(tmp)
+       && g_object_get_data(G_OBJECT(tmp), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX))
+       store = (GtkListStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(tmp));
+    else if(tmp && GTK_IS_COMBO_BOX(tmp))
+       store = (GtkListStore *)gtk_combo_box_get_model(GTK_COMBO_BOX(tmp));
 
-      if(store)
-      {
-         /* Clear the list */
-         gtk_list_store_clear(store);
-      }
+    if(store)
+    {
+       /* Clear the list */
+       gtk_list_store_clear(store);
+    }
 #endif
-   }
-   DW_FUNCTION_RETURN_NOTHING;
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -10606,36 +10633,37 @@ DW_FUNCTION_ADD_PARAM1(handle)
 DW_FUNCTION_RETURN(dw_listbox_count, int)
 DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
 {
-   GtkWidget *handle2 = handle;
-   int retval = 0;
+    GtkWidget *tmp = handle ? (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user") : NULL;
+    int retval = 0;
 
-   /* Get the inner handle for scrolled controls */
-   if(GTK_IS_SCROLLED_WINDOW(handle))
-   {
-      GtkWidget *tmp = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
-      if(tmp)
-         handle2 = tmp;
-   }
-   if(handle2)
-   {
 #if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
+    if(tmp && GTK_IS_LIST_VIEW(tmp) &&
+       g_object_get_data(G_OBJECT(tmp), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX))
+    {
+       GListStore *store = _dw_listbox_get_store(GTK_LIST_VIEW(tmp));
+       
+        if(store)
+        {
+            retval = (int)g_list_model_get_n_items(G_LIST_MODEL(store));
+        }
+    }
 #else
-      GtkListStore *store = NULL;
+    GtkListStore *store = NULL;
 
-      /* Make sure it is the correct tree type */
-      if(GTK_IS_TREE_VIEW(handle2) && g_object_get_data(G_OBJECT(handle2), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX))
-         store = (GtkListStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(handle2));
-      else if(GTK_IS_COMBO_BOX(handle2))
-         store = (GtkListStore *)gtk_combo_box_get_model(GTK_COMBO_BOX(handle2));
+    /* Make sure it is the correct tree type */
+    if(tmp && GTK_IS_TREE_VIEW(tmp)
+       && g_object_get_data(G_OBJECT(tmp), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX))
+       store = (GtkListStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(tmp));
+    else if(tmp && GTK_IS_COMBO_BOX(tmp))
+       store = (GtkListStore *)gtk_combo_box_get_model(GTK_COMBO_BOX(tmp));
 
-      if(store)
-      {
-         /* Get the number of children at the top level */
-         retval = gtk_tree_model_iter_n_children(GTK_TREE_MODEL(store), NULL);
-      }
+    if(store)
+    {
+       /* Get the number of children at the top level */
+       retval = gtk_tree_model_iter_n_children(GTK_TREE_MODEL(store), NULL);
+    }
 #endif
-   }
-   DW_FUNCTION_RETURN_THIS(retval);
+    DW_FUNCTION_RETURN_THIS(retval);
 }
 
 /*
@@ -10650,23 +10678,44 @@ DW_FUNCTION_NO_RETURN(dw_listbox_set_top)
 DW_FUNCTION_RESTORE_PARAM2(handle, HWND, top, int)
 
 {
-   GtkWidget *handle2 = handle;
+    GtkWidget *tmp = handle ? (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user") : NULL;
 
-   if(GTK_IS_SCROLLED_WINDOW(handle))
-   {
-      GtkWidget *tmp = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
-      if(tmp)
-         handle2 = tmp;
-   }
-   /* Make sure it is the correct tree type */
 #if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
-   if(handle2)
-   {
+    if(tmp && GTK_IS_LIST_VIEW(tmp) &&
+       g_object_get_data(G_OBJECT(tmp), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX))
+    {
+        GListStore *store = _dw_listbox_get_store(GTK_LIST_VIEW(tmp));
+        GtkAdjustment *adjust = gtk_scrolled_window_get_vadjustment(GTK_SCROLLED_WINDOW(handle));
+       
+        if(store && adjust)
+        {
+           /* Get the number of children at the top level */
+           gint rowcount = g_list_model_get_n_items(G_LIST_MODEL(store));
+           gdouble pagesize = gtk_adjustment_get_page_size(adjust);
+           gdouble upper = gtk_adjustment_get_upper(adjust) - pagesize;
+           gdouble lower = gtk_adjustment_get_lower(adjust);
+           gdouble change;
+
+           /* Safety check */
+           if(rowcount > 1)
+           {
+              /* Verify the range */
+              rowcount--;
+              if(top > rowcount)
+                 top = rowcount;
+
+              change = ((gdouble)top/(gdouble)rowcount) * (upper - lower);
+
+              gtk_adjustment_set_value(adjust, change + lower);
+           }
+        }
+    }
 #else
-   if(handle2 && GTK_IS_TREE_VIEW(handle2) && g_object_get_data(G_OBJECT(handle2), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX))
-   {
+    if(tmp && GTK_IS_TREE_VIEW(tmp) && 
+      g_object_get_data(G_OBJECT(tmp), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX))
+    {
       GtkAdjustment *adjust = gtk_scrolled_window_get_vadjustment(GTK_SCROLLED_WINDOW(handle));
-      GtkListStore *store = (GtkListStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(handle2));
+      GtkListStore *store = (GtkListStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(tmp));
 
       if(store && adjust)
       {
@@ -10690,9 +10739,9 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, top, int)
             gtk_adjustment_set_value(adjust, change + lower);
          }
       }
+    }
 #endif
-   }
-   DW_FUNCTION_RETURN_NOTHING;
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -10709,48 +10758,55 @@ DW_FUNCTION_NO_RETURN(dw_listbox_get_text)
 DW_FUNCTION_RESTORE_PARAM4(handle, HWND, index, unsigned int, buffer, char *, length, unsigned int)
 
 {
-   GtkWidget *handle2 = handle;
+    GtkWidget *tmp = handle ? (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user") : NULL;
 
-   /* Get the inner handle for scrolled controls */
-   if(GTK_IS_SCROLLED_WINDOW(handle))
-   {
-      GtkWidget *tmp = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
-      if(tmp)
-         handle2 = tmp;
-   }
-   if(handle2)
-   {
 #if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
-#else
-      GtkListStore *store = NULL;
-
-      /* Make sure it is the correct tree type */
-      if(GTK_IS_TREE_VIEW(handle2) && g_object_get_data(G_OBJECT(handle2), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX))
-         store = (GtkListStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(handle2));
-      else if(GTK_IS_COMBO_BOX(handle2))
-         store = (GtkListStore *)gtk_combo_box_get_model(GTK_COMBO_BOX(handle2));
-
-      if(store && index < gtk_tree_model_iter_n_children(GTK_TREE_MODEL(store), NULL))
-      {
-         GtkTreeIter iter;
-
-         /* Get the nth child at the top level */
-         if(gtk_tree_model_iter_nth_child(GTK_TREE_MODEL(store), &iter, NULL, index))
-         {
-            /* Get the text */
-            gchar *text;
-            gtk_tree_model_get(GTK_TREE_MODEL(store), &iter, _DW_DATA_TYPE_STRING, &text, -1);
+    if(tmp && GTK_IS_LIST_VIEW(tmp) &&
+       g_object_get_data(G_OBJECT(tmp), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX))
+    {
+       GListStore *store = _dw_listbox_get_store(GTK_LIST_VIEW(tmp));
+       
+        if(store)
+        {
+            DWTreeNode *node = DW_TREE_NODE(g_list_model_get_object(G_LIST_MODEL(store), index));
+            char *text = _dw_tree_node_get_name(node);
+            
             if(text)
             {
-               strncpy(buffer, text, length);
-               g_free(text);
+                strncpy(buffer, text, length);
             }
-         }
-      }
+        }
+    }
+#else
+    GtkListStore *store = NULL;
+
+    /* Make sure it is the correct tree type */
+    if(tmp && GTK_IS_TREE_VIEW(tmp) && 
+       g_object_get_data(G_OBJECT(tmp), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX))
+       store = (GtkListStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(tmp));
+    else if(tmp && GTK_IS_COMBO_BOX(tmp))
+       store = (GtkListStore *)gtk_combo_box_get_model(GTK_COMBO_BOX(tmp));
+
+    if(store && index < gtk_tree_model_iter_n_children(GTK_TREE_MODEL(store), NULL))
+    {
+       GtkTreeIter iter;
+
+       /* Get the nth child at the top level */
+       if(gtk_tree_model_iter_nth_child(GTK_TREE_MODEL(store), &iter, NULL, index))
+       {
+          /* Get the text */
+          gchar *text;
+          gtk_tree_model_get(GTK_TREE_MODEL(store), &iter, _DW_DATA_TYPE_STRING, &text, -1);
+          if(text)
+          {
+             strncpy(buffer, text, length);
+             g_free(text);
+          }
+       }
+    }
 #endif
-   }
-   buffer[0] = '\0';
-   DW_FUNCTION_RETURN_NOTHING;
+    buffer[0] = '\0';
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -10765,41 +10821,44 @@ DW_FUNCTION_ADD_PARAM3(handle, index, buffer)
 DW_FUNCTION_NO_RETURN(dw_listbox_set_text)
 DW_FUNCTION_RESTORE_PARAM3(handle, HWND, index, unsigned int, buffer, char *)
 {
-   GtkWidget *handle2 = handle;
+    GtkWidget *tmp = handle ? (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user") : NULL;
 
-   /* Get the inner handle for scrolled controls */
-   if(GTK_IS_SCROLLED_WINDOW(handle))
-   {
-      GtkWidget *tmp = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
-      if(tmp)
-         handle2 = tmp;
-   }
-   if(handle2)
-   {
 #if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
+    if(tmp && GTK_IS_LIST_VIEW(tmp) &&
+       g_object_get_data(G_OBJECT(tmp), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX))
+    {
+       GListStore *store = _dw_listbox_get_store(GTK_LIST_VIEW(tmp));
+       
+        if(store)
+        {
+            DWTreeNode *node = DW_TREE_NODE(g_list_model_get_object(G_LIST_MODEL(store), index));
+
+            _dw_tree_node_set_name(node, buffer);
+        }
+    }
 #else
-      GtkListStore *store = NULL;
+    GtkListStore *store = NULL;
 
-      /* Make sure it is the correct tree type */
-      if(GTK_IS_TREE_VIEW(handle2) && g_object_get_data(G_OBJECT(handle2), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX))
-         store = (GtkListStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(handle2));
-      else if(GTK_IS_COMBO_BOX(handle2))
-         store = (GtkListStore *)gtk_combo_box_get_model(GTK_COMBO_BOX(handle2));
+    /* Make sure it is the correct tree type */
+    if(tmp && GTK_IS_TREE_VIEW(tmp)
+       && g_object_get_data(G_OBJECT(tmp), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX))
+       store = (GtkListStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(tmp));
+    else if(tmp && GTK_IS_COMBO_BOX(tmp))
+       store = (GtkListStore *)gtk_combo_box_get_model(GTK_COMBO_BOX(tmp));
 
-      if(store && index < gtk_tree_model_iter_n_children(GTK_TREE_MODEL(store), NULL))
-      {
-         GtkTreeIter iter;
+    if(store && index < gtk_tree_model_iter_n_children(GTK_TREE_MODEL(store), NULL))
+    {
+       GtkTreeIter iter;
 
-         /* Get the nth child at the top level */
-         if (gtk_tree_model_iter_nth_child(GTK_TREE_MODEL(store), &iter, NULL, index))
-         {
-            /* Update the text */
-            gtk_list_store_set(store, &iter, 0, buffer, -1);
-         }
-      }
+       /* Get the nth child at the top level */
+       if (gtk_tree_model_iter_nth_child(GTK_TREE_MODEL(store), &iter, NULL, index))
+       {
+          /* Update the text */
+          gtk_list_store_set(store, &iter, 0, buffer, -1);
+       }
+    }
 #endif
-   }
-   DW_FUNCTION_RETURN_NOTHING;
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -10813,24 +10872,49 @@ DW_FUNCTION_ADD_PARAM2(handle, where)
 DW_FUNCTION_RETURN(dw_listbox_selected_multi, int)
 DW_FUNCTION_RESTORE_PARAM2(handle, HWND, where, int)
 {
-   GtkWidget *handle2;
-   int retval = DW_LIT_NONE;
+    GtkWidget *tmp = handle ? (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user") : NULL;
+    int retval = DW_LIT_NONE;
 
-   handle2 = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
-
-   /* Make sure it is the correct tree type */
 #if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
-   if(handle2)
-   {
+    if(tmp && GTK_IS_LIST_VIEW(tmp) &&
+       g_object_get_data(G_OBJECT(tmp), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX))
+    {
+        GtkSelectionModel *selection_model = gtk_list_view_get_model(GTK_LIST_VIEW(tmp));
+        
+        if(GTK_IS_MULTI_SELECTION(selection_model))
+        {
+            /* GtkBitset is used to efficiently store the selected positions (indexes) */
+            GtkBitset *selected_indexes = gtk_selection_model_get_selection(selection_model);
+            GtkBitsetIter iter;
+            guint value;
+            
+            if(where == -1)
+                gtk_bitset_iter_init_first(&iter, selected_indexes, &value);
+            else
+                gtk_bitset_iter_init_at(&iter, selected_indexes, where, &value);
+
+            if(gtk_bitset_iter_is_valid(&iter))
+            {
+                if(value > where)
+                    retval = value;
+                else if(value == where && gtk_bitset_iter_next(&iter, &value) &&
+                        gtk_bitset_iter_is_valid(&iter))
+                    retval = value;
+            }
+            /* Don't forget to unreference the bitset when done */
+            gtk_bitset_unref(selected_indexes);
+        }
+    }
 #else
-   GtkListStore *store = NULL;
+    GtkListStore *store = NULL;
 
-   if(handle2 && GTK_IS_TREE_VIEW(handle2) && g_object_get_data(G_OBJECT(handle2), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX))
-         store = (GtkListStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(handle2));
+    if(tmp && GTK_IS_TREE_VIEW(tmp)
+       && g_object_get_data(G_OBJECT(tmp), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX))
+         store = (GtkListStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(tmp));
 
-   if(store)
-   {
-      GtkTreeSelection *sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(handle2));
+    if(store)
+    {
+      GtkTreeSelection *sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(tmp));
       GList *list = gtk_tree_selection_get_selected_rows(sel, NULL);
 
       if(list)
@@ -10855,9 +10939,9 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, where, int)
          g_list_foreach(list, (GFunc) gtk_tree_path_free, NULL);
          g_list_free(list);
       }
+    }
 #endif
-   }
-   DW_FUNCTION_RETURN_THIS(retval);
+    DW_FUNCTION_RETURN_THIS(retval);
 }
 
 /*
@@ -10870,72 +10954,73 @@ DW_FUNCTION_ADD_PARAM1(handle)
 DW_FUNCTION_RETURN(dw_listbox_selected, int)
 DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
 {
-   GtkWidget *handle2 = handle;
-   unsigned int retval = 0;
+    GtkWidget *tmp = handle ? (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user") : NULL;
+    int retval = 0;
 
-   /* Get the inner handle for scrolled controls */
-   if(GTK_IS_SCROLLED_WINDOW(handle))
-   {
-      GtkWidget *tmp = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
-      if(tmp)
-         handle2 = tmp;
-   }
-   if(handle2)
-   {
 #if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
+    if(tmp && GTK_IS_LIST_VIEW(tmp) &&
+       g_object_get_data(G_OBJECT(tmp), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX))
+    {
+        GtkSelectionModel *selection_model = gtk_list_view_get_model(GTK_LIST_VIEW(tmp));
+        
+        if(GTK_IS_SINGLE_SELECTION(selection_model))
+        {
+            retval = gtk_single_selection_get_selected(GTK_SINGLE_SELECTION(selection_model));
+        }
+    }
 #else
-      GtkListStore *store = NULL;
+    GtkListStore *store = NULL;
 
-      /* Make sure it is the correct tree type */
-      if(GTK_IS_TREE_VIEW(handle2) && g_object_get_data(G_OBJECT(handle2), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX))
-         store = (GtkListStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(handle2));
-      else if(GTK_IS_COMBO_BOX(handle2))
-         store = (GtkListStore *)gtk_combo_box_get_model(GTK_COMBO_BOX(handle2));
+    /* Make sure it is the correct tree type */
+    if(tmp && GTK_IS_TREE_VIEW(tmp)
+       && g_object_get_data(G_OBJECT(tmp), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX))
+       store = (GtkListStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(tmp));
+    else if(tmp && GTK_IS_COMBO_BOX(tmp))
+       store = (GtkListStore *)gtk_combo_box_get_model(GTK_COMBO_BOX(tmp));
 
-      if(store)
-      {
-         if(GTK_IS_TREE_VIEW(handle2))
-         {
-            GtkTreeSelection *sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(handle2));
-            GList *list = gtk_tree_selection_get_selected_rows(sel, NULL);
-            if(list)
-            {
-               GtkTreePath *path = g_list_nth_data(list, 0);
-               gint *indices = gtk_tree_path_get_indices(path);
+    if(store)
+    {
+       if(GTK_IS_TREE_VIEW(tmp))
+       {
+          GtkTreeSelection *sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(tmp));
+          GList *list = gtk_tree_selection_get_selected_rows(sel, NULL);
+          if(list)
+          {
+             GtkTreePath *path = g_list_nth_data(list, 0);
+             gint *indices = gtk_tree_path_get_indices(path);
 
-               if(indices)
-               {
-                  retval = indices[0];
-               }
+             if(indices)
+             {
+                retval = indices[0];
+             }
 
-               g_list_foreach(list, (GFunc) gtk_tree_path_free, NULL);
-               g_list_free(list);
-            }
-         }
-         else
-         {
-            GtkTreeIter iter;
-            GtkTreePath *path;
+             g_list_foreach(list, (GFunc) gtk_tree_path_free, NULL);
+             g_list_free(list);
+          }
+       }
+       else
+       {
+          GtkTreeIter iter;
+          GtkTreePath *path;
 
-            if(gtk_combo_box_get_active_iter(GTK_COMBO_BOX(handle2), &iter))
-            {
-               path = gtk_tree_model_get_path(GTK_TREE_MODEL(store), &iter);
-               if(path)
-               {
-                  gint *indices = gtk_tree_path_get_indices(path);
+          if(gtk_combo_box_get_active_iter(GTK_COMBO_BOX(tmp), &iter))
+          {
+             path = gtk_tree_model_get_path(GTK_TREE_MODEL(store), &iter);
+             if(path)
+             {
+                gint *indices = gtk_tree_path_get_indices(path);
 
-                  if(indices)
-                  {
-                     retval = indices[0];
-                  }
-                  gtk_tree_path_free(path);
-               }
-            }
-         }
-      }
+                if(indices)
+                {
+                   retval = indices[0];
+                }
+                gtk_tree_path_free(path);
+             }
+          }
+       }
+    }
 #endif
-   }
-   DW_FUNCTION_RETURN_THIS(retval);
+    DW_FUNCTION_RETURN_THIS(retval);
 }
 
 /*
@@ -10950,57 +11035,58 @@ DW_FUNCTION_ADD_PARAM3(handle, index, state)
 DW_FUNCTION_NO_RETURN(dw_listbox_select)
 DW_FUNCTION_RESTORE_PARAM3(handle, HWND, index, int, state, int)
 {
-   GtkWidget *handle2 = handle;
+    GtkWidget *tmp = handle ? (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user") : NULL;
 
-   /* Get the inner handle for scrolled controls */
-   if(GTK_IS_SCROLLED_WINDOW(handle))
-   {
-      GtkWidget *tmp = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
-      if(tmp)
-         handle2 = tmp;
-   }
-   if(handle2)
-   {
 #if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
+    if(tmp && GTK_IS_LIST_VIEW(tmp) &&
+       g_object_get_data(G_OBJECT(tmp), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX))
+    {
+        GtkSelectionModel *selection_model = gtk_list_view_get_model(GTK_LIST_VIEW(tmp));
+        
+        if(GTK_IS_SINGLE_SELECTION(selection_model))
+        {
+            gtk_single_selection_set_selected(GTK_SINGLE_SELECTION(selection_model), index);
+        }
+    }
 #else
-      GtkListStore *store = NULL;
+    GtkListStore *store = NULL;
 
-      /* Make sure it is the correct tree type */
-      if(GTK_IS_TREE_VIEW(handle2) && g_object_get_data(G_OBJECT(handle2), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX))
-         store = (GtkListStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(handle2));
-      else if(GTK_IS_COMBO_BOX(handle2))
-         store = (GtkListStore *)gtk_combo_box_get_model(GTK_COMBO_BOX(handle2));
+    /* Make sure it is the correct tree type */
+    if(tmp && GTK_IS_TREE_VIEW(tmp)
+       && g_object_get_data(G_OBJECT(tmp), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX))
+       store = (GtkListStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(tmp));
+    else if(tmp && GTK_IS_COMBO_BOX(tmp))
+       store = (GtkListStore *)gtk_combo_box_get_model(GTK_COMBO_BOX(tmp));
 
-      if(store && index < gtk_tree_model_iter_n_children(GTK_TREE_MODEL(store), NULL))
-      {
-         GtkTreeIter iter;
+    if(store && index < gtk_tree_model_iter_n_children(GTK_TREE_MODEL(store), NULL))
+    {
+       GtkTreeIter iter;
 
-         /* Get the nth child at the top level */
-         if (gtk_tree_model_iter_nth_child(GTK_TREE_MODEL(store), &iter, NULL, index))
-         {
-            if(GTK_IS_COMBO_BOX(handle2))
-            {
-               gtk_combo_box_set_active_iter(GTK_COMBO_BOX(handle2), &iter);
-            }
-            else
-            {
-               GtkTreeSelection *sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(handle2));
-               if(state)
-               {
-                  /* Select the item */
-                  gtk_tree_selection_select_iter(sel, &iter);
-               }
-               else
-               {
-                  /* Deselect the item */
-                  gtk_tree_selection_unselect_iter(sel, &iter);
-               }
-            }
-         }
-      }
+       /* Get the nth child at the top level */
+       if (gtk_tree_model_iter_nth_child(GTK_TREE_MODEL(store), &iter, NULL, index))
+       {
+          if(GTK_IS_COMBO_BOX(tmp))
+          {
+             gtk_combo_box_set_active_iter(GTK_COMBO_BOX(tmp), &iter);
+          }
+          else
+          {
+             GtkTreeSelection *sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(tmp));
+             if(state)
+             {
+                /* Select the item */
+                gtk_tree_selection_select_iter(sel, &iter);
+             }
+             else
+             {
+                /* Deselect the item */
+                gtk_tree_selection_unselect_iter(sel, &iter);
+             }
+          }
+       }
+    }
 #endif
-   }
-   DW_FUNCTION_RETURN_NOTHING;
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -11014,40 +11100,41 @@ DW_FUNCTION_ADD_PARAM2(handle, index)
 DW_FUNCTION_NO_RETURN(dw_listbox_delete)
 DW_FUNCTION_RESTORE_PARAM2(handle, HWND, index, int)
 {
-   GtkWidget *handle2 = handle;
+    GtkWidget *tmp = handle ? (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user") : NULL;
 
-   /* Get the inner handle for scrolled controls */
-   if(GTK_IS_SCROLLED_WINDOW(handle))
-   {
-      GtkWidget *tmp = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
-      if(tmp)
-         handle2 = tmp;
-   }
-   if(handle2)
-   {
 #if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
+    if(tmp && GTK_IS_LIST_VIEW(tmp) &&
+       g_object_get_data(G_OBJECT(tmp), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX))
+    {
+       GListStore *store = _dw_listbox_get_store(GTK_LIST_VIEW(tmp));
+       
+        if(store)
+        {
+            g_list_store_remove(store, index);
+        }
+    }
 #else
-      GtkListStore *store = NULL;
+    GtkListStore *store = NULL;
 
-      /* Make sure it is the correct tree type */
-      if(GTK_IS_TREE_VIEW(handle2) && g_object_get_data(G_OBJECT(handle2), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX))
-         store = (GtkListStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(handle2));
-      else if(GTK_IS_COMBO_BOX(handle2))
-         store = (GtkListStore *)gtk_combo_box_get_model(GTK_COMBO_BOX(handle2));
+    /* Make sure it is the correct tree type */
+    if(tmp && GTK_IS_TREE_VIEW(tmp)
+       && g_object_get_data(G_OBJECT(tmp), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX))
+       store = (GtkListStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(tmp));
+    else if(tmp && GTK_IS_COMBO_BOX(tmp))
+       store = (GtkListStore *)gtk_combo_box_get_model(GTK_COMBO_BOX(tmp));
 
-      if(store)
-      {
-         GtkTreeIter iter;
+    if(store)
+    {
+       GtkTreeIter iter;
 
-         /* Get the nth child at the top level */
-         if (gtk_tree_model_iter_nth_child(GTK_TREE_MODEL(store), &iter, NULL, index))
-         {
-            gtk_list_store_remove(store, &iter);
-         }
-      }
+       /* Get the nth child at the top level */
+       if (gtk_tree_model_iter_nth_child(GTK_TREE_MODEL(store), &iter, NULL, index))
+       {
+          gtk_list_store_remove(store, &iter);
+       }
+    }
 #endif
-   }
-   DW_FUNCTION_RETURN_NOTHING;
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /* Function to do delayed positioning */
