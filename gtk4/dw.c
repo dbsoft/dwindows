@@ -692,7 +692,11 @@ static void _dw_tree_node_bind_listitem_cb(GtkListItemFactory *factory, GtkListI
     GtkWidget *label = gtk_widget_get_last_child(hbox);
 
     /* Update widgets with data from DWTreeNode */
-    gtk_image_set_from_pixbuf(GTK_IMAGE(image), _dw_tree_node_get_icon(dw_tree_node));
+    GdkPixbuf *pixbuf = _dw_tree_node_get_icon(dw_tree_node);
+    GdkPaintable *paintable = GDK_PAINTABLE(gdk_texture_new_for_pixbuf(pixbuf));
+
+    gtk_image_set_from_paintable(GTK_IMAGE(image), paintable);
+    g_object_unref(G_OBJECT(paintable));
     gtk_label_set_text(GTK_LABEL(label), _dw_tree_node_get_name(dw_tree_node));
     
     /* Crucial: link the GtkTreeExpander to the specific GtkTreeListRow */
@@ -739,26 +743,31 @@ static void _dw_container_bind_cb(GtkListItemFactory *factory, GtkListItem *list
     {
         GtkWidget *image = gtk_widget_get_first_child(widget);
         GtkWidget *label = gtk_widget_get_last_child(widget);
-        char *text = gtk_string_object_get_string(GTK_STRING_OBJECT(obj));
+        const char *text = gtk_string_object_get_string(GTK_STRING_OBJECT(obj));
+        GdkPixbuf *pixbuf = _dw_tree_node_get_icon(node);
+        GdkPaintable *paintable = GDK_PAINTABLE(gdk_texture_new_for_pixbuf(pixbuf));
 
         /* Update widgets with data from DWTreeNode */
-        gtk_image_set_from_pixbuf(GTK_IMAGE(image), _dw_tree_node_get_icon(node));
+        gtk_image_set_from_paintable(GTK_IMAGE(image), paintable);
+        g_object_unref(G_OBJECT(paintable));
         gtk_label_set_text(GTK_LABEL(label), text);
-        g_free(text);
     }
     else if(GTK_IS_IMAGE(widget) && GDK_IS_PIXBUF(obj))
-        gtk_image_set_from_pixbuf(GTK_IMAGE(widget), GDK_PIXBUF(obj));
+    {
+        GdkTexture *texture = gdk_texture_new_for_pixbuf(GDK_PIXBUF(obj));
+ 
+        gtk_image_set_from_paintable(GTK_IMAGE(widget), GDK_PAINTABLE(texture));
+        g_object_unref(G_OBJECT(texture));
+    }
     else if(GTK_IS_LABEL(widget))
     {    
-        char *label;
+        const char *label;
 
         if(GTK_IS_STRING_OBJECT(obj))
             label = gtk_string_object_get_string(GTK_STRING_OBJECT(obj));
         else
             label = _dw_tree_node_get_name(node);
         gtk_label_set_label(GTK_LABEL(widget), label);
-        if(GTK_IS_STRING_OBJECT(obj))
-            g_free(label);
     }
 }
 #else
@@ -1356,6 +1365,8 @@ static gint _dw_combobox_select_event(GtkWidget *widget, gpointer data)
    DWSignalHandler work = _dw_get_signal_handler(data);
    int retval = FALSE;
 
+#if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
+#else
    if(g_object_get_data(G_OBJECT(widget), "_dw_recursing"))
       return FALSE;
 
@@ -1391,6 +1402,7 @@ static gint _dw_combobox_select_event(GtkWidget *widget, gpointer data)
          g_object_set_data(G_OBJECT(widget), "_dw_recursing", NULL);
       }
    }
+#endif
    return retval;
 }
 
@@ -1434,7 +1446,9 @@ static gint _dw_tree_context_event(GtkGestureSingle *gesture, int n_press, doubl
    DWSignalHandler work = _dw_get_signal_handler(data);
    int retval = FALSE;
 
-   if(work.window)
+ #if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
+ #else
+  if(work.window)
    {
       int button = gtk_gesture_single_get_current_button(gesture);
       
@@ -1501,6 +1515,7 @@ static gint _dw_tree_context_event(GtkGestureSingle *gesture, int n_press, doubl
             g_free(text);
       }
    }
+ #endif
    return retval;
 }
 
@@ -1650,6 +1665,8 @@ static gint _dw_container_enter_event(GtkEventController *controller, guint keyv
    DWSignalHandler work = _dw_get_signal_handler(data);
    int retval = FALSE;
 
+#if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
+#else
    if(work.window && GTK_IS_WIDGET(work.window))
    {
       GtkWidget *user = GTK_WIDGET(g_object_get_data(G_OBJECT(work.window), "_dw_user"));
@@ -1691,6 +1708,7 @@ static gint _dw_container_enter_event(GtkEventController *controller, guint keyv
          }
       }
    }
+#endif
    return retval;
 }
 
@@ -2650,7 +2668,11 @@ static void _dw_override_color(GtkWidget *widget, const char *element, GdkRGBA *
       
       provider = gtk_css_provider_new();
       g_free(scolor);
+#if GTK_CHECK_VERSION(4,12,0)
+      gtk_css_provider_load_from_string(provider, css);
+#else
       gtk_css_provider_load_from_data(provider, css, -1);
+#endif
       g_free(css);
       gtk_style_context_add_provider(scontext, GTK_STYLE_PROVIDER(provider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
    }
@@ -2677,7 +2699,11 @@ static void _dw_override_font(GtkWidget *widget, const char *font)
       gchar *css = g_strdup_printf ("* { font: %s; }", font);
       
       provider = gtk_css_provider_new();
+#if GTK_CHECK_VERSION(4,12,0)
+      gtk_css_provider_load_from_string(provider, css);
+#else
       gtk_css_provider_load_from_data(provider, css, -1);
+#endif
       g_free(css);
       gtk_style_context_add_provider(scontext, GTK_STYLE_PROVIDER(provider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
    }
@@ -4576,13 +4602,19 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, id, ULONG, filename, const char *)
          GtkWidget *pixmap = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_bitmap");
          if(pixmap)
          {
-            gtk_picture_set_pixbuf(GTK_PICTURE(pixmap), tmp);
+            GdkTexture *texture = gdk_texture_new_for_pixbuf(tmp);
+
+            gtk_picture_set_paintable(GTK_PICTURE(pixmap), GDK_PAINTABLE(texture));
+            g_object_unref(G_OBJECT(texture));
             retval = DW_ERROR_NONE;
          }
       }
       else if(GTK_IS_PICTURE(handle))
       {
-         gtk_picture_set_pixbuf(GTK_PICTURE(handle), tmp);
+         GdkTexture *texture = gdk_texture_new_for_pixbuf(tmp);
+
+         gtk_picture_set_paintable(GTK_PICTURE(handle), GDK_PAINTABLE(texture));
+         g_object_unref(G_OBJECT(texture));
          retval = DW_ERROR_NONE;
       } 
    }
@@ -4647,13 +4679,19 @@ DW_FUNCTION_RESTORE_PARAM4(handle, HWND, id, ULONG, data, const char *, len, int
 
          if(pixmap)
          {
-            gtk_picture_set_pixbuf(GTK_PICTURE(pixmap), tmp);
+            GdkTexture *texture = gdk_texture_new_for_pixbuf(tmp);
+
+            gtk_picture_set_paintable(GTK_PICTURE(pixmap), GDK_PAINTABLE(texture));
+            g_object_unref(G_OBJECT(texture));
             retval = DW_ERROR_NONE;
          }
       }
       else if(GTK_IS_PICTURE(handle))
       {
-         gtk_picture_set_pixbuf(GTK_PICTURE(handle), tmp);
+         GdkTexture *texture = gdk_texture_new_for_pixbuf(tmp);
+
+         gtk_picture_set_paintable(GTK_PICTURE(handle), GDK_PAINTABLE(texture));
+         g_object_unref(G_OBJECT(texture));
          retval = DW_ERROR_NONE;
       }
    }
