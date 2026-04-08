@@ -1548,11 +1548,11 @@ typedef struct _hpixmap {
    unsigned long width, height;
    HWND handle;
    char *font;
-#if GTK_MAJOR_VERSION > 1
-   GdkPixbuf *pixbuf;  /* the actual image */
+#if GTK_MAJOR_VERSION < 4
+   GdkPixbuf *pixbuf;  /* The actual image GTK 2 & 3 */
 #endif
 #if GTK_MAJOR_VERSION > 2
-   cairo_surface_t *image; /* Going to have dual storage for now */
+   cairo_surface_t *image; /* Dual storage for GTK 3 */
 #else
    GdkPixmap *pixmap;  /* the actual image */
    GdkBitmap *bitmap;  /* if not null, the image mask representing the transparency mask */

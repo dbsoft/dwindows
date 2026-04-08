@@ -478,7 +478,7 @@ typedef struct _DWTreeNodeClass DWTreeNodeClass;
 struct _DWTreeNode {
     GObject parent_instance;
     gchar *name;
-    GdkPixbuf *icon;
+    GdkTexture *icon;
     void *itemdata;
     GListStore *children; /* Store for child items */
     DWTreeNode *parent; /* Back pointer to the parent store */
@@ -585,7 +585,7 @@ gpointer _dw_tree_node_get_data(DWTreeNode *self, guint index) {
     return g_list_nth_data(self->data_list, index);
 }
 
-GdkPixbuf *_dw_tree_node_get_icon(DWTreeNode *self) {
+GdkTexture *_dw_tree_node_get_icon(DWTreeNode *self) {
     g_return_val_if_fail(DW_IS_TREE_NODE(self), NULL);
     return self->icon;
 }
@@ -612,7 +612,7 @@ GListStore *_dw_tree_node_get_parent_store(DWTreeNode *self) {
     return self->parent ? self->parent->children : NULL;
 }
 
-void _dw_tree_node_set_icon(DWTreeNode *self, GdkPixbuf *icon) {
+void _dw_tree_node_set_icon(DWTreeNode *self, GdkTexture *icon) {
     g_return_if_fail(DW_IS_TREE_NODE(self));
     if(self->icon)
         g_object_unref(G_OBJECT(self->icon));
@@ -692,11 +692,9 @@ static void _dw_tree_node_bind_listitem_cb(GtkListItemFactory *factory, GtkListI
     GtkWidget *label = gtk_widget_get_last_child(hbox);
 
     /* Update widgets with data from DWTreeNode */
-    GdkPixbuf *pixbuf = _dw_tree_node_get_icon(dw_tree_node);
-    GdkPaintable *paintable = GDK_PAINTABLE(gdk_texture_new_for_pixbuf(pixbuf));
+    GdkTexture *texture = _dw_tree_node_get_icon(dw_tree_node);
 
-    gtk_image_set_from_paintable(GTK_IMAGE(image), paintable);
-    g_object_unref(G_OBJECT(paintable));
+    gtk_image_set_from_paintable(GTK_IMAGE(image), GDK_PAINTABLE(texture));
     gtk_label_set_text(GTK_LABEL(label), _dw_tree_node_get_name(dw_tree_node));
     
     /* Crucial: link the GtkTreeExpander to the specific GtkTreeListRow */
@@ -744,21 +742,14 @@ static void _dw_container_bind_cb(GtkListItemFactory *factory, GtkListItem *list
         GtkWidget *image = gtk_widget_get_first_child(widget);
         GtkWidget *label = gtk_widget_get_last_child(widget);
         const char *text = gtk_string_object_get_string(GTK_STRING_OBJECT(obj));
-        GdkPixbuf *pixbuf = _dw_tree_node_get_icon(node);
-        GdkPaintable *paintable = GDK_PAINTABLE(gdk_texture_new_for_pixbuf(pixbuf));
+        GdkTexture *texture = _dw_tree_node_get_icon(node);
 
         /* Update widgets with data from DWTreeNode */
-        gtk_image_set_from_paintable(GTK_IMAGE(image), paintable);
-        g_object_unref(G_OBJECT(paintable));
+        gtk_image_set_from_paintable(GTK_IMAGE(image), GDK_PAINTABLE(texture));
         gtk_label_set_text(GTK_LABEL(label), text);
     }
-    else if(GTK_IS_IMAGE(widget) && GDK_IS_PIXBUF(obj))
-    {
-        GdkTexture *texture = gdk_texture_new_for_pixbuf(GDK_PIXBUF(obj));
- 
-        gtk_image_set_from_paintable(GTK_IMAGE(widget), GDK_PAINTABLE(texture));
-        g_object_unref(G_OBJECT(texture));
-    }
+    else if(GTK_IS_IMAGE(widget) && GDK_IS_TEXTURE(obj))
+        gtk_image_set_from_paintable(GTK_IMAGE(widget), GDK_PAINTABLE(obj));
     else if(GTK_IS_LABEL(widget))
     {    
         const char *label;
@@ -1850,34 +1841,66 @@ static void _dw_dialog_response(GtkDialog *dialog, int response_id, gpointer dat
       dw_dialog_dismiss(dwdialog, DW_INT_TO_POINTER(response_id));
 }
 
-static GdkPixbuf *_dw_pixbuf_from_resource(unsigned int rid)
+GdkTexture *_dw_texture_from_surface(cairo_surface_t *surface)
+{
+  GdkTexture *texture;
+  GBytes *bytes;
+  int width, height, stride;
+  guchar *data;
+
+  /* 1. Ensure the surface is an image surface */
+  if (cairo_surface_get_type(surface) != CAIRO_SURFACE_TYPE_IMAGE)
+    return NULL;
+
+  /* 2. Finalize any pending Cairo operations */
+  cairo_surface_flush(surface);
+
+  width = cairo_image_surface_get_width(surface);
+  height = cairo_image_surface_get_height(surface);
+  stride = cairo_image_surface_get_stride(surface);
+  data = cairo_image_surface_get_data(surface);
+
+  /* 3. Wrap pixels in GBytes (assuming surface stays alive or copy is made) */
+  bytes = g_bytes_new(data, stride * height);
+
+  /* 4. Create the texture (using GDK_MEMORY_DEFAULT for Cairo's native format) */
+  texture = gdk_memory_texture_new(width, height,
+                                   GDK_MEMORY_DEFAULT,
+                                   bytes,
+                                   stride);
+
+  g_bytes_unref(bytes);
+  return texture;
+}
+
+static GdkTexture *_dw_texture_from_resource(unsigned int rid)
 {
    char resource_path[201] = {0};
 
    snprintf(resource_path, 200, "%s%u.png", _DW_RESOURCE_PATH, rid);
-   return gdk_pixbuf_new_from_resource(resource_path, NULL);
+   return gdk_texture_new_from_resource(resource_path);
 }
 
-static GdkPixbuf *_dw_find_pixbuf(HICN icon, unsigned long *userwidth, unsigned long *userheight)
+static GdkTexture *_dw_find_texture(HICN icon, unsigned long *userwidth, unsigned long *userheight)
 {
    unsigned int id = GPOINTER_TO_INT(icon);
-   GdkPixbuf *icon_pixbuf = NULL;
+   GdkTexture *icon_texture = NULL;
 
    /* Quick dropout for non-handle */
    if(!icon)
       return NULL;
 
    if(id > 65535)
-      icon_pixbuf = icon;
+      icon_texture = icon;
    else
-      icon_pixbuf = _dw_pixbuf_from_resource(id);
+      icon_texture = _dw_texture_from_resource(id);
    
    if(userwidth)
-      *userwidth = icon_pixbuf ? gdk_pixbuf_get_width(icon_pixbuf) : 0;
+      *userwidth = icon_texture ? gdk_texture_get_width(icon_texture) : 0;
    if(userheight)
-      *userheight = icon_pixbuf ? gdk_pixbuf_get_height(icon_pixbuf) : 0;
+      *userheight = icon_texture ? gdk_texture_get_height(icon_texture) : 0;
 
-   return icon_pixbuf;
+   return icon_texture;
 }
 
 /* Handle system notification click callbacks */
@@ -3060,10 +3083,11 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, pointertype, int)
 {
    if(pointertype > 65535)
    {
-      GdkPixbuf *pixbuf = _dw_find_pixbuf(GINT_TO_POINTER(pointertype), NULL, NULL);
-      GdkCursor *cursor = gdk_cursor_new_from_texture(gdk_texture_new_for_pixbuf(pixbuf), 0, 0, NULL);
+      GdkTexture *texture = _dw_find_texture(GINT_TO_POINTER(pointertype), NULL, NULL);
+      GdkCursor *cursor = gdk_cursor_new_from_texture(texture, 0, 0, NULL);
       if(cursor)
          gtk_widget_set_cursor(GTK_WIDGET(handle), cursor);
+      g_object_unref(G_OBJECT(texture));
    }
    if(pointertype == DW_POINTER_ARROW)
       gtk_widget_set_cursor_from_name(GTK_WIDGET(handle), "default");
@@ -4565,11 +4589,15 @@ DW_FUNCTION_ADD_PARAM3(handle, id, filename)
 DW_FUNCTION_RETURN(dw_window_set_bitmap, int)
 DW_FUNCTION_RESTORE_PARAM3(handle, HWND, id, ULONG, filename, const char *)
 {
-   GdkPixbuf *tmp = NULL;
+   GdkTexture *tmp = NULL;
    int retval = DW_ERROR_UNKNOWN;
 
    if(id)
-      tmp = _dw_find_pixbuf((HICN)id, NULL, NULL);
+   {
+      tmp = _dw_find_texture((HICN)id, NULL, NULL);
+      if(tmp)
+          g_object_ref(G_OBJECT(tmp));
+   }
    else
    {
       char *file = alloca(strlen(filename) + 6);
@@ -4587,12 +4615,12 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, id, ULONG, filename, const char *)
             strcpy(file, filename);
             strcat(file, _dw_image_exts[i]);
             if(access(file, 04) == 0)
-               tmp = gdk_pixbuf_new_from_file(file, NULL);
+               tmp = gdk_texture_new_from_filename(file, NULL);
             i++;
          }
       }
       else
-         tmp = gdk_pixbuf_new_from_file(file, NULL);
+         tmp = gdk_texture_new_from_filename(file, NULL);
    }
 
    if(tmp)
@@ -4602,21 +4630,16 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, id, ULONG, filename, const char *)
          GtkWidget *pixmap = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_bitmap");
          if(pixmap)
          {
-            GdkTexture *texture = gdk_texture_new_for_pixbuf(tmp);
-
-            gtk_picture_set_paintable(GTK_PICTURE(pixmap), GDK_PAINTABLE(texture));
-            g_object_unref(G_OBJECT(texture));
+            gtk_picture_set_paintable(GTK_PICTURE(pixmap), GDK_PAINTABLE(tmp));
             retval = DW_ERROR_NONE;
          }
       }
       else if(GTK_IS_PICTURE(handle))
       {
-         GdkTexture *texture = gdk_texture_new_for_pixbuf(tmp);
-
-         gtk_picture_set_paintable(GTK_PICTURE(handle), GDK_PAINTABLE(texture));
-         g_object_unref(G_OBJECT(texture));
+         gtk_picture_set_paintable(GTK_PICTURE(handle), GDK_PAINTABLE(tmp));
          retval = DW_ERROR_NONE;
       } 
+      g_object_unref(G_OBJECT(tmp));
    }
    else
    	retval = DW_ERROR_GENERAL;
@@ -4643,7 +4666,7 @@ DW_FUNCTION_ADD_PARAM4(handle, id, data, len)
 DW_FUNCTION_RETURN(dw_window_set_bitmap_from_data, int)
 DW_FUNCTION_RESTORE_PARAM4(handle, HWND, id, ULONG, data, const char *, len, int)
 {
-   GdkPixbuf *tmp = NULL;
+   GdkTexture *tmp = NULL;
    int retval = DW_ERROR_UNKNOWN;
 
    if(data)
@@ -4663,13 +4686,17 @@ DW_FUNCTION_RESTORE_PARAM4(handle, HWND, id, ULONG, data, const char *, len, int
       /* Bail if we couldn't write full file */
       if(fd != -1 && written == len)
       {
-         tmp = gdk_pixbuf_new_from_file(template, NULL);
+         tmp = gdk_texture_new_from_filename(template, NULL);
          /* remove our temporary file */
          unlink(template);
       }
    }
    else if(id)
-      tmp = _dw_find_pixbuf((HICN)id, NULL, NULL);
+   {
+      tmp = _dw_find_texture((HICN)id, NULL, NULL);
+      if(tmp)
+          g_object_ref(G_OBJECT(tmp));
+   }
 
    if(tmp)
    {
@@ -4679,21 +4706,16 @@ DW_FUNCTION_RESTORE_PARAM4(handle, HWND, id, ULONG, data, const char *, len, int
 
          if(pixmap)
          {
-            GdkTexture *texture = gdk_texture_new_for_pixbuf(tmp);
-
-            gtk_picture_set_paintable(GTK_PICTURE(pixmap), GDK_PAINTABLE(texture));
-            g_object_unref(G_OBJECT(texture));
+            gtk_picture_set_paintable(GTK_PICTURE(pixmap), GDK_PAINTABLE(tmp));
             retval = DW_ERROR_NONE;
          }
       }
       else if(GTK_IS_PICTURE(handle))
       {
-         GdkTexture *texture = gdk_texture_new_for_pixbuf(tmp);
-
-         gtk_picture_set_paintable(GTK_PICTURE(handle), GDK_PAINTABLE(texture));
-         g_object_unref(G_OBJECT(texture));
+         gtk_picture_set_paintable(GTK_PICTURE(handle), GDK_PAINTABLE(tmp));
          retval = DW_ERROR_NONE;
       }
+      g_object_unref(G_OBJECT(tmp));
    }
    else
    	retval = DW_ERROR_GENERAL;
@@ -5555,8 +5577,8 @@ DW_FUNCTION_RESTORE_PARAM6(handle, HWND, item, HTREEITEM, title, char *, icon, H
            _dw_tree_node_set_name(node, title);
        if(icon)
        {
-           GdkPixbuf *pixbuf = _dw_find_pixbuf(icon, NULL, NULL);
-           _dw_tree_node_set_icon(node, pixbuf);
+           GdkTexture *texture = _dw_find_texture(icon, NULL, NULL);
+           _dw_tree_node_set_icon(node, texture);
        }
        _dw_tree_node_set_itemdata(node, itemdata);
        _dw_tree_node_set_parent(node, parentnode);
@@ -5571,7 +5593,7 @@ DW_FUNCTION_RESTORE_PARAM6(handle, HWND, item, HTREEITEM, title, char *, icon, H
    GtkWidget *tree;
    GtkTreeIter *iter;
    GtkTreeStore *store;
-   GdkPixbuf *pixbuf;
+   GdkTexture *texture;
 
    if(handle)
    {
@@ -5579,9 +5601,11 @@ DW_FUNCTION_RESTORE_PARAM6(handle, HWND, item, HTREEITEM, title, char *, icon, H
          && GTK_IS_TREE_VIEW(tree) &&
          (store = (GtkTreeStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(tree))))
       {
+         GdkPixbuf *pixbuf = NULL;
          iter = (GtkTreeIter *)malloc(sizeof(GtkTreeIter));
 
-         pixbuf = _dw_find_pixbuf(icon, NULL, NULL);
+         if(texture = _dw_find_texture(icon, NULL, NULL))
+             pixbuf = gdk_pixbuf_get_from_texture(texture);
 
          gtk_tree_store_insert_after(store, iter, (GtkTreeIter *)parent, (GtkTreeIter *)item);
          gtk_tree_store_set (store, iter, 0, title, 1, pixbuf, 2, itemdata, 3, iter, -1);
@@ -5651,8 +5675,8 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, title, char *, icon, HICN, parent, HTRE
            _dw_tree_node_set_name(node, title);
        if(icon)
        {
-           GdkPixbuf *pixbuf = _dw_find_pixbuf(icon, NULL, NULL);
-           _dw_tree_node_set_icon(node, pixbuf);
+           GdkTexture *texture = _dw_find_texture(icon, NULL, NULL);
+           _dw_tree_node_set_icon(node, texture);
        }
        _dw_tree_node_set_itemdata(node, itemdata);
        _dw_tree_node_set_parent(node, parentnode);
@@ -5667,7 +5691,7 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, title, char *, icon, HICN, parent, HTRE
    GtkWidget *tree;
    GtkTreeIter *iter;
    GtkTreeStore *store;
-   GdkPixbuf *pixbuf;
+   GdkTexture *texture;
 
    if(handle)
    {
@@ -5675,9 +5699,12 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, title, char *, icon, HICN, parent, HTRE
          && GTK_IS_TREE_VIEW(tree) &&
          (store = (GtkTreeStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(tree))))
       {
+         GdkPixbuf *pixbuf = NULL;
+ 
          iter = (GtkTreeIter *)malloc(sizeof(GtkTreeIter));
 
-         pixbuf = _dw_find_pixbuf(icon, NULL, NULL);
+         if((texture = _dw_find_texture(icon, NULL, NULL)))
+             pixbuf = gdk_pixbuf_get_from_texture(texture);
 
          gtk_tree_store_append (store, iter, (GtkTreeIter *)parent);
          gtk_tree_store_set (store, iter, 0, title, 1, pixbuf, 2, itemdata, 3, iter, -1);
@@ -5707,14 +5734,14 @@ DW_FUNCTION_RESTORE_PARAM4(handle, HWND, item, HTREEITEM, title, char *, icon, H
 
       if((tree = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user")))
       {
-          GdkPixbuf *pixbuf = _dw_find_pixbuf(icon, NULL, NULL);
+          GdkTexture *texture = _dw_find_texture(icon, NULL, NULL);
 #if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
           DWTreeNode *node = DW_TREE_NODE(item);
           
           if(GTK_IS_LIST_VIEW(tree))
           {
               _dw_tree_node_set_name(node, title);
-              _dw_tree_node_set_icon(node, pixbuf);
+              _dw_tree_node_set_icon(node, texture);
           }
 #else
          GtkTreeStore *store;
@@ -5722,6 +5749,10 @@ DW_FUNCTION_RESTORE_PARAM4(handle, HWND, item, HTREEITEM, title, char *, icon, H
           if(GTK_IS_TREE_VIEW(tree) &&
             (store = (GtkTreeStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(tree))))
           {
+              GdkPixbuf *pixbuf = NULL;
+              
+              if(texture)
+                  pixbuf = gdk_pixbuf_get_from_texture (texture);
               gtk_tree_store_set(store, (GtkTreeIter *)item, 0, title, 1, pixbuf, -1);
           }
 #endif
@@ -6450,18 +6481,56 @@ HICN API dw_icon_load(unsigned long module, unsigned long id)
    return (HICN)id;
 }
 
+/* Internal function to resize GdkTextures without pixbufs or widgets */
+GdkTexture *_dw_texture_resize(GdkTexture *original, int width, int height)
+{
+    /* 1. Create a snapshot and record the scaling operation */
+    GtkSnapshot *snapshot = gtk_snapshot_new();
+    graphene_rect_t bounds = GRAPHENE_RECT_INIT(0, 0, width, height);
+
+    gtk_snapshot_append_scaled_texture(snapshot,
+                                       original,
+                                       GSK_SCALING_FILTER_LINEAR,
+                                       &bounds);
+
+    GskRenderNode *node = gtk_snapshot_free_to_node (snapshot);
+
+    /* 2. Obtain a renderer. In a headless environment, you can 
+     * create a specific renderer type (e.g., NGL or GL).
+     */
+    GskRenderer *renderer = gsk_ngl_renderer_new (); // Or gsk_gl_renderer_new()
+    
+    /* Renderer must be realized before use */
+    if(!gsk_renderer_realize(renderer, NULL, NULL))
+    {
+        g_object_unref(renderer);
+        gsk_render_node_unref(node);
+        return NULL;
+    }
+
+    /* 3. Render the node directly to a new texture */
+    GdkTexture *resized = gsk_renderer_render_texture (renderer, node, &bounds);
+
+    /* Cleanup */
+    gsk_render_node_unref(node);
+    gsk_renderer_unrealize(renderer);
+    g_object_unref(renderer);
+
+    return resized;
+}
+
 /* Internal function to keep HICNs from getting too big */
-GdkPixbuf *_dw_icon_resize(GdkPixbuf *ret)
+GdkTexture *_dw_icon_resize(GdkTexture *ret)
 {
    if(ret)
    {
-      int pwidth = gdk_pixbuf_get_width(ret);
-      int pheight = gdk_pixbuf_get_height(ret);
+      int pwidth = gdk_texture_get_width(ret);
+      int pheight = gdk_texture_get_height(ret);
 
       if(pwidth > 24 || pheight > 24)
       {
-         GdkPixbuf *orig = ret;
-         ret = gdk_pixbuf_scale_simple(ret, pwidth > 24 ? 24 : pwidth, pheight > 24 ? 24 : pheight, GDK_INTERP_BILINEAR);
+         GdkTexture *orig = ret;
+         ret = _dw_texture_resize(ret, pwidth > 24 ? 24 : pwidth, pheight > 24 ? 24 : pheight);
          g_object_unref(G_OBJECT(orig));
       }
    }
@@ -6496,12 +6565,12 @@ HICN API dw_icon_load_from_file(const char *filename)
             strcpy(file, filename);
             strcat(file, _dw_image_exts[i]);
             if(access(file, 04) == 0)
-               retval = _dw_icon_resize(gdk_pixbuf_new_from_file(file, NULL));
+               retval = _dw_icon_resize(gdk_texture_new_from_filename(file, NULL));
             i++;
          }
       }
       else
-         retval = _dw_icon_resize(gdk_pixbuf_new_from_file(file, NULL));
+         retval = _dw_icon_resize(gdk_texture_new_from_filename(file, NULL));
    }
    return retval;
 }
@@ -6530,7 +6599,7 @@ HICN API dw_icon_load_from_data(const char *data, int len)
    /* Bail if we couldn't write full file */
    if(fd == -1 || written != len)
       return 0;
-   ret = _dw_icon_resize(gdk_pixbuf_new_from_file(template, NULL));
+   ret = _dw_icon_resize(gdk_texture_new_from_filename(template, NULL));
    unlink(template);
    return ret;
 }
@@ -6675,17 +6744,17 @@ void _dw_container_set_item_int(HWND handle, void *pointer, int column, int row,
                 void **thisdata = (void **)data;
                 HICN hicon = data ? *((HICN *)thisdata[0]) : 0;
                 char *tmp = data ? (char *)thisdata[1] : NULL;
-                GdkPixbuf *pixbuf = hicon ? _dw_find_pixbuf(hicon, NULL, NULL) : NULL;
+                GdkTexture *texture = hicon ? _dw_find_texture(hicon, NULL, NULL) : NULL;
 
-                _dw_tree_node_set_icon(node, pixbuf);
+                _dw_tree_node_set_icon(node, texture);
                 _dw_tree_node_set_data(node, column, gtk_string_object_new(tmp));
              }
              else if(flag & DW_CFA_BITMAPORICON)
              {
                 HICN hicon = data ? *((HICN *)data) : 0;
-                GdkPixbuf *pixbuf = hicon ? _dw_find_pixbuf(hicon, NULL, NULL) : NULL;
+                GdkTexture *texture = hicon ? _dw_find_texture(hicon, NULL, NULL) : NULL;
 
-                _dw_tree_node_set_data(node, column, pixbuf);
+                _dw_tree_node_set_data(node, column, texture);
              }
              else if(flag & DW_CFA_STRING)
              {
@@ -6764,7 +6833,8 @@ void _dw_container_set_item_int(HWND handle, void *pointer, int column, int row,
             void **thisdata = (void **)data;
             HICN hicon = data ? *((HICN *)thisdata[0]) : 0;
             char *tmp = data ? (char *)thisdata[1] : NULL;
-            GdkPixbuf *pixbuf = hicon ? _dw_find_pixbuf(hicon, NULL, NULL) : NULL;
+            GdkTexture *texture = hicon ? _dw_find_texture(hicon, NULL, NULL) : NULL;
+            GdkPixbuf *pixbuf = texture ? gdk_pixbuf_get_from_texture(texture) : NULL;
 
             gtk_list_store_set(store, &iter, _DW_CONTAINER_STORE_EXTRA, pixbuf, -1);
             gtk_list_store_set(store, &iter, _DW_CONTAINER_STORE_EXTRA + 1, tmp, -1);
@@ -6772,7 +6842,8 @@ void _dw_container_set_item_int(HWND handle, void *pointer, int column, int row,
          else if(flag & DW_CFA_BITMAPORICON)
          {
             HICN hicon = data ? *((HICN *)data) : 0;
-            GdkPixbuf *pixbuf = hicon ? _dw_find_pixbuf(hicon, NULL, NULL) : NULL;
+            GdkTexture *texture = hicon ? _dw_find_texture(hicon, NULL, NULL) : NULL;
+            GdkPixbuf *pixbuf = texture ? gdk_pixbuf_get_from_texture(texture) : NULL;
 
             gtk_list_store_set(store, &iter, column + _DW_CONTAINER_STORE_EXTRA + 1, pixbuf, -1);
          }
@@ -8524,7 +8595,6 @@ DW_FUNCTION_RESTORE_PARAM4(handle, HWND, width, unsigned long, height, unsigned 
       /* Depth needs to be divided by 3... but for the RGB colorspace...
        * only 8 bits per sample is allowed, so to avoid issues just pass 8 for now.
        */
-      pixmap->pixbuf = gdk_pixbuf_new(GDK_COLORSPACE_RGB, FALSE, 8, width, height);
       pixmap->image = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
    }
    DW_FUNCTION_RETURN_THIS(pixmap);
@@ -8550,6 +8620,7 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, filename, const char *)
    if(filename && *filename && (pixmap = calloc(1,sizeof(struct _hpixmap))))
    {
       char *file = alloca(strlen(filename) + 6);
+      GdkTexture *texture = 0;
 
       strcpy(file, filename);
 
@@ -8559,24 +8630,30 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, filename, const char *)
          int i = 0;
 
          /* Try with various extentions */
-         while(_dw_image_exts[i] && !pixmap->pixbuf)
+         while(_dw_image_exts[i] && !texture)
          {
             strcpy(file, filename);
             strcat(file, _dw_image_exts[i]);
             if(access(file, 04) == 0)
-               pixmap->pixbuf = gdk_pixbuf_new_from_file(file, NULL);
+               texture = gdk_texture_new_from_filename(file, NULL);
             i++;
          }
       }
       else
-         pixmap->pixbuf = gdk_pixbuf_new_from_file(file, NULL);
+         texture = gdk_texture_new_from_filename(file, NULL);
 
-      if(pixmap->pixbuf)
+      if(texture)
       {
-         pixmap->image = cairo_image_surface_create_from_png(file);
-         pixmap->width = gdk_pixbuf_get_width(pixmap->pixbuf);
-         pixmap->height = gdk_pixbuf_get_height(pixmap->pixbuf);
+         pixmap->width = gdk_texture_get_width(texture);
+         pixmap->height = gdk_texture_get_height(texture);
+         pixmap->image = cairo_image_surface_create(CAIRO_FORMAT_ARGB32,
+                                      pixmap->width,
+                                      pixmap->height);
+         gdk_texture_download(texture, cairo_image_surface_get_data(pixmap->image), 
+                              cairo_image_surface_get_stride(pixmap->image));
+         cairo_surface_mark_dirty(pixmap->image);
          pixmap->handle = handle;
+         g_object_unref(G_OBJECT(texture));
       }
       else
       {
@@ -8608,6 +8685,7 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, data, const char *, len, int)
    {
       int fd, written = -1;
       char template[] = "/tmp/dwpixmapXXXXXX";
+      GdkTexture *texture;
 
       /*
        * A real hack; create a temporary file and write the contents
@@ -8619,15 +8697,20 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, data, const char *, len, int)
          close(fd);
       }
       /* Bail if we couldn't write full file */
-      if(fd != -1 && written == len)
+      if(fd != -1 && written == len &&
+         (texture = gdk_texture_new_from_filename(template, NULL)))
       {
-         pixmap->pixbuf = gdk_pixbuf_new_from_file(template, NULL);
-         pixmap->image = cairo_image_surface_create_from_png(template);
-         pixmap->width = gdk_pixbuf_get_width(pixmap->pixbuf);
-         pixmap->height = gdk_pixbuf_get_height(pixmap->pixbuf);
+         pixmap->width = gdk_texture_get_width(texture);
+         pixmap->height = gdk_texture_get_height(texture);
+         pixmap->image = cairo_image_surface_create(CAIRO_FORMAT_ARGB32,
+                                                    pixmap->width, pixmap->height);
+         gdk_texture_download(texture, cairo_image_surface_get_data(pixmap->image), 
+                              cairo_image_surface_get_stride(pixmap->image));
+         cairo_surface_mark_dirty(pixmap->image);
          /* remove our temporary file */
          unlink(template);
          pixmap->handle = handle;
+         g_object_unref(G_OBJECT(texture));
       }
       else
       {
@@ -8668,8 +8751,16 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, id, ULONG)
 
    if((pixmap = calloc(1,sizeof(struct _hpixmap))))
    {
-      pixmap->pixbuf = gdk_pixbuf_copy(_dw_find_pixbuf((HICN)id, &pixmap->width, &pixmap->height));
+      GdkTexture *texture = _dw_find_texture((HICN)id, 0, 0);
+      pixmap->width = gdk_texture_get_width(texture);
+      pixmap->height = gdk_texture_get_height(texture);
+      pixmap->image = cairo_image_surface_create(CAIRO_FORMAT_ARGB32,
+                                                 pixmap->width, pixmap->height);
+      gdk_texture_download(texture, cairo_image_surface_get_data(pixmap->image), 
+                           cairo_image_surface_get_stride(pixmap->image));
+      cairo_surface_mark_dirty(pixmap->image);
       pixmap->handle = handle;
+      g_object_unref(G_OBJECT(texture));
    }
    DW_FUNCTION_RETURN_THIS(pixmap);
 }
@@ -8730,7 +8821,6 @@ DW_FUNCTION_ADD_PARAM1(pixmap)
 DW_FUNCTION_NO_RETURN(dw_pixmap_destroy)
 DW_FUNCTION_RESTORE_PARAM1(pixmap, HPIXMAP)
 {
-   g_object_unref(G_OBJECT(pixmap->pixbuf));
    cairo_surface_destroy(pixmap->image);
    if(pixmap->font)
       free(pixmap->font);
