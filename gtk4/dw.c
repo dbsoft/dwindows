@@ -2668,28 +2668,45 @@ char *_dw_convert_font(const char *font)
    return newfont;
 }
 
-/* Internal functions to convert to GTK3 style CSS */
+/* Internal functions to convert to GTK3+ style CSS */
+const char *_dw_widget_name(GtkWidget *widget)
+{
+   static int wid = 0;
+   const char *name = gtk_widget_get_name(widget);
+   
+   if(!name)
+   {
+      gchar *widget_name = g_strdup_printf("_dw_widget_%d", wid++);
+      gtk_widget_set_name(widget, widget_name);
+      g_free(widget_name);
+      name = gtk_widget_get_name(widget);
+   }
+   return name;
+}
+
 static void _dw_override_color(GtkWidget *widget, const char *element, GdkRGBA *color)
 {
-   gchar *dataname = g_strdup_printf ("_dw_color_%s", element);
+   const char *widget_name = _dw_widget_name(widget);
+   gchar *dataname = g_strdup_printf("%s_color_%s", widget_name, element);
    GtkCssProvider *provider = g_object_get_data(G_OBJECT(widget), dataname);
-   GtkStyleContext *scontext = gtk_widget_get_style_context(widget);
    
-   /* If we have an old context from a previous override remove it */
-   if(provider)
+   /* If we don't have an existing provider, create one */
+   if(!provider)
    {
-      gtk_style_context_remove_provider(scontext, GTK_STYLE_PROVIDER(provider));
-      g_object_unref(provider);
-      provider = NULL;
+      provider = gtk_css_provider_new();
+      gtk_style_context_add_provider_for_display(gdk_display_get_default(),
+                                                GTK_STYLE_PROVIDER(provider),
+                                                GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+      gtk_widget_add_css_class(widget, dataname);
+      g_object_set_data(G_OBJECT(widget), dataname, (gpointer)provider);
    }
    
    /* If we have a new color, create a new provider and add it */
    if(color)
    {
       gchar *scolor = gdk_rgba_to_string(color);
-      gchar *css = g_strdup_printf ("* { %s: %s; }", element, scolor);
+      gchar *css = g_strdup_printf ("%s { %s: %s; }", dataname, element, scolor);
       
-      provider = gtk_css_provider_new();
       g_free(scolor);
 #if GTK_CHECK_VERSION(4,12,0)
       gtk_css_provider_load_from_string(provider, css);
@@ -2697,40 +2714,39 @@ static void _dw_override_color(GtkWidget *widget, const char *element, GdkRGBA *
       gtk_css_provider_load_from_data(provider, css, -1);
 #endif
       g_free(css);
-      gtk_style_context_add_provider(scontext, GTK_STYLE_PROVIDER(provider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
    }
-   g_object_set_data(G_OBJECT(widget), dataname, (gpointer)provider);
    g_free(dataname);
 }
 
 static void _dw_override_font(GtkWidget *widget, const char *font)
 {
-   GtkCssProvider *provider = g_object_get_data(G_OBJECT(widget), "_dw_font");
-   GtkStyleContext *scontext = gtk_widget_get_style_context(widget);
+   const char *widget_name = _dw_widget_name(widget);
+   gchar *dataname = g_strdup_printf("%s_font", widget_name);
+   GtkCssProvider *provider = g_object_get_data(G_OBJECT(widget), dataname);
    
-   /* If we have an old context from a previous override remove it */
-   if(provider)
+   /* If we don't have an existing provider, create one */
+   if(!provider)
    {
-      gtk_style_context_remove_provider(scontext, GTK_STYLE_PROVIDER(provider));
-      g_object_unref(provider);
-      provider = NULL;
+      provider = gtk_css_provider_new();
+      gtk_style_context_add_provider_for_display(gdk_display_get_default(),
+                                                GTK_STYLE_PROVIDER(provider),
+                                                GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+      gtk_widget_add_css_class(widget, dataname);
+      g_object_set_data(G_OBJECT(widget), dataname, (gpointer)provider);
    }
    
    /* If we have a new font, create a new provider and add it */
    if(font)
    {
-      gchar *css = g_strdup_printf ("* { font: %s; }", font);
+      gchar *css = g_strdup_printf ("%s { font: %s; }", dataname, font);
       
-      provider = gtk_css_provider_new();
 #if GTK_CHECK_VERSION(4,12,0)
       gtk_css_provider_load_from_string(provider, css);
 #else
       gtk_css_provider_load_from_data(provider, css, -1);
 #endif
       g_free(css);
-      gtk_style_context_add_provider(scontext, GTK_STYLE_PROVIDER(provider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
    }
-   g_object_set_data(G_OBJECT(widget), "_dw_font", (gpointer)provider);
 }
 
 /*
@@ -2942,7 +2958,6 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
    PangoFontDescription *pfont;
    PangoContext *pcontext;
    GtkWidget *handle2 = handle;
-   char *font;
    char *retfont=NULL;
 
    if(GTK_IS_SCROLLED_WINDOW(handle))
@@ -7923,10 +7938,10 @@ DW_FUNCTION_ADD_PARAM1(handle)
 DW_FUNCTION_NO_RETURN(dw_container_optimize)
 DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
 {
-   GtkWidget *cont = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
-
 #if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
 #else
+   GtkWidget *cont = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
+
    /* Make sure it is the correct tree type */
    if(cont && GTK_IS_TREE_VIEW(cont) && g_object_get_data(G_OBJECT(cont), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_CONTAINER))
          gtk_tree_view_columns_autosize(GTK_TREE_VIEW(cont));
@@ -8620,7 +8635,7 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, filename, const char *)
    if(filename && *filename && (pixmap = calloc(1,sizeof(struct _hpixmap))))
    {
       char *file = alloca(strlen(filename) + 6);
-      GdkTexture *texture = 0;
+      GdkTexture *texture = NULL;
 
       strcpy(file, filename);
 
@@ -10487,12 +10502,10 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, style, ULONG, mask, ULONG)
    {
         if(mask & DW_BS_NOBORDER)
         {
-            GtkStyleContext *context = gtk_widget_get_style_context(GTK_WIDGET(handle));
-  
             if(style & DW_BS_NOBORDER)
-               gtk_style_context_add_class(context, "flat");
+               gtk_widget_add_css_class(GTK_WIDGET(handle), "flat");
             else
-               gtk_style_context_remove_class(context, "flat");
+               gtk_widget_remove_css_class(GTK_WIDGET(handle), "flat");
         }
    }
    if(GTK_IS_LABEL(handle2))
