@@ -660,9 +660,12 @@ static GListModel *_dw_tree_node_create_children_model(gpointer item, gpointer u
     return NULL;
 }
 
+static void _dw_tree_right_click(GtkGestureClick *gesture, int n_press, double x, double y, gpointer user_data);
+
 static void _dw_tree_node_setup_listitem_cb(GtkListItemFactory *factory, GtkListItem *list_item, gpointer user_data)
 {
     GtkWidget *treexpander, *hbox, *image, *label;
+    GtkWidget *list_view = GTK_WIDGET(g_object_get_data(G_OBJECT(factory), "_dw_user"));
 
     /* A box to hold icon and name */
     hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
@@ -679,6 +682,14 @@ static void _dw_tree_node_setup_listitem_cb(GtkListItemFactory *factory, GtkList
     
     /* Set the expander as the child of the list item */
     gtk_list_item_set_child(list_item, treexpander);
+
+    /* Attach a GestureClick for right-click (Button 3) */
+    GtkGesture *gesture = gtk_gesture_click_new();
+    gtk_gesture_single_set_button(GTK_GESTURE_SINGLE(gesture), 3);
+    gtk_widget_add_controller(hbox, GTK_EVENT_CONTROLLER(gesture));
+
+    /* Connect the signal to show the popover */
+    g_signal_connect(gesture, "pressed", G_CALLBACK(_dw_tree_right_click), list_view);
 }
 
 static void _dw_tree_node_bind_listitem_cb(GtkListItemFactory *factory, GtkListItem *list_item, gpointer user_data)
@@ -704,6 +715,7 @@ static void _dw_tree_node_bind_listitem_cb(GtkListItemFactory *factory, GtkListI
 static void _dw_container_setup_cb(GtkListItemFactory *factory, GtkListItem *list_item, gpointer data)
 {
     guint flags = DW_POINTER_TO_INT(data);
+    GtkWidget *list_view = GTK_WIDGET(g_object_get_data(G_OBJECT(factory), "_dw_user"));
     GtkWidget *child = NULL;
 
     if(flags & DW_CFA_STRINGANDICON)
@@ -728,6 +740,14 @@ static void _dw_container_setup_cb(GtkListItemFactory *factory, GtkListItem *lis
     if(child)
     {
         gtk_list_item_set_child(list_item, child);
+
+        /* Attach a GestureClick for right-click (Button 3) */
+        GtkGesture *gesture = gtk_gesture_click_new();
+        gtk_gesture_single_set_button(GTK_GESTURE_SINGLE(gesture), 3);
+        gtk_widget_add_controller(child, GTK_EVENT_CONTROLLER(gesture));
+
+        /* Connect the signal to show the popover */
+        g_signal_connect(gesture, "pressed", G_CALLBACK(_dw_tree_right_click), list_view);
     }
 }
 
@@ -780,16 +800,18 @@ static gboolean _dw_delete_event(GtkWidget *window, gpointer data);
 static gint _dw_key_press_event(GtkEventControllerKey *controller, guint keyval, guint keycode, GdkModifierType state, gpointer data);
 static gint _dw_generic_event(GtkWidget *widget, gpointer data);
 static gint _dw_configure_event(GtkWidget *widget, int width, int height, gpointer data);
-static gint _dw_container_enter_event(GtkEventController *controller, guint keyval, guint keycode, GdkModifierType state, gpointer data);
-static gint _dw_combobox_select_event(GtkWidget *widget, gpointer data);
 static gint _dw_expose_event(GtkWidget *widget, cairo_t *cr, int width, int height, gpointer data);
 static void _dw_set_focus_event(GObject *window, GParamSpec *pspec, gpointer data);
-static gint _dw_tree_context_event(GtkGestureSingle *gesture, int n_press, double x, double y, gpointer data);
 static gint _dw_value_changed_event(GtkWidget *widget, gpointer user_data);
 #if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
+static gint _dw_container_enter_event(GtkWidget *listview, gint index, gpointer data);
 static void _dw_tree_select_event(GtkSelectionModel *model, guint position, guint n_items, gpointer data);
+static gint _dw_drop_drown_select_event(GObject *gobject, GParamSpec *pspec, gpointer data);
 #else
+static gint _dw_container_enter_event(GtkEventController *controller, guint keyval, guint keycode, GdkModifierType state, gpointer data);
+static gint _dw_tree_context_event(GtkGestureSingle *gesture, int n_press, double x, double y, gpointer data);
 static gint _dw_tree_select_event(GtkTreeSelection *sel, gpointer data);
+static gint _dw_combobox_select_event(GtkWidget *widget, gpointer data);
 #endif
 static gint _dw_tree_expand_event(GtkTreeView *treeview, GtkTreeIter *arg1, GtkTreePath *arg2, gpointer data);
 static gint _dw_switch_page_event(GtkNotebook *notebook, GtkWidget *page, guint page_num, gpointer data);
@@ -863,14 +885,19 @@ static DWSignalList DWSignalTranslate[] = {
    { _dw_delete_event,            DW_SIGNAL_DELETE,         "close-request",     NULL },
    { _dw_expose_event,            DW_SIGNAL_EXPOSE,         "draw",              _dw_draw_setup },
    { _dw_generic_event,           DW_SIGNAL_CLICKED,        "clicked",           _dw_button_setup },
+#if !GTK_CHECK_VERSION(4,10,0) || defined(DW_INCLUDE_DEPRECATED)
    { _dw_container_enter_event,   DW_SIGNAL_ITEM_ENTER,     "key-pressed",       _dw_key_setup },
    { _dw_tree_context_event,      DW_SIGNAL_ITEM_CONTEXT,   "pressed",           _dw_tree_setup },
    { _dw_combobox_select_event,   DW_SIGNAL_LIST_SELECT,    _DW_CHANGED,         NULL },
+   { _dw_column_click_event,      DW_SIGNAL_COLUMN_CLICK,   "activate",          _dw_tree_setup },
+#else
+   { _dw_container_enter_event,   DW_SIGNAL_ITEM_ENTER,     "activate",          _dw_tree_setup },
+   { _dw_drop_drown_select_event, DW_SIGNAL_LIST_SELECT,    "notify::selected",  NULL },
+#endif
    { _dw_tree_select_event,       DW_SIGNAL_ITEM_SELECT,    _DW_CHANGED,         _dw_tree_setup },
    { _dw_set_focus_event,         DW_SIGNAL_SET_FOCUS,      "notify::is-active", _dw_focus_setup },
    { _dw_value_changed_event,     DW_SIGNAL_VALUE_CHANGED,  "value-changed",     _dw_value_setup },
    { _dw_switch_page_event,       DW_SIGNAL_SWITCH_PAGE,    "switch-page",       NULL },
-   { _dw_column_click_event,      DW_SIGNAL_COLUMN_CLICK,   "activate",          _dw_tree_setup },
    { _dw_tree_expand_event,       DW_SIGNAL_TREE_EXPAND,    "row-expanded",      NULL },
 #ifdef USE_WEBKIT
    { _dw_html_changed_event,      DW_SIGNAL_HTML_CHANGED,    "load-changed",     NULL },
@@ -1000,6 +1027,47 @@ static void _dw_set_signal_handler_id(GObject *object, int counter, gint cid)
    }
    else
       dw_debug("WARNING: Dynamic Windows failed to connect signal.\n");
+}
+
+static void _dw_tree_right_click(GtkGestureClick *gesture, int n_press, double x, double y, gpointer user_data)
+{
+    GtkWidget *list_view = GTK_WIDGET(user_data);
+    gint handlerdata = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(list_view), "_dw_context_id"));
+
+    if(handlerdata)
+    {
+       DWSignalHandler work;
+       void *params[] =  { GINT_TO_POINTER(handlerdata-1), list_view };
+
+       work = _dw_get_signal_handler(params);
+
+       if(work.window)
+       {
+           int (*contextfunc)(HWND, char *, int, int, void *, void *) = work.func;
+           char *text = NULL;
+           void *itemdata = NULL;
+           GtkWidget *widget = work.window;
+       
+           _dw_event_coordinates_to_window(widget, &x, &y);
+    
+           _dw_mouse_last_x = (long)x;
+           _dw_mouse_last_y = (long)y;
+       
+           /* Containers and trees are inside scrolled window widgets */
+           if(GTK_IS_SCROLLED_WINDOW(widget))
+              widget = GTK_WIDGET(g_object_get_data(G_OBJECT(widget), "_dw_user"));
+
+           if(widget && GTK_IS_LIST_VIEW(widget))
+           {
+               /* Method 1: Get currently selected item (if click also selects) */
+               GtkSelectionModel *selection_model = gtk_list_view_get_model(GTK_LIST_VIEW(widget));
+               guint selected = gtk_single_selection_get_selected(GTK_SINGLE_SELECTION(selection_model));
+               gpointer item = g_list_model_get_item(G_LIST_MODEL(selection_model), selected);
+               
+               contextfunc(work.window, text, (int)x, (int)y, work.data, itemdata);
+           }
+       }
+    }
 }
 
 #ifdef USE_WEBKIT
@@ -1351,13 +1419,32 @@ static gint _dw_expose_event(GtkWidget *widget, cairo_t *cr, int width, int heig
    return retval;
 }
 
+#if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
+static gint _dw_drop_drown_select_event(GObject *gobject, GParamSpec *pspec, gpointer data)
+{
+   GtkWidget *widget = GTK_WIDGET(gobject);
+   DWSignalHandler work = _dw_get_signal_handler(data);
+   int retval = FALSE;
+
+   if(work.window && GTK_IS_DROP_DOWN(widget))
+   {
+       guint selected = gtk_drop_down_get_selected(GTK_DROP_DOWN(widget));
+        
+       if(selected != GTK_INVALID_LIST_POSITION)
+       {
+          int (*selectfunc)(HWND, int, void *) = work.func;
+
+          retval = selectfunc(work.window, selected, work.data);
+       }
+   }
+   return retval;
+}
+#else
 static gint _dw_combobox_select_event(GtkWidget *widget, gpointer data)
 {
    DWSignalHandler work = _dw_get_signal_handler(data);
    int retval = FALSE;
 
-#if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
-#else
    if(g_object_get_data(G_OBJECT(widget), "_dw_recursing"))
       return FALSE;
 
@@ -1393,9 +1480,9 @@ static gint _dw_combobox_select_event(GtkWidget *widget, gpointer data)
          g_object_set_data(G_OBJECT(widget), "_dw_recursing", NULL);
       }
    }
-#endif
    return retval;
 }
+#endif
 
 /* Convert coordinate system from the widget to the window */
 static void _dw_event_coordinates_to_window(GtkWidget *widget, double *x, double *y)
@@ -1432,13 +1519,12 @@ static void _dw_event_coordinates_to_window(GtkWidget *widget, double *x, double
 #define _DW_DATA_TYPE_STRING  0
 #define _DW_DATA_TYPE_POINTER 1
 
+#if !GTK_CHECK_VERSION(4,10,0) || defined(DW_INCLUDE_DEPRECATED)
 static gint _dw_tree_context_event(GtkGestureSingle *gesture, int n_press, double x, double y, gpointer data)
 {
    DWSignalHandler work = _dw_get_signal_handler(data);
    int retval = FALSE;
 
- #if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
- #else
   if(work.window)
    {
       int button = gtk_gesture_single_get_current_button(gesture);
@@ -1506,9 +1592,9 @@ static gint _dw_tree_context_event(GtkGestureSingle *gesture, int n_press, doubl
             g_free(text);
       }
    }
- #endif
    return retval;
 }
+#endif
 
 #if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
 static void _dw_tree_select_event(GtkSelectionModel *model, guint position, guint n_items, gpointer data)
@@ -1651,13 +1737,28 @@ static gint _dw_tree_expand_event(GtkTreeView *widget, GtkTreeIter *iter, GtkTre
    return retval;
 }
 
+#if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
+static gint _dw_container_enter_event(GtkWidget *listview, gint index, gpointer data)
+{
+   DWSignalHandler work = _dw_get_signal_handler(data);
+   int retval = FALSE;
+
+   if(work.window && GTK_IS_LIST_VIEW(listview))
+   {
+         int (*contextfunc)(HWND, char *, void *, void *) = work.func;
+         char *text = NULL;
+         void *data = NULL;
+
+         retval = contextfunc(work.window, text, work.data, data);
+   }
+   return retval;
+}
+#else
 static gint _dw_container_enter_event(GtkEventController *controller, guint keyval, guint keycode, GdkModifierType state, gpointer data)
 {
    DWSignalHandler work = _dw_get_signal_handler(data);
    int retval = FALSE;
 
-#if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
-#else
    if(work.window && GTK_IS_WIDGET(work.window))
    {
       GtkWidget *user = GTK_WIDGET(g_object_get_data(G_OBJECT(work.window), "_dw_user"));
@@ -1699,7 +1800,6 @@ static gint _dw_container_enter_event(GtkEventController *controller, guint keyv
          }
       }
    }
-#endif
    return retval;
 }
 
@@ -1709,6 +1809,7 @@ void _dw_container_enter_mouse(GtkEventController *controller, int n_press, doub
    if(n_press == 2)
       _dw_container_enter_event(GTK_EVENT_CONTROLLER(controller), 0, 0, 0, data);
 }
+#endif
 
 /* Return the logical page id from the physical page id */
 int _dw_get_logical_page(HWND handle, unsigned long pageid)
@@ -2644,9 +2745,9 @@ char *_dw_convert_font(const char *font)
    
    if(font)
    {
-      char *name = strchr(font, '.');
-      char *Italic = strstr(font, " Italic");
-      char *Bold = strstr(font, " Bold");
+      const char *name = strchr(font, '.');
+      const char *Italic = strstr(font, " Italic");
+      const char *Bold = strstr(font, " Bold");
       
       /* Detect Dynamic Windows style font name...
        * Format: ##.Fontname
@@ -4046,6 +4147,7 @@ DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
       tree = gtk_list_view_new(GTK_SELECTION_MODEL(selection_model), factory);
       gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(tmp), tree);
       g_object_set_data(G_OBJECT(tmp), "_dw_user", (gpointer)tree);
+      g_object_set_data(G_OBJECT(factory), "_dw_user", (gpointer)tree);
       g_object_set_data(G_OBJECT(tmp), "_dw_tree_type", GINT_TO_POINTER(_DW_TREE_TYPE_TREE));
       g_object_set_data(G_OBJECT(tree), "_dw_tree_type", GINT_TO_POINTER(_DW_TREE_TYPE_TREE));
 #else
@@ -4515,6 +4617,7 @@ DW_FUNCTION_RESTORE_PARAM2(cid, ULONG, multi, int)
 
        gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(tmp), list_view);
        gtk_widget_set_visible(list_view, TRUE);
+       g_object_set_data(G_OBJECT(factory), "_dw_user", list_view);
        g_object_set_data(G_OBJECT(tmp), "_dw_user", list_view);
 #else
       GtkListStore *store;
@@ -6513,7 +6616,7 @@ GdkTexture *_dw_texture_resize(GdkTexture *original, int width, int height)
     /* 2. Obtain a renderer. In a headless environment, you can 
      * create a specific renderer type (e.g., NGL or GL).
      */
-    GskRenderer *renderer = gsk_ngl_renderer_new (); // Or gsk_gl_renderer_new()
+    GskRenderer *renderer = gsk_gl_renderer_new ();
     
     /* Renderer must be realized before use */
     if(!gsk_renderer_realize(renderer, NULL, NULL))
@@ -12775,6 +12878,7 @@ static void _dw_signal_disconnect(gpointer data, GClosure *closure)
 /* Signal setup functions */
 GObject *_dw_key_setup(struct _dw_signal_list *signal, GObject *object, void *sigfunc, void *discfunc, void *data)
 {
+#if !GTK_CHECK_VERSION(4,10,0) || defined(DW_INCLUDE_DEPRECATED)
    /* Special case for item enter... we need a mouse callback too */
    if(strcmp(signal->name, DW_SIGNAL_ITEM_ENTER) == 0)
    {
@@ -12788,6 +12892,7 @@ GObject *_dw_key_setup(struct _dw_signal_list *signal, GObject *object, void *si
       cid = g_signal_connect_data(G_OBJECT(gesture), "pressed", G_CALLBACK(_dw_container_enter_mouse), newparams, _dw_signal_disconnect, 0);
       _dw_set_signal_handler_id(object, sigid, cid);
    }
+#endif
    if(GTK_IS_WIDGET(object))
    {
       GtkEventController *controller = gtk_event_controller_key_new();
@@ -12874,12 +12979,22 @@ GObject *_dw_tree_setup(struct _dw_signal_list *signal, GObject *object, void *s
    {
       if(strcmp(signal->name, DW_SIGNAL_COLUMN_CLICK) == 0)
       {
+         /* TODO: Need custom headers */
          return NULL;
       }
       else if(strcmp(signal->name, DW_SIGNAL_ITEM_SELECT) == 0)
       {
          GtkSelectionModel *selection_model = gtk_list_view_get_model(GTK_LIST_VIEW(object));
          return G_OBJECT(selection_model);
+      }
+      else if(strcmp(signal->name, DW_SIGNAL_ITEM_CONTEXT) == 0)
+      {
+         /* We don't actually need a signal handler here... just need to assign the handler ID
+          * Since the handlers for the columns were already created in _dw_container/tree_setup()
+          */
+         int sigid = _dw_set_signal_handler(object, (HWND)object, sigfunc, data, signal->func, discfunc);
+         g_object_set_data(object, "_dw_context_id", GINT_TO_POINTER(sigid+1));
+         return NULL;
       }
 #else
    if(GTK_IS_TREE_VIEW(object))
@@ -12898,7 +13013,6 @@ GObject *_dw_tree_setup(struct _dw_signal_list *signal, GObject *object, void *s
          GtkTreeSelection *sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(object));
          return G_OBJECT(sel);
       }
-#endif
       else
       {
          GtkGesture *gesture = gtk_gesture_click_new();
@@ -12908,6 +13022,7 @@ GObject *_dw_tree_setup(struct _dw_signal_list *signal, GObject *object, void *s
          gtk_widget_add_controller(GTK_WIDGET(object), GTK_EVENT_CONTROLLER(gesture));
          return G_OBJECT(gesture);
       }
+#endif
    }
    return object;
 }
