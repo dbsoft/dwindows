@@ -249,8 +249,8 @@ if test $build_gtk = "yes"; then
          # GTK3 Defaults section
          GTK_PACKAGES="gtk+-3.0"
          GTK_LIBS=`$PKG_CFG --silence-errors --libs $GTK_PACKAGES`     
-         WEBKIT_PKG="webkit2gtk-4.0"
-         WEBKIT_ALT_PKG="webkitgtk-3.0"
+         WEBKIT_PKG="webkit2gtk-4.1"
+         WEBKIT_ALT_PKG="webkit2gtk-4.0"
       fi
       echo "checking for GTK version: $DW_DIR"
       # Test for the preferred WebKit package
@@ -276,6 +276,9 @@ if test $build_gtk = "yes"; then
             AC_DEFINE(USE_WEBKIT11,1,Uses WebKit 1.1)
          fi
          if test "$WEBKIT_PKG" = "webkit2gtk-4.0"; then
+            AC_DEFINE(USE_WEBKIT2,1,Uses WebKit 2)
+         fi
+         if test "$WEBKIT_PKG" = "webkit2gtk-4.1"; then
             AC_DEFINE(USE_WEBKIT2,1,Uses WebKit 2)
          fi
          if test "$WEBKIT_PKG" = "webkitgtk-6.0"; then
