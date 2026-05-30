@@ -383,6 +383,12 @@ static int _dw_snprintf(char *str, size_t size, const char *format, ...)
 #define sockshutdown()
 #endif
 
+#ifdef __WIN32__
+#define DWCOMPAT_SOCK_DATA(a) (const char *)(a)
+#else
+#define DWCOMPAT_SOCK_DATA(a) (void *)(a)
+#endif
+
 #define oldsockpipe(pipes) { \
 	struct sockaddr_in server_addr; \
 	struct sockaddr_in listen_addr = { 0 }; \
