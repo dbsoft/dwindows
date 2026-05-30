@@ -1436,7 +1436,7 @@ private:
         fontname->ConnectListSelect([this, fontname, fontsize, container_mle](unsigned int pos) -> int
         {
             std::string font = fontname->GetListText(pos);
-            MLESetFont(container_mle, (int)fontsize->GetPos(), font.compare("Default") == 0 ? NULL : font);
+            MLESetFont(container_mle, (int)fontsize->GetPos(), font.compare("Default") == 0 ? "" : font);
             return FALSE;
         });
 
@@ -1445,10 +1445,10 @@ private:
             std::string font = fontname->GetText();
 
             if(font.size()) {
-                MLESetFont(container_mle, size, font.compare("Default") == 0 ? NULL : font);
+                MLESetFont(container_mle, size, font.compare("Default") == 0 ? "" : font);
             }
             else
-                MLESetFont(container_mle, size, NULL);
+                MLESetFont(container_mle, size, "");
             return FALSE;
         });
     }
