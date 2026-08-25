@@ -4508,7 +4508,7 @@ DW_FUNCTION_RETURN(dw_slider_new, HWND)
 DW_FUNCTION_RESTORE_PARAM3(vertical, int, increments, int, cid, ULONG)
 
 {
-   GtkAdjustment *adjustment = (GtkAdjustment *)gtk_adjustment_new(0, 0, (gfloat)increments, 1, 1, 1);
+   GtkAdjustment *adjustment = (GtkAdjustment *)gtk_adjustment_new(0, 0, (gfloat)increments, 1, 1, increments ? 1 : 0);
    GtkWidget *tmp = gtk_scale_new(vertical ? GTK_ORIENTATION_VERTICAL : GTK_ORIENTATION_HORIZONTAL, adjustment);
 
    gtk_widget_set_visible(tmp, TRUE);
@@ -4532,7 +4532,7 @@ DW_FUNCTION_ADD_PARAM2(vertical, cid)
 DW_FUNCTION_RETURN(dw_scrollbar_new, HWND)
 DW_FUNCTION_RESTORE_PARAM2(vertical, int, cid, ULONG)
 {
-   GtkAdjustment *adjustment = (GtkAdjustment *)gtk_adjustment_new(0, 0, 0, 1, 1, 1);
+   GtkAdjustment *adjustment = (GtkAdjustment *)gtk_adjustment_new(0, 0, 0, 1, 1, 0);
    GtkWidget *tmp = gtk_scrollbar_new(vertical ? GTK_ORIENTATION_VERTICAL : GTK_ORIENTATION_HORIZONTAL, adjustment);
 
    gtk_widget_set_can_focus(tmp, FALSE);
@@ -7358,6 +7358,13 @@ void API dw_container_insert(HWND handle, void *pointer, int rowcount)
        
        if(store)
        {
+            { /* FIXME: Do a force rebind since the refresh below isn't working */
+                GtkSelectionModel *sel = gtk_column_view_get_model(GTK_COLUMN_VIEW(cont));
+                g_object_ref(sel);
+                gtk_column_view_set_model(GTK_COLUMN_VIEW(cont), NULL);
+                gtk_column_view_set_model(GTK_COLUMN_VIEW(cont), sel);
+                g_object_unref(sel);
+            }
             _dw_list_model_refresh(G_LIST_MODEL(store));
        }
    }
