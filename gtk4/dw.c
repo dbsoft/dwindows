@@ -823,7 +823,7 @@ static void _dw_container_bind_cb(GtkListItemFactory *factory, GtkListItem *list
 static void _dw_container_unbind_cb(GtkListItemFactory *factory, GtkListItem *item)
 {
     GtkWidget *widget = gtk_list_item_get_child(item);
-    gulong handler_id = GPOINTER_TO_ULONG(g_object_get_data(G_OBJECT(widget), "_dw_handler_id"));
+    gulong handler_id = GPOINTER_TO_SIZE(g_object_get_data(G_OBJECT(widget), "_dw_handler_id"));
     
     if (handler_id) {
         DWTreeNode *node = DW_TREE_NODE(gtk_list_item_get_item(item));
@@ -6248,20 +6248,22 @@ static void _dw_tree_expand_or_collapse(GtkListView *tree, GObject *item, gboole
 
     for (guint x = 0; x < count; x++)
     {
-      // Get the first item (at position 0)
-      GObject *thisitem = g_list_model_get_item(G_LIST_MODEL(model), x);
-      if(thisitem)
+      // Get the item at position x
+      GtkTreeListRow *row = g_list_model_get_item(G_LIST_MODEL(model), x);
+      if(row && GTK_IS_TREE_LIST_ROW(row))
       {
-          if(thisitem == item)
+          GObject *node = gtk_tree_list_row_get_item(GTK_TREE_LIST_ROW(row));
+          if(node == item)
           {
-              GtkTreeListRow *row = gtk_tree_list_model_get_row(model, x);
               gtk_tree_list_row_set_expanded(row, state);
-              g_object_unref(row);
               x=count;
           }
-          // Do something with thisitem (e.g., cast to specific GObject type)
-          g_object_unref(thisitem); // Remember to unreference when done
+          // Remember to unreference when done
+          if(node)
+            g_object_unref(node);
       }
+      if(row)
+          g_object_unref(row);
    }
 }
 #endif
