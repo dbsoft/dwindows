@@ -489,6 +489,12 @@ struct _DWTreeNodeClass {
     GObjectClass parent_class;
 };
 
+/* Signal enum for DWTreeNode */
+enum {
+    _DW_TREE_NODE_SIGNAL_DATA_CHANGED,
+    _DW_TREE_NODE_N_SIGNALS
+};
+
 G_DEFINE_TYPE_WITH_CODE(DWTreeNode, _dw_tree_node, G_TYPE_OBJECT,);
 
 G_END_DECLS
@@ -499,6 +505,8 @@ static void _dw_tree_node_finalize(GObject *object);
 static void _dw_tree_node_set_property(GObject *object, guint prop_id, const GValue *value, GParamSpec *pspec);
 static void _dw_tree_node_get_property(GObject *object, guint prop_id, GValue *value, GParamSpec *pspec);
 
+static guint _dw_tree_node_signals[_DW_TREE_NODE_N_SIGNALS] = { 0 };
+
 static void _dw_tree_node_class_init(DWTreeNodeClass *klass) {
     GObjectClass *gobject_class = G_OBJECT_CLASS(klass);
 
@@ -506,7 +514,18 @@ static void _dw_tree_node_class_init(DWTreeNodeClass *klass) {
     gobject_class->finalize = _dw_tree_node_finalize;
     gobject_class->set_property = _dw_tree_node_set_property;
     gobject_class->get_property = _dw_tree_node_get_property;
-    
+
+    /* Create the data-changed signal */
+    _dw_tree_node_signals[_DW_TREE_NODE_SIGNAL_DATA_CHANGED] = 
+        g_signal_new("data-changed",
+                     DW_TYPE_TREE_NODE,
+                     G_SIGNAL_RUN_FIRST,
+                     0,                     /* class offset */
+                     NULL, NULL,            /* accumulator */
+                     NULL,                  /* C marshaller */
+                     G_TYPE_NONE,           /* return type */
+                     0);                    /* n_params */
+
     /* Register properties here if needed */
 }
 
@@ -751,12 +770,11 @@ static void _dw_container_setup_cb(GtkListItemFactory *factory, GtkListItem *lis
     }
 }
 
-static void _dw_container_bind_cb(GtkListItemFactory *factory, GtkListItem *list_item, gpointer data)
+static void _dw_widget_update_from_node(DWTreeNode *node, GtkWidget *widget)
 {
-    guint column = DW_POINTER_TO_INT(data);
-    GtkWidget *widget = gtk_list_item_get_child(list_item);
-    DWTreeNode *node = DW_TREE_NODE(gtk_list_item_get_item(list_item));
+    int column = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(widget), "_dw_column"));
     GObject *obj = G_OBJECT(_dw_tree_node_get_data(node, column));
+
     if(GTK_IS_BOX(widget) && GTK_IS_STRING_OBJECT(obj))
     {
         GtkWidget *image = gtk_widget_get_first_child(widget);
@@ -779,6 +797,39 @@ static void _dw_container_bind_cb(GtkListItemFactory *factory, GtkListItem *list
         else
             label = _dw_tree_node_get_name(node);
         gtk_label_set_label(GTK_LABEL(widget), label);
+    }
+}
+
+static void _dw_container_bind_cb(GtkListItemFactory *factory, GtkListItem *list_item, gpointer data)
+{
+    guint column = DW_POINTER_TO_INT(data);
+    GtkWidget *widget = gtk_list_item_get_child(list_item);
+    DWTreeNode *node = DW_TREE_NODE(gtk_list_item_get_item(list_item));
+
+    /* Store column number on widget for later use */
+    g_object_set_data(G_OBJECT(widget), "_dw_column", GINT_TO_POINTER(column));
+    
+    /* Connect to data-changed signal */
+    gulong handler_id = g_signal_connect_object(node, "data-changed",
+        G_CALLBACK(_dw_widget_update_from_node), widget, G_CONNECT_DEFAULT);
+    
+    /* Store handler ID for cleanup */
+    g_object_set_data(G_OBJECT(widget), "_dw_handler_id", GSIZE_TO_POINTER(handler_id));
+    
+    /* Initial population */
+    _dw_widget_update_from_node(node, widget);
+}
+
+static void _dw_container_unbind_cb(GtkListItemFactory *factory, GtkListItem *item)
+{
+    GtkWidget *widget = gtk_list_item_get_child(item);
+    gulong handler_id = GPOINTER_TO_ULONG(g_object_get_data(G_OBJECT(widget), "_dw_handler_id"));
+    
+    if (handler_id) {
+        DWTreeNode *node = DW_TREE_NODE(gtk_list_item_get_item(item));
+        if (node && DW_IS_TREE_NODE(node)) {
+            g_signal_handler_disconnect(node, handler_id);
+        }
     }
 }
 #else
@@ -4611,6 +4662,7 @@ DW_FUNCTION_RESTORE_PARAM2(cid, ULONG, multi, int)
        list_view = gtk_list_view_new(selection, factory);
        g_signal_connect(factory, "setup", G_CALLBACK(_dw_container_setup_cb), NULL);
        g_signal_connect(factory, "bind", G_CALLBACK(_dw_container_bind_cb), NULL);
+       g_signal_connect(factory, "unbind", G_CALLBACK(_dw_container_unbind_cb), NULL);
 
        g_object_set_data(G_OBJECT(tmp), "_dw_tree_type", GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX));
        g_object_set_data(G_OBJECT(list_view), "_dw_tree_type", GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX));
@@ -6918,11 +6970,8 @@ void _dw_container_set_item_int(HWND handle, void *pointer, int column, int row,
                 }
                 _dw_tree_node_set_data(node, column, gtk_string_object_new(textbuffer));
              }
-             /* Find this row's position so we can trigger a refresh (bind) */
-             if(g_list_store_find(store, node, &position))
-             {
-                g_list_model_items_changed(G_LIST_MODEL(store), position, 1, 1);
-             }
+             /* EMIT SIGNAL to notify all listeners that data changed */
+             g_signal_emit(node, _dw_tree_node_signals[_DW_TREE_NODE_SIGNAL_DATA_CHANGED], 0);
           }
       }
    }
@@ -7348,27 +7397,6 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, row, int, data, void *)
  */
 void API dw_container_insert(HWND handle, void *pointer, int rowcount)
 {
-   /* Trigger a refresh for ListView/ColumnView and nothing for TreeView */
-#if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
-   GtkWidget *cont = handle ? (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user") : NULL;
-
-   if(cont && GTK_IS_COLUMN_VIEW(cont))
-   {
-       GListStore *store = _dw_container_get_store(GTK_COLUMN_VIEW(cont));
-       
-       if(store)
-       {
-            { /* FIXME: Do a force rebind since the refresh below isn't working */
-                GtkSelectionModel *sel = gtk_column_view_get_model(GTK_COLUMN_VIEW(cont));
-                g_object_ref(sel);
-                gtk_column_view_set_model(GTK_COLUMN_VIEW(cont), NULL);
-                gtk_column_view_set_model(GTK_COLUMN_VIEW(cont), sel);
-                g_object_unref(sel);
-            }
-            _dw_list_model_refresh(G_LIST_MODEL(store));
-       }
-   }
-#endif
 }
 
 /*
