@@ -1681,6 +1681,7 @@ static gint _dw_tree_context_event(GtkGestureSingle *gesture, int n_press, doubl
 static void _dw_tree_select_event(GtkSelectionModel *model, guint position, guint n_items, gpointer data)
 {
   DWSignalHandler work = _dw_get_signal_handler(data);
+  DWTreeNode *node = NULL;
 
   // This callback is triggered when the selection changes.
   // For GtkSingleSelection, 'position' indicates the new selected index.
@@ -1689,23 +1690,42 @@ static void _dw_tree_select_event(GtkSelectionModel *model, guint position, guin
   {
       GtkSingleSelection *single_selection = GTK_SINGLE_SELECTION(model);
       GObject *item = gtk_single_selection_get_selected_item(single_selection);
-      DWTreeNode *node = NULL;
       
       /* If we are in a tree, need to pull the item out of the row */
       if(item && GTK_IS_TREE_LIST_ROW(item))
       {
           node = DW_TREE_NODE(gtk_tree_list_row_get_item(GTK_TREE_LIST_ROW(item)));
       }
-      
-      if(item && node && DW_IS_TREE_NODE(node))
-      {
-         int (*treeselectfunc)(HWND, HTREEITEM, char *, void *, void *) = work.func;
-         char *text = _dw_tree_node_get_name(node);
-         void *itemdata = _dw_tree_node_get_itemdata(node);
-
-         int retval = treeselectfunc(work.window, (HTREEITEM)item, text, work.data, itemdata);
+  }
+  else if(GTK_IS_MULTI_SELECTION(model))
+  {
+   	  /* Get the selection bitset - works for both single and multi selection */
+   	  GtkBitset *selected = gtk_selection_model_get_selection(model);
+   
+   	  if(selected)
+   	  {
+      	 /* Get the first selected position */
+      	 guint pos = gtk_bitset_get_nth(selected, 0);
+         GObject *item = g_list_model_get_item(G_LIST_MODEL(model), pos);
+         
+         if(item)
+         {
+           if(GTK_IS_TREE_LIST_ROW(item))
+              node = DW_TREE_NODE(gtk_tree_list_row_get_item(GTK_TREE_LIST_ROW(item)));
+           else if(DW_IS_TREE_NODE(item))
+              node = DW_TREE_NODE(item);
+         }
+         gtk_bitset_unref(selected);
       }
-   }
+  }     
+  if(node && DW_IS_TREE_NODE(node))
+  {
+     int (*treeselectfunc)(HWND, HTREEITEM, char *, void *, void *) = work.func;
+     char *text = _dw_tree_node_get_name(node);
+     void *itemdata = _dw_tree_node_get_itemdata(node);
+
+     int retval = treeselectfunc(work.window, (HTREEITEM)node, text, work.data, itemdata);
+  }
 }
 #else
 static gint _dw_tree_select_event(GtkTreeSelection *sel, gpointer data)
@@ -7654,7 +7674,7 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, flags, unsigned long)
        
        if(store)
        {
-          GtkSelectionModel *selection_model = gtk_list_view_get_model(GTK_LIST_VIEW(cont));
+          GtkSelectionModel *selection_model = gtk_column_view_get_model(GTK_LIST_VIEW(cont));
                                   
           if(GTK_IS_SELECTION_MODEL(selection_model))
           {
@@ -7796,7 +7816,7 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, flags, unsigned long)
        
        if(store)
        {
-          GtkSelectionModel *selection_model = gtk_list_view_get_model(GTK_LIST_VIEW(cont));
+          GtkSelectionModel *selection_model = gtk_column_view_get_model(GTK_LIST_VIEW(cont));
           int pos = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(cont), "_dw_querypos"));
        
           if(pos && GTK_IS_SELECTION_MODEL(selection_model))
