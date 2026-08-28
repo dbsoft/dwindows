@@ -680,6 +680,7 @@ static GListModel *_dw_tree_node_create_children_model(gpointer item, gpointer u
 }
 
 static void _dw_tree_right_click(GtkGestureClick *gesture, int n_press, double x, double y, gpointer user_data);
+static void _dw_tree_expander_changed(GtkTreeExpander *expander, GParamSpec *pspec, gpointer user_data);
 
 static void _dw_tree_node_setup_listitem_cb(GtkListItemFactory *factory, GtkListItem *list_item, gpointer user_data)
 {
@@ -729,6 +730,8 @@ static void _dw_tree_node_bind_listitem_cb(GtkListItemFactory *factory, GtkListI
     
     /* Crucial: link the GtkTreeExpander to the specific GtkTreeListRow */
     gtk_tree_expander_set_list_row(GTK_TREE_EXPANDER(treexpander), tree_list_row);
+    g_signal_connect(treexpander, "notify::expanded", G_CALLBACK(_dw_tree_expander_changed), user_data);
+    
 }
 
 static void _dw_container_setup_cb(GtkListItemFactory *factory, GtkListItem *list_item, gpointer data)
@@ -941,15 +944,16 @@ static DWSignalList DWSignalTranslate[] = {
    { _dw_tree_context_event,      DW_SIGNAL_ITEM_CONTEXT,   "pressed",           _dw_tree_setup },
    { _dw_combobox_select_event,   DW_SIGNAL_LIST_SELECT,    _DW_CHANGED,         NULL },
    { _dw_column_click_event,      DW_SIGNAL_COLUMN_CLICK,   "activate",          _dw_tree_setup },
+   { _dw_tree_expand_event,       DW_SIGNAL_TREE_EXPAND,    "notify::expanded",  _dw_tree_expander_setup },
 #else
    { _dw_container_enter_event,   DW_SIGNAL_ITEM_ENTER,     "activate",          _dw_tree_setup },
    { _dw_drop_drown_select_event, DW_SIGNAL_LIST_SELECT,    "notify::selected",  NULL },
+   { _dw_tree_expand_event,       DW_SIGNAL_TREE_EXPAND,    "row-expanded",      NULL },
 #endif
    { _dw_tree_select_event,       DW_SIGNAL_ITEM_SELECT,    _DW_CHANGED,         _dw_tree_setup },
    { _dw_set_focus_event,         DW_SIGNAL_SET_FOCUS,      "notify::is-active", _dw_focus_setup },
    { _dw_value_changed_event,     DW_SIGNAL_VALUE_CHANGED,  "value-changed",     _dw_value_setup },
    { _dw_switch_page_event,       DW_SIGNAL_SWITCH_PAGE,    "switch-page",       NULL },
-   { _dw_tree_expand_event,       DW_SIGNAL_TREE_EXPAND,    "row-expanded",      NULL },
 #ifdef USE_WEBKIT
    { _dw_html_changed_event,      DW_SIGNAL_HTML_CHANGED,    "load-changed",     NULL },
    { _dw_html_result_event,       DW_SIGNAL_HTML_RESULT,     "",                 _dw_html_setup },
@@ -1078,6 +1082,32 @@ static void _dw_set_signal_handler_id(GObject *object, int counter, gint cid)
    }
    else
       dw_debug("WARNING: Dynamic Windows failed to connect signal.\n");
+}
+
+#include <gtk/gtktreeexpander.h>
+
+static void _dw_tree_expander_changed(GtkTreeExpander *expander, GParamSpec *pspec, gpointer user_data)
+{
+    GtkWidget *tree = GTK_WIDGET(user_data);
+    GtkTreeListRow *row = gtk_tree_expander_get_list_row(expander);
+    DWTreeNode *node = DW_TREE_NODE(gtk_tree_list_row_get_item(row));
+    
+    /* Get the signal handler data */
+    gint handlerdata = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(tree), "_dw_expand_id"));
+    
+    if(handlerdata && node)
+    {
+       DWSignalHandler work;
+       void *params[] = { GINT_TO_POINTER(handlerdata-1), tree };
+       
+       work = _dw_get_signal_handler(params);
+       
+       if(work.window && work.func)
+       {
+          int (*treeexpandfunc)(HWND, HTREEITEM, void *) = work.func;
+          treeexpandfunc(work.window, (HTREEITEM)node, work.data);
+       }
+    }
 }
 
 static void _dw_tree_right_click(GtkGestureClick *gesture, int n_press, double x, double y, gpointer user_data)
@@ -1659,18 +1689,19 @@ static void _dw_tree_select_event(GtkSelectionModel *model, guint position, guin
   {
       GtkSingleSelection *single_selection = GTK_SINGLE_SELECTION(model);
       GObject *item = gtk_single_selection_get_selected_item(single_selection);
+      DWTreeNode *node = NULL;
       
       /* If we are in a tree, need to pull the item out of the row */
       if(item && GTK_IS_TREE_LIST_ROW(item))
       {
-          item = gtk_tree_list_row_get_item(GTK_TREE_LIST_ROW(item));
+          node = DW_TREE_NODE(gtk_tree_list_row_get_item(GTK_TREE_LIST_ROW(item)));
       }
       
-      if(item)
+      if(item && node && DW_IS_TREE_NODE(node))
       {
          int (*treeselectfunc)(HWND, HTREEITEM, char *, void *, void *) = work.func;
-         char *text = _dw_tree_node_get_name(DW_TREE_NODE(item));
-         void *itemdata = _dw_tree_node_get_itemdata(DW_TREE_NODE(item));
+         char *text = _dw_tree_node_get_name(node);
+         void *itemdata = _dw_tree_node_get_itemdata(node);
 
          int retval = treeselectfunc(work.window, (HTREEITEM)item, text, work.data, itemdata);
       }
@@ -1794,13 +1825,28 @@ static gint _dw_container_enter_event(GtkWidget *listview, gint index, gpointer 
    DWSignalHandler work = _dw_get_signal_handler(data);
    int retval = FALSE;
 
-   if(work.window && GTK_IS_LIST_VIEW(listview))
+   if(work.window && GTK_IS_LIST_VIEW(listview) || GTK_IS_COLUMN_VIEW(listview))
    {
-         int (*contextfunc)(HWND, char *, void *, void *) = work.func;
-         char *text = NULL;
-         void *data = NULL;
+      /* Get the selected item from the selection model */
+      GtkSelectionModel *selection_model = GTK_IS_LIST_VIEW(listview) ?
+                                           gtk_list_view_get_model(GTK_LIST_VIEW(listview)) :
+                                           gtk_column_view_get_model(GTK_COLUMN_VIEW(listview));
 
-         retval = contextfunc(work.window, text, work.data, data);
+      if(selection_model && G_IS_LIST_MODEL(selection_model))
+      {
+          GObject *item = g_list_model_get_item(G_LIST_MODEL(selection_model), index);
+
+          if(item && DW_IS_TREE_NODE(item))
+          {
+              DWTreeNode *node = DW_TREE_NODE(item);
+              int (*enterfunc)(HWND, char *, void *, void *) = work.func;
+              char *text = _dw_tree_node_get_name(node);
+              void *itemdata = _dw_tree_node_get_itemdata(node);
+
+              if(enterfunc && work.window)
+                  retval = enterfunc(work.window, text, work.data, itemdata);
+          }
+      }
    }
    return retval;
 }
@@ -4191,8 +4237,8 @@ DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
 
       /* 4. Create a factory and connect signals */
       GtkListItemFactory *factory = gtk_signal_list_item_factory_new();
-      g_signal_connect(factory, "setup", G_CALLBACK(_dw_tree_node_setup_listitem_cb), NULL);
-      g_signal_connect(factory, "bind", G_CALLBACK(_dw_tree_node_bind_listitem_cb), NULL);
+      g_signal_connect(factory, "setup", G_CALLBACK(_dw_tree_node_setup_listitem_cb), (gpointer)tree);
+      g_signal_connect(factory, "bind", G_CALLBACK(_dw_tree_node_bind_listitem_cb), (gpointer)tree);
 
       /* 5. Create GtkListView and set model and factory */
       tree = gtk_list_view_new(GTK_SELECTION_MODEL(selection_model), factory);
@@ -7280,7 +7326,7 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, column, int, width, int)
 void _dw_container_set_row_data_int(HWND handle, void *pointer, int row, int type, void *data)
 {
 #if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
-   GtkWidget *cont = handle ? (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user") : NULL;
+   GtkWidget *cont = handle;
 
    if(cont && GTK_IS_COLUMN_VIEW(cont))
    {
@@ -7290,7 +7336,7 @@ void _dw_container_set_row_data_int(HWND handle, void *pointer, int row, int typ
        {
             DWTreeNode *node = DW_TREE_NODE(g_list_model_get_object(G_LIST_MODEL(store), row));
             
-            if(node)
+            if(node && DW_IS_TREE_NODE(node))
             {
                 if(type == _DW_DATA_TYPE_STRING)
                     _dw_tree_node_set_name(node, (char *)data);
@@ -13012,7 +13058,7 @@ GObject *_dw_draw_setup(struct _dw_signal_list *signal, GObject *object, void *s
 GObject *_dw_tree_setup(struct _dw_signal_list *signal, GObject *object, void *sigfunc, void *discfunc, void *data)
 {
 #if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
-   if(GTK_IS_LIST_VIEW(object))
+   if(GTK_IS_LIST_VIEW(object) || GTK_IS_COLUMN_VIEW(object))
    {
       if(strcmp(signal->name, DW_SIGNAL_COLUMN_CLICK) == 0)
       {
@@ -13021,7 +13067,9 @@ GObject *_dw_tree_setup(struct _dw_signal_list *signal, GObject *object, void *s
       }
       else if(strcmp(signal->name, DW_SIGNAL_ITEM_SELECT) == 0)
       {
-         GtkSelectionModel *selection_model = gtk_list_view_get_model(GTK_LIST_VIEW(object));
+         GtkSelectionModel *selection_model = GTK_IS_LIST_VIEW(object) ?
+                                              gtk_list_view_get_model(GTK_LIST_VIEW(object)) :
+                                              gtk_column_view_get_model(GTK_COLUMN_VIEW(object));
          return G_OBJECT(selection_model);
       }
       else if(strcmp(signal->name, DW_SIGNAL_ITEM_CONTEXT) == 0)
