@@ -1084,8 +1084,6 @@ static void _dw_set_signal_handler_id(GObject *object, int counter, gint cid)
       dw_debug("WARNING: Dynamic Windows failed to connect signal.\n");
 }
 
-#include <gtk/gtktreeexpander.h>
-
 static void _dw_tree_expander_changed(GtkTreeExpander *expander, GParamSpec *pspec, gpointer user_data)
 {
     GtkWidget *tree = GTK_WIDGET(user_data);
@@ -1143,8 +1141,13 @@ static void _dw_tree_right_click(GtkGestureClick *gesture, int n_press, double x
                /* Method 1: Get currently selected item (if click also selects) */
                GtkSelectionModel *selection_model = gtk_list_view_get_model(GTK_LIST_VIEW(widget));
                guint selected = gtk_single_selection_get_selected(GTK_SINGLE_SELECTION(selection_model));
-               gpointer item = g_list_model_get_item(G_LIST_MODEL(selection_model), selected);
+               DWTreeNode *node = DW_TREE_NODE(g_list_model_get_item(G_LIST_MODEL(selection_model), selected));
                
+               if(node && DW_IS_TREE_NODE(node))
+               {
+                   text = _dw_tree_node_get_name(node);
+                   itemdata = _dw_tree_node_get_itemdata(node);
+               }
                contextfunc(work.window, text, (int)x, (int)y, work.data, itemdata);
            }
        }
@@ -4255,10 +4258,8 @@ DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
       /* 3. Wrap in a selection model (e.g., single selection) */
       GtkSingleSelection *selection_model = gtk_single_selection_new(G_LIST_MODEL(tree_model));
 
-      /* 4. Create a factory and connect signals */
+      /* 4. Create a factory */
       GtkListItemFactory *factory = gtk_signal_list_item_factory_new();
-      g_signal_connect(factory, "setup", G_CALLBACK(_dw_tree_node_setup_listitem_cb), (gpointer)tree);
-      g_signal_connect(factory, "bind", G_CALLBACK(_dw_tree_node_bind_listitem_cb), (gpointer)tree);
 
       /* 5. Create GtkListView and set model and factory */
       tree = gtk_list_view_new(GTK_SELECTION_MODEL(selection_model), factory);
@@ -4267,6 +4268,10 @@ DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
       g_object_set_data(G_OBJECT(factory), "_dw_user", (gpointer)tree);
       g_object_set_data(G_OBJECT(tmp), "_dw_tree_type", GINT_TO_POINTER(_DW_TREE_TYPE_TREE));
       g_object_set_data(G_OBJECT(tree), "_dw_tree_type", GINT_TO_POINTER(_DW_TREE_TYPE_TREE));
+
+      /* 6. Connect signals */
+      g_signal_connect(factory, "setup", G_CALLBACK(_dw_tree_node_setup_listitem_cb), (gpointer)tree);
+      g_signal_connect(factory, "bind", G_CALLBACK(_dw_tree_node_bind_listitem_cb), (gpointer)tree);
 #else
       GtkTreeStore *store;
       GtkTreeViewColumn *col;
@@ -7674,7 +7679,7 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, flags, unsigned long)
        
        if(store)
        {
-          GtkSelectionModel *selection_model = gtk_column_view_get_model(GTK_LIST_VIEW(cont));
+          GtkSelectionModel *selection_model = gtk_column_view_get_model(GTK_COLUMN_VIEW(cont));
                                   
           if(GTK_IS_SELECTION_MODEL(selection_model))
           {
@@ -7816,7 +7821,7 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, flags, unsigned long)
        
        if(store)
        {
-          GtkSelectionModel *selection_model = gtk_column_view_get_model(GTK_LIST_VIEW(cont));
+          GtkSelectionModel *selection_model = gtk_column_view_get_model(GTK_COLUMN_VIEW(cont));
           int pos = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(cont), "_dw_querypos"));
        
           if(pos && GTK_IS_SELECTION_MODEL(selection_model))
