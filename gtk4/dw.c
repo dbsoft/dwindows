@@ -463,6 +463,14 @@ static GList *_dw_dirty_list = NULL;
 /* GTK4 ListView support objects */
 #if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
 
+/* Specialized strdup that passes through NULL */
+char *_dw_strdup(char *text)
+{
+    if(text)
+        return strdup(text);
+    return NULL;
+}
+
 G_BEGIN_DECLS
 
 #define DW_TYPE_TREE_NODE (_dw_tree_node_get_type())
@@ -632,17 +640,24 @@ GListStore *_dw_tree_node_get_parent_store(DWTreeNode *self) {
 }
 
 void _dw_tree_node_set_icon(DWTreeNode *self, GdkTexture *icon) {
+    GdkTexture *oldicon;
     g_return_if_fail(DW_IS_TREE_NODE(self));
-    if(self->icon)
-        g_object_unref(G_OBJECT(self->icon));
+    oldicon = self->icon;
     self->icon = icon;
     /* Make sure it doesn't get freed while in use */
-    g_object_ref(G_OBJECT(self->icon));
+    if(self->icon)
+        g_object_ref(G_OBJECT(self->icon));
+    if(oldicon)
+        g_object_unref(G_OBJECT(oldicon));
 }
 
 void _dw_tree_node_set_name(DWTreeNode *self, const gchar *name) {
+    char *oldname;
     g_return_if_fail(DW_IS_TREE_NODE(self));
+    oldname = self->name;
     self->name = g_strdup(name);
+    if(oldname)
+        g_free(oldname);
 }
 
 void _dw_tree_node_set_itemdata(DWTreeNode *self, void *itemdata) {
@@ -6063,9 +6078,9 @@ DW_FUNCTION_RESTORE_PARAM2(DW_UNUSED(handle), HWND, item, HTREEITEM)
 #if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
          DWTreeNode *node = DW_TREE_NODE(item);
          
-         if(GTK_IS_LIST_VIEW(tree))
+         if(GTK_IS_LIST_VIEW(tree) && DW_IS_TREE_NODE(node))
          {
-            text = _dw_tree_node_get_name(node);
+            text = _dw_strdup(_dw_tree_node_get_name(node));
          }
 #else
          GtkTreeModel *store;
@@ -6075,15 +6090,15 @@ DW_FUNCTION_RESTORE_PARAM2(DW_UNUSED(handle), HWND, item, HTREEITEM)
          {
              gtk_tree_model_get(store, (GtkTreeIter *)item, _DW_DATA_TYPE_STRING, &text, -1);
          }
+         /* Make sure it is a local copy */
+         if(text)
+         {
+            char *temp = text;
+            text = strdup(temp);
+            g_free(temp);
+         }
 #endif
       }
-   }
-   /* Make sure it is a local copy */
-   if(text)
-   {
-      char *temp = text;
-      text = strdup(temp);
-      g_free(temp);
    }
    DW_FUNCTION_RETURN_THIS(text);
 }
@@ -7700,7 +7715,7 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, flags, unsigned long)
                       if(node)
                       {
                           retval = (flags & DW_CR_RETDATA) ? _dw_tree_node_get_itemdata(node) :
-                                                             _dw_tree_node_get_name(node);
+                                                             _dw_strdup(_dw_tree_node_get_name(node));
                       }
                   }
                   /* Don't forget to unreference the bitset when done */
@@ -7714,7 +7729,7 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, flags, unsigned long)
                   if(node)
                   {
                       retval = (flags & DW_CR_RETDATA) ? _dw_tree_node_get_itemdata(node) :
-                                                         _dw_tree_node_get_name(node);
+                                                         _dw_strdup(_dw_tree_node_get_name(node));
                   }
               }
           }
@@ -7845,7 +7860,7 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, flags, unsigned long)
                       if(node)
                       {
                           retval = (flags & DW_CR_RETDATA) ? _dw_tree_node_get_itemdata(node) :
-                                                             _dw_tree_node_get_name(node);
+                                                             _dw_strdup(_dw_tree_node_get_name(node));
                       }
                   }
                   /* Don't forget to unreference the bitset when done */
@@ -7859,7 +7874,7 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, flags, unsigned long)
                   if(node)
                   {
                       retval = (flags & DW_CR_RETDATA) ? _dw_tree_node_get_itemdata(node) :
-                                                         _dw_tree_node_get_name(node);
+                                                         _dw_strdup(_dw_tree_node_get_name(node));
                   }
               }
           }
