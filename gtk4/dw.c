@@ -883,15 +883,16 @@ static gint _dw_value_changed_event(GtkWidget *widget, gpointer user_data);
 static gint _dw_container_enter_event(GtkWidget *listview, gint index, gpointer data);
 static void _dw_tree_select_event(GtkSelectionModel *model, guint position, guint n_items, gpointer data);
 static gint _dw_drop_drown_select_event(GObject *gobject, GParamSpec *pspec, gpointer data);
+static void _dw_column_click_event(GtkSorter *sorter, GtkSorterChange change, gpointer user_data);
 #else
 static gint _dw_container_enter_event(GtkEventController *controller, guint keyval, guint keycode, GdkModifierType state, gpointer data);
 static gint _dw_tree_context_event(GtkGestureSingle *gesture, int n_press, double x, double y, gpointer data);
 static gint _dw_tree_select_event(GtkTreeSelection *sel, gpointer data);
 static gint _dw_combobox_select_event(GtkWidget *widget, gpointer data);
+static gint _dw_column_click_event(GtkWidget *widget, gpointer data);
 #endif
 static gint _dw_tree_expand_event(GtkTreeView *treeview, GtkTreeIter *arg1, GtkTreePath *arg2, gpointer data);
 static gint _dw_switch_page_event(GtkNotebook *notebook, GtkWidget *page, guint page_num, gpointer data);
-static gint _dw_column_click_event(GtkWidget *widget, gpointer data);
 #ifdef USE_WEBKIT
 static void _dw_html_result_event(GObject *object, GAsyncResult *result, gpointer script_data);
 static void _dw_html_changed_event(WebKitWebView  *web_view, WebKitLoadEvent load_event, gpointer data);
@@ -964,13 +965,13 @@ static DWSignalList DWSignalTranslate[] = {
 #if !GTK_CHECK_VERSION(4,10,0) || defined(DW_INCLUDE_DEPRECATED)
    { _dw_container_enter_event,   DW_SIGNAL_ITEM_ENTER,     "key-pressed",       _dw_key_setup },
    { _dw_combobox_select_event,   DW_SIGNAL_LIST_SELECT,    _DW_CHANGED,         NULL },
-   { _dw_column_click_event,      DW_SIGNAL_COLUMN_CLICK,   "activate",          _dw_tree_setup },
    { _dw_tree_expand_event,       DW_SIGNAL_TREE_EXPAND,    "notify::expanded",  _dw_tree_expander_setup },
 #else
    { _dw_container_enter_event,   DW_SIGNAL_ITEM_ENTER,     "activate",          _dw_tree_setup },
    { _dw_drop_drown_select_event, DW_SIGNAL_LIST_SELECT,    "notify::selected",  NULL },
    { _dw_tree_expand_event,       DW_SIGNAL_TREE_EXPAND,    "row-expanded",      NULL },
 #endif
+   { _dw_column_click_event,      DW_SIGNAL_COLUMN_CLICK,   "activate",          _dw_tree_setup },
    { _dw_tree_context_event,      DW_SIGNAL_ITEM_CONTEXT,   "pressed",           _dw_tree_setup },
    { _dw_tree_select_event,       DW_SIGNAL_ITEM_SELECT,    _DW_CHANGED,         _dw_tree_setup },
    { _dw_set_focus_event,         DW_SIGNAL_SET_FOCUS,      "notify::is-active", _dw_focus_setup },
@@ -2007,6 +2008,36 @@ static gint _dw_switch_page_event(GtkNotebook *notebook, GtkWidget *page, guint 
    return retval;
 }
 
+#if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
+/* Simple compare func that always returns equal (0) */
+static int _dw_dummy_compare(gconstpointer a, gconstpointer b, gpointer user_data)
+{
+    return 0; /* Equal - no sorting */
+}
+
+static void _dw_column_click_event(GtkSorter *primary_sorter, GtkSorterChange change, gpointer user_data)
+{
+    GtkSorter *sorter = GTK_SORTER(user_data);
+    /* Get column and view from the sorter object itself */
+    int column = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(sorter), "_dw_column"));
+    GtkColumnView *col_view = GTK_COLUMN_VIEW(g_object_get_data(G_OBJECT(sorter), "_dw_column_view"));
+
+    if(!col_view)
+        return;
+    
+    /* Call your handler */
+    void *handlerdata = g_object_get_data(G_OBJECT(col_view), "_dw_column_click");
+    if(!handlerdata)
+        return;
+    
+    DWSignalHandler work = _dw_get_signal_handler(handlerdata);
+    if(work.window && work.func)
+    {
+        int (*clickfunc)(HWND, int, void *) = work.func;
+        clickfunc(work.window, column, work.data);
+    }
+}
+#else
 static gint _dw_column_click_event(GtkWidget *widget, gpointer data)
 {
    void **params = data;
@@ -2034,6 +2065,7 @@ static gint _dw_column_click_event(GtkWidget *widget, gpointer data)
    }
    return retval;
 }
+#endif
 
 static int _dw_round_value(gfloat val)
 {
@@ -6551,7 +6583,9 @@ static int _dw_container_setup_int(HWND handle, unsigned long *flags, char **tit
    for(z=0;z<count;z++)
    {
       GtkListItemFactory *factory = gtk_signal_list_item_factory_new();
+      GtkSorter *sorter = GTK_SORTER(gtk_custom_sorter_new(_dw_dummy_compare, NULL, NULL));
       GtkColumnViewColumn *col;
+      GtkSorter *primary_sorter;
 
       snprintf(numbuf, 24, "_dw_cont_col%d", z);
       g_object_set_data(G_OBJECT(column_view), numbuf, GINT_TO_POINTER(flags[z]));
@@ -6561,8 +6595,18 @@ static int _dw_container_setup_int(HWND handle, unsigned long *flags, char **tit
       g_signal_connect(factory, "bind", G_CALLBACK(_dw_container_bind_cb), DW_INT_TO_POINTER(z));
 
       col = gtk_column_view_column_new(titles[z], factory);
+      /* Store data on the sorter object itself */
+      g_object_set_data(G_OBJECT(sorter), "_dw_column", GINT_TO_POINTER(z));
+      g_object_set_data(G_OBJECT(sorter), "_dw_column_view", column_view);
+      
+      gtk_column_view_column_set_sorter(col, sorter);
+      primary_sorter = gtk_column_view_get_sorter(GTK_COLUMN_VIEW(column_view));
+      g_signal_connect(primary_sorter, "changed", G_CALLBACK(_dw_column_click_event), (gpointer)sorter);
+      g_object_unref(sorter);
+
       gtk_column_view_append_column(GTK_COLUMN_VIEW(column_view), col);
    }
+  
    gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(handle), column_view);
    gtk_widget_set_visible(column_view, TRUE);
 #else
@@ -7031,7 +7075,6 @@ void _dw_container_set_item_int(HWND handle, void *pointer, int column, int row,
        if(store)
        {
           DWTreeNode *node;
-          guint position;
 
           snprintf(numbuf, 24, "_dw_cont_col%d", column);
           flag = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(cont), numbuf));
@@ -7308,8 +7351,6 @@ DW_FUNCTION_RETURN(dw_container_get_column_type, int)
 DW_FUNCTION_RESTORE_PARAM2(handle, HWND, column, int)
 {
    int flag, rc = 0;
-#if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
-#else
    GtkWidget *cont = handle;
 
    if((cont = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user")))
@@ -7332,7 +7373,6 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, column, int)
       else
          rc = 0;
    }
-#endif
    DW_FUNCTION_RETURN_THIS(rc);
 }
 
@@ -8205,21 +8245,24 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, data, void *)
  * Parameters:
  *       handle: Handle to the window (widget) to be optimized.
  */
+#if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
+void dw_container_optimize(DW_UNUSED(HWND handle))
+{
+}
+#else
 DW_FUNCTION_DEFINITION(dw_container_optimize, void, HWND handle)
 DW_FUNCTION_ADD_PARAM1(handle)
 DW_FUNCTION_NO_RETURN(dw_container_optimize)
 DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
 {
-#if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
-#else
    GtkWidget *cont = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
 
    /* Make sure it is the correct tree type */
    if(cont && GTK_IS_TREE_VIEW(cont) && g_object_get_data(G_OBJECT(cont), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_CONTAINER))
          gtk_tree_view_columns_autosize(GTK_TREE_VIEW(cont));
-#endif
    DW_FUNCTION_RETURN_NOTHING;
 }
+#endif
 
 /*
  * Inserts an icon into the taskbar.
@@ -13152,7 +13195,11 @@ GObject *_dw_tree_setup(struct _dw_signal_list *signal, GObject *object, void *s
    {
       if(strcmp(signal->name, DW_SIGNAL_COLUMN_CLICK) == 0)
       {
-         /* TODO: Need custom headers */
+         /* We don't actually need a signal handler here... just need to assign the handler ID
+          * Since the handlers for the columns were already created in _dw_container_setup()
+          */
+         int sigid = _dw_set_signal_handler(object, (HWND)object, sigfunc, data, signal->func, discfunc);
+         g_object_set_data(object, "_dw_column_click_id", GINT_TO_POINTER(sigid+1));
          return NULL;
       }
       else if(strcmp(signal->name, DW_SIGNAL_ITEM_SELECT) == 0)
