@@ -2145,6 +2145,7 @@ static gint _dw_default_key_press_event(GtkEventControllerKey *controller, guint
    return FALSE;
 }
 
+#if !GTK_CHECK_VERSION(4,10,0) || defined(DW_INCLUDE_DEPRECATED)
 static void _dw_dialog_response(GtkDialog *dialog, int response_id, gpointer data)
 {
    DWDialog *dwdialog = (DWDialog *)data;
@@ -2152,6 +2153,7 @@ static void _dw_dialog_response(GtkDialog *dialog, int response_id, gpointer dat
    if(dwdialog)
       dw_dialog_dismiss(dwdialog, DW_INT_TO_POINTER(response_id));
 }
+#endif
 
 GdkTexture *_dw_texture_from_surface(cairo_surface_t *surface)
 {
@@ -4547,6 +4549,11 @@ DW_FUNCTION_RESTORE_PARAM2(text, const char *, cid, ULONG)
   /* Create a GtkStringList model */
   GtkStringList *string_list = gtk_string_list_new(NULL);
 
+  /* TODO: Figure out a way to implement the text field
+   * in the meantime, keep the compiler happy by using the text param.
+   */
+  text = text;
+
   /* Create the GtkDropDown with the model */
   /* The second argument (expression) is NULL to use the default factory for GtkStringList */
   tmp = gtk_drop_down_new(G_LIST_MODEL(string_list), NULL);
@@ -6600,7 +6607,6 @@ static int _dw_container_setup_int(HWND handle, unsigned long *flags, char **tit
    {
       GtkListItemFactory *factory = gtk_signal_list_item_factory_new();
       GtkColumnViewColumn *col;
-      GtkSorter *primary_sorter;
 
       sorter = GTK_SORTER(gtk_custom_sorter_new(_dw_dummy_compare, NULL, NULL));
 
@@ -11737,7 +11743,19 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, index, int, state, int)
         
         if(GTK_IS_SINGLE_SELECTION(selection_model))
         {
-            gtk_single_selection_set_selected(GTK_SINGLE_SELECTION(selection_model), index);
+            gtk_single_selection_set_selected(GTK_SINGLE_SELECTION(selection_model), state ?
+                                              index : GTK_INVALID_LIST_POSITION);
+        }
+        else if(GTK_IS_MULTI_SELECTION(selection_model))
+        {
+            if(state)
+            {
+                gtk_selection_model_select_item(selection_model, index, FALSE);
+            }
+            else
+            {
+                gtk_selection_model_unselect_item(selection_model, index);
+            }
         }
     }
 #else
