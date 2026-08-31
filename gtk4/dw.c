@@ -4552,7 +4552,7 @@ DW_FUNCTION_RESTORE_PARAM2(text, const char *, cid, ULONG)
   /* TODO: Figure out a way to implement the text field
    * in the meantime, keep the compiler happy by using the text param.
    */
-  text = text;
+  (void)text;
 
   /* Create the GtkDropDown with the model */
   /* The second argument (expression) is NULL to use the default factory for GtkStringList */
