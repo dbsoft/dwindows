@@ -2015,26 +2015,41 @@ static int _dw_dummy_compare(gconstpointer a, gconstpointer b, gpointer user_dat
     return 0; /* Equal - no sorting */
 }
 
-static void _dw_column_click_event(GtkSorter *primary_sorter, GtkSorterChange change, gpointer user_data)
+static void _dw_column_click_event(GtkSorter *sorter, GtkSorterChange change, gpointer user_data)
 {
-    GtkSorter *sorter = GTK_SORTER(user_data);
-    /* Get column and view from the sorter object itself */
-    int column = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(sorter), "_dw_column"));
-    GtkColumnView *col_view = GTK_COLUMN_VIEW(g_object_get_data(G_OBJECT(sorter), "_dw_column_view"));
+    GtkColumnView *col_view = GTK_COLUMN_VIEW(user_data);
+    int column = -1;
 
-    if(!col_view)
+    /* The GtkSorter passed here is the GtkColumnViewSorter instance */
+    if(GTK_IS_COLUMN_VIEW_SORTER(sorter))
+    {
+        GtkColumnViewColumn *primary_col = 
+            gtk_column_view_sorter_get_primary_sort_column(GTK_COLUMN_VIEW_SORTER(sorter));
+
+        if(primary_col && GTK_IS_COLUMN_VIEW_COLUMN(primary_col))
+        {
+            column = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(primary_col), "_dw_column"));
+            /* Pass NULL for the column to reset the view to an unsorted state */
+            gtk_column_view_sort_by_column(GTK_COLUMN_VIEW(col_view), NULL, GTK_SORT_ASCENDING);
+
+        }
+    }
+
+    if(!col_view || column == -1)
         return;
     
     /* Call your handler */
-    void *handlerdata = g_object_get_data(G_OBJECT(col_view), "_dw_column_click");
-    if(!handlerdata)
-        return;
-    
-    DWSignalHandler work = _dw_get_signal_handler(handlerdata);
-    if(work.window && work.func)
+    void *handlerdata = g_object_get_data(G_OBJECT(col_view), "_dw_column_click_id");
+    if(handlerdata)
     {
-        int (*clickfunc)(HWND, int, void *) = work.func;
-        clickfunc(work.window, column, work.data);
+       void *params[] = { GINT_TO_POINTER(handlerdata-1), 0, col_view };
+       DWSignalHandler work = _dw_get_signal_handler(params);
+
+       if(work.window && work.func)
+       {
+           int (*clickfunc)(HWND, int, void *) = work.func;
+           clickfunc(work.window, column, work.data);
+       }
     }
 }
 #else
@@ -6564,6 +6579,7 @@ static int _dw_container_setup_int(HWND handle, unsigned long *flags, char **tit
    /* Create Model */
    GListStore *store = g_list_store_new(DW_TYPE_TREE_NODE);
    GtkSelectionModel *selection;
+   GtkSorter *sorter;
 
    /* Create Selection Model */
    if(g_object_get_data(G_OBJECT(handle), "_dw_multi_sel"))
@@ -6583,9 +6599,10 @@ static int _dw_container_setup_int(HWND handle, unsigned long *flags, char **tit
    for(z=0;z<count;z++)
    {
       GtkListItemFactory *factory = gtk_signal_list_item_factory_new();
-      GtkSorter *sorter = GTK_SORTER(gtk_custom_sorter_new(_dw_dummy_compare, NULL, NULL));
       GtkColumnViewColumn *col;
       GtkSorter *primary_sorter;
+
+      sorter = GTK_SORTER(gtk_custom_sorter_new(_dw_dummy_compare, NULL, NULL));
 
       snprintf(numbuf, 24, "_dw_cont_col%d", z);
       g_object_set_data(G_OBJECT(column_view), numbuf, GINT_TO_POINTER(flags[z]));
@@ -6596,17 +6613,18 @@ static int _dw_container_setup_int(HWND handle, unsigned long *flags, char **tit
 
       col = gtk_column_view_column_new(titles[z], factory);
       /* Store data on the sorter object itself */
-      g_object_set_data(G_OBJECT(sorter), "_dw_column", GINT_TO_POINTER(z));
-      g_object_set_data(G_OBJECT(sorter), "_dw_column_view", column_view);
+      g_object_set_data(G_OBJECT(col), "_dw_column", GINT_TO_POINTER(z));
+      g_object_set_data(G_OBJECT(col), "_dw_column_view", column_view);
       
       gtk_column_view_column_set_sorter(col, sorter);
-      primary_sorter = gtk_column_view_get_sorter(GTK_COLUMN_VIEW(column_view));
-      g_signal_connect(primary_sorter, "changed", G_CALLBACK(_dw_column_click_event), (gpointer)sorter);
       g_object_unref(sorter);
 
       gtk_column_view_append_column(GTK_COLUMN_VIEW(column_view), col);
    }
   
+   sorter = gtk_column_view_get_sorter(GTK_COLUMN_VIEW(column_view));
+   g_signal_connect(sorter, "changed", G_CALLBACK(_dw_column_click_event), (gpointer)column_view);
+
    gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(handle), column_view);
    gtk_widget_set_visible(column_view, TRUE);
 #else
@@ -7351,9 +7369,9 @@ DW_FUNCTION_RETURN(dw_container_get_column_type, int)
 DW_FUNCTION_RESTORE_PARAM2(handle, HWND, column, int)
 {
    int flag, rc = 0;
-   GtkWidget *cont = handle;
+   GtkWidget *cont = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
 
-   if((cont = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user")))
+   if(cont || (cont = handle))
    {
       char numbuf[25] = {0};
 
