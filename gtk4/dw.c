@@ -857,6 +857,42 @@ static void _dw_container_unbind_cb(GtkListItemFactory *factory, GtkListItem *it
         }
     }
 }
+
+static void _dw_combobox_header_setup(GtkListItemFactory *factory,
+                                      GtkListHeader *list_header,
+                                      gpointer user_data)
+{
+    GtkDropDown *dropdown = GTK_DROP_DOWN(user_data);
+    GtkWidget *entry = gtk_entry_new();
+
+    /* Add margins to fit properly within the dropdown popup layout */
+    gtk_widget_set_margin_start(entry, 6);
+    gtk_widget_set_margin_end(entry, 6);
+    gtk_widget_set_margin_top(entry, 4);
+    gtk_widget_set_margin_bottom(entry, 4);
+
+    gtk_list_header_set_child(list_header, entry);
+    if(dropdown)
+        g_object_set_data(G_OBJECT(dropdown), "_dw_combobox_entry", (gpointer)entry);
+}
+
+static void _dw_combobox_header_bind(GtkListItemFactory *factory,
+                                     GtkListHeader *list_header,
+                                     gpointer user_data)
+{
+    GtkDropDown *dropdown = GTK_DROP_DOWN(user_data);
+    char *text = dropdown ? (char *)g_object_get_data(G_OBJECT(dropdown), "_dw_combobox_text") : NULL;
+
+    if(text)
+    {
+        GtkEntry *entry = GTK_ENTRY(gtk_list_header_get_child(list_header));
+        
+        if(entry && GTK_IS_ENTRY(entry))
+            gtk_editable_set_text(GTK_EDITABLE(entry), text);
+        g_object_set_data(G_OBJECT(dropdown), "_dw_combobox_text", NULL);
+        g_free(text);
+    }
+}
 #else
 GtkWidget *_dw_tree_view_setup(GtkWidget *tmp, GtkTreeModel *store)
 {
@@ -965,11 +1001,11 @@ static DWSignalList DWSignalTranslate[] = {
 #if !GTK_CHECK_VERSION(4,10,0) || defined(DW_INCLUDE_DEPRECATED)
    { _dw_container_enter_event,   DW_SIGNAL_ITEM_ENTER,     "key-pressed",       _dw_key_setup },
    { _dw_combobox_select_event,   DW_SIGNAL_LIST_SELECT,    _DW_CHANGED,         NULL },
-   { _dw_tree_expand_event,       DW_SIGNAL_TREE_EXPAND,    "row-expanded",      NULL },
+   { _dw_tree_expand_event,       DW_SIGNAL_TREE_EXPAND,    "notify::expanded",  _dw_tree_expander_setup },
 #else
    { _dw_container_enter_event,   DW_SIGNAL_ITEM_ENTER,     "activate",          _dw_tree_setup },
    { _dw_drop_drown_select_event, DW_SIGNAL_LIST_SELECT,    "notify::selected",  NULL },
-   { _dw_tree_expand_event,       DW_SIGNAL_TREE_EXPAND,    "notify::expanded",  NULL },
+   { _dw_tree_expand_event,       DW_SIGNAL_TREE_EXPAND,    "row-expanded",      NULL },
 #endif
    { _dw_column_click_event,      DW_SIGNAL_COLUMN_CLICK,   "activate",          _dw_tree_setup },
    { _dw_tree_context_event,      DW_SIGNAL_ITEM_CONTEXT,   "pressed",           _dw_tree_setup },
@@ -1105,6 +1141,98 @@ static void _dw_set_signal_handler_id(GObject *object, int counter, gint cid)
    }
    else
       dw_debug("WARNING: Dynamic Windows failed to connect signal.\n");
+}
+
+static void _dw_tree_expander_changed(GtkTreeExpander *expander, GParamSpec *pspec, gpointer user_data)
+{
+    GtkWidget *tree = GTK_WIDGET(user_data);
+    GtkTreeListRow *row = gtk_tree_expander_get_list_row(expander);
+    DWTreeNode *node = DW_TREE_NODE(gtk_tree_list_row_get_item(row));
+    
+    /* Get the signal handler data */
+    gint handlerdata = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(tree), "_dw_expand_id"));
+    
+    if(handlerdata && node)
+    {
+       DWSignalHandler work;
+       void *params[] = { GINT_TO_POINTER(handlerdata-1), 0, tree };
+       
+       work = _dw_get_signal_handler(params);
+       
+       if(work.window && work.func)
+       {
+          int (*treeexpandfunc)(HWND, HTREEITEM, void *) = work.func;
+          treeexpandfunc(work.window, (HTREEITEM)node, work.data);
+       }
+    }
+}
+
+static void _dw_tree_context_event(GtkGestureClick *gesture, int n_press, double x, double y, gpointer user_data)
+{
+    GtkWidget *list_view = GTK_WIDGET(user_data);
+    gint handlerdata = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(list_view), "_dw_context_id"));
+
+    if(handlerdata)
+    {
+       DWSignalHandler work;
+       void *params[] =  { GINT_TO_POINTER(handlerdata-1), 0, list_view };
+
+       work = _dw_get_signal_handler(params);
+
+       if(work.window)
+       {
+           int (*contextfunc)(HWND, char *, int, int, void *, void *) = work.func;
+           char *text = NULL;
+           void *itemdata = NULL;
+           GtkWidget *widget = work.window;
+           GtkListItem *list_item = GTK_LIST_ITEM(g_object_get_data(G_OBJECT(gesture), "_dw_list_item"));
+           
+           _dw_event_coordinates_to_window(widget, &x, &y);
+    
+           _dw_mouse_last_x = (long)x;
+           _dw_mouse_last_y = (long)y;
+       
+           /* Containers and trees are inside scrolled window widgets */
+           if(GTK_IS_SCROLLED_WINDOW(widget))
+              widget = GTK_WIDGET(g_object_get_data(G_OBJECT(widget), "_dw_user"));
+
+           if(widget && (GTK_IS_LIST_VIEW(widget) || GTK_IS_COLUMN_VIEW(widget)))
+           {
+               DWTreeNode *node = NULL;
+               if(list_item)
+               {
+                   /* Method 1: Get the node directly from the list item */
+                   GObject *item = gtk_list_item_get_item(list_item);
+                   
+                   /* If we got a row, this is a tree */
+                   if(item && GTK_IS_TREE_LIST_ROW(item))
+                   {
+                      item = gtk_tree_list_row_get_item(GTK_TREE_LIST_ROW(item));
+                   }
+                   /* Otherwise, we should have a node, or nested node */
+                   if(item && DW_IS_TREE_NODE(item))
+                       node = DW_TREE_NODE(item);
+               }
+               if(!node)
+               {
+                   /* Method 2: Get currently selected item (if click also selects) */
+                   GtkSelectionModel *selection_model = gtk_list_view_get_model(GTK_LIST_VIEW(widget));
+
+                   if(selection_model && GTK_IS_SINGLE_SELECTION(selection_model))
+                   {
+                       guint selected = gtk_single_selection_get_selected(GTK_SINGLE_SELECTION(selection_model));
+                       node = DW_TREE_NODE(g_list_model_get_item(G_LIST_MODEL(selection_model), selected));
+                   } /* Maybe handle multiple selection too */
+               }
+               if(node && DW_IS_TREE_NODE(node))
+               {
+                   text = _dw_tree_node_get_name(node);
+                   itemdata = _dw_tree_node_get_itemdata(node);
+               }
+               contextfunc(work.window, text, (int)x, (int)y, work.data, itemdata);
+           }
+       }
+    }
 }
 
 #ifdef USE_WEBKIT
@@ -1457,96 +1585,26 @@ static gint _dw_expose_event(GtkWidget *widget, cairo_t *cr, int width, int heig
 }
 
 #if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
-static void _dw_tree_expander_changed(GtkTreeExpander *expander, GParamSpec *pspec, gpointer user_data)
+static void _dw_drop_down_changed(GObject *gobject, GParamSpec *pspec, gpointer data)
 {
-    GtkWidget *tree = GTK_WIDGET(user_data);
-    GtkTreeListRow *row = gtk_tree_expander_get_list_row(expander);
-    DWTreeNode *node = DW_TREE_NODE(gtk_tree_list_row_get_item(row));
-    
-    /* Get the signal handler data */
-    gint handlerdata = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(tree), "_dw_expand_id"));
-    
-    if(handlerdata && node)
-    {
-       DWSignalHandler work;
-       void *params[] = { GINT_TO_POINTER(handlerdata-1), 0, tree };
-       
-       work = _dw_get_signal_handler(params);
-       
-       if(work.window && work.func)
+   GtkDropDown *dropdown = GTK_DROP_DOWN(gobject);
+   GtkEntry *entry = GTK_ENTRY(g_object_get_data(gobject, "_dw_combobox_entry"));
+
+   if(dropdown && entry && GTK_IS_DROP_DOWN(dropdown) && GTK_IS_ENTRY(entry))
+   {
+       guint selected = gtk_drop_down_get_selected(GTK_DROP_DOWN(dropdown));
+       GListModel *model = gtk_drop_down_get_model(GTK_DROP_DOWN(dropdown));
+      
+       if(GTK_IS_STRING_LIST(model) && selected != GTK_INVALID_LIST_POSITION)
        {
-          int (*treeexpandfunc)(HWND, HTREEITEM, void *) = work.func;
-          treeexpandfunc(work.window, (HTREEITEM)node, work.data);
+          const char *text = gtk_string_list_get_string(GTK_STRING_LIST(model), selected);
+
+          if(text)
+          {
+              gtk_editable_set_text(GTK_EDITABLE(entry), text);
+          }
        }
-    }
-}
-
-static void _dw_tree_context_event(GtkGestureClick *gesture, int n_press, double x, double y, gpointer user_data)
-{
-    GtkWidget *list_view = GTK_WIDGET(user_data);
-    gint handlerdata = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(list_view), "_dw_context_id"));
-
-    if(handlerdata)
-    {
-       DWSignalHandler work;
-       void *params[] =  { GINT_TO_POINTER(handlerdata-1), 0, list_view };
-
-       work = _dw_get_signal_handler(params);
-
-       if(work.window)
-       {
-           int (*contextfunc)(HWND, char *, int, int, void *, void *) = work.func;
-           char *text = NULL;
-           void *itemdata = NULL;
-           GtkWidget *widget = work.window;
-           GtkListItem *list_item = GTK_LIST_ITEM(g_object_get_data(G_OBJECT(gesture), "_dw_list_item"));
-           
-           _dw_event_coordinates_to_window(widget, &x, &y);
-    
-           _dw_mouse_last_x = (long)x;
-           _dw_mouse_last_y = (long)y;
-       
-           /* Containers and trees are inside scrolled window widgets */
-           if(GTK_IS_SCROLLED_WINDOW(widget))
-              widget = GTK_WIDGET(g_object_get_data(G_OBJECT(widget), "_dw_user"));
-
-           if(widget && (GTK_IS_LIST_VIEW(widget) || GTK_IS_COLUMN_VIEW(widget)))
-           {
-               DWTreeNode *node = NULL;
-               if(list_item)
-               {
-                   /* Method 1: Get the node directly from the list item */
-                   GObject *item = gtk_list_item_get_item(list_item);
-                   
-                   /* If we got a row, this is a tree */
-                   if(item && GTK_IS_TREE_LIST_ROW(item))
-                   {
-                      item = gtk_tree_list_row_get_item(GTK_TREE_LIST_ROW(item));
-                   }
-                   /* Otherwise, we should have a node, or nested node */
-                   if(item && DW_IS_TREE_NODE(item))
-                       node = DW_TREE_NODE(item);
-               }
-               if(!node)
-               {
-                   /* Method 2: Get currently selected item (if click also selects) */
-                   GtkSelectionModel *selection_model = gtk_list_view_get_model(GTK_LIST_VIEW(widget));
-
-                   if(selection_model && GTK_IS_SINGLE_SELECTION(selection_model))
-                   {
-                       guint selected = gtk_single_selection_get_selected(GTK_SINGLE_SELECTION(selection_model));
-                       node = DW_TREE_NODE(g_list_model_get_item(G_LIST_MODEL(selection_model), selected));
-                   } /* Maybe handle multiple selection too */
-               }
-               if(node && DW_IS_TREE_NODE(node))
-               {
-                   text = _dw_tree_node_get_name(node);
-                   itemdata = _dw_tree_node_get_itemdata(node);
-               }
-               contextfunc(work.window, text, (int)x, (int)y, work.data, itemdata);
-           }
-       }
-    }
+   }
 }
 
 static gint _dw_drop_drown_select_event(GObject *gobject, GParamSpec *pspec, gpointer data)
@@ -4549,14 +4607,22 @@ DW_FUNCTION_RESTORE_PARAM2(text, const char *, cid, ULONG)
   /* Create a GtkStringList model */
   GtkStringList *string_list = gtk_string_list_new(NULL);
 
-  /* TODO: Figure out a way to implement the text field
-   * in the meantime, keep the compiler happy by using the text param.
-   */
-  (void)text;
-
   /* Create the GtkDropDown with the model */
   /* The second argument (expression) is NULL to use the default factory for GtkStringList */
   tmp = gtk_drop_down_new(G_LIST_MODEL(string_list), NULL);
+
+  if(text)
+    g_object_set_data(G_OBJECT(tmp), "_dw_combobox_text", (gpointer)g_strdup(text));
+
+  /* Create header factory with entry */
+  GtkListItemFactory *header_factory = gtk_signal_list_item_factory_new();
+
+  g_signal_connect(header_factory, "setup", G_CALLBACK(_dw_combobox_header_setup), tmp);
+  g_signal_connect(header_factory, "bind", G_CALLBACK(_dw_combobox_header_bind), tmp);
+
+  gtk_drop_down_set_header_factory(GTK_DROP_DOWN(tmp), header_factory);
+
+  g_signal_connect(tmp, "notify::selected", G_CALLBACK(_dw_drop_down_changed), NULL);
 #else
    GtkEntryBuffer *buffer;
    GtkListStore *store = gtk_list_store_new(1, G_TYPE_STRING);
@@ -5089,18 +5155,27 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, text, char *)
 {
    if(GTK_IS_ENTRY(handle))
    {
-      GtkEntryBuffer *buffer = gtk_entry_get_buffer(GTK_ENTRY(handle));
-      if(buffer)
-         gtk_entry_buffer_set_text(buffer, text, -1);
+      gtk_editable_set_text(GTK_EDITABLE(handle), text);
    }
 #if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
+   else if(GTK_IS_DROP_DOWN(handle))
+   {
+      GtkWidget *entry = GTK_WIDGET(g_object_get_data(G_OBJECT(handle), "_dw_combobox_entry"));
+  
+      if(entry && GTK_IS_ENTRY(entry))
+      {
+          gtk_editable_set_text(GTK_EDITABLE(entry), text);
+      }
+   }
 #else
    else if(GTK_IS_COMBO_BOX(handle))
    {
       GtkWidget *entry = gtk_combo_box_get_child(GTK_COMBO_BOX(handle));
-      GtkEntryBuffer *buffer = gtk_entry_get_buffer(GTK_ENTRY(entry));
-      if(buffer)
-         gtk_entry_buffer_set_text(buffer, text, -1);
+
+      if(entry && GTK_IS_ENTRY(entry))
+      {
+          gtk_editable_set_text(GTK_EDITABLE(entry), text);
+      }
    }
 #endif
    else if(GTK_IS_LABEL(handle))
@@ -5158,16 +5233,27 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
 
    if(GTK_IS_ENTRY(handle))
    {
-      GtkEntryBuffer *buffer = gtk_entry_get_buffer(GTK_ENTRY(handle));
-      possible = gtk_entry_buffer_get_text(buffer);
+      possible = gtk_editable_get_text(GTK_EDITABLE(handle));
    }
 #if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
+   else if(GTK_IS_DROP_DOWN(handle))
+   {
+      GtkWidget *entry = GTK_WIDGET(g_object_get_data(G_OBJECT(handle), "_dw_combobox_entry"));
+      
+      if(entry && GTK_IS_ENTRY(entry))
+      {
+          possible = gtk_editable_get_text(GTK_EDITABLE(entry));
+      }
+   }
 #else
    else if(GTK_IS_COMBO_BOX(handle))
    {
       GtkWidget *entry = gtk_combo_box_get_child(GTK_COMBO_BOX(handle));
-      GtkEntryBuffer *buffer = gtk_entry_get_buffer(GTK_ENTRY(entry));
-      possible = gtk_entry_buffer_get_text(buffer);
+      
+      if(entry && GTK_IS_ENTRY(entry))
+      {
+          possible = gtk_editable_get_text(GTK_EDITABLE(entry));
+      }
    }
 #endif
    else if(GTK_IS_LABEL(handle))
@@ -11186,10 +11272,13 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, text, const char *, pos, int)
       
       if(GTK_IS_STRING_LIST(model))
       {
-          gtk_string_list_append(GTK_STRING_LIST(model), text);
-          /* TODO: Need to handle insert, GtkStringList does not have that method,
-           * but it does have gtk_string_list_splice() which may work?
-           */
+          if(pos < 0)
+              gtk_string_list_append(GTK_STRING_LIST(model), text);
+          else
+          {
+              const char *item[] = {text, NULL};
+              gtk_string_list_splice(GTK_STRING_LIST(model), pos, 0, item);
+          }
       }
   }
 #else
@@ -11254,6 +11343,20 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, text, char **, count, int)
             }
         }
     }
+    else if(handle && GTK_IS_DROP_DOWN(handle) &&
+            g_object_get_data(G_OBJECT(handle), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_COMBOBOX))
+    {
+        GListModel *model = gtk_drop_down_get_model(GTK_DROP_DOWN(handle));
+        
+        if(GTK_IS_STRING_LIST(model))
+        {
+            /* Insert entries at the end */
+            for(z=0;z<count;z++)
+            {
+                gtk_string_list_append(GTK_STRING_LIST(model), text[z]);
+            }
+        }
+    }
 #else
     GtkTreeIter iter;
     GtkListStore *store = NULL;
@@ -11302,6 +11405,17 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
             g_list_store_remove_all(store);
         }
     }
+    else if(handle && GTK_IS_DROP_DOWN(handle) &&
+            g_object_get_data(G_OBJECT(handle), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_COMBOBOX))
+    {
+        GListModel *model = gtk_drop_down_get_model(GTK_DROP_DOWN(handle));
+        
+        if(GTK_IS_STRING_LIST(model))
+        {
+            /* Cast the GtkStringList to GListStore to wipe all items */
+            g_list_store_remove_all(G_LIST_STORE(model));
+        }
+    }
 #else
     GtkListStore *store = NULL;
 
@@ -11343,6 +11457,17 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
         if(store)
         {
             retval = (int)g_list_model_get_n_items(G_LIST_MODEL(store));
+        }
+    }
+    else if(handle && GTK_IS_DROP_DOWN(handle) &&
+            g_object_get_data(G_OBJECT(handle), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_COMBOBOX))
+    {
+        GListModel *model = gtk_drop_down_get_model(GTK_DROP_DOWN(handle));
+        
+        if(GTK_IS_STRING_LIST(model))
+        {
+            /* Cast the GtkStringList to GListStore to get the count */
+            retval = (int)g_list_model_get_n_items(G_LIST_MODEL(model));
         }
     }
 #else
@@ -11469,10 +11594,19 @@ DW_FUNCTION_RESTORE_PARAM4(handle, HWND, index, unsigned int, buffer, char *, le
             DWTreeNode *node = DW_TREE_NODE(g_list_model_get_object(G_LIST_MODEL(store), index));
             char *text = _dw_tree_node_get_name(node);
             
-            if(text)
-            {
-                strncpy(buffer, text, length);
-            }
+            strncpy(buffer, text ? text : "", length);
+        }
+    }
+    else if(handle && GTK_IS_DROP_DOWN(handle) &&
+            g_object_get_data(G_OBJECT(handle), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_COMBOBOX))
+    {
+        GListModel *model = gtk_drop_down_get_model(GTK_DROP_DOWN(handle));
+        
+        if(GTK_IS_STRING_LIST(model))
+        {
+            const char *text = gtk_string_list_get_string(GTK_STRING_LIST(model), index);
+            
+            strncpy(buffer, text ? text : "", length);
         }
     }
 #else
@@ -11495,9 +11629,9 @@ DW_FUNCTION_RESTORE_PARAM4(handle, HWND, index, unsigned int, buffer, char *, le
           /* Get the text */
           gchar *text;
           gtk_tree_model_get(GTK_TREE_MODEL(store), &iter, _DW_DATA_TYPE_STRING, &text, -1);
+          strncpy(buffer, text ? text : "", length);
           if(text)
           {
-             strncpy(buffer, text, length);
              g_free(text);
           }
        }
@@ -11532,6 +11666,18 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, index, unsigned int, buffer, char *)
             DWTreeNode *node = DW_TREE_NODE(g_list_model_get_object(G_LIST_MODEL(store), index));
 
             _dw_tree_node_set_name(node, buffer);
+        }
+    }
+    else if(handle && GTK_IS_DROP_DOWN(handle) &&
+            g_object_get_data(G_OBJECT(handle), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_COMBOBOX))
+    {
+        GListModel *model = gtk_drop_down_get_model(GTK_DROP_DOWN(handle));
+        
+        if(GTK_IS_STRING_LIST(model))
+        {
+            /* Change text at index to buffer */
+            const char *replacement[] = {buffer, NULL};
+            gtk_string_list_splice(GTK_STRING_LIST(model), index, 1, replacement);
         }
     }
 #else
