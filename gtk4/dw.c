@@ -3081,8 +3081,8 @@ static void _dw_override_color(GtkWidget *widget, const char *element, GdkRGBA *
    if(color)
    {
       gchar *scolor = gdk_rgba_to_string(color);
-      gchar *css = g_strdup_printf ("%s { %s: %s; }", dataname, element, scolor);
-      
+      gchar *css = g_strdup_printf (".%s { %s: %s; }", dataname, element, scolor);
+
       g_free(scolor);
 #if GTK_CHECK_VERSION(4,12,0)
       gtk_css_provider_load_from_string(provider, css);
@@ -3114,7 +3114,7 @@ static void _dw_override_font(GtkWidget *widget, const char *font)
    /* If we have a new font, create a new provider and add it */
    if(font)
    {
-      gchar *css = g_strdup_printf ("%s { font: %s; }", dataname, font);
+      gchar *css = g_strdup_printf (".%s { font: %s; }", dataname, font);
       
 #if GTK_CHECK_VERSION(4,12,0)
       gtk_css_provider_load_from_string(provider, css);
@@ -3422,6 +3422,7 @@ static int _dw_set_color(HWND handle, unsigned long fore, unsigned long back)
 
    return TRUE;
 }
+
 /*
  * Sets the colors used by a specified window (widget) handle.
  * Parameters:
@@ -11583,6 +11584,8 @@ DW_FUNCTION_RESTORE_PARAM4(handle, HWND, index, unsigned int, buffer, char *, le
 {
     GtkWidget *tmp = (handle && (tmp = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user"))) ? tmp : handle;
 
+    if(buffer && length > 0)
+        buffer[0] = '\0';
 #if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
     if(tmp && GTK_IS_LIST_VIEW(tmp) &&
        g_object_get_data(G_OBJECT(tmp), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX))
@@ -11637,7 +11640,6 @@ DW_FUNCTION_RESTORE_PARAM4(handle, HWND, index, unsigned int, buffer, char *, le
        }
     }
 #endif
-    buffer[0] = '\0';
     DW_FUNCTION_RETURN_NOTHING;
 }
 
