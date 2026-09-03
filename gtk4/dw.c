@@ -918,7 +918,7 @@ static gint _dw_value_changed_event(GtkWidget *widget, gpointer user_data);
 #if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
 static gint _dw_container_enter_event(GtkWidget *listview, gint index, gpointer data);
 static void _dw_tree_select_event(GtkSelectionModel *model, guint position, guint n_items, gpointer data);
-static gint _dw_drop_drown_select_event(GObject *gobject, GParamSpec *pspec, gpointer data);
+static gint _dw_drop_down_select_event(GObject *gobject, GParamSpec *pspec, gpointer data);
 static void _dw_column_click_event(GtkSorter *sorter, GtkSorterChange change, gpointer user_data);
 #else
 static gint _dw_container_enter_event(GtkEventController *controller, guint keyval, guint keycode, GdkModifierType state, gpointer data);
@@ -1001,11 +1001,11 @@ static DWSignalList DWSignalTranslate[] = {
 #if !GTK_CHECK_VERSION(4,10,0) || defined(DW_INCLUDE_DEPRECATED)
    { _dw_container_enter_event,   DW_SIGNAL_ITEM_ENTER,     "key-pressed",       _dw_key_setup },
    { _dw_combobox_select_event,   DW_SIGNAL_LIST_SELECT,    _DW_CHANGED,         NULL },
-   { _dw_tree_expand_event,       DW_SIGNAL_TREE_EXPAND,    "notify::expanded",  _dw_tree_expander_setup },
+   { _dw_tree_expand_event,       DW_SIGNAL_TREE_EXPAND,    "row-expanded",      NULL },
 #else
    { _dw_container_enter_event,   DW_SIGNAL_ITEM_ENTER,     "activate",          _dw_tree_setup },
-   { _dw_drop_drown_select_event, DW_SIGNAL_LIST_SELECT,    "notify::selected",  NULL },
-   { _dw_tree_expand_event,       DW_SIGNAL_TREE_EXPAND,    "row-expanded",      NULL },
+   { _dw_drop_down_select_event, DW_SIGNAL_LIST_SELECT,    "notify::selected",  NULL },
+   { _dw_tree_expand_event,       DW_SIGNAL_TREE_EXPAND,    "notify::expanded",  NULL },
 #endif
    { _dw_column_click_event,      DW_SIGNAL_COLUMN_CLICK,   "activate",          _dw_tree_setup },
    { _dw_tree_context_event,      DW_SIGNAL_ITEM_CONTEXT,   "pressed",           _dw_tree_setup },
@@ -1141,98 +1141,6 @@ static void _dw_set_signal_handler_id(GObject *object, int counter, gint cid)
    }
    else
       dw_debug("WARNING: Dynamic Windows failed to connect signal.\n");
-}
-
-static void _dw_tree_expander_changed(GtkTreeExpander *expander, GParamSpec *pspec, gpointer user_data)
-{
-    GtkWidget *tree = GTK_WIDGET(user_data);
-    GtkTreeListRow *row = gtk_tree_expander_get_list_row(expander);
-    DWTreeNode *node = DW_TREE_NODE(gtk_tree_list_row_get_item(row));
-    
-    /* Get the signal handler data */
-    gint handlerdata = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(tree), "_dw_expand_id"));
-    
-    if(handlerdata && node)
-    {
-       DWSignalHandler work;
-       void *params[] = { GINT_TO_POINTER(handlerdata-1), 0, tree };
-       
-       work = _dw_get_signal_handler(params);
-       
-       if(work.window && work.func)
-       {
-          int (*treeexpandfunc)(HWND, HTREEITEM, void *) = work.func;
-          treeexpandfunc(work.window, (HTREEITEM)node, work.data);
-       }
-    }
-}
-
-static void _dw_tree_context_event(GtkGestureClick *gesture, int n_press, double x, double y, gpointer user_data)
-{
-    GtkWidget *list_view = GTK_WIDGET(user_data);
-    gint handlerdata = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(list_view), "_dw_context_id"));
-
-    if(handlerdata)
-    {
-       DWSignalHandler work;
-       void *params[] =  { GINT_TO_POINTER(handlerdata-1), 0, list_view };
-
-       work = _dw_get_signal_handler(params);
-
-       if(work.window)
-       {
-           int (*contextfunc)(HWND, char *, int, int, void *, void *) = work.func;
-           char *text = NULL;
-           void *itemdata = NULL;
-           GtkWidget *widget = work.window;
-           GtkListItem *list_item = GTK_LIST_ITEM(g_object_get_data(G_OBJECT(gesture), "_dw_list_item"));
-           
-           _dw_event_coordinates_to_window(widget, &x, &y);
-    
-           _dw_mouse_last_x = (long)x;
-           _dw_mouse_last_y = (long)y;
-       
-           /* Containers and trees are inside scrolled window widgets */
-           if(GTK_IS_SCROLLED_WINDOW(widget))
-              widget = GTK_WIDGET(g_object_get_data(G_OBJECT(widget), "_dw_user"));
-
-           if(widget && (GTK_IS_LIST_VIEW(widget) || GTK_IS_COLUMN_VIEW(widget)))
-           {
-               DWTreeNode *node = NULL;
-               if(list_item)
-               {
-                   /* Method 1: Get the node directly from the list item */
-                   GObject *item = gtk_list_item_get_item(list_item);
-                   
-                   /* If we got a row, this is a tree */
-                   if(item && GTK_IS_TREE_LIST_ROW(item))
-                   {
-                      item = gtk_tree_list_row_get_item(GTK_TREE_LIST_ROW(item));
-                   }
-                   /* Otherwise, we should have a node, or nested node */
-                   if(item && DW_IS_TREE_NODE(item))
-                       node = DW_TREE_NODE(item);
-               }
-               if(!node)
-               {
-                   /* Method 2: Get currently selected item (if click also selects) */
-                   GtkSelectionModel *selection_model = gtk_list_view_get_model(GTK_LIST_VIEW(widget));
-
-                   if(selection_model && GTK_IS_SINGLE_SELECTION(selection_model))
-                   {
-                       guint selected = gtk_single_selection_get_selected(GTK_SINGLE_SELECTION(selection_model));
-                       node = DW_TREE_NODE(g_list_model_get_item(G_LIST_MODEL(selection_model), selected));
-                   } /* Maybe handle multiple selection too */
-               }
-               if(node && DW_IS_TREE_NODE(node))
-               {
-                   text = _dw_tree_node_get_name(node);
-                   itemdata = _dw_tree_node_get_itemdata(node);
-               }
-               contextfunc(work.window, text, (int)x, (int)y, work.data, itemdata);
-           }
-       }
-    }
 }
 
 #ifdef USE_WEBKIT
@@ -1585,6 +1493,98 @@ static gint _dw_expose_event(GtkWidget *widget, cairo_t *cr, int width, int heig
 }
 
 #if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
+static void _dw_tree_expander_changed(GtkTreeExpander *expander, GParamSpec *pspec, gpointer user_data)
+{
+    GtkWidget *tree = GTK_WIDGET(user_data);
+    GtkTreeListRow *row = gtk_tree_expander_get_list_row(expander);
+    DWTreeNode *node = DW_TREE_NODE(gtk_tree_list_row_get_item(row));
+    
+    /* Get the signal handler data */
+    gint handlerdata = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(tree), "_dw_expand_id"));
+    
+    if(handlerdata && node)
+    {
+       DWSignalHandler work;
+       void *params[] = { GINT_TO_POINTER(handlerdata-1), 0, tree };
+       
+       work = _dw_get_signal_handler(params);
+       
+       if(work.window && work.func)
+       {
+          int (*treeexpandfunc)(HWND, HTREEITEM, void *) = work.func;
+          treeexpandfunc(work.window, (HTREEITEM)node, work.data);
+       }
+    }
+}
+
+static void _dw_tree_context_event(GtkGestureClick *gesture, int n_press, double x, double y, gpointer user_data)
+{
+    GtkWidget *list_view = GTK_WIDGET(user_data);
+    gint handlerdata = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(list_view), "_dw_context_id"));
+
+    if(handlerdata)
+    {
+       DWSignalHandler work;
+       void *params[] =  { GINT_TO_POINTER(handlerdata-1), 0, list_view };
+
+       work = _dw_get_signal_handler(params);
+
+       if(work.window)
+       {
+           int (*contextfunc)(HWND, char *, int, int, void *, void *) = work.func;
+           char *text = NULL;
+           void *itemdata = NULL;
+           GtkWidget *widget = work.window;
+           GtkListItem *list_item = GTK_LIST_ITEM(g_object_get_data(G_OBJECT(gesture), "_dw_list_item"));
+           
+           _dw_event_coordinates_to_window(widget, &x, &y);
+    
+           _dw_mouse_last_x = (long)x;
+           _dw_mouse_last_y = (long)y;
+       
+           /* Containers and trees are inside scrolled window widgets */
+           if(GTK_IS_SCROLLED_WINDOW(widget))
+              widget = GTK_WIDGET(g_object_get_data(G_OBJECT(widget), "_dw_user"));
+
+           if(widget && (GTK_IS_LIST_VIEW(widget) || GTK_IS_COLUMN_VIEW(widget)))
+           {
+               DWTreeNode *node = NULL;
+               if(list_item)
+               {
+                   /* Method 1: Get the node directly from the list item */
+                   GObject *item = gtk_list_item_get_item(list_item);
+                   
+                   /* If we got a row, this is a tree */
+                   if(item && GTK_IS_TREE_LIST_ROW(item))
+                   {
+                      item = gtk_tree_list_row_get_item(GTK_TREE_LIST_ROW(item));
+                   }
+                   /* Otherwise, we should have a node, or nested node */
+                   if(item && DW_IS_TREE_NODE(item))
+                       node = DW_TREE_NODE(item);
+               }
+               if(!node)
+               {
+                   /* Method 2: Get currently selected item (if click also selects) */
+                   GtkSelectionModel *selection_model = gtk_list_view_get_model(GTK_LIST_VIEW(widget));
+
+                   if(selection_model && GTK_IS_SINGLE_SELECTION(selection_model))
+                   {
+                       guint selected = gtk_single_selection_get_selected(GTK_SINGLE_SELECTION(selection_model));
+                       node = DW_TREE_NODE(g_list_model_get_item(G_LIST_MODEL(selection_model), selected));
+                   } /* Maybe handle multiple selection too */
+               }
+               if(node && DW_IS_TREE_NODE(node))
+               {
+                   text = _dw_tree_node_get_name(node);
+                   itemdata = _dw_tree_node_get_itemdata(node);
+               }
+               contextfunc(work.window, text, (int)x, (int)y, work.data, itemdata);
+           }
+       }
+    }
+}
+
 static void _dw_drop_down_changed(GObject *gobject, GParamSpec *pspec, gpointer data)
 {
    GtkDropDown *dropdown = GTK_DROP_DOWN(gobject);
@@ -1607,7 +1607,7 @@ static void _dw_drop_down_changed(GObject *gobject, GParamSpec *pspec, gpointer 
    }
 }
 
-static gint _dw_drop_drown_select_event(GObject *gobject, GParamSpec *pspec, gpointer data)
+static gint _dw_drop_down_select_event(GObject *gobject, GParamSpec *pspec, gpointer data)
 {
    GtkWidget *widget = GTK_WIDGET(gobject);
    DWSignalHandler work = _dw_get_signal_handler(data);
