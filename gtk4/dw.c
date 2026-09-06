@@ -3014,7 +3014,7 @@ void API dw_font_set_default(const char *fontname)
 /* Convert DW style font to CSS syntax (or Pango for older versions):
  * font: font-style font-variant font-weight font-size/line-height font-family
  */
-char *_dw_convert_font(const char *font)
+char *_dw_convert_font(const char *font, int pango)
 {
    char *newfont = NULL;
    
@@ -3031,14 +3031,20 @@ char *_dw_convert_font(const char *font)
       if(name && (name++) && isdigit(*font))
       {
           int size = atoi(font);
-          int len = (Italic ? (Bold ? (Italic > Bold ? (Bold - name) : (Italic - name)) : (Italic - name)) : (Bold ? (Bold - name) : strlen(name)));
-          char *newname = alloca(len+1);
-          
-          memset(newname, 0, len+1);
-          strncpy(newname, name, len);
-          
-          newfont = g_strdup_printf("%s normal %s %dpx \"%s\"", Italic ? "italic" : "normal",
-                                    Bold ? "bold" : "normal", size, newname);
+
+          if(pango)
+              newfont = g_strdup_printf("%s %d", name, size);
+          else
+          {
+              int len = (Italic ? (Bold ? (Italic > Bold ? (Bold - name) : (Italic - name)) : (Italic - name)) : (Bold ? (Bold - name) : strlen(name)));
+              char *newname = alloca(len+1);
+              
+              memset(newname, 0, len+1);
+              strncpy(newname, name, len);
+              
+              newfont = g_strdup_printf("%s normal %s %dpt \"%s\"", Italic ? "italic" : "normal",
+                                        Bold ? "bold" : "normal", size, newname);
+          }
       }
    }
    return newfont;
@@ -3137,7 +3143,7 @@ DW_FUNCTION_RETURN(dw_window_set_font, int)
 DW_FUNCTION_RESTORE_PARAM2(handle, HWND, fontname, const char *)
 {
    GtkWidget *handle2 = handle;
-   char *font = _dw_convert_font(fontname);
+   char *font = _dw_convert_font(fontname, FALSE);
    gpointer data;
    int retval = DW_ERROR_NONE;
 
@@ -3172,12 +3178,15 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, fontname, const char *)
 
    /* Free old font name if one is allocated */
    data = g_object_get_data(G_OBJECT(handle2), "_dw_fontname");
-   g_object_set_data(G_OBJECT(handle2), "_dw_fontname", (gpointer)font);
+   /* Save the font name in pango format */
+   g_object_set_data(G_OBJECT(handle2), "_dw_fontname", (gpointer)_dw_convert_font(fontname, TRUE));
    if(data)
       free(data);
 
    if(!GTK_IS_DRAWING_AREA(handle2))
       _dw_override_font(handle2, font);
+   if(font)
+       free(font);
 
    DW_FUNCTION_RETURN_THIS(retval);
 }
@@ -3252,7 +3261,7 @@ DW_FUNCTION_RESTORE_PARAM1(currfont, const char *)
    char *retfont = NULL;
    DWDialog *tmp = dw_dialog_new(NULL);
 #if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
-   char *font = _dw_convert_font(currfont);
+   char *font = _dw_convert_font(currfont, TRUE);
    PangoFontDescription *pfd = font ? pango_font_description_from_string(font) : NULL;
    GtkFontDialog *fd = gtk_font_dialog_new();
 
@@ -9242,7 +9251,8 @@ int API dw_pixmap_set_font(HPIXMAP pixmap, const char *fontname)
     {
          char *oldfont = pixmap->font;
 
-         pixmap->font = _dw_convert_font(fontname);
+         /* Pango format for drawing */
+         pixmap->font = _dw_convert_font(fontname, TRUE);
 
          if(oldfont)
              free(oldfont);
