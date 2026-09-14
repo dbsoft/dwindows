@@ -3683,6 +3683,28 @@ void API dw_print_cancel(HPRINT print)
 }
 
 /*
+ * Add a periodic callback to the location service.
+ * Parameters:
+ *       interval_ms: The interval of the callback in milliseconds.
+ *       sigfunc: The pointer to the function to be used as the callback.
+ *       data: User data to be passed to the handler function.
+ */
+int API dw_geo_connect(unsigned int interval_ms, void *sigfunc, void *data)
+{
+    return DW_ERROR_GENERAL;
+}
+
+/*
+ * Removes a periodic callback to the location service.
+ * Parameters:
+ *       discfunc: The pointer to the function to callback or NULL.
+ */
+int API dw_geo_disconnect(void *discfunc)
+{
+    return DW_ERROR_GENERAL;
+}
+
+/*
  * Creates a new system notification if possible.
  * Parameters:
  *         title: The short title of the notification.

@@ -1848,7 +1848,7 @@ void scrollbox_add(void)
 }
 
 /* Section for thread/event test */
-HWND threadmle, startbutton;
+HWND threadmle, startbutton, geostartbutton, geostopbutton;
 HMTX mutex;
 HEV workevent, controlevent;
 int finished = FALSE;
@@ -1892,17 +1892,56 @@ int DWSIGNAL start_threads_button_callback(HWND window, void *data)
     return 0;
 }
 
+void DWSIGNAL geo_pos_update_callback(DWPos *pos, void *data)
+{
+    int intdata = DW_POINTER_TO_INT(data);
+    char outbuf[101] = {0};
+
+    snprintf(outbuf, 100, "GeoLocation Position Lat: %f, Lon: %f Alt: %f Acc: %f Data: %d\r\n",
+             pos->latitude, pos->longitude, pos->altitude, pos->accuracy, intdata);
+    update_mle(outbuf, FALSE);
+}
+
+int DWSIGNAL geo_start_button_callback(HWND window, void *data)
+{
+    dw_window_disable(geostartbutton);
+    dw_window_enable(geostopbutton);
+    dw_geo_connect(5000, DW_SIGNAL_FUNC(geo_pos_update_callback), DW_INT_TO_POINTER(100));
+    return 0;
+}
+
+int DWSIGNAL geo_stop_button_callback(HWND window, void *data)
+{
+    dw_window_disable(geostopbutton);
+    dw_window_enable(geostartbutton);
+    dw_geo_disconnect(NULL);
+    return 0;
+}
+
 void thread_add(void)
 {
-    HWND tmpbox;
+    HWND tmpbox, hbox;
 
     /* create a box to pack into the notebook page */
     tmpbox = dw_box_new(DW_VERT, 0);
     dw_box_pack_start(notebookbox9, tmpbox, 0, 0, TRUE, TRUE, 1);
 
-    startbutton = dw_button_new( "Start Threads", 0 );
-    dw_box_pack_start(tmpbox, startbutton, DW_SIZE_AUTO, DW_SIZE_AUTO, FALSE, FALSE, 0);
+    hbox = dw_box_new(DW_HORZ, 0);
+    dw_box_pack_start(tmpbox, hbox, 0, 0, TRUE, FALSE, 0);
+
+    startbutton = dw_button_new("Start Threads", 0);
+    dw_box_pack_start(hbox, startbutton, DW_SIZE_AUTO, DW_SIZE_AUTO, FALSE, FALSE, 0);
     dw_signal_connect(startbutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(start_threads_button_callback), NULL);
+    dw_box_pack_start(hbox, 0, 1, 1, TRUE, FALSE, 0);
+
+    geostartbutton = dw_button_new("Start Geolocation", 0);
+    dw_box_pack_start(hbox, geostartbutton, DW_SIZE_AUTO, DW_SIZE_AUTO, FALSE, FALSE, 0);
+    dw_signal_connect(geostartbutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(geo_start_button_callback), NULL);
+
+    geostopbutton = dw_button_new("Stop Geolocation", 0);
+    dw_window_disable(geostopbutton);
+    dw_box_pack_start(hbox, geostopbutton, DW_SIZE_AUTO, DW_SIZE_AUTO, FALSE, FALSE, 0);
+    dw_signal_connect(geostopbutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(geo_stop_button_callback), NULL);
 
     /* Create the base threading components */
     threadmle = dw_mle_new(0);

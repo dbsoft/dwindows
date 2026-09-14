@@ -332,3 +332,6 @@ export dw_notification_send.531
 export dw_feature_get.540
 export dw_feature_set.541
 
+export dw_geo_connect.550
+export dw_geo_disconnect.551
+

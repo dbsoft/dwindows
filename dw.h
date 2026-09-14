@@ -1703,6 +1703,15 @@ typedef struct _dwdialog {
 #endif
 } DWDialog;
 
+/* Position structure matching DW data conventions */
+typedef struct _dwpos {
+    double latitude;
+    double longitude;
+    double altitude;
+    double accuracy;     /* Accuracy in meters */
+    long long timestamp; /* Epoch time in milliseconds */
+} DWPos;
+
 typedef void *HPRINT;
 
 #define DW_SIGNAL_FUNC(a) ((void *)a)
@@ -1842,6 +1851,7 @@ typedef enum
     DW_FEATURE_CONTAINER_MODE,          /* Supports alternate container view modes */
     DW_FEATURE_HTML_MESSAGE,            /* Supports the DW_SIGNAL_HTML_MESSAGE callback */
     DW_FEATURE_RENDER_SAFE,             /* Supports render safe drawing mode, limited to expose */
+    DW_FEATURE_GEOLOCATION,             /* Supports Geolocation via dw_geo_*() APIs */
     DW_FEATURE_MAX
 } DWFEATURE;
 
@@ -2244,6 +2254,8 @@ int API dw_print_run(HPRINT print, unsigned long flags);
 void API dw_print_cancel(HPRINT print);
 HWND API dw_notification_new(const char *title, const char *imagepath, const char *description, ...);
 int API dw_notification_send(HWND notification);
+int API dw_geo_connect(unsigned int interval_ms, void *sigfunc, void *data);
+int API dw_geo_disconnect(void *discfunc);
 wchar_t * API dw_utf8_to_wchar(const char *utf8string);
 char * API dw_wchar_to_utf8(const wchar_t *wstring);
 int API dw_feature_get(DWFEATURE feature); 
