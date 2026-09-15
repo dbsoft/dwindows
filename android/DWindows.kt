@@ -1925,7 +1925,7 @@ class DWFileChooser(private val activity: Activity) {
     // filter on file extension
     private var extension: String? = null
     fun setExtension(extension: String?) {
-        this.extension = extension?.toLowerCase(Locale.ROOT)
+        this.extension = extension?.lowercase(Locale.ROOT)
     }
 
     // file selection event handling
@@ -1958,7 +1958,7 @@ class DWFileChooser(private val activity: Activity) {
                         } else if (extension == null) {
                             true
                         } else {
-                            file.name.toLowerCase(Locale.ROOT).endsWith(extension!!)
+                            file.name.lowercase(Locale.ROOT).endsWith(extension!!)
                         }
                     } else {
                         false
