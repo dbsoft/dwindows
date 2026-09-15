@@ -13739,6 +13739,7 @@ int API dw_feature_set(DWFEATURE feature, int state)
 #endif
 #ifdef BUILDING_FOR_SNOW_LEOPARD
         case DW_FEATURE_MLE_AUTO_COMPLETE:
+        case DW_FEATURE_GEOLOCATION:
 #endif
         case DW_FEATURE_HTML:
         case DW_FEATURE_HTML_RESULT:

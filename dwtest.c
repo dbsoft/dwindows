@@ -2212,6 +2212,7 @@ char *DWFeatureList[] = {
     "Supports alternate container view modes",
     "Supports the DW_SIGNAL_HTML_MESSAGE callback",
     "Supports render safe drawing mode, limited to expose",
+    "Supports Geolocation via dw_geo_*() APIs",
     NULL };
 
 /*

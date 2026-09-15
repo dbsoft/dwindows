@@ -724,6 +724,29 @@ Java_org_dbsoft_dwindows_DWWebViewInterface_eventHandlerHTMLMessage(JNIEnv *env,
         env->ReleaseStringUTFChars(htmlBody, body);
 }
 
+static void *_dw_geofunc = nullptr;
+static void *_dw_geodata = nullptr;
+
+JNIEXPORT void JNICALL
+Java_org_dbsoft_dwindows_DWGeoManager_nativeOnPositionChanged(
+                JNIEnv *env, jobject thiz,
+                jdouble lat, jdouble lon, jdouble alt, jfloat acc, jlong time)
+{
+    if(_dw_geofunc)
+    {
+        DWPos pos;
+        void (*locationfunc)(DWPos *pos, void *data) = (void(*)(DWPos *, void *))_dw_geofunc;
+
+        pos.latitude = (double) lat;
+        pos.longitude = (double) lon;
+        pos.altitude = (double) alt;
+        pos.accuracy = (double) acc;
+        pos.timestamp = (long long) time;
+
+        // Fire framework signal
+        locationfunc(&pos, _dw_geodata);
+    }
+}
 
 typedef struct _dwprint
 {
@@ -8160,6 +8183,21 @@ void API dw_print_cancel(HPRINT pr)
  */
 int API dw_geo_connect(unsigned int interval_ms, void *sigfunc, void *data)
 {
+    JNIEnv *env;
+
+    if(interval_ms && sigfunc && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID startUpdates = env->GetMethodID(clazz, "geoStartUpdates",
+                                                    "(J)V");
+        _dw_geofunc = sigfunc;
+        _dw_geodata = data;
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, startUpdates, (jlong)interval_ms);
+        return DW_ERROR_NONE;
+    }
     return DW_ERROR_GENERAL;
 }
 
@@ -8170,6 +8208,23 @@ int API dw_geo_connect(unsigned int interval_ms, void *sigfunc, void *data)
  */
 int API dw_geo_disconnect(void *discfunc)
 {
+    void (* disconnectfunc)(void *) = (void(*)(void *))discfunc;
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID stopUpdates = env->GetMethodID(clazz, "geoStopUpdates",
+                                                  "()V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, stopUpdates);
+        if(disconnectfunc)
+            disconnectfunc(_dw_geodata);
+        _dw_geodata = _dw_geofunc = nullptr;
+        return DW_ERROR_NONE;
+    }
     return DW_ERROR_GENERAL;
 }
 
@@ -8307,6 +8362,7 @@ int API dw_feature_get(DWFEATURE feature)
         case DW_FEATURE_NOTIFICATION:            /* Supports sending system notifications */
         case DW_FEATURE_UTF8_UNICODE:            /* Supports UTF8 encoded Unicode text */
         case DW_FEATURE_MLE_WORD_WRAP:           /* Supports word wrapping in Multi-line Edit boxes */
+        case DW_FEATURE_GEOLOCATION:             /* Supports Geolocation via dw_geo_*() APIs */
         case DW_FEATURE_CONTAINER_STRIPE:        /* Supports striped line display in container widgets */
         case DW_FEATURE_TREE:                    /* Supports the Tree Widget */
             return DW_FEATURE_ENABLED;
@@ -8351,6 +8407,7 @@ int API dw_feature_set(DWFEATURE feature, int state)
         case DW_FEATURE_NOTIFICATION:            /* Supports sending system notifications */
         case DW_FEATURE_UTF8_UNICODE:            /* Supports UTF8 encoded Unicode text */
         case DW_FEATURE_MLE_WORD_WRAP:           /* Supports word wrapping in Multi-line Edit boxes */
+        case DW_FEATURE_GEOLOCATION:             /* Supports Geolocation via dw_geo_*() APIs */
         case DW_FEATURE_CONTAINER_STRIPE:        /* Supports striped line display in container widgets */
         case DW_FEATURE_TREE:                    /* Supports the Tree Widget */
             return DW_ERROR_GENERAL;

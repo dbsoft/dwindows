@@ -46,7 +46,7 @@ import android.webkit.WebViewClient
 import android.widget.*
 import android.widget.AdapterView.OnItemClickListener
 import android.widget.SeekBar.OnSeekBarChangeListener
-import androidx.annotation.RequiresApi
+import androidx.annotation.RequiresPermission
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.AppCompatEditText
@@ -64,6 +64,7 @@ import androidx.core.view.setMargins
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
+import com.google.android.gms.location.*
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayout.OnTabSelectedListener
 import com.google.android.material.tabs.TabLayoutMediator
@@ -76,6 +77,59 @@ import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
 import kotlin.math.*
 
+class DWGeoManager(context: Context) {
+    private val fusedLocationClient: FusedLocationProviderClient =
+        LocationServices.getFusedLocationProviderClient(context)
+
+    private var locationCallback: LocationCallback? = null
+
+    @RequiresPermission(anyOf = [Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION])
+    fun startUpdates(intervalMs: Long) {
+        val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, intervalMs).apply {
+            setMinUpdateIntervalMillis(intervalMs / 2)
+        }.build()
+
+        locationCallback = object : LocationCallback() {
+            override fun onLocationResult(locationResult: LocationResult) {
+                for (location in locationResult.locations) {
+                    nativeOnPositionChanged(
+                        location.latitude,
+                        location.longitude,
+                        location.altitude,
+                        location.accuracy,
+                        location.time
+                    )
+                }
+            }
+        }
+
+        try {
+            fusedLocationClient.requestLocationUpdates(
+                locationRequest,
+                locationCallback!!,
+                Looper.getMainLooper()
+            )
+        } catch (e: SecurityException) {
+            // Handle missing permissions
+        }
+    }
+
+    fun stopUpdates() {
+        locationCallback?.let {
+            fusedLocationClient.removeLocationUpdates(it)
+        }
+        locationCallback = null
+    }
+
+    // Native JNI bridge declaration implemented in your C library
+    private external fun nativeOnPositionChanged(
+        lat: Double,
+        lon: Double,
+        alt: Double,
+        acc: Float,
+        time: Long
+    )
+}
 
 // Tree View section
 class DWTreeItem(title: String, icon: Drawable?, data: Long, parent: DWTreeItem?) {
@@ -2680,6 +2734,7 @@ class DWindows : AppCompatActivity() {
     private var windowMenuBars = mutableListOf<DWMenu?>()
     private var windowStyles = mutableListOf<Int>()
     private var windowDefault = mutableListOf<View?>()
+    private var geoManager: DWGeoManager? = null
 
     // Our version of runOnUiThread that waits for execution
     fun waitOnUiThread(runnable: Runnable)
@@ -4835,6 +4890,34 @@ class DWindows : AppCompatActivity() {
                 2 -> html.loadUrl("http://dwindows.netlabs.org")
                 4 -> html.reload()
                 5 -> html.stopLoading()
+            }
+        }
+    }
+
+    fun geoStartUpdates(intervalMs: Long)
+    {
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+        ) {
+            waitOnUiThread {
+                if(geoManager == null) {
+                    geoManager = DWGeoManager(this);
+                }
+                geoManager?.startUpdates(intervalMs)
+            }
+        }
+    }
+
+    fun geoStopUpdates()
+    {
+        geoManager?.let {
+            waitOnUiThread {
+                geoManager!!.stopUpdates();
             }
         }
     }
