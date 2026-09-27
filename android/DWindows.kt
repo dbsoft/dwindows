@@ -4896,14 +4896,29 @@ class DWindows : AppCompatActivity() {
 
     fun geoStartUpdates(intervalMs: Long)
     {
-        if (ActivityCompat.checkSelfPermission(
+        var fineGranted = ActivityCompat.checkSelfPermission(this,
+            Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        var coarseGranted = ActivityCompat.checkSelfPermission(this,
+            Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+
+        if (!fineGranted || !coarseGranted) {
+            // Request permissions
+            ActivityCompat.requestPermissions(
                 this,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
-                this,
-                Manifest.permission.ACCESS_COARSE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED
-        ) {
+                arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+                ),
+                intervalMs.toInt()
+            )
+            fineGranted = ActivityCompat.checkSelfPermission(this,
+                Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+            coarseGranted = ActivityCompat.checkSelfPermission(this,
+                Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+
+        }
+
+        if (fineGranted && coarseGranted) {
             waitOnUiThread {
                 if(geoManager == null) {
                     geoManager = DWGeoManager(this);
@@ -4918,6 +4933,17 @@ class DWindows : AppCompatActivity() {
         geoManager?.let {
             waitOnUiThread {
                 geoManager!!.stopUpdates();
+            }
+        }
+    }
+
+    // Handle the result
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>,
+                                            grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            if(requestCode > 0) {
+                geoStartUpdates(requestCode.toLong())
             }
         }
     }
