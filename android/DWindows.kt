@@ -59,6 +59,8 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.res.ResourcesCompat
+import androidx.core.location.LocationCompat
+import androidx.core.location.altitude.AltitudeConverterCompat
 import androidx.core.view.MenuCompat
 import androidx.core.view.setMargins
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -77,7 +79,7 @@ import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
 import kotlin.math.*
 
-class DWGeoManager(context: Context) {
+class DWGeoManager(private val context: Context) {
     private val fusedLocationClient: FusedLocationProviderClient =
         LocationServices.getFusedLocationProviderClient(context)
 
@@ -92,10 +94,30 @@ class DWGeoManager(context: Context) {
         locationCallback = object : LocationCallback() {
             override fun onLocationResult(locationResult: LocationResult) {
                 for (location in locationResult.locations) {
+                    var mslAltitude = location.altitude
+                    if (location.hasAltitude()) {
+                        try {
+                            // Explicitly invoke the converter regardless of version
+                            // so the location object actually populates its MSL fields:
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                                val converter = android.location.altitude.AltitudeConverter()
+                                converter.addMslAltitudeToLocation(context, location)
+                            } else {
+                                AltitudeConverterCompat.addMslAltitudeToLocation(context, location)
+                            }
+
+                            // Now check if the conversion succeeded and read it
+                            if (LocationCompat.hasMslAltitude(location)) {
+                                mslAltitude = LocationCompat.getMslAltitudeMeters(location)
+                            }
+                        } catch (e: Exception) {
+                            mslAltitude = location.altitude
+                        }
+                    }
                     nativeOnPositionChanged(
                         location.latitude,
                         location.longitude,
-                        location.altitude,
+                        mslAltitude,
                         location.accuracy,
                         location.time
                     )
