@@ -1182,6 +1182,125 @@ static NSMutableArray *_dw_URLs = nil;
 -(void)setDialog:(DWDialog *)newdialog { dialog = newdialog; }
 @end
 
+@interface DWLocationManager : NSObject <CLLocationManagerDelegate>
+@property (nonatomic, strong) CLLocationManager *locationManager;
+@property (nonatomic) void *sigfunc;
+@property (nonatomic) void *sigdata;
+@end
+
+@implementation DWLocationManager
+-(instancetype)init
+{
+    self = [super init];
+    if (self)
+    {
+        self.locationManager = [[[CLLocationManager alloc] init] retain];
+        self.locationManager.delegate = self;
+        self.locationManager.desiredAccuracy = kCLLocationAccuracyBest;
+    }
+    return self;
+}
++(instancetype)sharedInstance
+{
+    static DWLocationManager *sharedInstance = nil;
+    if(!sharedInstance)
+    {
+        sharedInstance = [[self alloc] init];
+    }
+    return sharedInstance;
+}
+-(void)connect:(void *)func withData:(void *)data
+{
+    _sigfunc = func;
+    _sigdata = data;
+}
+-(void)disconnect:(void *)discfunc
+{
+    void (* disconnectfunc)(void *) = discfunc;
+
+    if(disconnectfunc)
+        disconnectfunc(_sigdata);
+    _sigdata = _sigfunc = NULL;
+}
+-(void)startUpdatesWithInterval:(unsigned int)intervalMs
+{
+    /* CoreLocation uses distanceFilter and activity type rather than raw millisecond intervals,
+     * but you can configure accuracy or request authorization here:
+     */
+    CLAuthorizationStatus status = [self.locationManager authorizationStatus];
+    if(status == kCLAuthorizationStatusNotDetermined)
+        [self.locationManager requestWhenInUseAuthorization];
+    else
+        [self.locationManager startUpdatingLocation];
+}
+-(void)stopUpdates
+{
+    [self.locationManager stopUpdatingLocation];
+}
+#pragma mark - CLLocationManagerDelegate
+-(void)locationManager:(CLLocationManager *)manager didUpdateLocations:(NSArray<CLLocation *> *)locations
+{
+    CLLocation *latestLocation = [locations lastObject];
+    void (* locationfunc)(DWPos *pos, void *data) = _sigfunc;
+    if (!latestLocation || !locationfunc) return;
+
+    DWPos pos;
+    pos.latitude = latestLocation.coordinate.latitude;
+    pos.longitude = latestLocation.coordinate.longitude;
+    pos.altitude = latestLocation.altitude;
+    pos.accuracy = latestLocation.horizontalAccuracy;
+    
+    /* Convert timestamp to epoch milliseconds */
+    pos.timestamp = (long long)([latestLocation.timestamp timeIntervalSince1970] * 1000.0);
+
+    /* Emit the signal through your framework's signal emission engine */
+    locationfunc(&pos, _sigdata);
+}
+-(void)locationManager:(CLLocationManager *)manager didFailWithError:(NSError *)error
+{
+    /* Handle error logging or signal propagation if needed */
+    if ([error.domain isEqualToString:kCLErrorDomain])
+    {
+        NSLog(@"DWLocationManager Error: %ld - %@", (long)error.code, error.localizedDescription);
+        [manager stopUpdatingLocation];
+    }
+}
+/* This handles iOS 14+ authorization state changes */
+-(void)locationManagerDidChangeAuthorization:(CLLocationManager *)manager
+{
+    CLAuthorizationStatus status = manager.authorizationStatus;
+    
+    switch (status) {
+        case kCLAuthorizationStatusAuthorizedWhenInUse:
+        case kCLAuthorizationStatusAuthorizedAlways:
+            [manager startUpdatingLocation];
+            break;
+
+#ifdef DEBUG
+        case kCLAuthorizationStatusDenied:
+        case kCLAuthorizationStatusRestricted:
+            NSLog(@"CoreLocation Error: Location permission was denied or restricted.");
+            break;
+            
+        case kCLAuthorizationStatusNotDetermined:
+            NSLog(@"CoreLocation: Waiting for user to make a choice.");
+            break;
+#endif
+
+        default:
+            break;
+    }
+}
+/* Fallback delegate method required for devices running iOS 13 or older */
+-(void)locationManager:(CLLocationManager *)manager didChangeAuthorizationStatus:(CLAuthorizationStatus)status
+{
+    /* Simply forward the status to the modern handler to avoid duplicating code */
+    [self locationManagerDidChangeAuthorization:manager];
+}
+
+@end
+
+
 @implementation DWObject
 -(id)init
 {
@@ -1394,6 +1513,10 @@ static NSMutableArray *_dw_URLs = nil;
 
     [params addObject:[NSNumber numberWithInteger:result]];
 }
+-(void)geoStart:(NSNumber *)interval
+{
+    [[DWLocationManager sharedInstance] startUpdatesWithInterval:[interval unsignedIntValue]];
+}
 -(void)safeCall:(SEL)sel withObject:(id)param
 {
     if([self respondsToSelector:sel])
@@ -1521,83 +1644,6 @@ BOOL _dw_is_dark(void)
         return YES;
     return NO;
 }
-
-@interface DWLocationManager : NSObject <CLLocationManagerDelegate>
-@property (nonatomic, strong) CLLocationManager *locationManager;
-@property (nonatomic) void *sigfunc;
-@property (nonatomic) void *sigdata;
-@end
-
-@implementation DWLocationManager
--(instancetype)init
-{
-    self = [super init];
-    if (self)
-    {
-        self.locationManager = [[CLLocationManager alloc] init];
-        self.locationManager.delegate = self;
-        self.locationManager.desiredAccuracy = kCLLocationAccuracyBest;
-    }
-    return self;
-}
-+(instancetype)sharedInstance
-{
-    static DWLocationManager *sharedInstance = nil;
-    if(!sharedInstance)
-    {
-        sharedInstance = [[self alloc] init];
-    }
-    return sharedInstance;
-}
--(void)connect:(void *)func withData:(void *)data
-{
-    _sigfunc = func;
-    _sigdata = data;
-}
--(void)disconnect:(void *)discfunc
-{
-    void (* disconnectfunc)(void *) = discfunc;
-
-    if(disconnectfunc)
-        disconnectfunc(_sigdata);
-    _sigdata = _sigfunc = NULL;
-}
--(void)startUpdatesWithInterval:(unsigned int)intervalMs
-{
-    /* CoreLocation uses distanceFilter and activity type rather than raw millisecond intervals,
-     * but you can configure accuracy or request authorization here:
-     */
-    [self.locationManager requestWhenInUseAuthorization];
-    [self.locationManager startUpdatingLocation];
-}
--(void)stopUpdates
-{
-    [self.locationManager stopUpdatingLocation];
-}
-#pragma mark - CLLocationManagerDelegate
--(void)locationManager:(CLLocationManager *)manager didUpdateLocations:(NSArray<CLLocation *> *)locations
-{
-    CLLocation *latestLocation = [locations lastObject];
-    void (* locationfunc)(DWPos *pos, void *data) = _sigfunc;
-    if (!latestLocation || !locationfunc) return;
-
-    DWPos pos;
-    pos.latitude = latestLocation.coordinate.latitude;
-    pos.longitude = latestLocation.coordinate.longitude;
-    pos.altitude = latestLocation.altitude;
-    pos.accuracy = latestLocation.horizontalAccuracy;
-    
-    /* Convert timestamp to epoch milliseconds */
-    pos.timestamp = (long long)([latestLocation.timestamp timeIntervalSince1970] * 1000.0);
-
-    /* Emit the signal through your framework's signal emission engine */
-    locationfunc(&pos, _sigdata);
-}
--(void)locationManager:(CLLocationManager *)manager didFailWithError:(NSError *)error
-{
-    /* Handle error logging or signal propagation if needed */
-}
-@end
 
 @interface DWWebView : WKWebView <WKNavigationDelegate, WKScriptMessageHandler>
 {
@@ -12293,7 +12339,7 @@ void API dw_print_cancel(HPRINT print)
 int API dw_geo_connect(unsigned int interval_ms, void *sigfunc, void *data)
 {
     [[DWLocationManager sharedInstance] connect:sigfunc withData:data];
-    [[DWLocationManager sharedInstance] startUpdatesWithInterval:interval_ms];
+    [DWObj safeCall:@selector(geoStart:) withObject:[NSNumber numberWithUnsignedInt:interval_ms]];
     return DW_ERROR_NONE;
 }
 
