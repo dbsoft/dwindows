@@ -1268,8 +1268,13 @@ static NSMutableArray *_dw_URLs = nil;
 /* This handles iOS 14+ authorization state changes */
 -(void)locationManagerDidChangeAuthorization:(CLLocationManager *)manager
 {
-    CLAuthorizationStatus status = manager.authorizationStatus;
-    
+    CLAuthorizationStatus status;
+    if (@available(iOS 14.0, *)) {
+        status = manager.authorizationStatus;
+    } else {
+        status = [CLLocationManager authorizationStatus];
+    }
+
     switch (status) {
         case kCLAuthorizationStatusAuthorizedWhenInUse:
         case kCLAuthorizationStatusAuthorizedAlways:
@@ -1294,8 +1299,16 @@ static NSMutableArray *_dw_URLs = nil;
 /* Fallback delegate method required for devices running iOS 13 or older */
 -(void)locationManager:(CLLocationManager *)manager didChangeAuthorizationStatus:(CLAuthorizationStatus)status
 {
+    if (@available(iOS 14.0, *))
+    {
+        /* Ignore on iOS 14+ because locationManagerDidChangeAuthorization: handles it */
+        return;
+    }
     /* Simply forward the status to the modern handler to avoid duplicating code */
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunguarded-availability"
     [self locationManagerDidChangeAuthorization:manager];
+#pragma clang diagnostic pop
 }
 
 @end
