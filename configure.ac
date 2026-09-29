@@ -179,10 +179,18 @@ case "$target" in
       DW_SRC=dw.m
       DW_DEFINE=__MAC__
       LIBS="$LIBS -framework Cocoa -framework WebKit"
-      save_libs="$LIBS"
-      LIBS="$LIBS -weak_framework UserNotifications"
-      INSTALL_TEST=""
-      AC_CHECK_FUNC(exit, , [LIBS="$save_libs"])
+      # Save the current test language context and switch to Objective-C
+      AC_LANG_PUSH([Objective C])
+      AC_CHECK_HEADER([UserNotifications/UserNotifications.h], [
+          # Header found: add it as a weak framework to your final linker flags
+          LIBS="$LIBS -weak_framework UserNotifications"
+      ],)
+      AC_CHECK_HEADER([CoreLocation/CoreLocation.h], [
+          # Header found: add it as a weak framework to your final linker flags
+          LIBS="$LIBS -weak_framework CoreLocation"
+      ],)
+      # Restore the original language context (usually C or C++)
+      AC_LANG_POP([Objective C])
       build_gtk="no"
    ;;
    *)

@@ -38,6 +38,11 @@
 #define BUILDING_FOR_MOUNTAIN_LION
 #endif
 
+/* Create a define to let us know to include Mavericks specific features */
+#if defined(MAC_OS_X_VERSION_10_9) && ((defined(MAC_OS_X_VERSION_MAX_ALLOWED) && MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_9) || !defined(MAC_OS_X_VERSION_MAX_ALLOWED))
+#define BUILDING_FOR_MAVERICKS
+#endif
+
 /* Macros to handle local auto-release pools */
 #define DW_LOCAL_POOL_IN NSAutoreleasePool *localpool = nil; \
         if(DWThread != (DWTID)-1 && pthread_self() != DWThread) \
@@ -1491,24 +1496,26 @@ DWObject *DWObj;
 #import <CoreLocation/CoreLocation.h>
 
 @interface DWLocationManager : NSObject <CLLocationManagerDelegate>
-@property (nonatomic, strong) CLLocationManager *locationManager;
-@property (nonatomic) void *sigfunc;
-@property (nonatomic) void *sigdata;
+{
+	CLLocationManager *locationManager;
+	void *sigfunc;
+	void *sigdata;
+}
 @end
 
 @implementation DWLocationManager
--(instancetype)init
+-(id)init
 {
     self = [super init];
     if (self)
     {
-        self.locationManager = [[CLLocationManager alloc] init];
-        self.locationManager.delegate = self;
-        self.locationManager.desiredAccuracy = kCLLocationAccuracyBest;
+        locationManager = [[[CLLocationManager alloc] init] retain];
+        locationManager.delegate = self;
+        locationManager.desiredAccuracy = kCLLocationAccuracyBest;
     }
     return self;
 }
-+(instancetype)sharedInstance
++(DWLocationManager *)sharedInstance
 {
     static DWLocationManager *sharedInstance = nil;
     if(!sharedInstance)
@@ -1519,34 +1526,47 @@ DWObject *DWObj;
 }
 -(void)connect:(void *)func withData:(void *)data
 {
-    _sigfunc = func;
-    _sigdata = data;
+    sigfunc = func;
+    sigdata = data;
 }
 -(void)disconnect:(void *)discfunc
 {
     void (* disconnectfunc)(void *) = discfunc;
 
     if(disconnectfunc)
-        disconnectfunc(_sigdata);
-    _sigdata = _sigfunc = NULL;
+        disconnectfunc(sigdata);
+    sigdata = sigfunc = NULL;
 }
 -(void)startUpdatesWithInterval:(unsigned int)intervalMs
 {
-    /* CoreLocation uses distanceFilter and activity type rather than raw millisecond intervals,
-     * but you can configure accuracy or request authorization here:
+    /* requestWhenInUseAuthorization is on MacOS 10.15 and later.
+     * Request authorization on 10.15+ or just start updating earlier.
      */
-    [self.locationManager requestWhenInUseAuthorization];
-    [self.locationManager startUpdatingLocation];
+    SEL srwiua = NSSelectorFromString(@"requestWhenInUseAuthorization");
+
+    if([locationManager respondsToSelector:srwiua])
+    {
+        DWIMP irwiua = (DWIMP)[locationManager methodForSelector:srwiua];
+        irwiua(locationManager, srwiua);
+    }
+    [locationManager startUpdatingLocation];
 }
 -(void)stopUpdates
 {
-    [self.locationManager stopUpdatingLocation];
+    [locationManager stopUpdatingLocation];
 }
 #pragma mark - CLLocationManagerDelegate
+/* Use the new method for 10.9 (Maverics) and later */
+#ifdef BUILDING_FOR_MAVERICKS
 -(void)locationManager:(CLLocationManager *)manager didUpdateLocations:(NSArray<CLLocation *> *)locations
 {
     CLLocation *latestLocation = [locations lastObject];
-    void (* locationfunc)(DWPos *pos, void *data) = _sigfunc;
+#else
+-(void)locationManager:(CLLocationManager *)manager didUpdateToLocation:(CLLocation *)latestLocation 
+	            									fromLocation:(CLLocation *)oldLocation
+{
+#endif
+    void (* locationfunc)(DWPos *pos, void *data) = sigfunc;
     if (!latestLocation || !locationfunc) return;
 
     DWPos pos;
@@ -1559,7 +1579,7 @@ DWObject *DWObj;
     pos.timestamp = (long long)([latestLocation.timestamp timeIntervalSince1970] * 1000.0);
 
     /* Emit the signal through your framework's signal emission engine */
-    locationfunc(&pos, _sigdata);
+    locationfunc(&pos, sigdata);
 }
 -(void)locationManager:(CLLocationManager *)manager didFailWithError:(NSError *)error
 {
