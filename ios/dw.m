@@ -1227,7 +1227,12 @@ static NSMutableArray *_dw_URLs = nil;
     /* CoreLocation uses distanceFilter and activity type rather than raw millisecond intervals,
      * but you can configure accuracy or request authorization here:
      */
-    CLAuthorizationStatus status = [self.locationManager authorizationStatus];
+    CLAuthorizationStatus status;
+    if (@available(iOS 14.0, *)) {
+        status = self.locationManager.authorizationStatus;
+    } else {
+        status = [CLLocationManager authorizationStatus];
+    }
     if(status == kCLAuthorizationStatusNotDetermined)
         [self.locationManager requestWhenInUseAuthorization];
     else
