@@ -1904,9 +1904,19 @@ void DWSIGNAL geo_pos_update_callback(DWPos *pos, void *data)
 
 int DWSIGNAL geo_start_button_callback(HWND window, void *data)
 {
-    dw_window_disable(geostartbutton);
-    dw_window_enable(geostopbutton);
-    dw_geo_connect(5000, DW_SIGNAL_FUNC(geo_pos_update_callback), DW_INT_TO_POINTER(100));
+    int rc = dw_geo_connect(5000, DW_SIGNAL_FUNC(geo_pos_update_callback), DW_INT_TO_POINTER(100));
+    if(rc == DW_ERROR_NONE)
+    {
+        dw_window_disable(geostartbutton);
+        dw_window_enable(geostopbutton);
+    }
+    else
+    {
+        if(rc == DW_ERROR_NON_INIT)
+            update_mle("No GeoLocation sensors available.\r\n", FALSE);
+        else
+            update_mle("Unable to start GeoLocation.\r\n", FALSE);
+    }
     return 0;
 }
 

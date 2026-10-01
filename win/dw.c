@@ -20,6 +20,7 @@
 #define _WIN32_IE 0x0500
 #define WINVER 0x500
 #endif
+#define COBJMACROS
 #include <winsock2.h>
 #include <windows.h>
 #include <windowsx.h>
@@ -248,6 +249,9 @@ HANDLE huxtheme = 0;
 /* Needed for Rich Edit controls */
 HANDLE hrichedit = 0;
 HANDLE hmsftedit = 0;
+#ifdef GEOLOCATION
+HANDLE hlocation = 0;
+#endif
 
 /*
  * MinGW Is missing a bunch of definitions
@@ -4717,6 +4721,11 @@ int API dw_init(int newthread, int argc, char *argv[])
    /* We need the version to check capability like up-down controls */
    _dwVersion = GetVersion();
    _dwComctlVer = _dw_get_dll_version(TEXT("comctl32.dll"));
+
+#ifdef GEOLOCATION
+    /* Dynamically load LocationAPI.dll so Windows 2000/XP doesn't crash on binary load */
+    hlocation = LoadLibrary(TEXT("LocationAPI.dll"));
+#endif
 
    /* We need to initialize dark mode, and thus the aero/theme subsystems before registering our window classes */
    if((huxtheme = LoadLibrary(TEXT("uxtheme"))))
@@ -12683,6 +12692,9 @@ void API dw_shutdown(void)
    FreeLibrary(hdwm);
 #endif
    FreeLibrary(huxtheme);
+#ifdef GEOLOCATION
+   FreeLibrary(hlocation);
+#endif
    DestroyWindow(_dw_tooltip);
 }
 
@@ -13453,6 +13465,105 @@ void API dw_print_cancel(HPRINT print)
         p->drawfunc = NULL;
 }
 
+#ifdef GEOLOCATION
+#include <locationapi.h>
+
+DEFINE_GUID(CLSID_Location, 0xE5B8E079, 0xEE6D, 0x4E33, 0xA4, 0x38, 0xC8, 0x7F, 0x2E, 0x95, 0x92, 0x54);
+DEFINE_GUID(IID_ILocation, 0xAB2ECE69, 0x56D9, 0x4F28, 0xB5, 0x25, 0xDE, 0x1B, 0x0E, 0xE4, 0x42, 0x37);
+DEFINE_GUID(IID_ILatLongReport, 0x7EDECAD7, 0x8EA4, 0x4F6B, 0xB8, 0xAC, 0xB8, 0xDF, 0x33, 0x9A, 0x24, 0xD4);
+DEFINE_GUID(IID_ILocationEvents, 0x16A9AABEL, 0x3BBE, 0x4D4F, 0x97, 0x9A, 0x01, 0x01, 0x2E, 0xB3, 0x9A, 0xA3);
+
+/* Callback variables */
+static void *_dw_geofunc = NULL;
+static void *_dw_geodata = NULL;
+
+static ILocation *_dw_pLocation = NULL;
+
+/* ILocationEvents implementation */
+typedef struct {
+    ILocationEventsVtbl *lpVtbl;
+    LONG refCount;
+} DWLocationEvents;
+
+static HRESULT STDMETHODCALLTYPE _DWEvents_QueryInterface(ILocationEvents *This, REFIID riid, void **ppv)
+{
+    if(IsEqualIID(riid, &IID_IUnknown) || IsEqualIID(riid, &IID_ILocationEvents))
+    {
+        *ppv = This;
+        This->lpVtbl->AddRef(This);
+        return S_OK;
+    }
+    *ppv = NULL;
+    return E_NOINTERFACE;
+}
+
+static ULONG STDMETHODCALLTYPE _DWEvents_AddRef(ILocationEvents *This)
+{
+    DWLocationEvents *pThis = (DWLocationEvents*)This;
+    return InterlockedIncrement(&pThis->refCount);
+}
+
+static ULONG STDMETHODCALLTYPE _DWEvents_Release(ILocationEvents *This)
+{
+    DWLocationEvents *pThis = (DWLocationEvents*)This;
+    LONG ref = InterlockedDecrement(&pThis->refCount);
+    if(ref == 0)
+    {
+        free(pThis);
+    }
+    return ref;
+}
+
+static HRESULT STDMETHODCALLTYPE _DWEvents_OnLocationChanged(ILocationEvents *This, 
+    REFIID reportType, ILocationReport *pLocationReport)
+{
+    if(_dw_geofunc && IsEqualIID(reportType, &IID_ILatLongReport))
+    {
+        ILatLongReport *pLatLong = NULL;
+        HRESULT hr = ILocationReport_QueryInterface(pLocationReport, &IID_ILatLongReport, (void**)&pLatLong);
+        if(SUCCEEDED(hr) && pLatLong)
+        {
+            void (*locationfunc)(DWPos *pos, void *data) = (void(*)(DWPos *, void *))_dw_geofunc;
+            DWPos pos = {0};
+            DOUBLE alt = 0.0;
+
+            ILatLongReport_GetLatitude(pLatLong, &pos.latitude);
+            ILatLongReport_GetLongitude(pLatLong, &pos.longitude);
+            ILatLongReport_GetErrorRadius(pLatLong, &pos.accuracy);
+
+            if(SUCCEEDED(ILatLongReport_GetAltitude(pLatLong, &alt)))
+            {
+                pos.altitude = alt;
+            }
+            pos.timestamp = time(NULL);
+
+            /* Fire framework signal */
+            locationfunc(&pos, _dw_geodata);
+
+            ILatLongReport_Release(pLatLong);
+        }
+    }
+    return S_OK;
+}
+
+static HRESULT STDMETHODCALLTYPE _DWEvents_OnStatusChanged(ILocationEvents *This, 
+    REFIID reportType, LOCATION_REPORT_STATUS status)
+{
+#ifdef DEBUG
+    dw_debug("Location status changed: %d\n", status);
+#endif
+    return S_OK;
+}
+
+static ILocationEventsVtbl _DWEvents_Vtbl = {
+    _DWEvents_QueryInterface,
+    _DWEvents_AddRef,
+    _DWEvents_Release,
+    _DWEvents_OnLocationChanged,
+    _DWEvents_OnStatusChanged
+};
+#endif
+
 /*
  * Add a periodic callback to the location service.
  * Parameters:
@@ -13462,6 +13573,64 @@ void API dw_print_cancel(HPRINT print)
  */
 int API dw_geo_connect(unsigned int interval_ms, void *sigfunc, void *data)
 {
+#ifdef GEOLOCATION
+    if(hlocation)
+    {
+        HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
+        DWLocationEvents *pEvents;
+        LOCATION_REPORT_STATUS status;
+
+        if(FAILED(hr) && hr != RPC_E_CHANGED_MODE)
+        {
+            return DW_ERROR_GENERAL;
+        }
+        
+        /* Create Location object */
+        hr = CoCreateInstance(&CLSID_Location, NULL, CLSCTX_INPROC_SERVER, 
+                              &IID_ILocation, (void**)&_dw_pLocation);
+        if(FAILED(hr))
+        {
+            return DW_ERROR_GENERAL;
+        }
+
+        /* Check status first */
+        hr = ILocation_GetReportStatus(_dw_pLocation, &IID_ILatLongReport, &status);
+
+        if(status == REPORT_NOT_SUPPORTED)
+        {
+            dw_debug("No location sensors available\n");
+            ILocation_Release(_dw_pLocation);
+            return DW_ERROR_NON_INIT;
+        }
+
+        /* Create event sink */
+        if(!(pEvents = (DWLocationEvents*)malloc(sizeof(DWLocationEvents))))
+        {
+            ILocation_Release(_dw_pLocation);
+            return DW_ERROR_GENERAL;
+        }
+        pEvents->lpVtbl = &_DWEvents_Vtbl;
+        pEvents->refCount = 1;
+
+        _dw_geofunc = sigfunc;
+        _dw_geodata = data;
+
+        /* Register for reports */
+        hr = ILocation_RegisterForReport(_dw_pLocation, (ILocationEvents*)pEvents, 
+                                         &IID_ILatLongReport, interval_ms);
+        if(FAILED(hr))
+        {
+            free(pEvents);
+            ILocation_Release(_dw_pLocation);
+            return DW_ERROR_GENERAL;
+        }
+
+        /* Release our reference (Location API holds its own) */
+        _DWEvents_Release((ILocationEvents*)pEvents);
+
+        return DW_ERROR_NONE;
+    }
+#endif
     return DW_ERROR_GENERAL;
 }
 
@@ -13472,6 +13641,19 @@ int API dw_geo_connect(unsigned int interval_ms, void *sigfunc, void *data)
  */
 int API dw_geo_disconnect(void *discfunc)
 {
+#ifdef GEOLOCATION
+    void (* disconnectfunc)(void *) = (void(*)(void *))discfunc;
+
+    if(_dw_pLocation)
+    {
+        ILocation_UnregisterForReport(_dw_pLocation, &IID_ILatLongReport);
+        ILocation_Release(_dw_pLocation);
+        if(disconnectfunc)
+            disconnectfunc(_dw_geodata);
+        _dw_pLocation = _dw_geodata = _dw_geofunc = NULL;
+        return DW_ERROR_NONE;
+    }
+#endif
     return DW_ERROR_GENERAL;
 }
 
@@ -14027,6 +14209,10 @@ int API dw_feature_get(DWFEATURE feature)
         case DW_FEATURE_TREE:
         case DW_FEATURE_WINDOW_PLACEMENT:
             return DW_FEATURE_ENABLED;
+#ifdef GEOLOCATION
+        case DW_FEATURE_GEOLOCATION:
+            return hlocation ? DW_FEATURE_ENABLED : DW_FEATURE_UNSUPPORTED;
+#endif
         case DW_FEATURE_RENDER_SAFE:
             return _dw_render_safe_mode;
 #if defined(BUILD_HTML) && defined(BUILD_EDGE)
@@ -14119,6 +14305,10 @@ int API dw_feature_set(DWFEATURE feature, int state)
         case DW_FEATURE_TREE:
         case DW_FEATURE_WINDOW_PLACEMENT:
             return DW_ERROR_GENERAL;
+#ifdef GEOLOCATION
+        case DW_FEATURE_GEOLOCATION:
+            return hlocation ? DW_ERROR_GENERAL : DW_FEATURE_UNSUPPORTED;
+#endif
 #if defined(BUILD_HTML) && defined(BUILD_EDGE)
         case DW_FEATURE_HTML_MESSAGE:
             return _DW_EDGE_DETECTED ? DW_ERROR_GENERAL : DW_FEATURE_UNSUPPORTED;
