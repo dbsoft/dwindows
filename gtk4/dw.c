@@ -465,6 +465,14 @@ static GList *_dw_dirty_list = NULL;
 
 #define _DW_RESOURCE_PATH "/org/dbsoft/dwindows/resources/"
 
+typedef enum {
+    GEO_SUPPORT_NONE = 0,
+    GEO_SUPPORT_GEOCLUE2,
+    GEO_SUPPORT_GEOCLUE1
+} DWGeoSupportTier;
+static DWGeoSupportTier _dw_geotier = GEO_SUPPORT_NONE;
+DWGeoSupportTier _dw_check_geolocation_support(void);
+
 /* GTK4 ListView support objects */
 #if GTK_CHECK_VERSION(4,10,0) && !defined(DW_INCLUDE_DEPRECATED)
 
@@ -2440,6 +2448,7 @@ int API dw_init(int newthread, int argc, char *argv[])
       g_signal_connect(_DWApp, "activate", G_CALLBACK(_dw_app_activate), NULL);
       g_application_activate(_DWApp);
    }
+   _dw_geotier = _dw_check_geolocation_support();
    return TRUE;
 }
 
@@ -13021,6 +13030,260 @@ void API dw_print_cancel(HPRINT print)
    gtk_print_operation_cancel(op);
 }
 
+DWGeoSupportTier _dw_check_geolocation_support(void)
+{
+    GDBusConnection *connection;
+    GError *error = NULL;
+    GVariant *result;
+    
+    /* Connect to the system bus where GeoClue services live */
+    connection = g_bus_get_sync(G_BUS_TYPE_SYSTEM, NULL, &error);
+    if (!connection)
+    {
+#ifdef DEBUG
+        dw_debug("Failed to connect to system D-Bus: %s", error->message);
+#endif
+        g_clear_error(&error);
+        return GEO_SUPPORT_NONE;
+    }
+
+    /* 1. Probe for GeoClue2 (Modern Tier) */
+    result = g_dbus_connection_call_sync(
+        connection,
+        "org.freedesktop.DBus",
+        "/org/freedesktop/DBus",
+        "org.freedesktop.DBus",
+        "NameHasOwner",
+        g_variant_new("(s)", "org.freedesktop.GeoClue2"),
+        G_VARIANT_TYPE("(b)"),
+        G_DBUS_CALL_FLAGS_NONE,
+        -1, NULL, &error
+    );
+
+    if(result)
+    {
+        gboolean has_owner;
+        g_variant_get(result, "(b)", &has_owner);
+        g_variant_unref(result);
+        if(has_owner)
+        {
+            g_object_unref(connection);
+            return GEO_SUPPORT_GEOCLUE2;
+        }
+    } g_clear_error(&error);
+
+    /* 2. Probe for GeoClue 1.x (Legacy Tier) */
+    result = g_dbus_connection_call_sync(
+        connection,
+        "org.freedesktop.DBus",
+        "/org/freedesktop/DBus",
+        "org.freedesktop.DBus",
+        "NameHasOwner",
+        g_variant_new("(s)", "org.freedesktop.Geoclue"),
+        G_VARIANT_TYPE("(b)"),
+        G_DBUS_CALL_FLAGS_NONE,
+        -1, NULL, &error
+    );
+
+    if(result)
+    {
+        gboolean has_owner;
+        g_variant_get(result, "(b)", &has_owner);
+        g_variant_unref(result);
+        if(has_owner)
+        {
+            g_object_unref(connection);
+            return GEO_SUPPORT_GEOCLUE1;
+        }
+    }
+    g_clear_error(&error);
+
+    g_object_unref(connection);
+    return GEO_SUPPORT_NONE;
+}
+
+static GDBusConnection *_dw_sys_bus = NULL;
+static gchar *_dw_client_path = NULL;
+static guint _dw_signal_sub_id = 0;
+static void *_dw_geofunc = NULL;
+static void *_dw_geodata = NULL;
+
+/* Accuracy levels defined by the GeoClue2 specification */
+typedef enum {
+    GCLUE_ACCURACY_LEVEL_NONE = 0,
+    GCLUE_ACCURACY_LEVEL_COUNTRY = 1,
+    GCLUE_ACCURACY_LEVEL_CITY = 2,
+    GCLUE_ACCURACY_LEVEL_NEIGHBORHOOD = 3,
+    GCLUE_ACCURACY_LEVEL_STREET = 5,
+    GCLUE_ACCURACY_LEVEL_EXACT = 8 // Uses GPS / precise hardware
+} GClueAccuracyLevel;
+
+/* Define GeoClue2's magic "Unknown" token for Altitude */
+#define GCLUE_UNKNOWN_ALTITUDE -1.7976931348623157e+308
+
+/* Callback triggered whenever coordinates change */
+static void _dw_on_location_updated(GDBusConnection *connection,
+                                const gchar *sender_name,
+                                const gchar *object_path,
+                                const gchar *interface_name,
+                                const gchar *signal_name,
+                                GVariant *parameters,
+                                gpointer user_data)
+{
+    const gchar *old_loc_path;
+    const gchar *new_loc_path;
+    
+    /* GeoClue2 passes (ObjectPath old_location, ObjectPath new_location) */
+    g_variant_get(parameters, "(&o&o)", &old_loc_path, &new_loc_path);
+    
+    /* Query the new Location object properties to get raw coordinates */
+    GError *error = NULL;
+    GVariant *props = g_dbus_connection_call_sync(
+        connection,
+        "org.freedesktop.GeoClue2",
+        new_loc_path,
+        "org.freedesktop.DBus.Properties",
+        "GetAll",
+        g_variant_new("(s)", "org.freedesktop.GeoClue2.Location"),
+        G_VARIANT_TYPE("(a{sv})"),
+        G_DBUS_CALL_FLAGS_NONE, -1, NULL, &error
+    );
+
+    if(props)
+    {
+        GVariant *dict;
+        g_variant_get(props, "(@a{sv})", &dict);
+        DWPos pos = {0};
+        void (*locationfunc)(DWPos *pos, void *data) = (void(*)(DWPos *, void *))_dw_geofunc;
+        guint64 tv_sec = 0;
+        guint64 tv_usec = 0;
+
+        GVariant *ts_variant = g_variant_lookup_value(dict, "Timestamp", G_VARIANT_TYPE("(tt)"));
+        if(ts_variant)
+        {
+    	    g_variant_get(ts_variant, "(tt)", &tv_sec, &tv_usec);
+    	    g_variant_unref(ts_variant);
+
+    	    /* Convert seconds to milliseconds, and round microseconds to the nearest millisecond */
+    	    pos.timestamp = ((long long)tv_sec * 1000LL) + ((long long)tv_usec / 1000LL);
+    	}
+    	else
+    	{
+        	    /* Fallback: If D-Bus timestamp is missing, generate a local system epoch timestamp */
+            pos.timestamp = (long long)g_get_real_time() / 1000LL; 
+    	}
+
+        g_variant_lookup(dict, "Latitude", "d", &pos.latitude);
+        g_variant_lookup(dict, "Longitude", "d", &pos.longitude);
+        g_variant_lookup(dict, "Altitude", "d", &pos.altitude);
+        g_variant_lookup(dict, "Accuracy", "d", &pos.accuracy);
+        
+        if(pos.altitude <= GCLUE_UNKNOWN_ALTITUDE)
+        	  pos.altitude = 0.0;
+
+        /* Fire framework signal */
+        if(locationfunc)
+          locationfunc(&pos, _dw_geodata);
+                      
+        g_variant_unref(dict);
+        g_variant_unref(props);
+    }
+    else
+    {
+#ifdef DEBUG
+        dw_debug("Failed to fetch location properties: %s", error->message);
+#endif
+        g_clear_error(&error);
+    }
+}
+
+/* Callback invoked once the Manager allocates our unique Client session path */
+static void _dw_on_client_created(GObject *source_object, GAsyncResult *res, gpointer user_data)
+{
+    GError *error = NULL;
+    GVariant *result = g_dbus_connection_call_finish(G_DBUS_CONNECTION(source_object), res, &error);
+    
+    if(!result)
+    {
+#ifdef DEBUG
+        dw_debug("Failed to obtain a GeoClue2 Client: %s", error->message);
+#endif
+        g_clear_error(&error);
+        return;
+    }
+    
+    g_variant_get(result, "(o)", &_dw_client_path);
+    g_variant_unref(result);
+#ifdef DEBUG
+    dw_debug("[GeoClue2] Session established at object path: %s\n", _dw_client_path);
+#endif
+
+    /* 1. Configure the client properties via standard D-Bus properties
+     * DesktopId is highly recommended so security agents can identify your app
+     */
+    g_dbus_connection_call_sync(
+        _dw_sys_bus, "org.freedesktop.GeoClue2", _dw_client_path, "org.freedesktop.DBus.Properties", "Set",
+        g_variant_new("(ssv)", "org.freedesktop.GeoClue2.Client", "DesktopId", g_variant_new_string("geoclue-where-am-i")),
+        NULL, G_DBUS_CALL_FLAGS_NONE, -1, NULL, NULL
+    );
+
+    /* Request the requested accuracy level */
+    g_dbus_connection_call_sync(
+        _dw_sys_bus, "org.freedesktop.GeoClue2", _dw_client_path, "org.freedesktop.DBus.Properties", "Set",
+        g_variant_new("(ssv)", "org.freedesktop.GeoClue2.Client", "RequestedAccuracyLevel", g_variant_new_uint32(GCLUE_ACCURACY_LEVEL_EXACT)),
+        NULL, G_DBUS_CALL_FLAGS_NONE, -1, NULL, NULL
+    );
+
+    /* 2. Subscribe to the LocationUpdated signal on our designated Client object */
+    _dw_signal_sub_id = g_dbus_connection_signal_subscribe(
+        _dw_sys_bus,
+        "org.freedesktop.GeoClue2",
+        "org.freedesktop.GeoClue2.Client",
+        "LocationUpdated",
+        _dw_client_path,
+        NULL,
+        G_DBUS_SIGNAL_FLAGS_NONE,
+        _dw_on_location_updated,
+        NULL, NULL
+    );
+
+    /* 3. Tell GeoClue2 to start sending tracking updates */
+    g_dbus_connection_call_sync(
+        _dw_sys_bus, "org.freedesktop.GeoClue2", _dw_client_path, "org.freedesktop.GeoClue2.Client", "Start",
+        NULL, NULL, G_DBUS_CALL_FLAGS_NONE, -1, NULL, NULL
+    );
+#ifdef DEBUG
+    dw_debug("[GeoClue2] Tracking started successfully.\n");
+#endif
+}
+
+void _dw_init_modern_geolocation(void)
+{
+    GError *error = NULL;
+    _dw_sys_bus = g_bus_get_sync(G_BUS_TYPE_SYSTEM, NULL, &error);
+    if(!_dw_sys_bus)
+    {
+        dw_debug("Could not open system bus: %s", error->message);
+        g_clear_error(&error);
+        return;
+    }
+
+    /* Request a unique Client path from the GeoClue2 Manager interface */
+    g_dbus_connection_call(
+        _dw_sys_bus,
+        "org.freedesktop.GeoClue2",
+        "/org/freedesktop/GeoClue2/Manager",
+        "org.freedesktop.GeoClue2.Manager",
+        "GetClient",
+        NULL,
+        G_VARIANT_TYPE("(o)"),
+        G_DBUS_CALL_FLAGS_NONE,
+        -1, NULL,
+        _dw_on_client_created,
+        NULL
+    );
+}
+
 /*
  * Add a periodic callback to the location service.
  * Parameters:
@@ -13030,7 +13293,14 @@ void API dw_print_cancel(HPRINT print)
  */
 int API dw_geo_connect(unsigned int interval_ms, void *sigfunc, void *data)
 {
-    return DW_ERROR_GENERAL;
+    _dw_geofunc = sigfunc;
+    _dw_geodata = data;
+
+    if(_dw_geotier == GEO_SUPPORT_GEOCLUE2)
+        _dw_init_modern_geolocation();
+    else
+        return DW_ERROR_GENERAL;
+    return DW_ERROR_NONE;
 }
 
 /*
@@ -13040,6 +13310,58 @@ int API dw_geo_connect(unsigned int interval_ms, void *sigfunc, void *data)
  */
 int API dw_geo_disconnect(void *discfunc)
 {
+    void (*disconnectfunc)(void *) = (void(*)(void *))discfunc;
+
+    if(_dw_geotier == GEO_SUPPORT_GEOCLUE2)
+    {
+        /* 1. Stop GeoClue2 tracking */
+        if(_dw_client_path && _dw_sys_bus)
+        {
+            GError *error = NULL;
+            g_dbus_connection_call_sync(
+                _dw_sys_bus, 
+                "org.freedesktop.GeoClue2", 
+                _dw_client_path, 
+                "org.freedesktop.GeoClue2.Client", 
+                "Stop",  /* Tell GeoClue2 to stop sending updates */
+                NULL, NULL, 
+                G_DBUS_CALL_FLAGS_NONE, -1, NULL, &error
+            );
+            
+            if(error)
+            {
+#ifdef DEBUG
+                dw_debug("Failed to stop GeoClue2 client: %s", error->message);
+#endif
+                g_clear_error(&error);
+            }
+        }
+
+        /* 2. Unsubscribe from the signal */
+        if(_dw_signal_sub_id && _dw_sys_bus)
+        {
+            g_dbus_connection_signal_unsubscribe(_dw_sys_bus, _dw_signal_sub_id);
+            _dw_signal_sub_id = 0;
+        }
+
+        /* 3. Call user disconnect callback */
+        if(disconnectfunc)
+            disconnectfunc(_dw_geodata);
+
+        /* 4. Clean up resources */
+        g_free(_dw_client_path);
+        _dw_client_path = NULL;
+        
+        /* Optional: close the bus connection if you're done with it */
+        if(_dw_sys_bus)
+        {
+            g_object_unref(_dw_sys_bus);
+            _dw_sys_bus = NULL;
+        }
+
+        _dw_geodata = _dw_geofunc = NULL;
+        return DW_ERROR_NONE;
+    }
     return DW_ERROR_GENERAL;
 }
 
@@ -13723,6 +14045,8 @@ int API dw_feature_get(DWFEATURE feature)
         case DW_FEATURE_TREE:
         case DW_FEATURE_RENDER_SAFE:
             return DW_FEATURE_ENABLED;
+        case DW_FEATURE_GEOLOCATION:
+            return _dw_geotier == GEO_SUPPORT_NONE ? DW_FEATURE_UNSUPPORTED : DW_FEATURE_ENABLED;    
         case DW_FEATURE_WINDOW_PLACEMENT:
             return dw_x11_check(DW_FEATURE_ENABLED, DW_FEATURE_UNSUPPORTED);
         default:
@@ -13759,6 +14083,8 @@ int API dw_feature_set(DWFEATURE feature, int state)
         case DW_FEATURE_TREE:
         case DW_FEATURE_RENDER_SAFE:
             return DW_ERROR_GENERAL;
+        case DW_FEATURE_GEOLOCATION:
+        	    return _dw_geotier == GEO_SUPPORT_NONE ? DW_FEATURE_UNSUPPORTED : DW_ERROR_GENERAL;    
         case DW_FEATURE_WINDOW_PLACEMENT:
             return dw_x11_check(DW_ERROR_GENERAL, DW_FEATURE_UNSUPPORTED);
         /* These features are supported and configurable */

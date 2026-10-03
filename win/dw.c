@@ -13598,7 +13598,9 @@ int API dw_geo_connect(unsigned int interval_ms, void *sigfunc, void *data)
 
         if(status == REPORT_NOT_SUPPORTED)
         {
+#ifdef DEBUG
             dw_debug("No location sensors available\n");
+#endif
             ILocation_Release(_dw_pLocation);
             return DW_ERROR_NON_INIT;
         }
