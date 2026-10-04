@@ -12320,7 +12320,7 @@ DWGeoSupportTier _dw_check_geolocation_support(void)
     GVariant *result;
     
     connection = g_bus_get_sync(G_BUS_TYPE_SYSTEM, NULL, &error);
-    if (!connection)
+    if(!connection)
     {
 #ifdef DEBUG
         dw_debug("Failed to connect to system D-Bus: %s\n", error ? error->message : "unknown");
@@ -12343,14 +12343,14 @@ DWGeoSupportTier _dw_check_geolocation_support(void)
         NULL, &error
     );
 
-    if (result)
+    if(result)
     {
         g_variant_unref(result);
         g_object_unref(connection);
         return GEO_SUPPORT_GEOCLUE2;
     }
 
-    if (error)
+    if(error)
     {
 #ifdef DEBUG
         dw_debug("GeoClue2 probe skipped/failed: %s\n", error->message);
@@ -12375,7 +12375,7 @@ DWGeoSupportTier _dw_check_geolocation_support(void)
         NULL, &error
     );
 
-    if (result)
+    if(result)
     {
         g_variant_unref(result);
         g_object_unref(connection);
@@ -12385,7 +12385,7 @@ DWGeoSupportTier _dw_check_geolocation_support(void)
         return GEO_SUPPORT_GEOCLUE1;
     }
 
-    if (error)
+    if(error)
     {
 #ifdef DEBUG
         dw_debug("GeoClue 1.x probe failed: %s\n", error->message);
@@ -12427,13 +12427,14 @@ static void _dw_on_location_updated(GDBusConnection *connection,
 {
     const gchar *old_loc_path;
     const gchar *new_loc_path;
-    
+    GError *error = NULL;
+    GVariant *props = NULL;
+
     /* GeoClue2 passes (ObjectPath old_location, ObjectPath new_location) */
     g_variant_get(parameters, "(&o&o)", &old_loc_path, &new_loc_path);
     
     /* Query the new Location object properties to get raw coordinates */
-    GError *error = NULL;
-    GVariant *props = g_dbus_connection_call_sync(
+    props = g_dbus_connection_call_sync(
         connection,
         "org.freedesktop.GeoClue2",
         new_loc_path,
@@ -12447,14 +12448,14 @@ static void _dw_on_location_updated(GDBusConnection *connection,
     if(props)
     {
         GVariant *dict;
-        g_variant_get(props, "(@a{sv})", &dict);
         DWPos pos = {0};
         void (*locationfunc)(DWPos *pos, void *data) = (void(*)(DWPos *, void *))_dw_geofunc;
         guint64 tv_sec = 0;
         guint64 tv_usec = 0;
+        GVariant *ts_variant = NULL;
 
-        GVariant *ts_variant = g_variant_lookup_value(dict, "Timestamp", G_VARIANT_TYPE("(tt)"));
-        if(ts_variant)
+        g_variant_get(props, "(@a{sv})", &dict);
+        if((ts_variant = g_variant_lookup_value(dict, "Timestamp", G_VARIANT_TYPE("(tt)"))))
         {
     	    g_variant_get(ts_variant, "(tt)", &tv_sec, &tv_usec);
     	    g_variant_unref(ts_variant);
@@ -12555,8 +12556,8 @@ static void _dw_on_client_created(GObject *source_object, GAsyncResult *res, gpo
 void _dw_init_modern_geolocation(void)
 {
     GError *error = NULL;
-    _dw_sys_bus = g_bus_get_sync(G_BUS_TYPE_SYSTEM, NULL, &error);
-    if(!_dw_sys_bus)
+
+    if(!(_dw_sys_bus = g_bus_get_sync(G_BUS_TYPE_SYSTEM, NULL, &error)))
     {
         dw_debug("Could not open system bus: %s", error->message);
         g_clear_error(&error);
