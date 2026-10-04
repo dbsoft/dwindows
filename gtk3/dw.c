@@ -12319,67 +12319,79 @@ DWGeoSupportTier _dw_check_geolocation_support(void)
     GError *error = NULL;
     GVariant *result;
     
-    /* Connect to the system bus where GeoClue services live */
     connection = g_bus_get_sync(G_BUS_TYPE_SYSTEM, NULL, &error);
     if (!connection)
     {
 #ifdef DEBUG
-        dw_debug("Failed to connect to system D-Bus: %s", error->message);
+        dw_debug("Failed to connect to system D-Bus: %s\n", error ? error->message : "unknown");
 #endif
-        g_clear_error(&error);
+        if (error) g_clear_error(&error);
         return GEO_SUPPORT_NONE;
     }
 
-    /* 1. Probe for GeoClue2 (Modern Tier) */
+    /* 1. Probe GeoClue2 */
     result = g_dbus_connection_call_sync(
         connection,
-        "org.freedesktop.DBus",
-        "/org/freedesktop/DBus",
-        "org.freedesktop.DBus",
-        "NameHasOwner",
-        g_variant_new("(s)", "org.freedesktop.GeoClue2"),
-        G_VARIANT_TYPE("(b)"),
+        "org.freedesktop.GeoClue2",
+        "/org/freedesktop/GeoClue2/Manager",
+        "org.freedesktop.DBus.Introspectable",
+        "Introspect",
+        NULL,
+        G_VARIANT_TYPE("(s)"),
         G_DBUS_CALL_FLAGS_NONE,
-        -1, NULL, &error
+        2000,
+        NULL, &error
     );
 
-    if(result)
+    if (result)
     {
-        gboolean has_owner;
-        g_variant_get(result, "(b)", &has_owner);
         g_variant_unref(result);
-        if(has_owner)
-        {
-            g_object_unref(connection);
-            return GEO_SUPPORT_GEOCLUE2;
-        }
-    } g_clear_error(&error);
-
-    /* 2. Probe for GeoClue 1.x (Legacy Tier) */
-    result = g_dbus_connection_call_sync(
-        connection,
-        "org.freedesktop.DBus",
-        "/org/freedesktop/DBus",
-        "org.freedesktop.DBus",
-        "NameHasOwner",
-        g_variant_new("(s)", "org.freedesktop.Geoclue"),
-        G_VARIANT_TYPE("(b)"),
-        G_DBUS_CALL_FLAGS_NONE,
-        -1, NULL, &error
-    );
-
-    if(result)
-    {
-        gboolean has_owner;
-        g_variant_get(result, "(b)", &has_owner);
-        g_variant_unref(result);
-        if(has_owner)
-        {
-            g_object_unref(connection);
-            return GEO_SUPPORT_GEOCLUE1;
-        }
+        g_object_unref(connection);
+        return GEO_SUPPORT_GEOCLUE2;
     }
-    g_clear_error(&error);
+
+    if (error)
+    {
+#ifdef DEBUG
+        dw_debug("GeoClue2 probe skipped/failed: %s\n", error->message);
+#endif
+        g_clear_error(&error);
+    }
+
+    g_object_unref(connection);
+    connection = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, &error);
+
+    /* 2. Probe GeoClue 1.x Master interface */
+    result = g_dbus_connection_call_sync(
+        connection,
+        "org.freedesktop.Geoclue.Master",
+        "/org/freedesktop/Geoclue/Master",
+        "org.freedesktop.DBus.Introspectable",
+        "Introspect",
+        NULL,
+        G_VARIANT_TYPE("(s)"),
+        G_DBUS_CALL_FLAGS_NONE,
+        2000,
+        NULL, &error
+    );
+
+    if (result)
+    {
+        g_variant_unref(result);
+        g_object_unref(connection);
+#ifdef DEBUG
+        dw_debug("Detected GeoClue 1.x support.\n");
+#endif
+        return GEO_SUPPORT_GEOCLUE1;
+    }
+
+    if (error)
+    {
+#ifdef DEBUG
+        dw_debug("GeoClue 1.x probe failed: %s\n", error->message);
+#endif
+        g_clear_error(&error);
+    }
 
     g_object_unref(connection);
     return GEO_SUPPORT_NONE;
@@ -12567,6 +12579,163 @@ void _dw_init_modern_geolocation(void)
     );
 }
 
+/* Callback triggered whenever GeoClue 1 updates coordinates */
+static void _dw_on_legacy_location_updated(GDBusConnection *connection,
+                                        const gchar *sender_name,
+                                        const gchar *object_path,
+                                        const gchar *interface_name,
+                                        const gchar *signal_name,
+                                        GVariant *parameters,
+                                        gpointer user_data)
+{
+    void (*locationfunc)(DWPos *pos, void *data) = (void(*)(DWPos *, void *))_dw_geofunc;
+    DWPos pos = {0};
+    /* Extract using child values */
+    GVariant *val;
+    gint32 fields = 0, timestamp = 0;
+    gdouble latitude = 0.0, longitude = 0.0, altitude = 0.0;
+
+    val = g_variant_get_child_value(parameters, 0);
+    fields = g_variant_get_int32(val);
+    g_variant_unref(val);
+    
+    val = g_variant_get_child_value(parameters, 1);
+    timestamp = g_variant_get_int32(val);
+    g_variant_unref(val);
+    
+    val = g_variant_get_child_value(parameters, 2);
+    latitude = g_variant_get_double(val);
+    g_variant_unref(val);
+    
+    val = g_variant_get_child_value(parameters, 3);
+    longitude = g_variant_get_double(val);
+    g_variant_unref(val);
+    
+    val = g_variant_get_child_value(parameters, 4);
+    altitude = g_variant_get_double(val);
+    g_variant_unref(val);
+
+    pos.timestamp = (timestamp > 0) ? ((long long)timestamp * 1000LL) : ((long long)g_get_real_time() / 1000LL);
+    pos.latitude = latitude;
+    pos.longitude = longitude;
+    pos.altitude = altitude;
+    pos.accuracy = 0.0;
+
+    if (locationfunc && (fields & 1))
+        locationfunc(&pos, _dw_geodata);
+}
+
+void _dw_geo_legacy_process_and_subscribe(GVariant *result, const char *service, const char *path)
+{
+    GError *error = NULL;
+    GVariant *start = NULL;
+
+    _dw_client_path = g_strdup(path);
+
+    /* Trigger an immediate calback */
+    _dw_on_legacy_location_updated(NULL, NULL, NULL, NULL, NULL, result, NULL);
+    g_variant_unref(result);
+
+#ifdef DEBUG
+    dw_debug("[GeoClue1] Using %s: (continuous mode)\n", service);
+#endif
+
+    /* Try PositionStart for continuous updates (optional - works without it on some providers) */
+    start = g_dbus_connection_call_sync(
+        _dw_sys_bus, service, path,
+        "org.freedesktop.Geoclue.Position",
+        "PositionStart",
+        NULL, NULL,
+        G_DBUS_CALL_FLAGS_NONE, -1, NULL, &error
+    );
+    
+    if(start)
+    {
+        g_variant_unref(start);
+#ifdef DEBUG
+        dw_debug("[GeoClue1] PositionStart enabled continuous updates\n");
+#endif
+    }
+    else
+    {
+        if(error) g_clear_error(&error);
+        /* PositionStart not required - signal subscription is sufficient */
+    }
+
+    /* Subscribe to PositionChanged for continuous updates (like iOS/Android location delegates) */
+    _dw_signal_sub_id = g_dbus_connection_signal_subscribe(
+        _dw_sys_bus,
+        service,
+        "org.freedesktop.Geoclue.Position",
+        "PositionChanged",
+        path,
+        NULL,
+        G_DBUS_SIGNAL_FLAGS_NONE,
+        _dw_on_legacy_location_updated,
+        NULL, NULL
+    );
+}
+
+void _dw_init_legacy_geolocation(void)
+{
+    /* Try GPS/hardware providers first, then network-based */
+    const char *providers[][2] = {
+        /* Hardware/GPS providers (preferred for continuous updates) */
+        {"org.freedesktop.Geoclue.Providers.Gps", "/org/freedesktop/Geoclue/Providers/Gps"},
+        {"org.freedesktop.Geoclue.Providers.Gpsd", "/org/freedesktop/Geoclue/Providers/Gpsd"},
+        {"org.freedesktop.Geoclue.Providers.Gypsy", "/org/freedesktop/Geoclue/Providers/Gypsy"},
+        {"org.freedesktop.Geoclue.Providers.Cell", "/org/freedesktop/Geoclue/Providers/Cell"},
+        
+        /* Network-based providers (fallback) */
+        {"org.freedesktop.Geoclue.Providers.UbuntuGeoIP", "/org/freedesktop/Geoclue/Providers/UbuntuGeoIP"},
+        {"org.freedesktop.Geoclue.Providers.Hostip", "/org/freedesktop/Geoclue/Providers/Hostip"},
+        {"org.freedesktop.Geoclue.Providers.GeoIP", "/org/freedesktop/Geoclue/Providers/GeoIP"},
+        {NULL, NULL}
+    };
+    GError *error = NULL;
+    int i;
+
+    if(!(_dw_sys_bus = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, &error)))
+    {
+#ifdef DEBUG
+        dw_debug("Could not open session bus for GeoClue 1: %s\n", error->message);
+#endif
+        g_clear_error(&error);
+        return;
+    }
+
+    for(i = 0; providers[i][0]; i++)
+    {
+        const char *service = providers[i][0];
+        const char *path = providers[i][1];
+        error = NULL;
+        
+        /* Try to get initial position */
+        GVariant *result = g_dbus_connection_call_sync(
+            _dw_sys_bus, service, path,
+            "org.freedesktop.Geoclue.Position",
+            "GetPosition",
+            NULL,
+            G_VARIANT_TYPE("(iiddd(idd))"),
+            G_DBUS_CALL_FLAGS_NONE, -1, NULL, &error
+        );
+
+        if(!result)
+        {
+            if (error) g_clear_error(&error);
+            continue;  /* Try next provider */
+        }
+
+        /* Success - process result and setup continuous updates */
+        _dw_geo_legacy_process_and_subscribe(result, service, path);
+        return;  /* Done */
+    }
+
+#ifdef DEBUG
+    dw_debug("No GeoClue1 providers available\n");
+#endif
+}
+
 /*
  * Add a periodic callback to the location service.
  * Parameters:
@@ -12581,8 +12750,13 @@ int API dw_geo_connect(unsigned int interval_ms, void *sigfunc, void *data)
 
     if(_dw_geotier == GEO_SUPPORT_GEOCLUE2)
         _dw_init_modern_geolocation();
+    else if(_dw_geotier == GEO_SUPPORT_GEOCLUE1)
+        _dw_init_legacy_geolocation();
     else
+    {
+        _dw_geodata = _dw_geofunc = NULL;	
         return DW_ERROR_GENERAL;
+    }
     return DW_ERROR_NONE;
 }
 
@@ -12595,10 +12769,10 @@ int API dw_geo_disconnect(void *discfunc)
 {
     void (*disconnectfunc)(void *) = (void(*)(void *))discfunc;
 
-    if(_dw_geotier == GEO_SUPPORT_GEOCLUE2)
+    if(_dw_geotier != GEO_SUPPORT_NONE)
     {
         /* 1. Stop GeoClue2 tracking */
-        if(_dw_client_path && _dw_sys_bus)
+        if(_dw_geotier == GEO_SUPPORT_GEOCLUE2 && _dw_client_path && _dw_sys_bus)
         {
             GError *error = NULL;
             g_dbus_connection_call_sync(
@@ -12632,8 +12806,11 @@ int API dw_geo_disconnect(void *discfunc)
             disconnectfunc(_dw_geodata);
 
         /* 4. Clean up resources */
-        g_free(_dw_client_path);
-        _dw_client_path = NULL;
+        if(_dw_client_path)
+        {
+            g_free(_dw_client_path);
+            _dw_client_path = NULL;
+        }
         
         /* Optional: close the bus connection if you're done with it */
         if(_dw_sys_bus)
@@ -13361,7 +13538,7 @@ int API dw_feature_set(DWFEATURE feature, int state)
         case DW_FEATURE_TREE:
             return DW_ERROR_GENERAL;
         case DW_FEATURE_GEOLOCATION:
-        	    return _dw_geotier == GEO_SUPPORT_NONE ? DW_FEATURE_UNSUPPORTED : DW_ERROR_GENERAL;  
+            return _dw_geotier == GEO_SUPPORT_NONE ? DW_FEATURE_UNSUPPORTED : DW_ERROR_GENERAL;  
 #ifdef GDK_WINDOWING_X11
         case DW_FEATURE_WINDOW_PLACEMENT:
         {
