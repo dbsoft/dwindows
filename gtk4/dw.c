@@ -467,8 +467,7 @@ static GList *_dw_dirty_list = NULL;
 
 typedef enum {
     GEO_SUPPORT_NONE = 0,
-    GEO_SUPPORT_GEOCLUE2,
-    GEO_SUPPORT_GEOCLUE1
+    GEO_SUPPORT_GEOCLUE2
 } DWGeoSupportTier;
 static DWGeoSupportTier _dw_geotier = GEO_SUPPORT_NONE;
 DWGeoSupportTier _dw_check_geolocation_support(void);
@@ -13071,32 +13070,6 @@ DWGeoSupportTier _dw_check_geolocation_support(void)
             return GEO_SUPPORT_GEOCLUE2;
         }
     } g_clear_error(&error);
-
-    /* 2. Probe for GeoClue 1.x (Legacy Tier) */
-    result = g_dbus_connection_call_sync(
-        connection,
-        "org.freedesktop.DBus",
-        "/org/freedesktop/DBus",
-        "org.freedesktop.DBus",
-        "NameHasOwner",
-        g_variant_new("(s)", "org.freedesktop.Geoclue"),
-        G_VARIANT_TYPE("(b)"),
-        G_DBUS_CALL_FLAGS_NONE,
-        -1, NULL, &error
-    );
-
-    if(result)
-    {
-        gboolean has_owner;
-        g_variant_get(result, "(b)", &has_owner);
-        g_variant_unref(result);
-        if(has_owner)
-        {
-            g_object_unref(connection);
-            return GEO_SUPPORT_GEOCLUE1;
-        }
-    }
-    g_clear_error(&error);
 
     g_object_unref(connection);
     return GEO_SUPPORT_NONE;
