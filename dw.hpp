@@ -2260,6 +2260,64 @@ protected:
     }
 };
 
+class Geo
+{
+private:
+#ifdef DW_LAMBDA
+    std::function<void(DWPos *)> _ConnectGeo;
+#endif
+    void (*_ConnectGeoOld)(DWPos *, Geo *);
+    static void _OnPosChanged(DWPos *pos, void *data) {
+        Geo *classptr = reinterpret_cast<Geo *>(data);
+#ifdef DW_LAMBDA
+        if(classptr->_ConnectGeo) {
+            classptr->_ConnectGeo(pos);
+            return;
+        }
+#endif
+        if(classptr->_ConnectGeoOld) {
+            classptr->_ConnectGeoOld(pos, classptr);
+            return;
+        }
+        classptr->OnPosChanged(pos);
+    }
+public:
+    // Constructors
+    Geo() {
+        _ConnectGeoOld = 0;
+#ifdef DW_LAMBDA
+        _ConnectGeo = 0;
+#endif
+    }
+#ifdef DW_LAMBDA
+    Geo(std::function<void(DWPos *)> userfunc) {
+        _ConnectGeo = userfunc;
+        _ConnectGeoOld = 0;
+    }
+#endif
+    Geo(void (*userfunc)(DWPos *, Geo *)) {
+        _ConnectGeoOld = userfunc;
+#ifdef DW_LAMBDA
+        _ConnectGeo = 0;
+#endif
+    }
+    // Destructor
+    virtual ~Geo() { dw_geo_disconnect(NULL); }
+
+    // User functions
+    void Disconnect() { dw_geo_disconnect(NULL); }
+    int Connect(unsigned int interval) {
+        return dw_geo_connect(interval, DW_SIGNAL_FUNC(_OnPosChanged), this);
+    }
+protected:
+    // Our signal handler functions to be overriden...
+    // If they are not overridden and an event is generated, remove the unused handler
+    virtual void OnPosChanged(DWPos *pos) {
+        dw_geo_disconnect(NULL);
+        delete this;
+    }
+};
+
 class Notification final : public Clickable
 {
 public:

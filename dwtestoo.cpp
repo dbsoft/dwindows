@@ -1738,8 +1738,20 @@ private:
         DW::Box *tmpbox = new DW::Box(DW_VERT, 0);
         notebookbox->PackStart(tmpbox, 0, 0, TRUE, TRUE, 1);
 
+        DW::Box *hbox = new DW::Box(DW_HORZ, 0);
+        tmpbox->PackStart(hbox, 0, 0, TRUE, FALSE, 0);
+
         DW::Button *startbutton = new DW::Button("Start Threads");
-        tmpbox->PackStart(startbutton, FALSE, FALSE, 0);
+        hbox->PackStart(startbutton, FALSE, FALSE, 0);
+
+        hbox->PackStart(0, 1, 1, TRUE, FALSE, 0);
+
+        DW::Button *geostartbutton = new DW::Button("Start Geolocation");
+        hbox->PackStart(geostartbutton, FALSE, FALSE, 0);
+
+        DW::Button *geostopbutton = new DW::Button("Stop Geolocation");
+        geostopbutton->Disable();
+        hbox->PackStart(geostopbutton, FALSE, FALSE, 0);
 
         // Create the base threading components
         DW::MLE *threadmle = new DW::MLE();
@@ -1778,6 +1790,41 @@ private:
             });
             mutex->Unlock();
             return FALSE;
+        });
+
+        DW::Geo *geo = new DW::Geo([this, threadmle](DWPos *pos)
+        {
+            UpdateMLE(threadmle, "GeoLocation Position Lat: " + std::to_string(pos->latitude) + ", Lon: " + 
+                      std::to_string(pos->longitude) +" Alt: " + std::to_string(pos->altitude) +
+                      " Acc: " + std::to_string(pos->accuracy) + "\r\n", DW_NULL);
+        });
+
+        geostartbutton->ConnectClicked([this, threadmle, geo, geostartbutton, geostopbutton]() -> int
+        {
+            int rc = geo->Connect(5000);
+
+            if(rc == DW_ERROR_NONE)
+            {
+                geostartbutton->Disable();
+                geostopbutton->Enable();
+            }
+            else
+            {
+                if(rc == DW_ERROR_NON_INIT)
+                    UpdateMLE(threadmle, "No GeoLocation sensors available.\r\n", DW_NULL);
+                else
+                    UpdateMLE(threadmle, "Unable to start GeoLocation.\r\n", DW_NULL);
+            }
+            return 0;
+
+        });
+
+        geostopbutton->ConnectClicked([geo, geostartbutton, geostopbutton]() -> int
+        {
+            geostopbutton->Disable();
+            geostartbutton->Enable();
+            geo->Disconnect();
+            return 0;
         });
     }
 public:
