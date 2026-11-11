@@ -53,20 +53,17 @@ import androidx.appcompat.widget.AppCompatEditText
 import androidx.collection.SimpleArrayMap
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.constraintlayout.widget.ConstraintSet
-import androidx.constraintlayout.widget.Placeholder
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.location.LocationCompat
-import androidx.core.location.altitude.AltitudeConverterCompat
 import androidx.core.view.MenuCompat
 import androidx.core.view.setMargins
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
-import com.google.android.gms.location.*
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayout.OnTabSelectedListener
 import com.google.android.material.tabs.TabLayoutMediator
@@ -78,6 +75,241 @@ import java.util.concurrent.locks.ReentrantLock
 import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
 import kotlin.math.*
+import android.content.Context
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.Rect
+import android.view.Gravity
+import android.view.View
+import android.view.ViewGroup
+import android.view.ViewGroup.LayoutParams.MATCH_PARENT
+import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+import android.widget.LinearLayout
+import androidx.core.location.altitude.AltitudeConverterCompat
+import com.google.android.gms.location.*
+
+/* DW pixel sizes are device pixels on the other platforms, but a phone is
+ * 2-4x density. Set to false for literal pixel-for-pixel parity. */
+internal const val DW_SCALE_LAYOUT_PX = true
+private const val DW_FCF_FULLSCREEN = 1 shl 2
+
+internal fun Context.scalePx(v: Int): Int =
+    if (DW_SCALE_LAYOUT_PX && v > 0)
+        (v * resources.displayMetrics.density + 0.5f).toInt()
+    else v
+
+internal fun View.scalePx(v: Int): Int = context.scalePx(v)
+
+internal class BoxCell(
+    val view: View,
+    var w: Int,          // minimum width, grows to the larger of request and natural
+    var h: Int,          // minimum height
+    val hsize: Boolean,  // expand horizontally (DW hsize)
+    val vsize: Boolean,  // expand vertically   (DW vsize)
+    val pad: Int
+)
+
+internal class DWBox(context: Context) : LinearLayout(context) {
+    val cells = ArrayList<BoxCell>()
+
+    var vertical = false
+        set(v) {
+            field = v
+            orientation = if (v) VERTICAL else HORIZONTAL
+        }
+
+    var boxPad = 0
+
+    /* Group box support. RadioGroup is not used as the base class because it
+     * would fight the overridden measure/layout; exclusivity is handled here. */
+    var isGroupBox = false
+    var title: String? = null
+
+    private val density get() = resources.displayMetrics.density
+    private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        textSize = 12f * resources.displayMetrics.scaledDensity
+    }
+    private val framePaint = Paint().apply {
+        style = Paint.Style.STROKE
+        strokeWidth = density
+        color = 0xFF808080.toInt()
+    }
+    private val frame = Rect()
+
+    private val frameInset get() = if (isGroupBox) (2 * density).toInt() else 0
+    private val titleInset
+        get() = if (isGroupBox && !title.isNullOrEmpty())
+            (textPaint.textSize + 6 * density).toInt() else 0
+
+    val padL get() = boxPad + frameInset
+    val padT get() = boxPad + frameInset + titleInset
+    val padR get() = boxPad + frameInset
+    val padB get() = boxPad + frameInset
+
+    init {
+        if (isGroupBox) setWillNotDraw(false)
+    }
+
+    /* Called from the layout pass so the protected View method stays in scope. */
+    internal fun applyMeasured(w: Int, h: Int) = setMeasuredDimension(w, h)
+
+    fun pack(v: View, index: Int, w: Int, h: Int, hsize: Int, vsize: Int, pad: Int) {
+        val cell = BoxCell(v, scalePx(w).coerceAtLeast(0), scalePx(h).coerceAtLeast(0),
+                           hsize != 0, vsize != 0, scalePx(pad))
+        val i = if (index < 0 || index > cells.size) cells.size else index
+        cells.add(i, cell)
+        v.layoutParams = LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT)
+        if (isGroupBox && v is RadioButton) {
+            v.setOnCheckedChangeListener { btn, checked ->
+                if (checked)
+                    cells.forEach { (it.view as? RadioButton)?.takeIf { o -> o !== btn }?.isChecked = false }
+            }
+        }
+        addView(v, i.coerceAtMost(childCount))
+        requestLayout()
+    }
+
+    fun unpack(v: View) {
+        cells.removeAll { it.view === v }
+        removeView(v)
+        requestLayout()
+    }
+
+    override fun onViewRemoved(child: View) {
+        super.onViewRemoved(child)
+        cells.removeAll { it.view === child }
+    }
+
+    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) =
+        DWBoxLayout.measure(this, widthMeasureSpec, heightMeasureSpec)
+
+    override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) =
+        DWBoxLayout.layout(this, l, t, r, b)
+
+    override fun generateDefaultLayoutParams() =
+        LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT)
+
+    override fun getBaseline(): Int =
+        if (childCount > 0) padT + getChildAt(0).baseline else -1
+
+    override fun onDraw(canvas: Canvas) {
+        super.onDraw(canvas)
+        if (!isGroupBox) return
+        val i = frameInset
+        frame.set(i, i + titleInset, width - i, height - i)
+        canvas.drawRect(frame, framePaint)
+        if (!title.isNullOrEmpty())
+            canvas.drawText(title!!, padL.toFloat(), titleInset + textPaint.textSize * 0.5f, textPaint)
+    }
+}
+
+internal object DWBoxLayout {
+    private val UNSPEC = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+
+    /* Pass 1. Never skip GONE children: DW keeps a hidden widget's box slot. */
+    private fun natural(box: DWBox, c: BoxCell) {
+        c.view.measure(UNSPEC, UNSPEC)
+        if (c.view.measuredWidth > c.w) c.w = c.view.measuredWidth
+        if (c.view.measuredHeight > c.h) c.h = c.view.measuredHeight
+    }
+
+    fun measure(box: DWBox, widthSpec: Int, heightSpec: Int) {
+        val cells = box.cells
+        val x = View.MeasureSpec.getSize(widthSpec)
+        val y = View.MeasureSpec.getSize(heightSpec)
+        val constrained = View.MeasureSpec.getMode(widthSpec) != View.MeasureSpec.UNSPECIFIED &&
+                          View.MeasureSpec.getMode(heightSpec) != View.MeasureSpec.UNSPECIFIED
+
+        if (!constrained) {
+            /* Mirrors _dw_do_resize()'s "if(x != 0 && y != 0)" guard:
+             * no distribution, just report the natural size. */
+            var mw = box.padL + box.padR
+            var mh = box.padT + box.padB
+            for (c in cells) {
+                natural(box, c)
+                val ip = c.pad * 2
+                if (box.vertical) {
+                    mh += c.h + ip
+                    if (c.w + ip > mw - box.padL - box.padR) mw = c.w + ip + box.padL + box.padR
+                } else {
+                    mw += c.w + ip
+                    if (c.h + ip > mh - box.padT - box.padB) mh = c.h + ip + box.padT + box.padB
+                }
+            }
+            box.applyMeasured(View.resolveSize(mw, widthSpec), View.resolveSize(mh, heightSpec))
+            return
+        }
+
+        var uxmax = 0
+        var uymax = 0
+        var upxmax = 0
+        var upymax = 0
+        var minw = box.padL + box.padR
+        var minh = box.padT + box.padB
+        var usedx = box.padL + box.padR
+        var usedy = box.padT + box.padB
+
+        for (c in cells) {
+            natural(box, c)
+            val ip = c.pad * 2
+            val iw = c.w + ip
+            val ih = c.h + ip
+            if (box.vertical) {
+                if (iw > uxmax) uxmax = iw
+                if (!c.hsize) { if (iw > upxmax) upxmax = iw } else if (ip > upxmax) upxmax = ip
+                minh += ih
+                usedy += if (!c.vsize) ih else ip
+            } else {
+                if (ih > uymax) uymax = ih
+                if (!c.vsize) { if (ih > upymax) upymax = ih } else if (ip > upymax) upymax = ip
+                minw += iw
+                usedx += if (!c.hsize) iw else ip
+            }
+        }
+        minw += uxmax; minh += uymax
+        usedx += upxmax; usedy += upymax
+
+        /* Pass 2. Extra space goes only to expanding items, in proportion to
+         * their minimum size, exactly as the other platforms do. */
+        for (c in cells) {
+            var w = c.w
+            var h = c.h
+            val ip = c.pad * 2
+
+            if (c.hsize) {
+                if (!box.vertical) {
+                    val expandablex = minw - usedx
+                    if (expandablex > 0) w = (w.toFloat() / expandablex * (x - usedx)).toInt()
+                } else
+                    w = x - (ip + box.padL + box.padR)
+            }
+            if (c.vsize) {
+                if (box.vertical) {
+                    val expandabley = minh - usedy
+                    if (expandabley > 0) h = (h.toFloat() / expandabley * (y - usedy)).toInt()
+                } else
+                    h = y - (ip + box.padT + box.padB)
+            }
+            if (w < 0) w = 0
+            if (h < 0) h = 0
+            c.view.measure(View.MeasureSpec.makeMeasureSpec(w, View.MeasureSpec.EXACTLY),
+                           View.MeasureSpec.makeMeasureSpec(h, View.MeasureSpec.EXACTLY))
+        }
+        box.applyMeasured(View.resolveSize(minw, widthSpec), View.resolveSize(minh, heightSpec))
+    }
+
+    fun layout(box: DWBox, l: Int, t: Int, r: Int, b: Int) {
+        var cx = box.padL
+        var cy = box.padT
+        for (c in box.cells) {
+            val ip = c.pad * 2
+            val w = c.view.measuredWidth
+            val h = c.view.measuredHeight
+            c.view.layout(cx + c.pad, cy + c.pad, cx + c.pad + w, cy + c.pad + h)
+            if (!box.vertical) cx += w + ip else cy += h + ip
+        }
+    }
+}
 
 class DWGeoManager(private val context: Context) {
     private val fusedLocationClient: FusedLocationProviderClient =
@@ -1943,6 +2175,9 @@ class DWRender(context: Context) : View(context) {
     var button: Int = 1
 
     fun createBitmap() {
+        // A box that is over-full can hand us a 0 dimension
+        if(width <= 0 || height <= 0)
+            return
         // If we don't have a backing bitmap, or its size in invalid
         if(backingBitmap == null ||
             backingBitmap!!.width != this.width || backingBitmap!!.height != this.height) {
@@ -1959,7 +2194,7 @@ class DWRender(context: Context) : View(context) {
 
     override fun onSizeChanged(width: Int, height: Int, oldWidth: Int, oldHeight: Int) {
         super.onSizeChanged(width, height, oldWidth, oldHeight)
-        if(backingBitmap != null &&
+        if(width > 0 && height > 0 && backingBitmap != null &&
             (backingBitmap!!.width != width || backingBitmap!!.height != height)) {
             backingBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         }
@@ -2896,6 +3131,9 @@ class DWindows : AppCompatActivity() {
                 eventHandlerInt(window, DWEvent.CONFIGURE, width, height, 0, 0)
             }
         }
+
+        // Windowed/fullscreen mode may have changed, re-apply window sizing
+        (windowLayout?.adapter as? DWTabViewPagerAdapter)?.viewList?.forEach { applyWindowSize(it) }
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -2953,6 +3191,15 @@ class DWindows : AppCompatActivity() {
         }
     }
 
+    override fun onMultiWindowModeChanged(isInMultiWindowMode: Boolean, newConfig: Configuration) {
+        super.onMultiWindowModeChanged(isInMultiWindowMode, newConfig)
+
+        // Windowed/fullscreen mode changed, re-evaluate window sizing
+        (windowLayout?.adapter as? DWTabViewPagerAdapter)?.viewList?.forEach { applyWindowSize(it) }
+    }
+
+
+
     // These are the Android calls to actually create the UI...
     // forwarded from the C Dynamic Windows API
     
@@ -3005,7 +3252,7 @@ class DWindows : AppCompatActivity() {
         if(windowLayout != null) {
             waitOnUiThread {
                 val adapter: DWTabViewPagerAdapter = windowLayout!!.adapter as DWTabViewPagerAdapter
-                val index = adapter.viewList.indexOf(location)
+                val index = indexOfWindow(location)
 
                 if (index != -1) {
                     menuBar = DWMenu()
@@ -3050,7 +3297,7 @@ class DWindows : AppCompatActivity() {
     {
         menu.children.clear()
         runOnUiThread {
-            menu.menu!!.clear()
+            menu.menu?.clear()
             invalidateOptionsMenu()
         }
     }
@@ -3061,7 +3308,7 @@ class DWindows : AppCompatActivity() {
             if(menuitem.id == cid) {
                 menu.children.remove(menuitem)
                 runOnUiThread {
-                    menu.menu!!.removeItem(menuitem.id)
+                    menu.menu?.removeItem(menuitem.id)
                     invalidateOptionsMenu()
                 }
             }
@@ -3112,44 +3359,81 @@ class DWindows : AppCompatActivity() {
     }
 
     fun windowNew(title: String, style: Int): LinearLayout? {
-        var window: LinearLayout? = null
+        var window: DWBox? = null
 
-        if(windowLayout != null) {
+        if (windowLayout != null) {
             waitOnUiThread {
-                val dataArrayMap = SimpleArrayMap<String, Long>()
-                val adapter: DWTabViewPagerAdapter = windowLayout!!.adapter as DWTabViewPagerAdapter
-
+                val adapter = windowLayout!!.adapter as DWTabViewPagerAdapter
                 setContentView(windowLayout)
 
-                window = LinearLayout(this)
-                window!!.visibility = View.GONE
-                window!!.tag = dataArrayMap
-                window!!.layoutParams =
-                    LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.MATCH_PARENT,
-                        LinearLayout.LayoutParams.MATCH_PARENT
-                    )
+                // The pager forces EXACTLY on its pages, so a fixed window size
+                // needs a wrapper the content can be centred inside of.
+                val page = FrameLayout(this).apply {
+                    layoutParams = ViewGroup.LayoutParams(MATCH_PARENT, MATCH_PARENT)
+                }
+                window = DWBox(this).apply {
+                    vertical = true
+                    visibility = View.GONE
+                    // Seed the style so windowSetSize() can tell windowed from fullscreen
+                    tag = SimpleArrayMap<String, Long>().apply { put("_dw_style", style.toLong()) }
+                    layoutParams = FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT)
+                }
+                page.addView(window)
 
-                // Update our window list
-                adapter.viewList.add(window!!)
+                adapter.viewList.add(page)
                 windowTitles.add(title)
                 windowMenuBars.add(null)
                 windowStyles.add(style)
                 windowDefault.add(null)
 
-                // If this is our first/only window...
-                // We can set stuff immediately
                 if (adapter.viewList.count() == 1) {
                     this.title = title
                     windowLayout!!.setCurrentItem(0, false)
-                    if((windowStyles[0] and 2) != 2) {
-                        supportActionBar?.hide()
-                    }
+                    if ((windowStyles[0] and 2) != 2) supportActionBar?.hide()
                 }
                 adapter.notifyDataSetChanged()
             }
         }
         return window
+    }
+
+    /* Page that hosts a window's content box. */
+    private fun windowPage(window: View): View = (window.parent as? FrameLayout) ?: window
+
+    /* Android and iOS hand the app the full screen by default. A requested size
+     * only means anything when the OS is running us in a freeform/windowed task. */
+    private fun isWindowedMode(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return false
+        return try {
+            Activity::class.java.getMethod("isInFreeformWindowMode").invoke(this) as Boolean
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    fun windowSetSize(window: View, width: Int, height: Int) {
+        waitOnUiThread {
+            windowSetData(window, "_dw_size",
+                (width.toLong() and 0xFFFF) or (height.toLong() shl 16))
+            applyWindowSize(window)
+        }
+    }
+
+    private fun applyWindowSize(window: View) {
+        val page = window.parent as? FrameLayout ?: return
+        val packed = windowGetData(window, "_dw_size")
+        val reqW = (packed and 0xFFFF).toInt()
+        val reqH = ((packed shr 16) and 0xFFFF).toInt()
+        val style = windowGetData(window, "_dw_style").toInt()
+
+        /* Fullscreen unless the OS is running a windowed task, or the app forced
+         * fullscreen via DW_FCF_FULLSCREEN */
+        val honourSize = isWindowedMode() && (style and DW_FCF_FULLSCREEN) == 0
+        val w = if (honourSize && reqW > 0) reqW else ViewGroup.LayoutParams.MATCH_PARENT
+        val h = if (honourSize && reqH > 0) reqH else ViewGroup.LayoutParams.MATCH_PARENT
+
+        window.layoutParams = FrameLayout.LayoutParams(w, h, Gravity.TOP or Gravity.START)
+        page.requestLayout()
     }
 
     fun windowSetFocus(window: View)
@@ -3171,10 +3455,28 @@ class DWindows : AppCompatActivity() {
         }
     }
 
+    /* Page that hosts a window's content box */
+    private fun pageOf(window: View): FrameLayout? = window.parent as? FrameLayout
+
+    /* Index of a window in the pager, from its content handle */
+    private fun indexOfWindow(window: View): Int {
+        val page = pageOf(window) ?: return -1
+        return (windowLayout?.adapter as? DWTabViewPagerAdapter)?.viewList?.indexOf(page) ?: -1
+    }
+
     fun windowSetStyle(window: Any, style: Int, mask: Int)
     {
         // TODO: Need to handle menu items and others
         waitOnUiThread {
+            // Windows only: widget styles (DW_DT_*, DW_BS_*) share bit 2 with
+            // DW_FCF_FULLSCREEN, so merging those into a window's style would
+            // toggle the flag spuriously.
+            if (window is View && indexOfWindow(window) != -1) {
+                val current = windowGetData(window, "_dw_style").toInt()
+                windowSetData(window, "_dw_style",
+                    ((current and mask.inv()) or (style and mask)).toLong())
+                applyWindowSize(window)
+            }
             if (window is TextView && window !is EditText) {
                 val ourmask = (Gravity.HORIZONTAL_GRAVITY_MASK or Gravity.VERTICAL_GRAVITY_MASK) and mask
 
@@ -3252,23 +3554,18 @@ class DWindows : AppCompatActivity() {
         }
     }
 
-    fun windowGetPreferredSize(window: View): Long
-    {
+    fun windowGetPreferredSize(window: View): Long {
         var retval: Long = 0
-
         waitOnUiThread {
-            window.measure(0, 0)
-            val width = window.measuredWidth
-            val height = window.measuredHeight
-            retval = width.toLong() or (height.toLong() shl 32)
-            if(window is SeekBar) {
-                val slider = window as SeekBar
-
-                // If the widget is rotated, swap width and height
-                if(slider.rotation == 270F || slider.rotation == 90F) {
-                    retval = height.toLong() or (width.toLong() shl 32)
-                }
-            }
+            window.measure(View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+                           View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
+            val w = window.measuredWidth
+            val h = window.measuredHeight
+            retval = if (window is SeekBar &&
+                         (window.rotation == 270F || window.rotation == 90F))
+                h.toLong() or (w.toLong() shl 32)
+            else
+                w.toLong() or (h.toLong() shl 32)
         }
         return retval
     }
@@ -3649,45 +3946,28 @@ class DWindows : AppCompatActivity() {
     }
 
     fun boxNew(type: Int, pad: Int): LinearLayout? {
-        var box: LinearLayout? = null
+        var box: DWBox? = null
         waitOnUiThread {
-            box = LinearLayout(this)
-            val dataArrayMap = SimpleArrayMap<String, Long>()
-
-            box!!.tag = dataArrayMap
-            box!!.layoutParams =
-                LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-                )
-            if (type > 0) {
-                box!!.orientation = LinearLayout.VERTICAL
-            } else {
-                box!!.orientation = LinearLayout.HORIZONTAL
+            box = DWBox(this).apply {
+                vertical = type > 0
+                boxPad = scalePx(pad)
+                tag = SimpleArrayMap<String, Long>()
             }
-            box!!.setPadding(pad, pad, pad, pad)
         }
         return box
     }
 
     fun groupBoxNew(type: Int, pad: Int, title: String?): LinearLayout? {
-        var box: LinearLayout? = null
+        var box: DWBox? = null
         waitOnUiThread {
-            box = RadioGroup(this)
-            val dataArrayMap = SimpleArrayMap<String, Long>()
-
-            box!!.tag = dataArrayMap
-            box!!.layoutParams =
-                LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-                )
-            if (type > 0) {
-                box!!.orientation = LinearLayout.VERTICAL
-            } else {
-                box!!.orientation = LinearLayout.HORIZONTAL
+            box = DWBox(this).apply {
+                vertical = type > 0
+                isGroupBox = true
+                this.title = title
+                setWillNotDraw(false)
+                boxPad = scalePx(pad)
+                tag = SimpleArrayMap<String, Long>()
             }
-            box!!.setPadding(pad, pad, pad, pad)
         }
         return box
     }
@@ -3696,27 +3976,24 @@ class DWindows : AppCompatActivity() {
         var scrollBox: ScrollView? = null
 
         waitOnUiThread {
-            val box = LinearLayout(this)
-            scrollBox = ScrollView(this)
-            val dataArrayMap = SimpleArrayMap<String, Long>()
-
-            scrollBox!!.tag = dataArrayMap
-            box.layoutParams =
-                LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    LinearLayout.LayoutParams.MATCH_PARENT
-                )
-            if (type > 0) {
-                box.orientation = LinearLayout.VERTICAL
-            } else {
-                box.orientation = LinearLayout.HORIZONTAL
+            val sv = ScrollView(this)
+            val box = DWBox(this).apply {
+                vertical = type > 0
+                boxPad = scalePx(pad)
+                layoutParams = ViewGroup.LayoutParams(MATCH_PARENT, MATCH_PARENT)
             }
-            box.setPadding(pad, pad, pad, pad)
-            // Add a pointer back to the ScrollView
-            box.tag = scrollBox
-            scrollBox!!.addView(box)
+            sv.tag = SimpleArrayMap<String, Long>()
+            sv.addView(box)
+            scrollBox = sv
         }
         return scrollBox
+    }
+
+    private fun resolveBox(v: View?): DWBox? = when (v) {
+        is DWBox -> v
+        is ScrollView -> v.getChildAt(0) as? DWBox
+        is HorizontalScrollView -> v.getChildAt(0) as? DWBox
+        else -> null
     }
 
     fun scrollBoxGetPos(scrollBox: ScrollView, orient: Int): Int {
@@ -3747,205 +4024,26 @@ class DWindows : AppCompatActivity() {
         return retval
     }
 
-    // Update the layoutParams of a box after a change
-    private fun boxUpdate(box: LinearLayout)
-    {
-        val parent = box.parent
-
-        if(parent is LinearLayout) {
-            val params = box.layoutParams as LinearLayout.LayoutParams
-
-            if(parent.orientation == LinearLayout.VERTICAL) {
-                if(params.height == 0) {
-                    box.measure(0, 0)
-                    val calch = box.measuredHeight
-
-                    if(calch > 0) {
-                        params.weight = calch.toFloat()
-                    }
-                }
-            } else {
-                if(params.width == 0) {
-                    box.measure(0, 0)
-                    val calcw = box.measuredWidth
-
-                    if(calcw > 0) {
-                        params.weight = calcw.toFloat()
-                    }
-                }
-            }
-        }
-    }
-
-    fun boxPack(
-        boxview: View,
-        packitem: View?,
-        index: Int,
-        width: Int,
-        height: Int,
-        hsize: Int,
-        vsize: Int,
-        pad: Int
-    ) {
+    fun boxPack(boxview: View, packitem: View?, index: Int,
+                width: Int, height: Int, hsize: Int, vsize: Int, pad: Int) {
         waitOnUiThread {
-            var w: Int = LinearLayout.LayoutParams.WRAP_CONTENT
-            var h: Int = LinearLayout.LayoutParams.WRAP_CONTENT
-            var box: LinearLayout? = null
-            var item: View? = packitem
-
-            // We can't pack nothing, so create an empty placeholder to pack
-            if(item == null) {
-                item = Placeholder(this)
-                item.emptyVisibility = View.VISIBLE
-            }
-
-            // Handle scrollboxes by pulling the LinearLayout
-            // out of the ScrollView to pack into
-            if (boxview is LinearLayout) {
-                box = boxview
-            } else if (boxview is ScrollView) {
-                val sv: ScrollView = boxview
-
-                if (sv.getChildAt(0) is LinearLayout) {
-                    box = sv.getChildAt(0) as LinearLayout
-                }
-            }
-
-            if (box != null) {
-                var weight = 1F
-
-                // If it is a box, match parent based on direction
-                if ((item is LinearLayout) || (item is ScrollView)) {
-                    item.measure(0, 0)
-                    if (box.orientation == LinearLayout.VERTICAL) {
-                        if (hsize != 0) {
-                            w = LinearLayout.LayoutParams.MATCH_PARENT
-                        }
-                        if (vsize != 0) {
-                            val calch = item.measuredHeight
-
-                            if(calch > 0) {
-                                weight = calch.toFloat()
-                            } else {
-                                weight = 1F
-                            }
-                            h = 0
-                        }
-                    } else {
-                        if (vsize != 0) {
-                            h = LinearLayout.LayoutParams.MATCH_PARENT
-                        }
-                        if (hsize != 0) {
-                            val calcw = item.measuredWidth
-
-                            if(calcw > 0) {
-                                weight = calcw.toFloat()
-                            } else {
-                                weight = 1F
-                            }
-                            w = 0
-                        }
-                    }
-                // If it isn't a box... set or calculate the size as needed
-                } else {
-                    if(width != -1 || height != -1) {
-                        item.measure(0, 0)
-                    }
-                    if(hsize == 0) {
-                        if (width > 0) {
-                            w = width
-                        }
-                    } else {
-                        if (box.orientation == LinearLayout.VERTICAL) {
-                            w = LinearLayout.LayoutParams.MATCH_PARENT
-                        } else {
-                            if (width > 0) {
-                                weight = width.toFloat()
-                            } else if (width == -1) {
-                                val newwidth = item.getMeasuredWidth()
-
-                                if (newwidth > 0) {
-                                    weight = newwidth.toFloat()
-                                }
-                            }
-                        }
-                    }
-                    if(vsize == 0) {
-                        if (height > 0) {
-                            h = height
-                        }
-                    } else {
-                        if (box.orientation == LinearLayout.HORIZONTAL) {
-                            h = LinearLayout.LayoutParams.MATCH_PARENT
-                        } else {
-                            if (height > 0) {
-                                weight = height.toFloat()
-                            } else if (height == -1) {
-                                val newheight = item.getMeasuredHeight()
-
-                                if (newheight > 0) {
-                                    weight = newheight.toFloat()
-                                }
-                            }
-                        }
-                    }
-                }
-
-                val params: LinearLayout.LayoutParams = LinearLayout.LayoutParams(w, h)
-
-                // Handle expandable items by giving them a weight...
-                // in the direction of the box.
-                if (box.orientation == LinearLayout.VERTICAL) {
-                    if (vsize != 0 && weight > 0F) {
-                        params.weight = weight
-                        params.height = 0
-                    }
-                } else {
-                    if (hsize != 0 && weight > 0F) {
-                        params.weight = weight
-                        params.width = 0
-                    }
-                }
-                // Gravity needs to match the expandable settings
-                val grav: Int = Gravity.CLIP_HORIZONTAL or Gravity.CLIP_VERTICAL
-                if (hsize != 0 && vsize != 0) {
-                    params.gravity = Gravity.FILL or grav
-                } else if (hsize != 0) {
-                    params.gravity = Gravity.FILL_HORIZONTAL or grav
-                } else if (vsize != 0) {
-                    params.gravity = Gravity.FILL_VERTICAL or grav
-                }
-                // Finally add the padding
-                if (pad > 0) {
-                    params.setMargins(pad, pad, pad, pad)
-                }
-                item.layoutParams = params
-                // If we are out of bounds, pass -1 to add to the end
-                if(index >= box.childCount) {
-                    box.addView(item, -1)
-                } else {
-                    box.addView(item, index)
-                }
-                boxUpdate(box)
-            }
+            val box = resolveBox(boxview) ?: return@waitOnUiThread
+            if (packitem === boxview) return@waitOnUiThread   // GTK's "box and item are the same" guard
+            box.pack(packitem ?: Space(this), index, width, height, hsize, vsize, pad)
         }
     }
 
     fun boxUnpack(item: View) {
-        waitOnUiThread {
-            val box: LinearLayout = item.parent as LinearLayout
-            box.removeView(item)
-            boxUpdate(box)
-        }
+        waitOnUiThread { (item.parent as? DWBox)?.unpack(item) }
     }
 
-    fun boxUnpackAtIndex(box: LinearLayout, index: Int): View? {
+    fun boxUnpackAtIndex(boxview: View, index: Int): View? {
         var item: View? = null
-
         waitOnUiThread {
+            val box = resolveBox(boxview) ?: return@waitOnUiThread
+            if (index < 0 || index >= box.childCount) return@waitOnUiThread
             item = box.getChildAt(index)
-            box.removeView(item)
-            boxUpdate(box)
+            box.unpack(item!!)
         }
         return item
     }
@@ -6297,7 +6395,7 @@ class DWindows : AppCompatActivity() {
 
             if(srcp != null) {
                 bitmap = srcp
-            } else if(srcr != null) {
+            } else if(srcr != null && srcr.width > 0 && srcr.height > 0) {
                 bitmap = Bitmap.createBitmap(srcr.layoutParams.width,
                                              srcr.layoutParams.height, Bitmap.Config.ARGB_8888)
                 val c = Canvas(bitmap)

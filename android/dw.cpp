@@ -1701,6 +1701,12 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
 {
     JNIEnv *env;
 
+    /*
+     * If you try and pack an item into itself VERY bad things can happen. Lets be safe!
+     */
+    if(box == item)
+        return;
+    
     if(box && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
         // First get the class that contains the method you need to call
@@ -1756,8 +1762,7 @@ HWND API dw_box_unpack_at_index(HWND box, int index)
         jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
         // Get the method that you want to call
         jmethodID boxUnpackAtIndex = env->GetMethodID(clazz, "boxUnpackAtIndex",
-                                                      "(Landroid/widget/LinearLayout;I)Landroid/view/View;");
-        // Call the method on the object
+                                                      "(Landroid/view/View;I)Landroid/view/View;");        // Call the method on the object
         retval = _dw_jni_check_result(env, env->CallObjectMethod(_dw_obj, boxUnpackAtIndex, box, index), _DW_REFERENCE_WEAK);
     }
     return retval;
@@ -6569,7 +6574,18 @@ int API dw_window_lower(HWND handle)
  */
 void API dw_window_set_size(HWND handle, ULONG width, ULONG height)
 {
-    /* Not possible on Android */
+    JNIEnv *env;
+
+    if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        jmethodID windowSetSize = env->GetMethodID(clazz, "windowSetSize", "(Landroid/view/View;II)V");
+        if(windowSetSize)
+        {
+            env->CallVoidMethod(_dw_obj, windowSetSize, handle, (jint)width, (jint)height);
+            _dw_jni_check_exception(env);
+        }
+    }
 }
 
 /*
@@ -6647,7 +6663,8 @@ void API dw_window_set_pos(HWND handle, LONG x, LONG y)
  */
 void API dw_window_set_pos_size(HWND handle, LONG x, LONG y, ULONG width, ULONG height)
 {
-    /* This is not possible on Android */
+    /* x/y are not addressable on Android; size is */
+    dw_window_set_size(handle, width, height);
 }
 
 /*
