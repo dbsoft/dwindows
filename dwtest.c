@@ -2252,7 +2252,7 @@ int dwmain(int argc, char *argv[])
 
 #ifdef DW_MOBILE
     /* Enable multi-line container display on Mobile platforms */
-    dw_feature_set(DW_FEATURE_CONTAINER_MODE, DW_CONTAINER_MODE_MULTI);
+    dw_feature_set(DW_FEATURE_CONTAINER_MODE, DW_CONTAINER_MODE_EXTRA);
 #endif
 
     /* Initialize the Dynamic Windows engine */

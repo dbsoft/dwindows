@@ -314,6 +314,22 @@ static void _dw_attach_window(UIWindow *window)
 static void _dw_attach_window(UIWindow *window) { (void)window; }
 #endif
 
+/* iOS 26+ applies a scroll edge effect (blur/refraction) to every scroll
+ * view, which washes out the first and last rows of DW's scrollers.
+ */
+#if defined(__IPHONE_OS_VERSION_MAX_ALLOWED) && __IPHONE_OS_VERSION_MAX_ALLOWED >= 260000
+static void _dw_disable_edge_effects(UIScrollView *scrollview)
+{
+    if(@available(iOS 26.0, *))
+    {
+        [[scrollview topEdgeEffect] setHidden:YES];
+        [[scrollview bottomEdgeEffect] setHidden:YES];
+    }
+}
+#else
+static void _dw_disable_edge_effects(UIScrollView *scrollview) { (void)scrollview; }
+#endif
+
 /* Create a default colors for a thread */
 void _dw_init_colors(void)
 {
@@ -889,6 +905,7 @@ API_AVAILABLE(ios(13.0))
 -(void)updateMenu;
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
+-(void)dismissKeyboard:(id)sender;
 @end
 
 @implementation DWWindow
@@ -951,6 +968,7 @@ API_AVAILABLE(ios(13.0))
 }
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
+-(void)dismissKeyboard:(id)sender { [self endEditing:YES]; }
 @end
 
 @interface DWImage : NSObject
@@ -2564,20 +2582,112 @@ BOOL _dw_is_dark(void)
 -(void)dealloc { UserData *root = userdata; _dw_remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
+#define _DW_EXTRA_COLUMN_PAD 6.0
+#define _DW_EXTRA_MIN_COLUMN_WIDTH 16.0
+
+static CGFloat _dw_column_text_width(NSString *text, UIFont *font)
+{
+    if(![text length])
+        return 0.0;
+    if(!font)
+        font = [UIFont systemFontOfSize:16];
+    return ceil([text sizeWithAttributes:@{NSFontAttributeName: font}].width) + _DW_EXTRA_COLUMN_PAD;
+}
+
+static CGFloat _dw_column_object_width(id object, UIFont *font)
+{
+    if([object isKindOfClass:[NSString class]])
+        return _dw_column_text_width(object, font);
+    if([object isKindOfClass:[UIImage class]])
+        return [object size].width + _DW_EXTRA_COLUMN_PAD;
+    return 0.0;
+}
+
+@class DWTableViewCell;
+
+/* Subclass for a Container/List type */
+@interface DWContainer : UITableView <UITableViewDataSource,UITableViewDelegate>
+{
+    void *userdata;
+    NSMutableArray *tvcols;
+    NSMutableArray *data;
+    NSMutableArray *types;
+    NSPointerArray *titles;
+    NSPointerArray *rowdatas;
+    UIColor *fgcolor, *oddcolor, *evencolor;
+    unsigned long dw_oddcolor, dw_evencolor;
+    unsigned long _DW_COLOR_ROW_ODD, _DW_COLOR_ROW_EVEN;
+    int iLastAddPoint, iLastQueryPoint;
+    int filesystem;
+    NSTimeInterval lastClick;
+    NSInteger lastClickRow;
+    NSMutableArray *columnWidths;
+    NSMutableDictionary *explicitWidths;
+    CGFloat iconWidth;
+    CGFloat lastLayoutWidth;
+    BOOL inLayoutPass;
+    BOOL widthsDirty;
+}
+-(NSInteger)tableView:(UITableView *)aTable numberOfRowsInSection:(NSInteger)section;
+-(UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath;
+-(void)tableView:(UITableView*)tableView willDisplayCell:(UITableViewCell*)cell forRowAtIndexPath:(NSIndexPath*)indexPath;
+-(UIContextMenuConfiguration *)tableView:(UITableView *)tableView contextMenuConfigurationForRowAtIndexPath:(NSIndexPath *)indexPath point:(CGPoint)point;
+-(void)addColumn:(NSString *)input andType:(int)type;
+-(NSString *)getColumn:(int)col;
+-(void *)userdata;
+-(void)setUserdata:(void *)input;
+-(void)setFilesystem:(int)input;
+-(int)filesystem;
+-(int)addRow:(DWTableViewCell *)input;
+-(int)addRows:(int)number;
+-(void)editCell:(id)input at:(int)row;
+-(void)removeRow:(int)row;
+-(void)setRow:(int)row title:(const char *)input;
+-(void *)getRowTitle:(int)row;
+-(id)getRow:(int)row;
+-(NSMutableArray *)getColumns;
+-(int)cellType:(int)col;
+-(int)lastAddPoint;
+-(int)lastQueryPoint;
+-(void)setLastQueryPoint:(int)input;
+-(void)clear;
+-(void)setup;
+-(CGSize)getsize;
+-(void)setForegroundColor:(UIColor *)input;
+-(void)setNeedsColumnWidths;
+-(void)recalculateColumnWidths;
+-(CGFloat)widthForColumn:(int)column;
+-(void)setWidth:(CGFloat)width forColumn:(int)column;
+-(CGFloat)iconWidth;
+@end
+
 /* Subclass UITableViewCell so we can support multiple columns...
  * Enabled via the DW_FEATURE_CONTAINER_MODE feature setting.
  */
 @interface DWTableViewCell : UITableViewCell
 {
     NSMutableArray *columndata;
+    NSMutableArray *columnviews;
     UIStackView *stack;
     UILabel *label;
     UIImageView *image;
+    NSArray *leadingConstraints;
+    DWContainer *container;
 }
 -(void)setColumnData:(NSMutableArray *)input;
 -(NSMutableArray *)columnData;
 -(UIImageView *)image;
 -(UILabel *)label;
+-(void)setColumnTextColor:(UIColor *)color;
+-(void)setContainer:(DWContainer *)input;
+-(void)setUsesManualLayout:(BOOL)manual;
+-(void)buildColumnViews;
+-(void)teardownColumnViews;
+-(void)layoutMulti;
+-(void)layoutColumns;
+-(int)placeColumnsForWidth:(CGFloat)width xs:(CGFloat *)xs ws:(CGFloat *)ws lines:(int *)lines;
+-(CGFloat)leadingWidth;
+-(CGFloat)heightForWidth:(CGFloat)width;
 -(void)columnClicked:(id)sender;
 @end
 
@@ -2601,7 +2711,7 @@ BOOL _dw_is_dark(void)
     /* Let's use the default margins */
     UILayoutGuide *g = [[self contentView] layoutMarginsGuide];
 
-    [NSLayoutConstraint activateConstraints:@[
+    leadingConstraints = [[NSArray alloc] initWithObjects:
         /* Constrain label Top/Leading/Trailing to content margins guide */
         [image.topAnchor constraintEqualToAnchor:g.topAnchor constant:0.0],
         [image.leadingAnchor constraintEqualToAnchor:g.leadingAnchor constant:0.0],
@@ -2616,11 +2726,299 @@ BOOL _dw_is_dark(void)
         [stack.leadingAnchor constraintEqualToAnchor:g.leadingAnchor constant:0.0],
         [stack.bottomAnchor constraintEqualToAnchor:g.bottomAnchor constant:0.0],
         /* No Height, because we'll use the arranged subviews heights */
-    ]];
+        nil];
+    [NSLayoutConstraint activateConstraints:leadingConstraints];
     return self;
 }
 -(UILabel *)label { return label; }
 -(UIImageView *)image { return image; }
+-(void)setColumnTextColor:(UIColor *)color
+{
+    [label setTextColor:color];
+
+    /* Column 0 is the cell label, the rest are buttons (MULTI) or labels
+     * (EXTRA). labelColor is dynamic, so this also survives a dark mode
+     * switch without being reapplied.
+     */
+    for(id view in [stack arrangedSubviews])
+    {
+        if([view isMemberOfClass:[UIButton class]])
+        {
+            [view setTitleColor:color forState:UIControlStateNormal];
+            [view setTitleColor:[UIColor secondaryLabelColor] forState:UIControlStateHighlighted];
+        }
+    }
+    for(id view in columnviews)
+    {
+        if([view isKindOfClass:[UILabel class]])
+            [view setTextColor:color];
+    }
+}
+-(void)setContainer:(DWContainer *)input
+{
+    container = input;
+    [container setNeedsColumnWidths];
+}
+-(void)setUsesManualLayout:(BOOL)manual
+{
+    /* The leading icon and text are constraint driven; manual layout needs
+     * to own their frames or clipping widths get reset on the next pass.
+     */
+    if(manual)
+    {
+        [NSLayoutConstraint deactivateConstraints:leadingConstraints];
+        [image setTranslatesAutoresizingMaskIntoConstraints:YES];
+        [label setTranslatesAutoresizingMaskIntoConstraints:YES];
+        [label setNumberOfLines:1];
+        [label setLineBreakMode:NSLineBreakByClipping];
+        [label setClipsToBounds:YES];
+    }
+    else
+    {
+        [image setTranslatesAutoresizingMaskIntoConstraints:NO];
+        [label setTranslatesAutoresizingMaskIntoConstraints:NO];
+        [label setNumberOfLines:1];
+        [label setLineBreakMode:NSLineBreakByTruncatingTail];
+        [label setClipsToBounds:NO];
+        [NSLayoutConstraint activateConstraints:leadingConstraints];
+    }
+}
+-(void)teardownColumnViews
+{
+    for(id view in columnviews)
+        [view removeFromSuperview];
+    [columnviews removeAllObjects];
+}
+-(void)buildColumnViews
+{
+    NSUInteger count = [columndata count];
+
+    if(!columnviews)
+        columnviews = [[NSMutableArray alloc] init];
+    [self teardownColumnViews];
+
+    /* Column 0 is the leading icon and text, it always needs a slot even
+     * when the caller never wrote a column 0 entry (filesystem mode).
+     */
+    if(count < 1)
+        count = 1;
+
+    for(NSUInteger z = 0; z < count; z++)
+    {
+        id object = z < [columndata count] ? [columndata objectAtIndex:z] : nil;
+        UIView *view = nil;
+
+        if([object isKindOfClass:[UIImage class]])
+        {
+            UIImageView *icon = [[UIImageView alloc] initWithFrame:CGRectZero];
+            [icon setImage:object];
+            [icon setContentMode:UIViewContentModeScaleAspectFit];
+            [icon setClipsToBounds:YES];
+            view = icon;
+        }
+        else
+        {
+            UILabel *column = [[UILabel alloc] initWithFrame:CGRectZero];
+            [column setNumberOfLines:1];
+            [column setLineBreakMode:NSLineBreakByClipping];
+            [column setClipsToBounds:YES];
+            [column setFont:[[self label] font]];
+            if([object isKindOfClass:[NSString class]])
+                [column setText:object];
+            view = column;
+        }
+        [view setHidden:([object isKindOfClass:[NSString class]] ||
+                         [object isKindOfClass:[UIImage class]]) ? NO : YES];
+        [[self contentView] addSubview:view];
+        [columnviews addObject:view];
+        [view release];
+    }
+}
+-(CGFloat)leadingWidth
+{
+    CGFloat width = 0.0;
+    UIImage *icon = [image image];
+
+    if(icon && ![image isHidden])
+        width += [icon size].width + 4.0;
+    width += _dw_column_text_width([label text], [label font]);
+    return width;
+}
+/* Places every column for the given width. Nothing is drawn here so
+ * heightForWidth: can use the exact same math. Every column keeps its slot
+ * even when its view is hidden, so rows stay aligned and wrap identically.
+ */
+-(int)placeColumnsForWidth:(CGFloat)width xs:(CGFloat *)xs ws:(CGFloat *)ws lines:(int *)lines
+{
+    NSUInteger ncols = [columnviews count];
+    CGFloat lead = [container widthForColumn:0];
+    CGFloat x = 0.0;
+    int line = 0;
+
+    if(ncols < 1)
+        ncols = 1;
+
+    /* Column 0 is the leading icon plus text and has to be container wide,
+     * otherwise a row with a short name shifts every column after it.
+     */
+    if(lead < [self leadingWidth])
+        lead = [self leadingWidth];
+    if(lead < _DW_EXTRA_MIN_COLUMN_WIDTH)
+        lead = _DW_EXTRA_MIN_COLUMN_WIDTH;
+
+    for(NSUInteger z = 0; z < ncols; z++)
+    {
+        CGFloat w = z == 0 ? lead : [container widthForColumn:(int)z];
+
+        if(w < _DW_EXTRA_MIN_COLUMN_WIDTH)
+            w = _DW_EXTRA_MIN_COLUMN_WIDTH;
+        if(x + w > width && x > 0.0)
+        {
+            line++;
+            x = 0.0;
+        }
+        if(x + w > width)
+            w = width - x;
+        xs[z] = x;
+        ws[z] = w;
+        lines[z] = line;
+        x += w + _DW_EXTRA_COLUMN_PAD;
+    }
+
+    /* Hand any spare room on a line back to that line's columns. Without
+     * this the result is pixel identical at every width wider than the
+     * columns themselves, which is what made rotation look inert.
+     */
+    for(int l = 0; l <= line; l++)
+    {
+        NSUInteger first = ncols, last = 0;
+        CGFloat sum = 0.0, edge;
+
+        for(NSUInteger z = 0; z < ncols; z++)
+        {
+            if(lines[z] != l)
+                continue;
+            if(first == ncols)
+                first = z;
+            last = z;
+            sum += ws[z];
+        }
+        if(first == ncols || sum <= 0.0)
+            continue;
+
+        edge = xs[last] + ws[last];
+        if(edge >= width)
+            continue;
+
+        for(NSUInteger z = first; z <= last; z++)
+            ws[z] += (width - edge) * (ws[z] / sum);
+
+        edge = xs[first];
+        for(NSUInteger z = first; z <= last; z++)
+        {
+            xs[z] = edge;
+            edge += ws[z] + _DW_EXTRA_COLUMN_PAD;
+        }
+    }
+    return line + 1;
+}
+-(void)layoutColumns
+{
+    CGSize size = [[self contentView] bounds].size;
+    UIFont *font = [label font];
+    NSUInteger ncols = [columnviews count];
+    CGFloat lineHeight = ceil([font lineHeight]);
+    CGFloat *xs = NULL, *ws = NULL;
+    int *lines = NULL;
+
+    /* Mid-transition passes report a zero or near-zero width; laying out
+     * against it clamps everything to nothing and can be the last pass.
+     */
+    if(size.width < 1.0)
+        return;
+    if(lineHeight < 1.0)
+        lineHeight = 20.0;
+    if(ncols < 1)
+        ncols = 1;
+
+    xs = malloc(sizeof(CGFloat) * ncols);
+    ws = malloc(sizeof(CGFloat) * ncols);
+    lines = malloc(sizeof(int) * ncols);
+
+    if(xs && ws && lines)
+    {
+        [self placeColumnsForWidth:size.width xs:xs ws:ws lines:lines];
+
+        for(NSUInteger z = 0; z < ncols; z++)
+        {
+            CGFloat y = lines[z] * lineHeight;
+
+            if(z == 0)
+            {
+                CGFloat lx = xs[z];
+
+                if([[self image] image])
+                {
+                    [[self image] setHidden:NO];
+                    [[self image] setFrame:CGRectMake(lx, y, [container iconWidth], lineHeight)];
+                    lx += [container iconWidth] + 4.0;
+                }
+                else
+                    [[self image] setHidden:YES];
+
+                if([[label text] length])
+                {
+                    CGFloat lw = (xs[z] + ws[z]) - lx;
+
+                    if(lw < 1.0)
+                        lw = 1.0;
+                    [label setHidden:NO];
+                    [label setFrame:CGRectMake(lx, y, lw, lineHeight)];
+                }
+                else
+                    [label setHidden:YES];
+            }
+            else if(z < [columnviews count])
+                [[columnviews objectAtIndex:z] setFrame:CGRectMake(xs[z], y, ws[z], lineHeight)];
+        }
+    }
+    free(xs);
+    free(ws);
+    free(lines);
+}
+-(CGFloat)heightForWidth:(CGFloat)width
+{
+    UIFont *font = [label font];
+    NSUInteger ncols = [columnviews count];
+    CGFloat lineHeight = ceil([font lineHeight]);
+    CGFloat *xs = NULL, *ws = NULL;
+    int *lines = NULL, count = 1;
+
+    if(lineHeight < 1.0)
+        lineHeight = 20.0;
+    if(width < 1.0)
+        return lineHeight + 4.0;
+    if(ncols < 1)
+        ncols = 1;
+
+    xs = malloc(sizeof(CGFloat) * ncols);
+    ws = malloc(sizeof(CGFloat) * ncols);
+    lines = malloc(sizeof(int) * ncols);
+
+    if(xs && ws && lines)
+        count = [self placeColumnsForWidth:width xs:xs ws:ws lines:lines];
+
+    free(xs);
+    free(ws);
+    free(lines);
+    return count * lineHeight + 4.0;
+}
+-(void)layoutSubviews
+{
+    [super layoutSubviews];
+    if(_dw_container_mode == DW_CONTAINER_MODE_EXTRA)
+        [self layoutColumns];
+}
 -(void)columnClicked:(id)sender
 {
     if([sender isMemberOfClass:[UIButton class]])
@@ -2642,8 +3040,29 @@ BOOL _dw_is_dark(void)
         [columndata retain];
         [olddata release];
     }
-    /* If we have columndata and are not in default mode */
-    if(columndata && _dw_container_mode > DW_CONTAINER_MODE_DEFAULT)
+    if(_dw_container_mode == DW_CONTAINER_MODE_EXTRA)
+    {
+        [self setUsesManualLayout:YES];
+        [self buildColumnViews];
+        [container setNeedsColumnWidths];
+        [self setNeedsLayout];
+    }
+    else
+    {
+        [self setUsesManualLayout:NO];
+        [self teardownColumnViews];
+        [self layoutMulti];
+    }
+}
+-(void)layoutMulti
+{
+    /* Default mode shows only the leading icon and text, no columns */
+    if(!columndata || _dw_container_mode <= DW_CONTAINER_MODE_DEFAULT)
+    {
+        for(id view in [stack arrangedSubviews])
+            [stack removeArrangedSubview:view];
+        return;
+    }
     {
         bool extra = _dw_container_mode == DW_CONTAINER_MODE_EXTRA;
         id subviews = [stack arrangedSubviews];
@@ -2684,7 +3103,8 @@ BOOL _dw_is_dark(void)
                     {
                         [label addTarget:self action:@selector(columnClicked:)
                                     forControlEvents:UIControlEventTouchUpInside];
-                        [label setTitleColor:[UIColor darkTextColor] forState:UIControlStateNormal];
+                        [label setTitleColor:[UIColor labelColor] forState:UIControlStateNormal];
+                        [label setTitleColor:[UIColor secondaryLabelColor] forState:UIControlStateHighlighted];
                     }
 
                     if(index < [subviews count])
@@ -2736,6 +3156,10 @@ BOOL _dw_is_dark(void)
 -(NSMutableArray *)columnData { return columndata; }
 -(void)dealloc
 {
+    for(id view in columnviews)
+        [view removeFromSuperview];
+    [columnviews release];
+    [leadingConstraints release];
     [columndata release];
     [image removeFromSuperview];
     [image release];
@@ -2748,64 +3172,19 @@ BOOL _dw_is_dark(void)
 @end
 
  /* Create a tableview cell for containers using DW_CONTAINER_MODE_* or listboxes */
-DWTableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text, NSMutableArray *columndata)
+DWTableViewCell *_dw_table_cell_view_new(DWContainer *cont, UIImage *icon, NSString *text, NSMutableArray *columndata)
 {
     DWTableViewCell *browsercell = [[DWTableViewCell alloc] init];
     [browsercell setAutoresizesSubviews:YES];
 
+    [browsercell setContainer:cont];
     if(icon)
         [[browsercell image] setImage:icon];
     if(text)
         [[browsercell label] setText:text];
-    if(columndata)
-        [browsercell setColumnData:columndata];
+    [browsercell setColumnData:columndata];
     return browsercell;
 }
-
-/* Subclass for a Container/List type */
-@interface DWContainer : UITableView <UITableViewDataSource,UITableViewDelegate>
-{
-    void *userdata;
-    NSMutableArray *tvcols;
-    NSMutableArray *data;
-    NSMutableArray *types;
-    NSPointerArray *titles;
-    NSPointerArray *rowdatas;
-    UIColor *fgcolor, *oddcolor, *evencolor;
-    unsigned long dw_oddcolor, dw_evencolor;
-    unsigned long _DW_COLOR_ROW_ODD, _DW_COLOR_ROW_EVEN;
-    int iLastAddPoint, iLastQueryPoint;
-    int filesystem;
-    NSTimeInterval lastClick;
-    NSInteger lastClickRow;
-}
--(NSInteger)tableView:(UITableView *)aTable numberOfRowsInSection:(NSInteger)section;
--(UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath;
--(void)tableView:(UITableView*)tableView willDisplayCell:(UITableViewCell*)cell forRowAtIndexPath:(NSIndexPath*)indexPath;
--(UIContextMenuConfiguration *)tableView:(UITableView *)tableView contextMenuConfigurationForRowAtIndexPath:(NSIndexPath *)indexPath point:(CGPoint)point;
--(void)addColumn:(NSString *)input andType:(int)type;
--(NSString *)getColumn:(int)col;
--(void *)userdata;
--(void)setUserdata:(void *)input;
--(void)setFilesystem:(int)input;
--(int)filesystem;
--(int)addRow:(DWTableViewCell *)input;
--(int)addRows:(int)number;
--(void)editCell:(id)input at:(int)row;
--(void)removeRow:(int)row;
--(void)setRow:(int)row title:(const char *)input;
--(void *)getRowTitle:(int)row;
--(id)getRow:(int)row;
--(NSMutableArray *)getColumns;
--(int)cellType:(int)col;
--(int)lastAddPoint;
--(int)lastQueryPoint;
--(void)setLastQueryPoint:(int)input;
--(void)clear;
--(void)setup;
--(CGSize)getsize;
--(void)setForegroundColor:(UIColor *)input;
-@end
 
 @implementation DWContainer
 -(NSInteger)tableView:(UITableView *)aTable numberOfRowsInSection:(NSInteger)section
@@ -2829,8 +3208,7 @@ DWTableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text, NSMutabl
         /* Copy the alignment setting from the column,
          * and set the text color from the container.
          */
-        if(fgcolor)
-            [[result label] setTextColor:fgcolor];
+        [result setColumnTextColor:(fgcolor ? fgcolor : [UIColor labelColor])];
 
         /* Return the result */
         return result;
@@ -2860,6 +3238,10 @@ DWTableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text, NSMutabl
     id cell = [data objectAtIndex:index];
     CGFloat height = 0.0;
 
+    if([cell isMemberOfClass:[DWTableViewCell class]] &&
+        _dw_container_mode == DW_CONTAINER_MODE_EXTRA)
+        return [cell heightForWidth:[self bounds].size.width];
+    
     /* The data is already a DWTableViewCell so just return that */
     if([cell isMemberOfClass:[DWTableViewCell class]])
         height = [[cell contentView] systemLayoutSizeFittingSize:UILayoutFittingCompressedSize].height;
@@ -2899,6 +3281,119 @@ DWTableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text, NSMutabl
 -(void)setUserdata:(void *)input { userdata = input; }
 -(void)setFilesystem:(int)input { filesystem = input; }
 -(int)filesystem { return filesystem; }
+-(void)setNeedsColumnWidths
+{
+    widthsDirty = YES;
+}
+-(void)layoutSubviews
+{
+    [super layoutSubviews];
+
+    CGFloat width = [self bounds].size.width;
+
+    /* A rotation or viewport change resizes every row but leaves the cached
+     * row heights from the previous width. Reload rather than batch-update:
+     * endUpdates does not reliably re-ask for heights from inside a layout
+     * pass.
+     */
+    if(width > 0.0 && fabs(width - lastLayoutWidth) > 0.5)
+    {
+        NSIndexPath *selected = [[self indexPathForSelectedRow] retain];
+        CGPoint offset = [self contentOffset];
+        
+        lastLayoutWidth = width;
+        [self setNeedsColumnWidths];
+        [self reloadData];
+
+        if(selected)
+        {
+            [self selectRowAtIndexPath:selected animated:NO scrollPosition:UITableViewScrollPositionNone];
+            [selected release];
+        }
+        [self setContentOffset:offset animated:NO];
+    }
+}
+-(void)recalculateColumnWidths
+{
+    NSUInteger count = [tvcols count];
+    UIFont *font = nil;
+
+    if(columnWidths)
+        [columnWidths release];
+    /* Column 0 is the leading icon and text and always exists, even when
+     * the caller never declared a column.
+     */
+    if(count < 1)
+        count = 1;
+    columnWidths = [[NSMutableArray alloc] initWithCapacity:count];
+    iconWidth = 0.0;
+
+    for(NSUInteger z = 0; z < count; z++)
+        [columnWidths addObject:[NSNumber numberWithDouble:_DW_EXTRA_MIN_COLUMN_WIDTH]];
+
+    for(id row in data)
+    {
+        if(![row isMemberOfClass:[DWTableViewCell class]])
+            continue;
+
+        DWTableViewCell *cell = row;
+        CGFloat leading = 0.0;
+        UIImage *icon = [[cell image] image];
+
+        if(!font)
+            font = [[cell label] font];
+
+        /* Column 0 is the icon and its text, measured as one unit */
+        if(icon)
+        {
+            leading += [icon size].width + 4.0;
+            if([icon size].width > iconWidth)
+                iconWidth = [icon size].width;
+        }
+        leading += _dw_column_text_width([[cell label] text], font);
+
+        if(count && leading > [[columnWidths objectAtIndex:0] doubleValue])
+            [columnWidths replaceObjectAtIndex:0 withObject:[NSNumber numberWithDouble:leading]];
+
+        NSMutableArray *cd = [cell columnData];
+
+        for(NSUInteger z = 1; z < [cd count] && z < count; z++)
+        {
+            CGFloat w = _dw_column_object_width([cd objectAtIndex:z], font);
+
+            if(w > [[columnWidths objectAtIndex:z] doubleValue])
+                [columnWidths replaceObjectAtIndex:z withObject:[NSNumber numberWithDouble:w]];
+        }
+    }
+    /* Explicitly requested widths win over the measured maximums */
+    for(NSNumber *key in explicitWidths)
+    {
+        int column = [key intValue];
+
+        if(column >= 0 && column < (int)count)
+            [columnWidths replaceObjectAtIndex:column
+                                    withObject:[explicitWidths objectForKey:key]];
+    }
+    widthsDirty = NO;
+}
+-(CGFloat)widthForColumn:(int)column
+{
+    if(widthsDirty || !columnWidths)
+        [self recalculateColumnWidths];
+    if(column < 0)
+        return 0.0;
+    if(column >= (int)[columnWidths count])
+        return _DW_EXTRA_MIN_COLUMN_WIDTH;
+    return [[columnWidths objectAtIndex:column] doubleValue];
+}
+-(void)setWidth:(CGFloat)width forColumn:(int)column
+{
+    if(!explicitWidths)
+        explicitWidths = [[NSMutableDictionary alloc] init];
+    [explicitWidths setObject:[NSNumber numberWithDouble:width]
+                       forKey:[NSNumber numberWithInt:column]];
+    [self setNeedsColumnWidths];
+}
 -(void)refreshColors
 {
     UIColor *oldodd = oddcolor;
@@ -2939,11 +3434,17 @@ DWTableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text, NSMutabl
     if(titles)
         [self refreshColors];
 }
--(void)viewDidChangeEffectiveAppearance { [self checkDark]; }
+-(void)viewDidChangeEffectiveAppearance
+{
+    [self checkDark];
+    [self setNeedsColumnWidths];
+    [self reloadData];
+}
 -(int)insertRow:(DWTableViewCell *)input at:(int)index
 {
     if(data)
     {
+        [self setNeedsColumnWidths];
         if(index < iLastAddPoint)
         {
             iLastAddPoint++;
@@ -2959,6 +3460,7 @@ DWTableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text, NSMutabl
 {
     if(data)
     {
+        [self setNeedsColumnWidths];
         iLastAddPoint = (int)[titles count];
         [data addObject:input];
         [titles addPointer:NULL];
@@ -2973,6 +3475,7 @@ DWTableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text, NSMutabl
     {
         int z;
 
+        [self setNeedsColumnWidths];
         iLastAddPoint = (int)[titles count];
 
         for(z=0;z<number;z++)
@@ -2991,6 +3494,7 @@ DWTableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text, NSMutabl
     {
         if(row < [data count])
         {
+            [self setNeedsColumnWidths];
             if(!input)
                 input = [NSNull null];
             [data replaceObjectAtIndex:row withObject:input];
@@ -3003,6 +3507,7 @@ DWTableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text, NSMutabl
     {
         void *oldtitle;
 
+        [self setNeedsColumnWidths];
         [data removeObjectAtIndex:row];
         oldtitle = [titles pointerAtIndex:row];
         [titles removePointerAtIndex:row];
@@ -3021,6 +3526,7 @@ DWTableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text, NSMutabl
     {
         void *oldtitle = [titles pointerAtIndex:row];
         void *newtitle = input ? (void *)strdup(input) : NULL;
+        [self setNeedsColumnWidths];
         [titles replacePointerAtIndex:row withPointer:newtitle];
         if(oldtitle)
             free(oldtitle);
@@ -3039,6 +3545,7 @@ DWTableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text, NSMutabl
 {
     if(data)
     {
+        [self setNeedsColumnWidths];
         [data removeAllObjects];
         while([titles count])
         {
@@ -3061,6 +3568,7 @@ DWTableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text, NSMutabl
     if(!dw_oddcolor && !dw_evencolor)
         dw_oddcolor = dw_evencolor = DW_CLR_DEFAULT;
     [self checkDark];
+    [self setNeedsColumnWidths];
 }
 -(CGSize)getsize
 {
@@ -3122,6 +3630,12 @@ DWTableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text, NSMutabl
     [fgcolor retain];
     [oldfgcolor release];
 }
+-(CGFloat)iconWidth
+{
+    if(widthsDirty || !columnWidths)
+        [self recalculateColumnWidths];
+    return iconWidth;
+}
 -(void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath
 {
     NSPointerArray *params = [NSPointerArray pointerArrayWithOptions:NSPointerFunctionsOpaqueMemory];
@@ -3156,7 +3670,20 @@ DWTableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text, NSMutabl
     if([self allowsMultipleSelection])
         [self tableView:tableView didSelectRowAtIndexPath:indexPath];
 }
--(void)dealloc { UserData *root = userdata; _dw_remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
+-(void)dealloc
+{
+    UserData *root = userdata;
+    _dw_remove_userdata(&root, NULL, TRUE);
+    dw_signal_disconnect_by_window(self);
+    [columnWidths release];
+    [explicitWidths release];
+    [super dealloc];
+}
+-(void)didMoveToWindow
+{
+    [super didMoveToWindow];
+    _dw_disable_edge_effects(self);
+}
 @end
 
 /* Custom tree view subclasses: DWTree, DWTreeItem, DWTreeViewCell, DWTreeViewCellDelegate */
@@ -3682,6 +4209,11 @@ static CGFloat _DW_TREE_XOFFSET = 3;
         treeItem = [_treeViewDelegate treeView:self treeItemForRow:indexPath.row];
     NSAssert(treeItem, @"Can't get the Tree Node data");
     return treeItem;
+}
+-(void)didMoveToWindow
+{
+    [super didMoveToWindow];
+    _dw_disable_edge_effects(self);
 }
 @end
 
@@ -5906,22 +6438,6 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, value, int)
     DW_FUNCTION_RETURN_NOTHING;
 }
 
-/* iOS 26+ applies a scroll edge effect (blur/refraction) to every scroll
- * view, which washes out the first and last rows of DW's scrollers.
- */
-#if defined(__IPHONE_OS_VERSION_MAX_ALLOWED) && __IPHONE_OS_VERSION_MAX_ALLOWED >= 260000
-static void _dw_disable_edge_effects(UIScrollView *scrollview)
-{
-    if(@available(iOS 26.0, *))
-    {
-        [[scrollview topEdgeEffect] setHidden:YES];
-        [[scrollview bottomEdgeEffect] setHidden:YES];
-    }
-}
-#else
-static void _dw_disable_edge_effects(UIScrollView *scrollview) { (void)scrollview; }
-#endif
-
 /* Internal common function to create containers and listboxes */
 HWND _dw_cont_new(ULONG cid, int multi)
 {
@@ -5981,7 +6497,7 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, text, char *)
         DWContainer *cont = handle;
         NSString *nstr = [NSString stringWithUTF8String:text];
 
-        [cont addRow:_dw_table_cell_view_new(nil, nstr, nil)];
+        [cont addRow:_dw_table_cell_view_new(cont, nil, nstr, nil)];
         [cont reloadData];
         [cont setNeedsDisplay];
     }
@@ -6014,7 +6530,7 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, text, const char *, pos, int)
         DWContainer *cont = handle;
         NSString *nstr = [NSString stringWithUTF8String:text];
 
-        [cont insertRow:_dw_table_cell_view_new(nil, nstr, nil) at:pos];
+        [cont insertRow:_dw_table_cell_view_new(cont, nil, nstr, nil) at:pos];
         [cont reloadData];
         [cont setNeedsDisplay];
     }
@@ -6057,7 +6573,7 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, text, char **, count, int)
         {
             NSString *nstr = [NSString stringWithUTF8String:text[z]];
 
-            [cont addRow:_dw_table_cell_view_new(nil, nstr, nil)];
+            [cont addRow:_dw_table_cell_view_new(cont, nil, nstr, nil)];
         }
         [cont reloadData];
         [cont setNeedsDisplay];
@@ -6225,6 +6741,7 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, index, unsigned int, buffer, char *)
             DWTableViewCell *cell = [cont getRow:index];
 
             [[cell label] setText:nstr];
+            [cont setNeedsColumnWidths];
             [cont reloadData];
             [cont setNeedsDisplay];
         }
@@ -7514,6 +8031,7 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, flags, unsigned long *, titles, char **
 
         [cont addColumn:title andType:(int)flags[z]];
     }
+    [cont setNeedsColumnWidths];
     DW_FUNCTION_RETURN_THIS(retval);
 }
 
@@ -7693,9 +8211,13 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pointer, void *, column, int, row, int,
     {
         NSMutableArray *cd  = [NSMutableArray arrayWithCapacity:(capacity > column ? capacity : column + 1)];
         if(cd)
+        {
+            while([cd count] <= column)
+                [cd addObject:[NSNull null]];
             [cd replaceObjectAtIndex:column withObject:(text ? text : icon)];
+        }
         /* Otherwise replace it with a new cell */
-        [cont editCell:_dw_table_cell_view_new(icon, text, cd) at:(row+lastadd)];
+        [cont editCell:_dw_table_cell_view_new(cont, icon, text, cd) at:(row+lastadd)];
     }
     [cont setNeedsDisplay];
     DW_FUNCTION_RETURN_NOTHING;
@@ -7777,7 +8299,7 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pointer, void *, row, int, filename, ch
             [[cell label] setText:text];
     }
     else /* Otherwise replace it with a new cell */
-        [cont editCell:_dw_table_cell_view_new(icon, text, nil) at:(row+lastadd)];
+        [cont editCell:_dw_table_cell_view_new(cont, icon, text, nil) at:(row+lastadd)];
     [cont setNeedsDisplay];
     DW_FUNCTION_RETURN_NOTHING;
 }
@@ -7867,6 +8389,13 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, oddcolor, unsigned long, evencolor, uns
  */
 void API dw_container_set_column_width(HWND handle, int column, int width)
 {
+    DWContainer *cont = handle;
+
+    if([cont isMemberOfClass:[DWContainer class]])
+    {
+        [cont setWidth:(CGFloat)width forColumn:column];
+        [cont reloadData];
+    }
 }
 
 /*
@@ -9562,6 +10091,17 @@ DW_FUNCTION_RESTORE_PARAM3(DW_UNUSED(hwndOwner), HWND, title, char *, flStyle, U
     [[[window rootViewController] view] addSubview:view];
     [_dw_toplevel_windows addObject:window];
     _dw_attach_window(window);
+
+    /* On iPhone the software keyboard has no dismiss key, so give the
+     * window a tap-outside escape hatch.
+     */
+    {
+        UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc] initWithTarget:window
+                                                            action:@selector(dismissKeyboard:)];
+        [tap setCancelsTouchesInView:NO];
+        [window addGestureRecognizer:tap];
+        [tap release];
+    }
 
     /* Handle style flags... There is no visible frame...
      * On iOS 13 and higher if a titlebar is requested create a navigation bar.
