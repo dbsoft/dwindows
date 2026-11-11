@@ -285,6 +285,35 @@ static int _dw_container_mode = DW_CONTAINER_MODE_DEFAULT;
 static CGPoint _dw_event_point = {0};
 static NSMutableArray *_dw_toplevel_windows;
 
+/* Scene lifecycle support. Compile it only against SDKs that have the API,
+ * and only act on it at runtime on iOS 13+, so builds against older SDKs
+ * and runs on iOS 12 keep the original non-scene behaviour.
+ */
+#if defined(__IPHONE_OS_VERSION_MAX_ALLOWED) && __IPHONE_OS_VERSION_MAX_ALLOWED >= 130000
+#define _DW_SCENE_SUPPORT 1
+#else
+#define _DW_SCENE_SUPPORT 0
+#endif
+
+#if _DW_SCENE_SUPPORT
+static UIWindowScene *DWWindowScene = nil;
+
+/* Attach a window to the connected scene. Windows are created before the
+ * scene connects, so the scene delegate calls this again for anything that
+ * already exists once it arrives.
+ */
+static void _dw_attach_window(UIWindow *window)
+{
+    if(window && DWWindowScene && [window windowScene] != DWWindowScene)
+    {
+        [window setWindowScene:DWWindowScene];
+        [window setFrame:[[DWWindowScene coordinateSpace] bounds]];
+    }
+}
+#else
+static void _dw_attach_window(UIWindow *window) { (void)window; }
+#endif
+
 /* Create a default colors for a thread */
 void _dw_init_colors(void)
 {
@@ -430,7 +459,7 @@ int _dw_event_handler1(id object, id event, int message)
                     nchar = [key charactersIgnoringModifiers];
                     special = (int)[key modifierFlags];
                 } else {
-                    // Probably won't even get here if not 13.4
+                    /* Probably won't even get here if not 13.4 */
                 }
                 unichar vk = [nchar characterAtIndex:0];
                 char *utf8 = NULL, ch = '\0';
@@ -668,7 +697,24 @@ int _dw_event_handler(id object, id event, int message)
 -(BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary<UIApplicationLaunchOptionsKey, id> *)launchOptions;
 @end
 
+@interface DWSceneDel : UIResponder
+#if _DW_SCENE_SUPPORT
+<UIWindowSceneDelegate>
+#endif
+@end
+
 @implementation DWAppDel
+#if _DW_SCENE_SUPPORT
+-(UISceneConfiguration *)application:(UIApplication *)application
+ configurationForConnectingSceneSession:(UISceneSession *)connectingSceneSession
+                                options:(UISceneConnectionOptions *)options
+{
+    UISceneConfiguration *config = [[UISceneConfiguration alloc] initWithName:@"Default Configuration"
+                                                                 sessionRole:[connectingSceneSession role]];
+    [config setDelegateClass:[DWSceneDel class]];
+    return [config autorelease];
+}
+#endif
 -(void)applicationWillTerminate:(UIApplication *)application
 {
     /* On iOS we can't prevent temrination, but send the notificatoin anyway */
@@ -1333,6 +1379,7 @@ static NSMutableArray *_dw_URLs = nil;
      * we wait until UIApplicationMain() has been called and run this then.
      */
     hiddenWindow = [[UIWindow alloc] initWithFrame:[[UIScreen mainScreen] bounds]];
+    _dw_attach_window(hiddenWindow);
     [hiddenWindow setWindowLevel:UIWindowLevelAlert+1];
     [hiddenWindow setHidden:YES];
     [hiddenWindow setRootViewController:[UIViewController new]];
@@ -1378,7 +1425,7 @@ static NSMutableArray *_dw_URLs = nil;
         [picker release];
         [delegate release];
     } else {
-        // Fallback on earlier versions
+        /* Fallback on earlier versions */
     };
 }
 -(void)fontPicker:(NSPointerArray *)params
@@ -1655,6 +1702,29 @@ static NSMutableArray *_dw_URLs = nil;
 
 DWObject *DWObj;
 
+@implementation DWSceneDel
+#if _DW_SCENE_SUPPORT
+-(void)scene:(UIScene *)scene willConnectToSession:(UISceneSession *)session options:(UISceneConnectionOptions *)connectionOptions
+{
+    if([scene isKindOfClass:[UIWindowScene class]])
+        DWWindowScene = (UIWindowScene *)scene;
+
+    /* Pick up everything that was created before the scene connected:
+     * the hidden alert window plus any top-level windows, and re-show the
+     * ones the application already asked to be shown.
+     */
+    _dw_attach_window([DWObj hiddenWindow]);
+
+    for(DWWindow *window in _dw_toplevel_windows)
+    {
+        _dw_attach_window(window);
+        if([window shown])
+            [window makeKeyAndVisible];
+    }
+}
+#endif
+@end
+
 /* Returns TRUE if iOS 12+ is in Dark Mode */
 BOOL _dw_is_dark(void)
 {
@@ -1807,7 +1877,7 @@ BOOL _dw_is_dark(void)
                 item.rightBarButtonItem = options;
             }
         } else {
-            // Fallback on earlier versions
+            /* Fallback on earlier versions */
         }
     }
     frame.size.height -= sbheight;
@@ -8750,8 +8820,9 @@ DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
     if (@available(iOS 14.0, *)) {
         [calendar setPreferredDatePickerStyle:UIDatePickerStyleInline];
     } else {
-        // We really want the iOS 14 style to match the other platforms...
-        // but just leave it the default spinner style on 13 and earlier.
+        /* We really want the iOS 14 style to match the other platforms...
+         * but just leave it the default spinner style on 13 and earlier.
+         */
     }
     [calendar setDatePickerMode:UIDatePickerModeDate];
     [calendar setDate:[NSDate date]];
@@ -9473,6 +9544,7 @@ DW_FUNCTION_RESTORE_PARAM3(DW_UNUSED(hwndOwner), HWND, title, char *, flStyle, U
     [window setBackgroundColor:[UIColor systemBackgroundColor]];
     [[[window rootViewController] view] addSubview:view];
     [_dw_toplevel_windows addObject:window];
+    _dw_attach_window(window);
 
     /* Handle style flags... There is no visible frame...
      * On iOS 13 and higher if a titlebar is requested create a navigation bar.
@@ -9572,6 +9644,7 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
         }
         if(![window shown])
         {
+            _dw_attach_window(window);
             [window makeKeyAndVisible];
             [window setShown:YES];
         }
