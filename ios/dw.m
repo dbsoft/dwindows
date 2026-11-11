@@ -5906,6 +5906,22 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, value, int)
     DW_FUNCTION_RETURN_NOTHING;
 }
 
+/* iOS 26+ applies a scroll edge effect (blur/refraction) to every scroll
+ * view, which washes out the first and last rows of DW's scrollers.
+ */
+#if defined(__IPHONE_OS_VERSION_MAX_ALLOWED) && __IPHONE_OS_VERSION_MAX_ALLOWED >= 260000
+static void _dw_disable_edge_effects(UIScrollView *scrollview)
+{
+    if(@available(iOS 26.0, *))
+    {
+        [[scrollview topEdgeEffect] setHidden:YES];
+        [[scrollview bottomEdgeEffect] setHidden:YES];
+    }
+}
+#else
+static void _dw_disable_edge_effects(UIScrollView *scrollview) { (void)scrollview; }
+#endif
+
 /* Internal common function to create containers and listboxes */
 HWND _dw_cont_new(ULONG cid, int multi)
 {
@@ -5918,6 +5934,7 @@ HWND _dw_cont_new(ULONG cid, int multi)
     [cont setRowHeight:UITableViewAutomaticDimension];
     [cont setEstimatedRowHeight:(_dw_container_mode > DW_CONTAINER_MODE_DEFAULT ? 85.0 : 44.0)];
     [cont setRowBgOdd:DW_RGB_TRANSPARENT andEven:DW_RGB_TRANSPARENT];
+    _dw_disable_edge_effects(cont);
     return cont;
 }
 
