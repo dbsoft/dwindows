@@ -2140,6 +2140,7 @@ BOOL _dw_is_dark(void)
         UIImage *image = [UIImage systemImageNamed:imagename];
         CGSize size = [image size];
         [self setImage:image forState:UIControlStateNormal];
+        [[self imageView] setContentMode:UIViewContentModeCenter];
         [self setTitleEdgeInsets:UIEdgeInsetsMake(0,size.width,0,0)];
     }
 }
@@ -3965,6 +3966,10 @@ static CGFloat _DW_TREE_XOFFSET = 3;
         _expanded = expanded;
         _children = children;
 
+        [self setSeparatorInset:UIEdgeInsetsZero];
+        [self setLayoutMargins:UIEdgeInsetsZero];
+        [self setPreservesSuperviewLayoutMargins:NO];
+
         UIView *content = self.contentView;
 
         UILabel *titleLabel = [[UILabel alloc] initWithFrame:CGRectZero];
@@ -3973,6 +3978,7 @@ static CGFloat _DW_TREE_XOFFSET = 3;
         titleLabel.textAlignment = NSTextAlignmentLeft;
         [content addSubview:titleLabel];
         _titleLabel = titleLabel;
+        [self.imageView setContentMode:UIViewContentModeCenter];
 
         DWButton *arrowImageButton = [[DWButton alloc] initWithFrame:CGRectMake(0, 0,
                                                                                 _DW_TREE_IMG_HEIGHT_WIDTH,
@@ -4002,14 +4008,17 @@ static CGFloat _DW_TREE_XOFFSET = 3;
 {
     [super layoutSubviews];
 
-    CGSize size = self.contentView.bounds.size;
-    CGFloat stepSize = size.height;
-    CGRect rc = CGRectMake(_level * stepSize, 0, stepSize, stepSize);
-    _arrowImageButton.frame = DWRectInflate(rc, -_DW_TREE_XOFFSET, -_DW_TREE_XOFFSET);
+    [[self contentView] setFrame:[self bounds]];
 
-    rc = CGRectMake((_level + 1) * stepSize, 0, stepSize, stepSize);
-    self.imageView.frame = DWRectInflate(rc, -_DW_TREE_XOFFSET, -_DW_TREE_XOFFSET);
-    _titleLabel.frame = CGRectMake((_level + 2) * stepSize, 0, size.width - (_level + 3) * stepSize, stepSize);
+    CGSize size = [self bounds].size;
+    CGFloat iconsize = MIN(size.height - (_DW_TREE_XOFFSET * 2), _DW_TREE_IMG_HEIGHT_WIDTH);
+    CGFloat step = iconsize + (_DW_TREE_XOFFSET * 2);
+    CGFloat centre = (size.height - iconsize) / 2;
+    CGFloat x = _DW_TREE_XOFFSET + (_level * step);
+
+    _arrowImageButton.frame = CGRectMake(x, centre, iconsize, iconsize);
+    self.imageView.frame = CGRectMake(x + step, centre, iconsize, iconsize);
+    _titleLabel.frame = CGRectMake(x + (step * 2), 0, size.width - (x + (step * 2)), size.height);
 }
 @end
 
