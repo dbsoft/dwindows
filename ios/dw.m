@@ -2,7 +2,7 @@
  * Dynamic Windows:
  *          A GTK like implementation of the iOS GUI
  *
- * (C) 2011-2023 Brian Smith <brian@dbsoft.org>
+ * (C) 2011-2026 Brian Smith <brian@dbsoft.org>
  * (C) 2011-2021 Mark Hessling <mark@rexx.org>
  * (C) 2017 Ralph Shane (Base tree view implementation)
  *
@@ -326,8 +326,19 @@ static void _dw_disable_edge_effects(UIScrollView *scrollview)
         [[scrollview bottomEdgeEffect] setHidden:YES];
     }
 }
-#else
-static void _dw_disable_edge_effects(UIScrollView *scrollview) { (void)scrollview; }
+
+/* System controls build their internal scrollers lazily, so this has to walk
+ * the tree after layout instead of running once at construction.
+ */
+static void _dw_disable_edge_effects_recursive(UIView *view)
+{
+    for(UIView *child in [view subviews])
+    {
+        if([child isKindOfClass:[UIScrollView class]])
+            _dw_disable_edge_effects((UIScrollView *)child);
+        _dw_disable_edge_effects_recursive(child);
+    }
+}
 #endif
 
 /* Create a default colors for a thread */
@@ -1961,6 +1972,14 @@ BOOL _dw_is_dark(void)
     DWView *view = nil;
     UINavigationBar *nav = nil;
     NSInteger sbheight = [[[window windowScene] statusBarManager] statusBarFrame].size.height;
+
+#if defined(__IPHONE_OS_VERSION_MAX_ALLOWED) && __IPHONE_OS_VERSION_MAX_ALLOWED >= 260000
+    /* iOS 26 puts a scroll edge effect on every scroll view it can find,
+     * including ones inside system controls.  Clear them across the whole
+     * tree from the layout entry point instead of per widget.
+     */
+    _dw_disable_edge_effects_recursive([self view]);
+#endif
 
     for(id obj in array)
     {
@@ -3776,11 +3795,6 @@ DWTableViewCell *_dw_table_cell_view_new(DWContainer *cont, UIImage *icon, NSStr
     [explicitWidths release];
     [super dealloc];
 }
--(void)didMoveToWindow
-{
-    [super didMoveToWindow];
-    _dw_disable_edge_effects(self);
-}
 @end
 
 /* Custom tree view subclasses: DWTree, DWTreeItem, DWTreeViewCell, DWTreeViewCellDelegate */
@@ -4306,11 +4320,6 @@ static CGFloat _DW_TREE_XOFFSET = 3;
         treeItem = [_treeViewDelegate treeView:self treeItemForRow:indexPath.row];
     NSAssert(treeItem, @"Can't get the Tree Node data");
     return treeItem;
-}
--(void)didMoveToWindow
-{
-    [super didMoveToWindow];
-    _dw_disable_edge_effects(self);
 }
 @end
 
@@ -5786,8 +5795,17 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
     if([object isKindOfClass:[UIWindow class]])
     {
         UIWindow *window = box;
-        NSArray *subviews = [[[window rootViewController] view] subviews];
-        view = [subviews firstObject];
+        /* Not subviews firstObject: iOS 26 inserts a touch passthrough view,
+         * and dialogs add views to the window too. DWView is a DWBox.
+         */
+        for(id subview in [[[window rootViewController] view] subviews])
+        {
+            if([subview isKindOfClass:[DWBox class]])
+            {
+                view = subview;
+                break;
+            }
+        }
     }
     else if([object isMemberOfClass:[DWScrollBox class]])
     {
@@ -6550,7 +6568,6 @@ HWND _dw_cont_new(ULONG cid, int multi)
     [cont setRowHeight:UITableViewAutomaticDimension];
     [cont setEstimatedRowHeight:(_dw_container_mode > DW_CONTAINER_MODE_DEFAULT ? 85.0 : 44.0)];
     [cont setRowBgOdd:DW_RGB_TRANSPARENT andEven:DW_RGB_TRANSPARENT];
-    _dw_disable_edge_effects(cont);
     return cont;
 }
 
