@@ -1382,6 +1382,47 @@ static NSMutableArray *_dw_URLs = nil;
 
 @end
 
+static NSMutableArray *_dw_toplevel_windows;
+static UIWindow *_dw_dialog_host;
+
+/* A dialog box made of plain subviews. No presentation, no completion, no
+ * alert internals: nothing to be left half-finished while the caller waits.
+ */
+@interface DWDialogBox : UIView
+{
+    DWDialog *dialog;
+}
+-(DWDialog *)dialog;
+-(void)setDialog:(DWDialog *)input;
+-(void)clicked:(id)sender;
+@end
+
+@implementation DWDialogBox
+-(DWDialog *)dialog { return dialog; }
+-(void)setDialog:(DWDialog *)input { dialog = input; }
+-(void)clicked:(id)sender
+{
+    dw_dialog_dismiss(dialog, DW_INT_TO_POINTER([sender tag]));
+    [self removeFromSuperview];
+    /* Hide the host again, but only if it is not one of the app's windows */
+    if(_dw_dialog_host && ![_dw_toplevel_windows containsObject:_dw_dialog_host])
+    {
+        for(id window in [_dw_toplevel_windows reverseObjectEnumerator])
+        {
+            if([window isKindOfClass:[UIWindow class]] && ![window isHidden])
+            {
+                [window makeKeyAndVisible];
+                break;
+            }
+        }
+        [_dw_dialog_host resignKeyWindow];
+        [_dw_dialog_host setHidden:YES];
+    }
+    _dw_dialog_host = nil;
+    [self release];
+}
+@end
+
 
 @implementation DWObject
 -(id)init
@@ -1543,36 +1584,92 @@ static NSMutableArray *_dw_URLs = nil;
 }
 -(void)messageBox:(NSMutableArray *)params
 {
-    __block DWDialog *dialog = dw_dialog_new(NULL);
-    NSInteger iResponse;
-    UIAlertController* alert = [UIAlertController alertControllerWithTitle:[params objectAtIndex:0]
-                                   message:[params objectAtIndex:1]
-                                   preferredStyle:[[params objectAtIndex:2] integerValue]];
-    UIAlertAction* action = [UIAlertAction actionWithTitle:[params objectAtIndex:3] style:UIAlertActionStyleDefault
-                                                   handler:^(UIAlertAction * action) { dw_dialog_dismiss(dialog, DW_INT_TO_POINTER(1)); }];
-    [alert addAction:action];
-    if([params count] > 4)
+    DWDialog *dialog = (DWDialog *)[[params firstObject] pointerValue];
+    UIWindow *window = [[UIApplication sharedApplication] keyWindow];
+    DWDialogBox *box = [[DWDialogBox alloc] init];
+    UIStackView *stack = [[UIStackView alloc] init];
+    UIStackView *header = [[UIStackView alloc] init];
+    UIStackView *row = [[UIStackView alloc] init];
+    UIView *separator = [[UIView alloc] init];
+    int z;
+
+    if(!window)
     {
-        action = [UIAlertAction actionWithTitle:[params objectAtIndex:4] style:UIAlertActionStyleDefault
-                                        handler:^(UIAlertAction * action) { dw_dialog_dismiss(dialog, DW_INT_TO_POINTER(2)); }];
-        [alert addAction:action];
+        /* Nothing on screen yet (startup): raise the host */
+        window = hiddenWindow;
+        _dw_attach_window(window);
+        [window setHidden:NO];
+        [window makeKeyAndVisible];
     }
-    if([params count] > 5)
+    _dw_dialog_host = window;
+
+    [box setDialog:dialog];
+    [box setBackgroundColor:[UIColor secondarySystemBackgroundColor]];
+    [[box layer] setCornerRadius:14.0];
+    [box setClipsToBounds:YES];
+    [box setTranslatesAutoresizingMaskIntoConstraints:NO];
+
+    [header setAxis:UILayoutConstraintAxisVertical];
+    [header setSpacing:8.0];
+
+    [separator setBackgroundColor:[UIColor separatorColor]];
+    [separator setTranslatesAutoresizingMaskIntoConstraints:NO];
+    [[separator heightAnchor] constraintEqualToConstant:0.5].active = YES;
+
+    [row setAxis:UILayoutConstraintAxisHorizontal];
+    [row setDistribution:UIStackViewDistributionFillEqually];
+    [row setSpacing:0.0];
+    
+    [stack setAxis:UILayoutConstraintAxisVertical];
+    [stack setSpacing:0.0];
+    [stack setTranslatesAutoresizingMaskIntoConstraints:NO];
+    [box addSubview:stack];
+
+    [stack addArrangedSubview:header];
+    [stack setCustomSpacing:12.0 afterView:header];
+    [stack addArrangedSubview:separator];
+    [stack addArrangedSubview:row];
+    
+    [NSLayoutConstraint activateConstraints:@[
+        [[stack topAnchor] constraintEqualToAnchor:[box topAnchor] constant:16.0],
+        [[stack bottomAnchor] constraintEqualToAnchor:[box bottomAnchor] constant:-16.0],
+        [[stack leadingAnchor] constraintEqualToAnchor:[box leadingAnchor] constant:16.0],
+        [[stack trailingAnchor] constraintEqualToAnchor:[box trailingAnchor] constant:-16.0]
+    ]];
+
+    /* Title and message */
+    for(z = 1; z <= 2; z++)
     {
-        action = [UIAlertAction actionWithTitle:[params objectAtIndex:5] style:UIAlertActionStyleDefault
-                                        handler:^(UIAlertAction * action) { dw_dialog_dismiss(dialog, DW_INT_TO_POINTER(3)); }];
-        [alert addAction:action];
+        UILabel *label = [[UILabel alloc] init];
+
+        [label setText:[params objectAtIndex:z]];
+        [label setNumberOfLines:0];
+        [label setTextAlignment:NSTextAlignmentCenter];
+        if(z == 1)
+            [label setFont:[UIFont boldSystemFontOfSize:17.0]];
+        [header addArrangedSubview:label];
+        [label release];
     }
 
-    /* Unhide our hidden window and make it key */
-    [hiddenWindow setHidden:NO];
-    [hiddenWindow makeKeyAndVisible];
-    [[hiddenWindow rootViewController] presentViewController:alert animated:YES completion:nil];
-    iResponse = DW_POINTER_TO_INT(dw_dialog_wait(dialog));
-    /* Once the dialog is gone we can rehide our window */
-    [hiddenWindow resignKeyWindow];
-    [hiddenWindow setHidden:YES];
-    [params addObject:[NSNumber numberWithInteger:iResponse]];
+    /* Buttons, tag is the result code */
+    for(z = 4; z <= 6 && z < (int)[params count]; z++)
+    {
+        UIButton *button = [UIButton buttonWithType:UIButtonTypeSystem];
+
+        [button setTitle:[params objectAtIndex:z] forState:UIControlStateNormal];
+        [button setTag:(z - 3)];
+        [button addTarget:box action:@selector(clicked:) forControlEvents:UIControlEventTouchUpInside];
+        [[button heightAnchor] constraintEqualToConstant:44.0].active = YES;
+        [row addArrangedSubview:button];
+    }
+
+    [window addSubview:box];
+    [NSLayoutConstraint activateConstraints:@[
+        [[box centerXAnchor] constraintEqualToAnchor:[window centerXAnchor]],
+        [[box centerYAnchor] constraintEqualToAnchor:[window centerYAnchor]],
+        [[box widthAnchor] constraintLessThanOrEqualToAnchor:[window widthAnchor] constant:-48.0],
+        [[box widthAnchor] constraintGreaterThanOrEqualToConstant:240.0]
+    ]];
 }
 -(void)printDialog:(NSMutableArray *)params
 {
@@ -5165,6 +5262,7 @@ int API dw_vmessagebox(const char *title, int flags, const char *format, va_list
     NSString *mtitle = [NSString stringWithUTF8String:title];
     NSString *mtext;
     UIAlertControllerStyle mstyle = UIAlertControllerStyleAlert;
+    DWDialog *dialog;
     NSArray *params;
     static int in_mb = FALSE;
 
@@ -5191,10 +5289,12 @@ int API dw_vmessagebox(const char *title, int flags, const char *format, va_list
 
     mtext = [[NSString alloc] initWithFormat:[NSString stringWithUTF8String:format] arguments:args];
 
-    params = [NSMutableArray arrayWithObjects:mtitle, mtext, [NSNumber numberWithInteger:mstyle], button1, button2, button3, nil];
+    dialog = dw_dialog_new(NULL);
+    params = [NSMutableArray arrayWithObjects:[NSValue valueWithPointer:dialog], mtitle, mtext,
+                [NSNumber numberWithInteger:mstyle], button1, button2, button3, nil];
     [DWObj safeCall:@selector(messageBox:) withObject:params];
+    iResponse = DW_POINTER_TO_INT(dw_dialog_wait(dialog));
     in_mb = FALSE;
-    iResponse = [[params lastObject] integerValue];
 
     switch(iResponse)
     {
