@@ -4066,6 +4066,7 @@ static CGFloat _DW_TREE_XOFFSET = 3;
         _treeViewDelegate=self;
         self.separatorStyle= UITableViewCellSeparatorStyleNone;
         _font = [UIFont systemFontOfSize:16];
+        self.rowHeight = _DW_TREE_IMG_HEIGHT_WIDTH + (_DW_TREE_XOFFSET * 4);
         _rootNode = [[[DWTreeItem alloc] initWithIcon:nil Title:@"@Root" andData:NULL] retain];
         _rootNode.expanded = YES;
     }
@@ -4113,6 +4114,7 @@ static CGFloat _DW_TREE_XOFFSET = 3;
 -(void)setFont:(UIFont *)font
 {
     _font = font;
+    self.rowHeight = MAX(_DW_TREE_IMG_HEIGHT_WIDTH, ceil([font lineHeight])) + (_DW_TREE_XOFFSET * 4);
     [self reloadData];
     [self resetSelection:NO];
 }
