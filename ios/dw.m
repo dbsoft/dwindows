@@ -4460,6 +4460,8 @@ API_AVAILABLE(ios(10.0))
 }
 @end
 
+#define _DW_COMBO_ARROW 28
+
 @interface DWComboBox : UITextField <UIPickerViewDelegate,UIPickerViewDataSource,UITextFieldDelegate>
 {
     UIPickerView* pickerView;
@@ -4488,6 +4490,9 @@ API_AVAILABLE(ios(10.0))
     if(self)
     {
         [self setDelegate:self];
+        [self setTextAlignment:NSTextAlignmentLeft];
+        [self setContentVerticalAlignment:UIControlContentVerticalAlignmentCenter];
+        [self setClipsToBounds:NO];
 
         /* Set UI defaults */
         toolbarStyle = UIBarStyleDefault;
@@ -4496,6 +4501,9 @@ API_AVAILABLE(ios(10.0))
         /* Setup the arrow image */
         UIButton *imageButton = [UIButton buttonWithType:UIButtonTypeCustom];
         UIImage *image = [UIImage systemImageNamed:@"chevron.down"];
+        [imageButton setFrame:CGRectMake(0, 0, _DW_COMBO_ARROW, _DW_COMBO_ARROW)];
+        [imageButton setContentHorizontalAlignment:UIControlContentHorizontalAlignmentCenter];
+        [imageButton setContentVerticalAlignment:UIControlContentVerticalAlignmentCenter];
         [imageButton setImage:image forState:UIControlStateNormal];
         [self setRightView:imageButton];
         [self setRightViewMode:UITextFieldViewModeAlways];
@@ -4503,6 +4511,41 @@ API_AVAILABLE(ios(10.0))
         selectedIndex = -1;
     }
     return self;
+}
+-(void)layoutSubviews
+{
+    [super layoutSubviews];
+    UIView *parent = [self superview];
+    CGRect frame = [self frame];
+    CGRect pframe = [parent bounds];
+
+    /* Only fill the parent when it is a row-sized box, not a whole page */
+    if(parent && pframe.size.height > frame.size.height &&
+       pframe.size.height < frame.size.height * 4)
+    {
+        frame.origin.y = pframe.origin.y;
+        frame.size.height = pframe.size.height;
+        [self setFrame:frame];
+    }
+}
+-(CGRect)textRectForBounds:(CGRect)bounds
+{
+    CGRect rect = CGRectInset(bounds, 8, 0);
+
+    rect.size.width -= _DW_COMBO_ARROW;
+    if(rect.size.width < 1.0)
+        rect.size.width = 1.0;
+    return rect;
+}
+-(CGRect)editingRectForBounds:(CGRect)bounds
+{
+    return [self textRectForBounds:bounds];
+}
+-(CGRect)rightViewRectForBounds:(CGRect)bounds
+{
+    return CGRectMake(bounds.size.width - _DW_COMBO_ARROW - 4,
+                      (bounds.size.height - _DW_COMBO_ARROW) / 2,
+                      _DW_COMBO_ARROW, _DW_COMBO_ARROW);
 }
 -(void)setToolbarStyle:(UIBarStyle)style { toolbarStyle = style; }
 -(void)append:(NSString *)item { if(item) [dataArray addObject:item]; }
@@ -10459,6 +10502,16 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, style, ULONG, mask, ULONG)
             else
                 [label setLineBreakMode:NSLineBreakByTruncatingTail];
         }
+    }
+    else if([object isKindOfClass:[UITextField class]])
+    {
+        UITextField *field = object;
+
+        [field setTextAlignment:(style & 0x3)];
+        if(mask & DW_DT_VCENTER)
+            [field setContentVerticalAlignment:(style & DW_DT_VCENTER ?
+                                                UIControlContentVerticalAlignmentCenter :
+                                                UIControlContentVerticalAlignmentTop)];
     }
     else if([object isMemberOfClass:[DWMLE class]])
     {
