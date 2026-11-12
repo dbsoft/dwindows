@@ -4796,8 +4796,26 @@ void _dw_handle_resize_events(Box *thisbox)
             else if([handle isMemberOfClass:[DWScrollBox class]])
             {
                 DWScrollBox *scrollbox = (DWScrollBox *)handle;
-                NSArray *subviews = [scrollbox subviews];
-                DWBox *contentbox = [subviews firstObject];
+                DWBox *contentbox = nil;
+
+                /* iOS 26 slips its own passthrough view in front of the
+                 * scroll content, so find the box rather than trusting
+                 * the first subview.
+                 */
+                for(UIView *sub in [scrollbox subviews])
+                {
+                    if([sub isKindOfClass:[DWBox class]])
+                    {
+                        contentbox = (DWBox *)sub;
+                        break;
+                    }
+                }
+                /* Fall back to the stored content box if the subview
+                 * hasn't been installed yet.
+                 */
+                if(!contentbox)
+                    contentbox = [scrollbox box];
+
                 Box *thisbox = [contentbox box];
 
                 /* Get the required space for the box */
@@ -5026,13 +5044,31 @@ static void _dw_resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                 else if([handle isMemberOfClass:[DWScrollBox class]])
                 {
                     int depth = 0;
-                    DWScrollBox *scrollbox = (DWScrollBox *)handle;
-                    NSArray *subviews = [scrollbox subviews];
-                    DWBox *contentbox = [subviews firstObject];
-                    Box *thisbox = [contentbox box];
                     /* We start with the content being the available size */
                     CGRect frame = CGRectMake(0,0,rect.size.width,rect.size.height);
+                    DWScrollBox *scrollbox = (DWScrollBox *)handle;
+                    DWBox *contentbox = nil;
 
+                    /* iOS 26 slips its own passthrough view in front of the
+                     * scroll content, so find the box rather than trusting
+                     * the first subview.
+                     */
+                    for(UIView *sub in [scrollbox subviews])
+                    {
+                        if([sub isKindOfClass:[DWBox class]])
+                        {
+                            contentbox = (DWBox *)sub;
+                            break;
+                        }
+                    }
+                    /* Fall back to the stored content box if the subview
+                     * hasn't been installed yet.
+                     */
+                    if(!contentbox)
+                        contentbox = [scrollbox box];
+
+                    Box *thisbox = [contentbox box];
+                    
                     /* Get the required space for the box */
                     _dw_resize_box(thisbox, &depth, x, y, 1);
 
@@ -5549,8 +5585,7 @@ DW_FUNCTION_RETURN(dw_scrollbox_get_pos, int)
 DW_FUNCTION_RESTORE_PARAM2(handle, HWND, orient, int)
 {
     DWScrollBox *scrollbox = handle;
-    NSArray *subviews = [scrollbox subviews];
-    UIView *view = [subviews firstObject];
+    UIView *view = [scrollbox box];
     CGSize contentsize = [scrollbox contentSize];
     CGPoint contentoffset = [scrollbox contentOffset];
     int range = 0;
@@ -5584,8 +5619,7 @@ DW_FUNCTION_RETURN(dw_scrollbox_get_range, int)
 DW_FUNCTION_RESTORE_PARAM2(handle, HWND, orient, int)
 {
     DWScrollBox *scrollbox = handle;
-    NSArray *subviews = [scrollbox subviews];
-    UIView *view = [subviews firstObject];
+    UIView *view = [scrollbox box];
     int range = 0;
     if(orient == DW_VERT)
     {
