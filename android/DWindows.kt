@@ -2444,13 +2444,13 @@ class DWMenu {
 class DWContainerModel {
     var columns = mutableListOf<String?>()
     var types = mutableListOf<Int>()
+    var columnwidths = mutableListOf<Int>()
     var data = mutableListOf<Any?>()
     var rowdata = mutableListOf<Long>()
     var rowtitle = mutableListOf<String?>()
     var selected = mutableListOf<Boolean>()
     var querypos: Int = -1
     var colWidth: Float = 0f
-    var explicitColWidth: Float = 0f
     var widthsDirty: Boolean = true
 
     fun numberOfColumns(): Int
@@ -2552,9 +2552,26 @@ class DWContainerModel {
     {
         columns.add(title)
         types.add(type)
+        columnwidths.add(0)
         // If we change the columns we have to invalidate the data
         data.clear()
         widthsDirty = true
+    }
+
+    fun setColumnWidth(column: Int, width: Int)
+    {
+        if(column > -1 && column < columnwidths.size) {
+            columnwidths[column] = if(width > 0) width else 0
+            widthsDirty = true
+        }
+    }
+
+    fun getColumnWidth(column: Int): Int
+    {
+        if(column > -1 && column < columnwidths.size) {
+            return columnwidths[column]
+        }
+        return 0
     }
 
     fun deleteRows(count: Int)
@@ -2669,6 +2686,7 @@ internal class DWColumnLayout(context: Context) : ViewGroup(context)
     var lineHeight: Int = 0
     var iconWidth: Int = 0
     var leadText: TextView? = null
+    var widthOverrides: IntArray? = null
 
     init {
         lineHeight = context.scalePx(DW_ROW_LINE_HEIGHT)
@@ -2676,8 +2694,26 @@ internal class DWColumnLayout(context: Context) : ViewGroup(context)
 
     var leadRaw: Float = 0f
 
-    private fun columnFor(child: View, colw: Int, avail: Int): Int
+    private fun overrideFor(i: Int): Int
     {
+        val overrides = widthOverrides
+
+        if(overrides != null && i < overrides.size)
+            return overrides[i]
+        return 0
+    }
+
+    private fun columnFor(i: Int, colw: Int, avail: Int): Int
+    {
+        val child = getChildAt(i)
+        val forced = overrideFor(i)
+
+        /* An explicit width from dw_container_set_column_width() wins over
+         * every automatic rule, including the icon and filename sizes.
+         */
+        if(forced > 0)
+            return if(avail > 0) minOf(forced, avail) else forced
+
         if(child is ImageView)
             return if(iconWidth > 0) iconWidth else colw
 
@@ -2725,7 +2761,7 @@ internal class DWColumnLayout(context: Context) : ViewGroup(context)
 
         for(i in 0 until childCount)
         {
-            var w = columnFor(getChildAt(i), colw, avail)
+            var w = columnFor(i, colw, avail)
 
             /* Wrap only when the column cannot fit where we are, never to
              * leave a gap at the end of a line.
@@ -2766,7 +2802,7 @@ internal class DWColumnLayout(context: Context) : ViewGroup(context)
              * there is no width to wrap against, so hand every cell its
              * natural width and let the real pass do the wrapping.
              */
-            val w = if(unspecified) columnFor(getChildAt(i), colw, avail) else ws[i]
+            val w = if(unspecified) columnFor(i, colw, avail) else ws[i]
 
             getChildAt(i).measure(MeasureSpec.makeMeasureSpec(w, MeasureSpec.EXACTLY), lhspec)
             if(unspecified && xs[i] + w > widest)
@@ -2808,10 +2844,11 @@ internal class DWColumnLayout(context: Context) : ViewGroup(context)
                     edge = xs[i] + ws[i]
 
                 val child = getChildAt(i)
-                /* The icon and the filename keep their own width; only the
-                 * extras absorb the spare.
+                /* The icon, the filename and any forced-width column keep
+                 * their own width; only the remaining extras absorb the
+                 * spare.
                  */
-                if(child === leadText || child is ImageView)
+                if(child === leadText || child is ImageView || overrideFor(i) > 0)
                     continue
                 cells.add(i)
             }
@@ -3010,8 +3047,6 @@ class DWContainerAdapter(c: Context) : BaseAdapter()
                         maxw = w
                 }
             }
-            if(model.explicitColWidth > maxw)
-                maxw = model.explicitColWidth
 
             model.colWidth = maxw
             model.widthsDirty = false
@@ -3031,7 +3066,8 @@ class DWContainerAdapter(c: Context) : BaseAdapter()
         {
             for(col in extraColumns until displayColumns)
             {
-                if((model.getColumnType(col) and 1) != 0)
+                if((model.getColumnType(col) and 1) != 0 ||
+                    model.getColumnWidth(col) > 0)
                     continue
 
                 val content = model.getRowAndColumn(row, col)
@@ -3047,17 +3083,20 @@ class DWContainerAdapter(c: Context) : BaseAdapter()
                     widestExtra = w
             }
 
-            val lead = model.getRowAndColumn(row, leadColumn)
-            val ls = if(lead is String)
-                lead
-            else if(lead is Long || lead is Int)
-                lead.toString()
-            else
-                ""
+            if(model.getColumnWidth(leadColumn) == 0)
+            {
+                val lead = model.getRowAndColumn(row, leadColumn)
+                val ls = if(lead is String)
+                    lead
+                else if(lead is Long || lead is Int)
+                    lead.toString()
+                else
+                    ""
 
-            val lw = paint.measureText(ls)
-            if(lw > widestLead)
-                widestLead = lw
+                val lw = paint.measureText(ls)
+                if(lw > widestLead)
+                    widestLead = lw
+            }
         }
         return floatArrayOf(widestExtra, widestLead)
     }
@@ -3106,6 +3145,20 @@ class DWContainerAdapter(c: Context) : BaseAdapter()
                 cl.columnPad = context.scalePx(DW_EXTRA_COLUMN_PAD)
                 cl.setPadding(context.scalePx(DW_EXTRA_COLUMN_PAD), 0,
                     context.scalePx(DW_EXTRA_COLUMN_PAD), 0)
+                /* Column widths are indexed by column; the icon and filename
+                 * occupy child slots 0 and 1 ahead of the extras.
+                 */
+                val overrides = IntArray(2 + (displayColumns - extraColumns))
+
+                if(extraColumns > 1) {
+                    overrides[0] = model.getColumnWidth(0)
+                    overrides[1] = model.getColumnWidth(1)
+                } else {
+                    overrides[1] = model.getColumnWidth(0)
+                }
+                for(i in extraColumns until displayColumns)
+                    overrides[2 + i - extraColumns] = model.getColumnWidth(i)
+                cl.widthOverrides = overrides
                 val clp = RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT,
                     RelativeLayout.LayoutParams.WRAP_CONTENT)
                 clp.addRule(RelativeLayout.ALIGN_PARENT_TOP)
@@ -3228,7 +3281,11 @@ class DWContainerAdapter(c: Context) : BaseAdapter()
             // Otherwise we just need to update the existing layout
             for(i in extraColumns until displayColumns) {
                 val target = area ?: continue
-                val idx = i - extraColumns
+                /* The flow reserves slots 0 and 1 for the icon and the
+                 * filename, so EXTRA columns start two slots later. MULTI's
+                 * stack holds only the extras.
+                 */
+                val idx = if(contMode == 1) i - extraColumns + 2 else i - extraColumns
 
                 if(idx >= target.childCount)
                     continue
@@ -5765,6 +5822,16 @@ class DWindows : AppCompatActivity() {
         }
     }
 
+    fun containerSetColumnWidth(cont: ListView, column: Int, width: Int)
+    {
+        waitOnUiThread {
+            val adapter: DWContainerAdapter = cont.adapter as DWContainerAdapter
+
+            adapter.model.setColumnWidth(column, width)
+            adapter.notifyDataSetChanged()
+        }
+    }
+
     // Create a new SparseBooleanArray with only the true or false contents
     private fun onlyBooleanArray(array: SparseBooleanArray, bool: Boolean): SparseBooleanArray
     {
@@ -5922,20 +5989,6 @@ class DWindows : AppCompatActivity() {
             val adapter: DWContainerAdapter = cont.adapter as DWContainerAdapter
 
             adapter.model.addColumn(title, flags)
-        }
-    }
-
-    fun containerSetColumnWidth(cont: ListView, column: Int, width: Int)
-    {
-        waitOnUiThread {
-            val adapter: DWContainerAdapter = cont.adapter as DWContainerAdapter
-
-            // Explicit widths raise the shared width, they do not override
-            // one column, so the grid stays uniform.
-            adapter.model.explicitColWidth =
-                max(adapter.model.explicitColWidth, scalePx(width).toFloat())
-            adapter.model.widthsDirty = true
-            adapter.notifyDataSetChanged()
         }
     }
 
