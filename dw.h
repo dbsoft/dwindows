@@ -1666,7 +1666,7 @@ typedef enum
 
 /* Mobile alternate container modes */
 #define DW_CONTAINER_MODE_DEFAULT 0    /* Displays only the main column on mobile platforms */
-#define DW_CONTAINER_MODE_EXTRA   1    /* Displays the main column, and the rest on a second line */
+#define DW_CONTAINER_MODE_EXTRA   1    /* Displays the main column, as much as possible before wrapping */
 #define DW_CONTAINER_MODE_MULTI   2    /* Displays every display column on a separate line plus buttons */
 #define DW_CONTAINER_MODE_MAX     3
 

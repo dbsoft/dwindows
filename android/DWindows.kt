@@ -4,6 +4,7 @@
 package org.dbsoft.dwindows
 
 import android.Manifest
+import android.Manifest.permission.ACCESS_COARSE_LOCATION
 import android.R
 import android.annotation.SuppressLint
 import android.app.Activity
@@ -79,6 +80,7 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Rect
+import android.text.TextUtils
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
@@ -87,11 +89,17 @@ import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import android.widget.LinearLayout
 import androidx.core.location.altitude.AltitudeConverterCompat
 import com.google.android.gms.location.*
+import com.google.android.gms.location.FusedLocationProviderClient
 
 /* DW pixel sizes are device pixels on the other platforms, but a phone is
  * 2-4x density. Set to false for literal pixel-for-pixel parity. */
 internal const val DW_SCALE_LAYOUT_PX = true
 private const val DW_FCF_FULLSCREEN = 1 shl 2
+private const val DW_ROW_LINE_HEIGHT = 20
+private const val DW_ROW_ICON_SIZE = 24
+private const val DW_EXTRA_COLUMN_PAD = 5
+private const val DW_EXTRA_MIN_COLUMN_WIDTH = 16
+private const val DW_EXTRA_MAX_COLUMN_FRACTION = 0.40f
 
 internal fun Context.scalePx(v: Int): Int =
     if (DW_SCALE_LAYOUT_PX && v > 0)
@@ -317,7 +325,7 @@ class DWGeoManager(private val context: Context) {
 
     private var locationCallback: LocationCallback? = null
 
-    @RequiresPermission(anyOf = [Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION])
+    @RequiresPermission(anyOf = [Manifest.permission.ACCESS_FINE_LOCATION, ACCESS_COARSE_LOCATION])
     fun startUpdates(intervalMs: Long) {
         val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, intervalMs).apply {
             setMinUpdateIntervalMillis(intervalMs / 2)
@@ -2441,6 +2449,9 @@ class DWContainerModel {
     var rowtitle = mutableListOf<String?>()
     var selected = mutableListOf<Boolean>()
     var querypos: Int = -1
+    var colWidth: Float = 0f
+    var explicitColWidth: Float = 0f
+    var widthsDirty: Boolean = true
 
     fun numberOfColumns(): Int
     {
@@ -2488,6 +2499,7 @@ class DWContainerModel {
                         && obj is String) {
                 data[index] = obj
             }
+            widthsDirty = true
         }
     }
 
@@ -2542,6 +2554,7 @@ class DWContainerModel {
         types.add(type)
         // If we change the columns we have to invalidate the data
         data.clear()
+        widthsDirty = true
     }
 
     fun deleteRows(count: Int)
@@ -2565,6 +2578,7 @@ class DWContainerModel {
 
     fun deleteRowByTitle(title: String?)
     {
+        widthsDirty = true
         for(i in 0 until rowtitle.size) {
             if(rowtitle[i] != null && rowtitle[i] == title) {
                 for(j in 0 until columns.size) {
@@ -2579,6 +2593,7 @@ class DWContainerModel {
 
     fun deleteRowByData(rdata: Long)
     {
+        widthsDirty = true
         for(i in 0 until rowdata.size) {
             if(rowdata[i] == rdata) {
                 for(j in 0 until columns.size) {
@@ -2614,6 +2629,7 @@ class DWContainerModel {
     fun addRows(count: Int): Long
     {
         val startRow: Long = numberOfRows().toLong()
+        widthsDirty = true
 
         for(i in 0 until count)
         {
@@ -2635,7 +2651,206 @@ class DWContainerModel {
         rowdata.clear()
         rowtitle.clear()
         selected.clear()
+        widthsDirty = true
     }
+}
+
+/* Lays a row out as a uniform grid: the leading icon, the filename and every
+ * extra column share one flow. The icon takes its fixed width and the filename
+ * takes its content width, so both stay distinguishable from the extras, which
+ * share one uniform cell width. Columns fill the line and only wrap once the
+ * next one genuinely will not fit. Every cell is stretched to the line height,
+ * which centres its contents vertically.
+ */
+internal class DWColumnLayout(context: Context) : ViewGroup(context)
+{
+    var columnRaw: Float = 0f
+    var columnPad: Int = 0
+    var lineHeight: Int = 0
+    var iconWidth: Int = 0
+    var leadText: TextView? = null
+
+    init {
+        lineHeight = context.scalePx(DW_ROW_LINE_HEIGHT)
+    }
+
+    var leadRaw: Float = 0f
+
+    private fun columnFor(child: View, colw: Int, avail: Int): Int
+    {
+        if(child is ImageView)
+            return if(iconWidth > 0) iconWidth else colw
+
+        if(child === leadText)
+        {
+            /* Fixed to the widest filename in the container, so the extras
+             * start at the same x on every row.
+             */
+            val minw = context.scalePx(DW_EXTRA_MIN_COLUMN_WIDTH)
+            val cap = maxOf(minOf(avail * 2 / 3, avail), minw)
+            return leadRaw.toInt().coerceIn(minw, cap)
+        }
+        return colw
+    }
+
+    /* Capped against our own measured width, so the shared width is always
+     * evaluated against the space actually available and can never exceed
+     * it, no matter how long the widest value in the container is.
+     */
+    private fun columnWidth(avail: Int): Int
+    {
+        val minw = context.scalePx(DW_EXTRA_MIN_COLUMN_WIDTH)
+        var w = if(columnRaw > 0f) columnRaw else minw.toFloat()
+        val cap = avail * DW_EXTRA_MAX_COLUMN_FRACTION
+
+        if(cap > 0f && w > cap)
+            w = cap
+        if(w < minw)
+            w = minw.toFloat()
+        if(avail > 0 && w > avail)
+            w = avail.toFloat()
+        return w.toInt().coerceAtLeast(1)
+    }
+
+    /* Positions every child and reports how many lines that took. Shared by
+     * measure and layout so the two can never disagree about the wrapping.
+     */
+    private fun place(avail: Int, xs: IntArray, ws: IntArray, lines: IntArray): Int
+    {
+        val colw = columnWidth(avail)
+        val left = paddingLeft
+        val right = (avail - paddingRight).coerceAtLeast(left + 1)
+        var x = left
+        var line = 0
+
+        for(i in 0 until childCount)
+        {
+            var w = columnFor(getChildAt(i), colw, avail)
+
+            /* Wrap only when the column cannot fit where we are, never to
+             * leave a gap at the end of a line.
+             */
+            if(x > left && x + w > right)
+            {
+                line++
+                x = left
+            }
+            /* A column wider than the whole line still has to be cropped. */
+            if(x + w > right)
+                w = (right - x).coerceAtLeast(1)
+            xs[i] = x
+            ws[i] = w
+            lines[i] = line
+            x += w + columnPad
+        }
+        return line + 1
+    }
+
+    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int)
+    {
+        val unspecified = MeasureSpec.getMode(widthMeasureSpec) == MeasureSpec.UNSPECIFIED
+        val avail = if(unspecified) Int.MAX_VALUE / 4 else MeasureSpec.getSize(widthMeasureSpec)
+        val colw = columnWidth(avail)
+        val lh = if(lineHeight > 0) lineHeight else colw
+        val lhspec = MeasureSpec.makeMeasureSpec(lh, MeasureSpec.EXACTLY)
+        val n = childCount
+        val xs = IntArray(n)
+        val ws = IntArray(n)
+        val lines = IntArray(n)
+        val used = place(avail, xs, ws, lines)
+        var widest = 0
+
+        for(i in 0 until n)
+        {
+            /* Under UNSPECIFIED (a ListView filling itself from onMeasure)
+             * there is no width to wrap against, so hand every cell its
+             * natural width and let the real pass do the wrapping.
+             */
+            val w = if(unspecified) columnFor(getChildAt(i), colw, avail) else ws[i]
+
+            getChildAt(i).measure(MeasureSpec.makeMeasureSpec(w, MeasureSpec.EXACTLY), lhspec)
+            if(unspecified && xs[i] + w > widest)
+                widest = xs[i] + w
+        }
+        setMeasuredDimension(
+            if(unspecified) View.resolveSize(widest + paddingRight, widthMeasureSpec)
+            else View.resolveSize(avail, widthMeasureSpec),
+            View.resolveSize(used * lh + (used - 1) * columnPad + paddingTop + paddingBottom,
+                heightMeasureSpec))
+    }
+
+    override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int)
+    {
+        val avail = r - l
+        val n = childCount
+        if(n < 1)
+            return
+
+        val xs = IntArray(n)
+        val ws = IntArray(n)
+        val lines = IntArray(n)
+        val used = place(avail, xs, ws, lines)
+        val lh = if(lineHeight > 0) lineHeight else columnWidth(avail)
+
+        /* Hand spare room on a line back to that line's columns, so a short
+         * row fills its width instead of stopping after the last column.
+         */
+        for(ln in 0 until used)
+        {
+            val cells = arrayListOf<Int>()
+            var edge = 0
+
+            for(i in 0 until n)
+            {
+                if(lines[i] != ln)
+                    continue
+                if(xs[i] + ws[i] > edge)
+                    edge = xs[i] + ws[i]
+
+                val child = getChildAt(i)
+                /* The icon and the filename keep their own width; only the
+                 * extras absorb the spare.
+                 */
+                if(child === leadText || child is ImageView)
+                    continue
+                cells.add(i)
+            }
+
+            val limit = avail - paddingRight
+            if(cells.isEmpty() || edge >= limit)
+                continue
+
+            /* Equal shares, so every extra on the line ends up the same width
+             * and the columns stay aligned with each other and with the lines
+             * above and below.
+             */
+            val share = (limit - edge) / cells.size
+            var cursor = xs[cells[0]]
+
+            for(i in cells)
+            {
+                ws[i] += share
+                xs[i] = cursor
+                cursor += ws[i] + columnPad
+            }
+        }
+
+        var y = paddingTop
+        var prev = 0
+        for(i in 0 until n)
+        {
+            if(lines[i] != prev)
+            {
+                y += lh + columnPad
+                prev = lines[i]
+            }
+            val child = getChildAt(i)
+            child.layout(xs[i], y, xs[i] + ws[i], y + lh)
+        }
+    }
+
+    override fun generateDefaultLayoutParams() =
+        ViewGroup.LayoutParams(WRAP_CONTENT, WRAP_CONTENT)
 }
 
 class DWContainerRow : RelativeLayout, Checkable {
@@ -2646,6 +2861,7 @@ class DWContainerRow : RelativeLayout, Checkable {
     var imageview: ImageView = ImageView(context)
     var text: TextView = TextView(context)
     var stack: LinearLayout = LinearLayout(context)
+    internal var columns: DWColumnLayout? = null
     var parent: ListView? = null
 
     override fun setBackgroundColor(color: Int) {
@@ -2656,18 +2872,28 @@ class DWContainerRow : RelativeLayout, Checkable {
     fun setup(context: Context?) {
         val wrap = RelativeLayout.LayoutParams.WRAP_CONTENT
         val match = RelativeLayout.LayoutParams.MATCH_PARENT
-        var lp = RelativeLayout.LayoutParams(wrap, wrap)
+        val icon = scalePx(DW_ROW_ICON_SIZE)
+        // Fixed box: the leading line must be the same height whether the
+        // row holds a folder or a document icon
+        var lp = RelativeLayout.LayoutParams(icon, icon)
         imageview.id = View.generateViewId()
+        imageview.scaleType = ImageView.ScaleType.CENTER
         lp.setMargins(4)
         this.addView(imageview, lp)
-        lp = RelativeLayout.LayoutParams(match, wrap)
+        // Same height as the icon, so the line can't grow on its own either
+        lp = RelativeLayout.LayoutParams(match, icon)
         text.id = View.generateViewId()
+        text.gravity = Gravity.CENTER_VERTICAL
+        text.maxLines = 1
+        text.ellipsize = TextUtils.TruncateAt.END
         lp.addRule(RelativeLayout.RIGHT_OF, imageview.id);
         this.addView(text, lp)
         lp = RelativeLayout.LayoutParams(match, wrap)
         stack.id = View.generateViewId()
         stack.orientation = LinearLayout.HORIZONTAL
         stack.descendantFocusability = LinearLayout.FOCUS_BLOCK_DESCENDANTS
+        lp.topMargin = scalePx(DW_EXTRA_COLUMN_PAD)
+        lp.bottomMargin = scalePx(DW_EXTRA_COLUMN_PAD)
         lp.addRule(RelativeLayout.BELOW, imageview.id);
         lp.addRule(RelativeLayout.BELOW, text.id);
         this.addView(stack, lp)
@@ -2747,6 +2973,95 @@ class DWContainerAdapter(c: Context) : BaseAdapter()
         return position.toLong()
     }
 
+    /* One shared width for every extra column: the widest value in the
+     * container. Deliberately width-independent, because the ListView has
+     * no width yet when it fills rows from onMeasure; DWColumnLayout caps
+     * it against its own measured width instead.
+     */
+    private fun columnRawWidth(extraColumns: Int, displayColumns: Int, template: TextView): Float
+    {
+        val dm = context.resources.displayMetrics
+        val pad = DW_EXTRA_COLUMN_PAD * dm.density
+
+        if(model.widthsDirty || model.colWidth <= 0f)
+        {
+            /* Measure with the row's own TextPaint, so the typeface and
+             * size are the ones that will be drawn. No detached view to
+             * keep alive, and nothing that needs LayoutParams.
+             */
+            val paint = template.paint
+
+            var maxw = DW_EXTRA_MIN_COLUMN_WIDTH * dm.density
+
+            for(row in 0 until model.numberOfRows())
+            {
+                for(col in extraColumns until displayColumns)
+                {
+                    val content = model.getRowAndColumn(row, col)
+                    val w = when
+                    {
+                        content is String -> paint.measureText(content) + pad * 2
+                        content is Long || content is Int -> paint.measureText(content.toString()) + pad * 2
+
+                        content is Drawable -> content.intrinsicWidth + pad * 2
+                        else -> 0f
+                    }
+                    if(w > maxw)
+                        maxw = w
+                }
+            }
+            if(model.explicitColWidth > maxw)
+                maxw = model.explicitColWidth
+
+            model.colWidth = maxw
+            model.widthsDirty = false
+        }
+        return model.colWidth
+    }
+
+    private fun measureRawWidths(paint: android.graphics.Paint,
+                                 displayColumns: Int, extraColumns: Int): FloatArray
+    {
+        var widestExtra = 0f
+        var widestLead = 0f
+        val leadColumn = if(extraColumns > 1) 1 else 0
+        val rows = model.numberOfRows()
+
+        for(row in 0 until rows)
+        {
+            for(col in extraColumns until displayColumns)
+            {
+                if((model.getColumnType(col) and 1) != 0)
+                    continue
+
+                val content = model.getRowAndColumn(row, col)
+                val s = if(content is String)
+                    content
+                else if(content is Long || content is Int)
+                    content.toString()
+                else
+                    continue
+
+                val w = paint.measureText(s)
+                if(w > widestExtra)
+                    widestExtra = w
+            }
+
+            val lead = model.getRowAndColumn(row, leadColumn)
+            val ls = if(lead is String)
+                lead
+            else if(lead is Long || lead is Int)
+                lead.toString()
+            else
+                ""
+
+            val lw = paint.measureText(ls)
+            if(lw > widestLead)
+                widestLead = lw
+        }
+        return floatArrayOf(widestExtra, widestLead)
+    }
+
     override fun getView(position: Int, view: View?, parent: ViewGroup): View {
         var rowView: DWContainerRow? = view as DWContainerRow?
         var displayColumns = model.numberOfColumns()
@@ -2767,6 +3082,8 @@ class DWContainerAdapter(c: Context) : BaseAdapter()
             displayColumns = extraColumns
         }
 
+        var area: ViewGroup? = null
+
         // If the view passed in is null we need to create the layout
         if(rowView == null) {
             rowView = DWContainerRow(context)
@@ -2781,6 +3098,35 @@ class DWContainerAdapter(c: Context) : BaseAdapter()
                 rowView.stack.gravity = Gravity.LEFT
             }
 
+            if(contMode == 2)
+                area = rowView.stack
+            else if(contMode == 1) {
+                val cl = DWColumnLayout(context)
+
+                cl.columnPad = context.scalePx(DW_EXTRA_COLUMN_PAD)
+                cl.setPadding(context.scalePx(DW_EXTRA_COLUMN_PAD), 0,
+                    context.scalePx(DW_EXTRA_COLUMN_PAD), 0)
+                val clp = RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT,
+                    RelativeLayout.LayoutParams.WRAP_CONTENT)
+                clp.addRule(RelativeLayout.ALIGN_PARENT_TOP)
+                clp.addRule(RelativeLayout.ALIGN_PARENT_LEFT)
+                clp.addRule(RelativeLayout.ALIGN_PARENT_RIGHT)
+                /* The icon and the filename join the same flow as the extra
+                 * columns, so they wrap and centre with them instead of
+                 * sitting on a line of their own.
+                 */
+                rowView.removeView(rowView.stack)
+                rowView.removeView(rowView.imageview)
+                rowView.removeView(rowView.text)
+                cl.addView(rowView.imageview, ViewGroup.LayoutParams(
+                    context.scalePx(DW_ROW_ICON_SIZE), ViewGroup.LayoutParams.MATCH_PARENT))
+                cl.addView(rowView.text, ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+                rowView.addView(cl, clp)
+                rowView.columns = cl
+                area = cl
+            }
+
             // If there are extra columns and we are not in default mode...
             // Add the columns to the stack (LinearLayout)
             for(i in extraColumns until displayColumns) {
@@ -2789,18 +3135,21 @@ class DWContainerAdapter(c: Context) : BaseAdapter()
                 // Image
                 if((model.getColumnType(i) and 1) != 0) {
                     val imageview = ImageView(context)
-                    val params = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT,
-                                                           LinearLayout.LayoutParams.WRAP_CONTENT)
-                    if(contMode == 2)
-                        params.gravity = Gravity.LEFT
+                    val params = if(contMode == 2)
+                        LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT,
+                            LinearLayout.LayoutParams.WRAP_CONTENT).apply { gravity = Gravity.LEFT }
                     else
-                        params.gravity = Gravity.CENTER
+                        ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                            ViewGroup.LayoutParams.WRAP_CONTENT)
                     imageview.layoutParams = params
                     imageview.id = View.generateViewId()
+                    imageview.scaleType = ImageView.ScaleType.CENTER
                     if (content is Drawable) {
                         imageview.setImageDrawable(content)
+                    } else {
+                        imageview.setImageDrawable(null)
                     }
-                    rowView.stack.addView(imageview)
+                    area!!.addView(imageview)
                 } else  {
                     // Everything else is displayed as text
                     var textview: TextView? = null
@@ -2811,18 +3160,24 @@ class DWContainerAdapter(c: Context) : BaseAdapter()
                         textview = Button(context)
                     } else {
                         textview = TextView(context)
+                        // Grid columns are fixed width: clip the overflow
+                        // rather than wrapping or ellipsizing it
+                        textview.isSingleLine = true
+                        textview.ellipsize = null
+                        textview.gravity = Gravity.CENTER_VERTICAL
+                        // Match what columnRawWidth() measured, and keep the
+                        // glyphs off the crop edge
+                        textview.typeface = rowView.text.typeface
+                        textview.setTextSize(TypedValue.COMPLEX_UNIT_PX, rowView.text.textSize)
+                        val cpad = context.scalePx(2)
+                        textview.setPadding(cpad, 0, cpad, 0)
                     }
-                    var hsize = LinearLayout.LayoutParams.WRAP_CONTENT
-                    if(contMode == 0)
-                        hsize = LinearLayout.LayoutParams.MATCH_PARENT
-                    val params = LinearLayout.LayoutParams(hsize, LinearLayout.LayoutParams.WRAP_CONTENT)
-                    if(contMode == 2)
-                        params.gravity = Gravity.LEFT
+                    val params = if(contMode == 2)
+                        LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT,
+                            LinearLayout.LayoutParams.WRAP_CONTENT).apply { gravity = Gravity.LEFT }
                     else
-                        params.gravity = Gravity.CENTER
-                    // Multi-line (vertical) mode does not require horizontal margins
-                    if(contMode != 2)
-                        params.setMargins(5, 0, 5, 0)
+                        ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                            ViewGroup.LayoutParams.WRAP_CONTENT)
                     textview.layoutParams = params
                     textview.id = View.generateViewId()
                     if (content is String) {
@@ -2837,8 +3192,19 @@ class DWContainerAdapter(c: Context) : BaseAdapter()
                         }
                         eventHandlerInt(parent, DWEvent.COLUMN_CLICK, columnClicked, 0, 0, 0)
                     }
-                    rowView.stack.addView(textview)
+                    area!!.addView(textview)
                 }
+            }
+            if(contMode == 1) {
+                val cl = area as DWColumnLayout
+                val fm = rowView.text.paint.fontMetrics
+                val raw = measureRawWidths(rowView.text.paint, displayColumns, extraColumns)
+                cl.lineHeight = (fm.descent - fm.ascent).toInt()
+                cl.iconWidth = context.scalePx(DW_ROW_ICON_SIZE)
+                cl.leadText = rowView.text
+                cl.columnRaw = raw[0]
+                cl.leadRaw = raw[1]
+                cl.requestLayout()
             }
         } else {
             // Update the position and parent
@@ -2848,20 +3214,36 @@ class DWContainerAdapter(c: Context) : BaseAdapter()
             // Refresh the selected state from the model
             rowView.isChecked = model.getRowSelected(position)
 
+            area = if(contMode == 2) rowView.stack else rowView.columns
+            if(contMode == 1 && area != null) {
+                val cl = area as DWColumnLayout
+                val fm = rowView.text.paint.fontMetrics
+
+                cl.lineHeight = (fm.descent - fm.ascent).toInt() + 1
+                cl.iconWidth = context.scalePx(DW_ROW_ICON_SIZE)
+                cl.columnRaw = columnRawWidth(extraColumns, displayColumns, rowView.text)
+                area.requestLayout()
+            }
+
             // Otherwise we just need to update the existing layout
             for(i in extraColumns until displayColumns) {
+                val target = area ?: continue
+                val idx = i - extraColumns
+
+                if(idx >= target.childCount)
+                    continue
                 var content = model.getRowAndColumn(position, i)
 
                 // Image
                 if((model.getColumnType(i) and 1) != 0) {
-                    val imageview = rowView.stack.getChildAt(i - extraColumns)
+                    val imageview = target.getChildAt(idx)
 
                     if (imageview is ImageView && content is Drawable) {
                         imageview.setImageDrawable(content)
                     }
                 } else {
                     // Text
-                    val textview = rowView.stack.getChildAt(i - extraColumns)
+                    val textview = target.getChildAt(idx)
 
                     if (textview is TextView) {
                         if (content is String) {
@@ -5019,7 +5401,8 @@ class DWindows : AppCompatActivity() {
         var fineGranted = ActivityCompat.checkSelfPermission(this,
             Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
         var coarseGranted = ActivityCompat.checkSelfPermission(this,
-            Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+            ACCESS_COARSE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
 
         if (!fineGranted || !coarseGranted) {
             // Request permissions
@@ -5027,14 +5410,15 @@ class DWindows : AppCompatActivity() {
                 this,
                 arrayOf(
                     Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION
+                    ACCESS_COARSE_LOCATION
                 ),
                 intervalMs.toInt()
             )
             fineGranted = ActivityCompat.checkSelfPermission(this,
                 Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
             coarseGranted = ActivityCompat.checkSelfPermission(this,
-                Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                ACCESS_COARSE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
 
         }
 
@@ -5538,6 +5922,20 @@ class DWindows : AppCompatActivity() {
             val adapter: DWContainerAdapter = cont.adapter as DWContainerAdapter
 
             adapter.model.addColumn(title, flags)
+        }
+    }
+
+    fun containerSetColumnWidth(cont: ListView, column: Int, width: Int)
+    {
+        waitOnUiThread {
+            val adapter: DWContainerAdapter = cont.adapter as DWContainerAdapter
+
+            // Explicit widths raise the shared width, they do not override
+            // one column, so the grid stays uniform.
+            adapter.model.explicitColWidth =
+                max(adapter.model.explicitColWidth, scalePx(width).toFloat())
+            adapter.model.widthsDirty = true
+            adapter.notifyDataSetChanged()
         }
     }
 

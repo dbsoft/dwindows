@@ -2,7 +2,7 @@
  * Dynamic Windows:
  *          A GTK like GUI implementation of the Android GUI.
  *
- * (C) 2011-2023 Brian Smith <brian@dbsoft.org>
+ * (C) 2011-2026 Brian Smith <brian@dbsoft.org>
  * (C) 2011-2022 Mark Hessling <mark@rexx.org>
  *
  * Requires Android API 26 (Oreo) or higher.
@@ -4292,6 +4292,19 @@ void API dw_container_set_stripe(HWND handle, unsigned long oddcolor, unsigned l
  */
 void API dw_container_set_column_width(HWND handle, int column, int width)
 {
+    JNIEnv *env;
+
+    if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID containerSetColumnWidth = env->GetMethodID(clazz, "containerSetColumnWidth",
+                                                            "(Landroid/widget/ListView;II)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, containerSetColumnWidth, handle, column, width);
+        _dw_jni_check_exception(env);
+    }
 }
 
 /*
@@ -8440,6 +8453,8 @@ int API dw_feature_set(DWFEATURE feature, int state)
         }
         case DW_FEATURE_CONTAINER_MODE:          /* Supports alternate container view modes */
         {
+            dw_debug("container mode <- %d (EXTRA=%d MULTI=%d MAX=%d)\n",
+                     state, DW_CONTAINER_MODE_EXTRA, DW_CONTAINER_MODE_MULTI, DW_CONTAINER_MODE_MAX);
             if(state >= DW_CONTAINER_MODE_DEFAULT && state < DW_CONTAINER_MODE_MAX)
             {
                 JNIEnv *env;
@@ -8452,6 +8467,8 @@ int API dw_feature_set(DWFEATURE feature, int state)
                     jmethodID setContainerMode = env->GetMethodID(clazz, "setContainerMode",
                                                                   "(I)V");
                     _dw_container_mode = state;
+                    dw_debug("container mode <- %d (EXTRA=%d MULTI=%d MAX=%d)\n",
+                             state, DW_CONTAINER_MODE_EXTRA, DW_CONTAINER_MODE_MULTI, DW_CONTAINER_MODE_MAX);
                     // Call the method on the object
                     env->CallVoidMethod(_dw_obj, setContainerMode, (jint)state);
                     _dw_jni_check_exception(env);
