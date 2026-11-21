@@ -2015,7 +2015,9 @@ std::vector<std::string> DWFeatureList = {
     "Supports arbitrary window placement",
     "Supports alternate container view modes",
     "Supports the DW_SIGNAL_HTML_MESSAGE callback",
-    "Supports render safe drawing mode, limited to expose"
+    "Supports render safe drawing mode, limited to expose",
+    "Supports Geolocation via dw_geo_*() APIs",
+
 };
 
 // Let's demonstrate the functionality of this library. :)
