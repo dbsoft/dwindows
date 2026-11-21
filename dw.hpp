@@ -1,5 +1,5 @@
 // Dynamic Windows C++ Language Bindings 
-// Copyright (C) 2022-2023 Brian Smith
+// Copyright (C) 2022-2026 Brian Smith
 // Recommends a C++11 compatible compiler.
 
 #ifndef _HPP_DW
@@ -50,6 +50,25 @@ class Render;
 class Pixmap;
 class MenuItem;
 class Window;
+
+// Determine if a virtual signal handler has been overridden by the most
+// derived class, so unused handlers never get a connection in the first place.
+// This needs the type of the most derived object, so Setup() takes the
+// "this" pointer of the class that is actually being instantiated.
+// Comparing pointers to member functions needs C++11, on older compilers
+// we conservatively report every handler as overridden.
+#if defined(DW_CPP11) || (defined(_MSC_VER) && _MSC_VER >= 1900)
+#define DW_ISOVERRIDDEN
+template <class F, class Base, class Derived>
+inline bool IsOverridden(F Base::*basefunc, F Derived::*derivedfunc) {
+    // Both sides are converted to the base type, which leaves a plain
+    // comparison of pointers to member functions.  For a virtual function
+    // only the vtable slot has to be compared, so this folds away.
+    return static_cast<F Base::*>(derivedfunc) != basefunc;
+}
+#else
+#define IsOverridden(a, b) true
+#endif
 
 // Base handle class which allows opaque access to 
 // The base system handles
@@ -141,15 +160,14 @@ public:
     int GetPos(int orient) { return dw_scrollbox_get_pos(hwnd, orient); }
 };
 
-// TODO: Find a way to implement this cross platform...
-// That way we can skip adding unused signal handlers
-#define IsOverridden(a, b) true
-
 // Base class for several types of widgets including buttons and menu items
 class Clickable : virtual public Widget
 {
 private:
     bool ClickedConnected;
+#ifdef DW_ISOVERRIDDEN
+    bool SetupDone = false;
+#endif
 #ifdef DW_LAMBDA
     std::function<int()> _ConnectClicked;
 #endif
@@ -165,17 +183,27 @@ private:
         return classptr->OnClicked(); }
 protected:
     virtual ~Clickable() {}
-    void Setup() {
-#ifdef DW_LAMBDA
-        _ConnectClicked = 0;
+    // Called from the constructor of the most derived class, the type of
+    // "derived" tells us which of the handlers are actually overridden.
+    // Safe to call more than once: only the first call resets the state,
+    // so a subclass can call it again to pick up its own overrides.
+    template <class T>
+    void Setup(T *) {
+#ifdef DW_ISOVERRIDDEN
+        if(!SetupDone) {
+            SetupDone = true;
 #endif
-        _ConnectClickedOld = 0;
-        if(IsOverridden(Clickable::OnClicked, this)) {
+#ifdef DW_LAMBDA
+            _ConnectClicked = 0;
+#endif
+            _ConnectClickedOld = 0;
+            ClickedConnected = false;
+#ifdef DW_ISOVERRIDDEN
+        }
+#endif
+        if(!ClickedConnected && IsOverridden(&Clickable::OnClicked, &T::OnClicked)) {
             dw_signal_connect(hwnd, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(_OnClicked), this);
             ClickedConnected = true;
-        }
-        else {
-            ClickedConnected = false;
         }
     }
     // Our signal handler functions to be overriden...
@@ -253,34 +281,34 @@ class MenuItem : public Clickable
 public:
     // Constructors
     MenuItem(Menus *menu, const char *title, unsigned long id, unsigned long flags, int end, int check, Menus *submenu) { 
-        SetHWND(dw_menu_append_item(menu->GetHMENUI(), title, id, flags, end, check, submenu ? submenu->GetHMENUI() : DW_NOMENU)); Setup();
+        SetHWND(dw_menu_append_item(menu->GetHMENUI(), title, id, flags, end, check, submenu ? submenu->GetHMENUI() : DW_NOMENU)); Setup(this);
     }
     MenuItem(Menus *menu, const char *title, unsigned long flags, int check, Menus *submenu) { 
-        SetHWND(dw_menu_append_item(menu->GetHMENUI(), title, DW_MENU_AUTO, flags, TRUE, check, submenu ? submenu->GetHMENUI() : DW_NOMENU)); Setup();
+        SetHWND(dw_menu_append_item(menu->GetHMENUI(), title, DW_MENU_AUTO, flags, TRUE, check, submenu ? submenu->GetHMENUI() : DW_NOMENU)); Setup(this);
     }
     MenuItem(Menus *menu, const char *title, unsigned long flags, int check) { 
-        SetHWND(dw_menu_append_item(menu->GetHMENUI(), title, DW_MENU_AUTO, flags, TRUE, check, DW_NOMENU)); Setup();
+        SetHWND(dw_menu_append_item(menu->GetHMENUI(), title, DW_MENU_AUTO, flags, TRUE, check, DW_NOMENU)); Setup(this);
     }
     MenuItem(Menus *menu, const char *title, Menus *submenu) {
-        SetHWND(dw_menu_append_item(menu->GetHMENUI(), title, DW_MENU_AUTO, 0, TRUE, FALSE, submenu ? submenu->GetHMENUI() : DW_NOMENU)); Setup();
+        SetHWND(dw_menu_append_item(menu->GetHMENUI(), title, DW_MENU_AUTO, 0, TRUE, FALSE, submenu ? submenu->GetHMENUI() : DW_NOMENU)); Setup(this);
     }
     MenuItem(Menus *menu, const char *title) {
-        SetHWND(dw_menu_append_item(menu->GetHMENUI(), title, DW_MENU_AUTO, 0, TRUE, FALSE, DW_NOMENU)); Setup();
+        SetHWND(dw_menu_append_item(menu->GetHMENUI(), title, DW_MENU_AUTO, 0, TRUE, FALSE, DW_NOMENU)); Setup(this);
     }
     MenuItem(Menus *menu, std::string title, unsigned long id, unsigned long flags, int end, int check, Menus *submenu) { 
-        SetHWND(dw_menu_append_item(menu->GetHMENUI(), title.c_str(), id, flags, end, check, submenu ? submenu->GetHMENUI() : DW_NOMENU)); Setup();
+        SetHWND(dw_menu_append_item(menu->GetHMENUI(), title.c_str(), id, flags, end, check, submenu ? submenu->GetHMENUI() : DW_NOMENU)); Setup(this);
     }
     MenuItem(Menus *menu, std::string title, unsigned long flags, int check, Menus *submenu) { 
-        SetHWND(dw_menu_append_item(menu->GetHMENUI(), title.c_str(), DW_MENU_AUTO, flags, TRUE, check, submenu ? submenu->GetHMENUI() : DW_NOMENU)); Setup();
+        SetHWND(dw_menu_append_item(menu->GetHMENUI(), title.c_str(), DW_MENU_AUTO, flags, TRUE, check, submenu ? submenu->GetHMENUI() : DW_NOMENU)); Setup(this);
     }
     MenuItem(Menus *menu, std::string title, unsigned long flags, int check) { 
-        SetHWND(dw_menu_append_item(menu->GetHMENUI(), title.c_str(), DW_MENU_AUTO, flags, TRUE, check, DW_NOMENU)); Setup();
+        SetHWND(dw_menu_append_item(menu->GetHMENUI(), title.c_str(), DW_MENU_AUTO, flags, TRUE, check, DW_NOMENU)); Setup(this);
     }
     MenuItem(Menus *menu, std::string title, Menus *submenu) {
-        SetHWND(dw_menu_append_item(menu->GetHMENUI(), title.c_str(), DW_MENU_AUTO, 0, TRUE, FALSE, submenu ? submenu->GetHMENUI() : DW_NOMENU)); Setup();
+        SetHWND(dw_menu_append_item(menu->GetHMENUI(), title.c_str(), DW_MENU_AUTO, 0, TRUE, FALSE, submenu ? submenu->GetHMENUI() : DW_NOMENU)); Setup(this);
     }
     MenuItem(Menus *menu, std::string title) {
-        SetHWND(dw_menu_append_item(menu->GetHMENUI(), title.c_str(), DW_MENU_AUTO, 0, TRUE, FALSE, DW_NOMENU)); Setup();
+        SetHWND(dw_menu_append_item(menu->GetHMENUI(), title.c_str(), DW_MENU_AUTO, 0, TRUE, FALSE, DW_NOMENU)); Setup(this);
     }
 
     // User functions
@@ -331,33 +359,48 @@ class Window : public Boxes
 {
 private:
     bool DeleteConnected, ConfigureConnected;
+#ifdef DW_ISOVERRIDDEN
+    bool SetupDone = false;
+#endif
 #ifdef DW_LAMBDA
     std::function<int()> _ConnectDelete;
     std::function<int(int, int)> _ConnectConfigure;
 #endif
     int (*_ConnectDeleteOld)(Window *);
     int (*_ConnectConfigureOld)(Window *, int width, int height);
-    void Setup() {
-#ifdef DW_LAMBDA
-        _ConnectDelete = 0;
-        _ConnectConfigure = 0;
+protected:
+    // Called from the constructor of the most derived class, the type of
+    // "derived" tells us which of the handlers are actually overridden.
+    // Safe to call more than once: only the first call resets the state,
+    // so a subclass can call it again to pick up its own overrides.
+    template <class T>
+    void Setup(T *) {
+#ifdef DW_ISOVERRIDDEN
+        if(!SetupDone) {
+            SetupDone = true;
 #endif
-        _ConnectDeleteOld = 0;
-        _ConnectConfigureOld = 0;
-        menu = DW_NULL;
-        if(IsOverridden(Window::OnDelete, this)) {
+#ifdef DW_LAMBDA
+            _ConnectDelete = 0;
+            _ConnectConfigure = 0;
+#endif
+            _ConnectDeleteOld = 0;
+            _ConnectConfigureOld = 0;
+            menu = DW_NULL;
+            DeleteConnected = false;
+            ConfigureConnected = false;
+#ifdef DW_ISOVERRIDDEN
+        }
+#endif
+        if(!DeleteConnected && IsOverridden(&Window::OnDelete, &T::OnDelete)) {
             dw_signal_connect(hwnd, DW_SIGNAL_DELETE, DW_SIGNAL_FUNC(_OnDelete), this);
             DeleteConnected = true;
-        } else {
-            DeleteConnected = false;
         }
-        if(IsOverridden(Window::OnConfigure, this)) {
+        if(!ConfigureConnected && IsOverridden(&Window::OnConfigure, &T::OnConfigure)) {
             dw_signal_connect(hwnd, DW_SIGNAL_CONFIGURE, DW_SIGNAL_FUNC(_OnConfigure), this);
             ConfigureConnected = true;
-        } else {
-            ConfigureConnected = false;
         }
     }
+private:
     static int _OnDelete(HWND window, void *data) {
         Window *classptr = reinterpret_cast<Window *>(data);
 #ifdef DW_LAMBDA
@@ -379,17 +422,17 @@ private:
     MenuBar *menu;
 public:
     // Constructors
-    Window(HWND owner, const char *title, unsigned long style) { SetHWND(dw_window_new(owner, title, style)); Setup(); }
-    Window(const char *title, unsigned long style) { SetHWND(dw_window_new(HWND_DESKTOP, title, style)); Setup(); }
-    Window(HWND owner, std::string title, unsigned long style) { SetHWND(dw_window_new(owner, title.c_str(), style)); Setup(); }
-    Window(std::string title, unsigned long style) { SetHWND(dw_window_new(HWND_DESKTOP, title.c_str(), style)); Setup(); }
-    Window(unsigned long style) { SetHWND(dw_window_new(HWND_DESKTOP, "", style)); Setup(); }
+    Window(HWND owner, const char *title, unsigned long style) { SetHWND(dw_window_new(owner, title, style)); Setup(this); }
+    Window(const char *title, unsigned long style) { SetHWND(dw_window_new(HWND_DESKTOP, title, style)); Setup(this); }
+    Window(HWND owner, std::string title, unsigned long style) { SetHWND(dw_window_new(owner, title.c_str(), style)); Setup(this); }
+    Window(std::string title, unsigned long style) { SetHWND(dw_window_new(HWND_DESKTOP, title.c_str(), style)); Setup(this); }
+    Window(unsigned long style) { SetHWND(dw_window_new(HWND_DESKTOP, "", style)); Setup(this); }
     Window(const char *title) { SetHWND(dw_window_new(HWND_DESKTOP, title,  DW_FCF_SYSMENU | DW_FCF_TITLEBAR |
-                        DW_FCF_TASKLIST | DW_FCF_SIZEBORDER | DW_FCF_MINMAX)); Setup(); }
+                        DW_FCF_TASKLIST | DW_FCF_SIZEBORDER | DW_FCF_MINMAX)); Setup(this); }
     Window(std::string title) { SetHWND(dw_window_new(HWND_DESKTOP, title.c_str(),  DW_FCF_SYSMENU | DW_FCF_TITLEBAR |
-                        DW_FCF_TASKLIST | DW_FCF_SIZEBORDER | DW_FCF_MINMAX)); Setup(); }
+                        DW_FCF_TASKLIST | DW_FCF_SIZEBORDER | DW_FCF_MINMAX)); Setup(this); }
     Window() { SetHWND(dw_window_new(HWND_DESKTOP, "", DW_FCF_SYSMENU | DW_FCF_TITLEBAR |
-                        DW_FCF_TASKLIST | DW_FCF_SIZEBORDER | DW_FCF_MINMAX)); Setup(); }
+                        DW_FCF_TASKLIST | DW_FCF_SIZEBORDER | DW_FCF_MINMAX)); Setup(this); }
 
     // User functions
     void SetText(const char *text) { dw_window_set_text(hwnd, text); }
@@ -436,8 +479,6 @@ public:
         if(!DeleteConnected) {
             dw_signal_connect(hwnd, DW_SIGNAL_DELETE, DW_SIGNAL_FUNC(_OnDelete), this);
             DeleteConnected = true;
-        } else {
-            DeleteConnected = false;
         }
     }
 #endif
@@ -447,8 +488,6 @@ public:
         if(!DeleteConnected) {
             dw_signal_connect(hwnd, DW_SIGNAL_DELETE, DW_SIGNAL_FUNC(_OnDelete), this);
             DeleteConnected = true;
-        } else {
-            DeleteConnected = false;
         }
     }
 #ifdef DW_LAMBDA
@@ -458,8 +497,6 @@ public:
         if(!ConfigureConnected) {
             dw_signal_connect(hwnd, DW_SIGNAL_CONFIGURE, DW_SIGNAL_FUNC(_OnConfigure), this);
             ConfigureConnected = true;
-        } else {
-            ConfigureConnected = false;
         }
     }    
 #endif
@@ -469,8 +506,6 @@ public:
         if(!ConfigureConnected) {
             dw_signal_connect(hwnd, DW_SIGNAL_CONFIGURE, DW_SIGNAL_FUNC(_OnConfigure), this);
             ConfigureConnected = true;
-        } else {
-            ConfigureConnected = false;
         }
     }    
 protected:
@@ -538,12 +573,12 @@ class Button : public TextButton
 {
 public:
     // Constructors
-    Button(const char *text, unsigned long id) { SetHWND(dw_button_new(text, id)); Setup(); }
-    Button(std::string text, unsigned long id) { SetHWND(dw_button_new(text.c_str(), id)); Setup(); }
-    Button(unsigned long id) { SetHWND(dw_button_new("", id)); Setup(); }
-    Button(const char *text) { SetHWND(dw_button_new(text, 0)); Setup(); }
-    Button(std::string text) { SetHWND(dw_button_new(text.c_str(), 0)); Setup(); }
-    Button() { SetHWND(dw_button_new("", 0)); Setup(); }
+    Button(const char *text, unsigned long id) { SetHWND(dw_button_new(text, id)); Setup(this); }
+    Button(std::string text, unsigned long id) { SetHWND(dw_button_new(text.c_str(), id)); Setup(this); }
+    Button(unsigned long id) { SetHWND(dw_button_new("", id)); Setup(this); }
+    Button(const char *text) { SetHWND(dw_button_new(text, 0)); Setup(this); }
+    Button(std::string text) { SetHWND(dw_button_new(text.c_str(), 0)); Setup(this); }
+    Button() { SetHWND(dw_button_new("", 0)); Setup(this); }
 };
 
 class BitmapWidget : virtual public Widget
@@ -561,17 +596,17 @@ class BitmapButton : public Clickable, public Focusable, public BitmapWidget
 {
 public:
     // Constructors
-    BitmapButton(const char *text, unsigned long id) { SetHWND(dw_bitmapbutton_new(text, id)); Setup(); }
-    BitmapButton(unsigned long id) { SetHWND(dw_bitmapbutton_new("", id)); Setup(); }
-    BitmapButton(const char *text, unsigned long id, const char *file) { SetHWND(dw_bitmapbutton_new_from_file(text, id, file)); Setup(); }
-    BitmapButton(const char *text, const char *file) { SetHWND(dw_bitmapbutton_new_from_file(text, 0, file)); Setup(); }
-    BitmapButton(const char *text, unsigned long id, const char *data, int len) { SetHWND(dw_bitmapbutton_new_from_data(text, id, data, len)); Setup(); }
-    BitmapButton(const char *text, const char *data, int len) { SetHWND(dw_bitmapbutton_new_from_data(text, 0, data, len)); Setup(); }
-    BitmapButton(std::string text, unsigned long id) { SetHWND(dw_bitmapbutton_new(text.c_str(), id)); Setup(); }
-    BitmapButton(std::string text, unsigned long id, std::string file) { SetHWND(dw_bitmapbutton_new_from_file(text.c_str(), id, file.c_str())); Setup(); }
-    BitmapButton(std::string text, std::string file) { SetHWND(dw_bitmapbutton_new_from_file(text.c_str(), 0, file.c_str())); Setup(); }
-    BitmapButton(std::string text, unsigned long id, const char *data, int len) { SetHWND(dw_bitmapbutton_new_from_data(text.c_str(), id, data, len)); Setup(); }
-    BitmapButton(std::string text, const char *data, int len) { SetHWND(dw_bitmapbutton_new_from_data(text.c_str(), 0, data, len)); Setup(); }
+    BitmapButton(const char *text, unsigned long id) { SetHWND(dw_bitmapbutton_new(text, id)); Setup(this); }
+    BitmapButton(unsigned long id) { SetHWND(dw_bitmapbutton_new("", id)); Setup(this); }
+    BitmapButton(const char *text, unsigned long id, const char *file) { SetHWND(dw_bitmapbutton_new_from_file(text, id, file)); Setup(this); }
+    BitmapButton(const char *text, const char *file) { SetHWND(dw_bitmapbutton_new_from_file(text, 0, file)); Setup(this); }
+    BitmapButton(const char *text, unsigned long id, const char *data, int len) { SetHWND(dw_bitmapbutton_new_from_data(text, id, data, len)); Setup(this); }
+    BitmapButton(const char *text, const char *data, int len) { SetHWND(dw_bitmapbutton_new_from_data(text, 0, data, len)); Setup(this); }
+    BitmapButton(std::string text, unsigned long id) { SetHWND(dw_bitmapbutton_new(text.c_str(), id)); Setup(this); }
+    BitmapButton(std::string text, unsigned long id, std::string file) { SetHWND(dw_bitmapbutton_new_from_file(text.c_str(), id, file.c_str())); Setup(this); }
+    BitmapButton(std::string text, std::string file) { SetHWND(dw_bitmapbutton_new_from_file(text.c_str(), 0, file.c_str())); Setup(this); }
+    BitmapButton(std::string text, unsigned long id, const char *data, int len) { SetHWND(dw_bitmapbutton_new_from_data(text.c_str(), id, data, len)); Setup(this); }
+    BitmapButton(std::string text, const char *data, int len) { SetHWND(dw_bitmapbutton_new_from_data(text.c_str(), 0, data, len)); Setup(this); }
 };
 
 class CheckBoxes : virtual public TextButton
@@ -586,24 +621,24 @@ class CheckBox : public CheckBoxes
 {
 public:
     // Constructors
-    CheckBox(const char *text, unsigned long id) { SetHWND(dw_checkbox_new(text, id)); Setup(); }
-    CheckBox(std::string text, unsigned long id) { SetHWND(dw_checkbox_new(text.c_str(), id)); Setup(); }
-    CheckBox(unsigned long id) { SetHWND(dw_checkbox_new("", id)); Setup(); }
-    CheckBox(const char *text) { SetHWND(dw_checkbox_new(text, 0)); Setup(); }
-    CheckBox(std::string text) { SetHWND(dw_checkbox_new(text.c_str(), 0)); Setup(); }
-    CheckBox() { SetHWND(dw_checkbox_new("", 0)); Setup(); }
+    CheckBox(const char *text, unsigned long id) { SetHWND(dw_checkbox_new(text, id)); Setup(this); }
+    CheckBox(std::string text, unsigned long id) { SetHWND(dw_checkbox_new(text.c_str(), id)); Setup(this); }
+    CheckBox(unsigned long id) { SetHWND(dw_checkbox_new("", id)); Setup(this); }
+    CheckBox(const char *text) { SetHWND(dw_checkbox_new(text, 0)); Setup(this); }
+    CheckBox(std::string text) { SetHWND(dw_checkbox_new(text.c_str(), 0)); Setup(this); }
+    CheckBox() { SetHWND(dw_checkbox_new("", 0)); Setup(this); }
 };
 
 class RadioButton : public CheckBoxes
 {
 public:
     // Constructors
-    RadioButton(const char *text, unsigned long id) { SetHWND(dw_radiobutton_new(text, id)); Setup(); }
-    RadioButton(std::string text, unsigned long id) { SetHWND(dw_radiobutton_new(text.c_str(), id)); Setup(); }
-    RadioButton(unsigned long id) { SetHWND(dw_radiobutton_new("", id)); Setup(); }
-    RadioButton(const char *text) { SetHWND(dw_radiobutton_new(text, 0)); Setup(); }
-    RadioButton(std::string text) { SetHWND(dw_radiobutton_new(text.c_str(), 0)); Setup(); }
-    RadioButton() { SetHWND(dw_radiobutton_new("", 0)); Setup(); }
+    RadioButton(const char *text, unsigned long id) { SetHWND(dw_radiobutton_new(text, id)); Setup(this); }
+    RadioButton(std::string text, unsigned long id) { SetHWND(dw_radiobutton_new(text.c_str(), id)); Setup(this); }
+    RadioButton(unsigned long id) { SetHWND(dw_radiobutton_new("", id)); Setup(this); }
+    RadioButton(const char *text) { SetHWND(dw_radiobutton_new(text, 0)); Setup(this); }
+    RadioButton(std::string text) { SetHWND(dw_radiobutton_new(text.c_str(), 0)); Setup(this); }
+    RadioButton() { SetHWND(dw_radiobutton_new("", 0)); Setup(this); }
 };
 
 // Class for handling static text widget
@@ -702,6 +737,9 @@ class Render : public Drawable, public Widget
 {
 private:
     bool ExposeConnected, ConfigureConnected, KeyPressConnected, ButtonPressConnected, ButtonReleaseConnected, MotionNotifyConnected;
+#ifdef DW_ISOVERRIDDEN
+    bool SetupDone = false;
+#endif
 #ifdef DW_LAMBDA
     std::function<int(DWExpose *)> _ConnectExpose;
     std::function<int(int, int)> _ConnectConfigure;
@@ -717,59 +755,67 @@ private:
     int (*_ConnectButtonPressOld)(Render *, int x, int y, int buttonmask);
     int (*_ConnectButtonReleaseOld)(Render *, int x, int y, int buttonmask);
     int (*_ConnectMotionNotifyOld)(Render *, int x, int y, int buttonmask);
-    void Setup() {
-#ifdef DW_LAMBDA
-        _ConnectExpose = 0;
-        _ConnectConfigure = 0;
-        _ConnectKeyPress = 0;
-        _ConnectButtonPress = 0;
-        _ConnectButtonRelease = 0;
-        _ConnectMotionNotify = 0;
+protected:
+    // Called from the constructor of the most derived class, the type of
+    // "derived" tells us which of the handlers are actually overridden.
+    // Safe to call more than once: only the first call resets the state,
+    // so a subclass can call it again to pick up its own overrides.
+    template <class T>
+    void Setup(T *) {
+#ifdef DW_ISOVERRIDDEN
+        if(!SetupDone) {
+            SetupDone = true;
 #endif
-        _ConnectExposeOld = 0;
-        _ConnectConfigureOld = 0;
-        _ConnectCKeyPressOld = 0;
-        _ConnectKeyPressOld = 0;
-        _ConnectButtonPressOld = 0;
-        _ConnectButtonReleaseOld = 0;
-        _ConnectMotionNotifyOld = 0;
-        if(IsOverridden(Render::OnExpose, this)) {
+#ifdef DW_LAMBDA
+            _ConnectExpose = 0;
+            _ConnectConfigure = 0;
+            _ConnectKeyPress = 0;
+            _ConnectButtonPress = 0;
+            _ConnectButtonRelease = 0;
+            _ConnectMotionNotify = 0;
+#endif
+            _ConnectExposeOld = 0;
+            _ConnectConfigureOld = 0;
+            _ConnectCKeyPressOld = 0;
+            _ConnectKeyPressOld = 0;
+            _ConnectButtonPressOld = 0;
+            _ConnectButtonReleaseOld = 0;
+            _ConnectMotionNotifyOld = 0;
+            ExposeConnected = false;
+            ConfigureConnected = false;
+            KeyPressConnected = false;
+            ButtonPressConnected = false;
+            ButtonReleaseConnected = false;
+            MotionNotifyConnected = false;
+#ifdef DW_ISOVERRIDDEN
+        }
+#endif
+        if(!ExposeConnected && IsOverridden(&Render::OnExpose, &T::OnExpose)) {
             dw_signal_connect(hwnd, DW_SIGNAL_EXPOSE, DW_SIGNAL_FUNC(_OnExpose), this);
             ExposeConnected = true;
-        } else {
-            ExposeConnected = false;
         }
-        if(IsOverridden(Render::OnConfigure, this)) {
+        if(!ConfigureConnected && IsOverridden(&Render::OnConfigure, &T::OnConfigure)) {
             dw_signal_connect(hwnd, DW_SIGNAL_CONFIGURE, DW_SIGNAL_FUNC(_OnConfigure), this);
             ConfigureConnected = true;
-        } else {
-            ConfigureConnected = false;
         }
-        if(IsOverridden(Render::OnKeyPress, this)) {
+        if(!KeyPressConnected && IsOverridden(&Render::OnKeyPress, &T::OnKeyPress)) {
             dw_signal_connect(hwnd, DW_SIGNAL_KEY_PRESS, DW_SIGNAL_FUNC(_OnKeyPress), this);
             KeyPressConnected = true;
-        } else {
-            KeyPressConnected = false;
         }
-        if(IsOverridden(Render::OnButtonPress, this)) {
+        if(!ButtonPressConnected && IsOverridden(&Render::OnButtonPress, &T::OnButtonPress)) {
             dw_signal_connect(hwnd, DW_SIGNAL_BUTTON_PRESS, DW_SIGNAL_FUNC(_OnButtonPress), this);
             ButtonPressConnected = true;
-        } else {
-            ButtonPressConnected = false;
         }
-        if(IsOverridden(Render::OnButtonRelease, this)) {
+        if(!ButtonReleaseConnected && IsOverridden(&Render::OnButtonRelease, &T::OnButtonRelease)) {
             dw_signal_connect(hwnd, DW_SIGNAL_BUTTON_RELEASE, DW_SIGNAL_FUNC(_OnButtonRelease), this);
             ButtonReleaseConnected = true;
-        } else {
-            ButtonReleaseConnected = false;
         }
-        if(IsOverridden(Render::OnMotionNotify, this)) {
+        if(!MotionNotifyConnected && IsOverridden(&Render::OnMotionNotify, &T::OnMotionNotify)) {
             dw_signal_connect(hwnd, DW_SIGNAL_MOTION_NOTIFY, DW_SIGNAL_FUNC(_OnMotionNotify), this);
             MotionNotifyConnected = true;
-        } else {
-            MotionNotifyConnected = false;
         }
     }
+private:
     static int _OnExpose(HWND window, DWExpose *exp, void *data) {
         Render *classptr = reinterpret_cast<Render *>(data);
 #ifdef DW_LAMBDA
@@ -829,8 +875,8 @@ private:
         return classptr->OnMotionNotify(x, y, buttonmask); }
 public:
     // Constructors
-    Render(unsigned long id) { SetHWND(dw_render_new(id)); Setup(); }
-    Render() { SetHWND(dw_render_new(0)); Setup(); }
+    Render(unsigned long id) { SetHWND(dw_render_new(id)); Setup(this); }
+    Render() { SetHWND(dw_render_new(0)); Setup(this); }
 
     // User functions
     void DrawPoint(int x, int y) { dw_draw_point(hwnd, DW_NULL, x, y); }
@@ -925,7 +971,7 @@ public:
     void ConnectButtonPress(std::function<int(int, int, int)> userfunc)
     {
         _ConnectButtonPress = userfunc;
-        if(!KeyPressConnected) {
+        if(!ButtonPressConnected) {
             dw_signal_connect(hwnd, DW_SIGNAL_BUTTON_PRESS, DW_SIGNAL_FUNC(_OnButtonPress), this);
             ButtonPressConnected = true;
         }
@@ -934,7 +980,7 @@ public:
     void ConnectButtonPress(int (*userfunc)(Render *, int, int, int))
     {
         _ConnectButtonPressOld = userfunc;
-        if(!KeyPressConnected) {
+        if(!ButtonPressConnected) {
             dw_signal_connect(hwnd, DW_SIGNAL_BUTTON_PRESS, DW_SIGNAL_FUNC(_OnButtonPress), this);
             ButtonPressConnected = true;
         }
@@ -943,7 +989,7 @@ public:
     void ConnectButtonRelease(std::function<int(int, int, int)> userfunc)
     {
         _ConnectButtonRelease = userfunc;
-        if(!KeyPressConnected) {
+        if(!ButtonReleaseConnected) {
             dw_signal_connect(hwnd, DW_SIGNAL_BUTTON_RELEASE, DW_SIGNAL_FUNC(_OnButtonRelease), this);
             ButtonReleaseConnected = true;
         }
@@ -952,7 +998,7 @@ public:
     void ConnectButtonRelease(int (*userfunc)(Render *, int, int, int))
     {
         _ConnectButtonReleaseOld = userfunc;
-        if(!KeyPressConnected) {
+        if(!ButtonReleaseConnected) {
             dw_signal_connect(hwnd, DW_SIGNAL_BUTTON_RELEASE, DW_SIGNAL_FUNC(_OnButtonRelease), this);
             ButtonReleaseConnected = true;
         }
@@ -1099,6 +1145,9 @@ class HTML : public Widget
 {
 private:
     bool ChangedConnected, ResultConnected, MessageConnected;
+#ifdef DW_ISOVERRIDDEN
+    bool SetupDone = false;
+#endif
 #ifdef DW_LAMBDA
     std::function<int(int, std::string)> _ConnectChanged;
     std::function<int(int, std::string, void *)> _ConnectResult;
@@ -1110,37 +1159,48 @@ private:
     int (*_ConnectChangedOld)(HTML *, int status, std::string url);
     int (*_ConnectResultOld)(HTML *, int status, std::string result, void *scriptdata);
     int (*_ConnectMessageOld)(HTML *, std::string, std::string message);
-    void Setup() {
-#ifdef DW_LAMBDA
-        _ConnectChanged = 0;
-        _ConnectResult = 0;
-        _ConnectMessage = 0;
+protected:
+    // Called from the constructor of the most derived class, the type of
+    // "derived" tells us which of the handlers are actually overridden.
+    // Safe to call more than once: only the first call resets the state,
+    // so a subclass can call it again to pick up its own overrides.
+    template <class T>
+    void Setup(T *) {
+#ifdef DW_ISOVERRIDDEN
+        if(!SetupDone) {
+            SetupDone = true;
 #endif
-        _ConnectCChangedOld = 0;
-        _ConnectCResultOld = 0;
-        _ConnectCMessageOld = 0;
-        _ConnectChangedOld = 0;
-        _ConnectResultOld = 0;
-        _ConnectMessageOld = 0;
-        if(IsOverridden(HTML::OnChanged, this)) {
+#ifdef DW_LAMBDA
+            _ConnectChanged = 0;
+            _ConnectResult = 0;
+            _ConnectMessage = 0;
+#endif
+            _ConnectCChangedOld = 0;
+            _ConnectCResultOld = 0;
+            _ConnectCMessageOld = 0;
+            _ConnectChangedOld = 0;
+            _ConnectResultOld = 0;
+            _ConnectMessageOld = 0;
+            ChangedConnected = false;
+            ResultConnected = false;
+            MessageConnected = false;
+#ifdef DW_ISOVERRIDDEN
+        }
+#endif
+        if(!ChangedConnected && IsOverridden(&HTML::OnChanged, &T::OnChanged)) {
             dw_signal_connect(hwnd, DW_SIGNAL_HTML_CHANGED, DW_SIGNAL_FUNC(_OnChanged), this);
             ChangedConnected = true;
-        } else {
-            ChangedConnected = false;
         }
-        if(IsOverridden(HTML::OnResult, this)) {
+        if(!ResultConnected && IsOverridden(&HTML::OnResult, &T::OnResult)) {
             dw_signal_connect(hwnd, DW_SIGNAL_HTML_RESULT, DW_SIGNAL_FUNC(_OnResult), this);
             ResultConnected = true;
-        } else {
-            ResultConnected = false;
         }
-        if(IsOverridden(HTML::OnMessage, this)) {
+        if(!MessageConnected && IsOverridden(&HTML::OnMessage, &T::OnMessage)) {
             dw_signal_connect(hwnd, DW_SIGNAL_HTML_MESSAGE, DW_SIGNAL_FUNC(_OnMessage), this);
             MessageConnected = true;
-        } else {
-            MessageConnected = false;
         }
     }
+private:
     static int _OnChanged(HWND window, int status, char *url, void *data) {
         HTML *classptr = reinterpret_cast<HTML *>(data);
         std::string utf8string = url ? std::string(url) : std::string();
@@ -1180,8 +1240,8 @@ private:
             return classptr->OnMessage(utf8name, utf8message); }
 public:
     // Constructors
-    HTML(unsigned long id) { SetHWND(dw_html_new(id)); Setup(); }
-    HTML() { SetHWND(dw_html_new(0)); Setup(); }
+    HTML(unsigned long id) { SetHWND(dw_html_new(id)); Setup(this); }
+    HTML() { SetHWND(dw_html_new(0)); Setup(this); }
 
     // User functions
     void Action(int action) { dw_html_action(hwnd, action); }
@@ -1331,6 +1391,9 @@ class ListBoxes : virtual public Focusable
 {
 private:
     bool ListSelectConnected;
+#ifdef DW_ISOVERRIDDEN
+    bool SetupDone = false;
+#endif
 #ifdef DW_LAMBDA
     std::function<int(unsigned int)> _ConnectListSelect;
 #endif
@@ -1403,12 +1466,25 @@ public:
         }
     }    
 protected:
-    void Setup() {
-#ifdef DW_LAMBDA
-        _ConnectListSelect = 0;
+    // Called from the constructor of the most derived class, the type of
+    // "derived" tells us which of the handlers are actually overridden.
+    // Safe to call more than once: only the first call resets the state,
+    // so a subclass can call it again to pick up its own overrides.
+    template <class T>
+    void Setup(T *) {
+#ifdef DW_ISOVERRIDDEN
+        if(!SetupDone) {
+            SetupDone = true;
 #endif
-        _ConnectListSelectOld = 0;
-        if(IsOverridden(ListBoxes::OnListSelect, this)) {
+#ifdef DW_LAMBDA
+            _ConnectListSelect = 0;
+#endif
+            _ConnectListSelectOld = 0;
+            ListSelectConnected = false;
+#ifdef DW_ISOVERRIDDEN
+        }
+#endif
+        if(!ListSelectConnected && IsOverridden(&ListBoxes::OnListSelect, &T::OnListSelect)) {
             dw_signal_connect(hwnd, DW_SIGNAL_LIST_SELECT, DW_SIGNAL_FUNC(_OnListSelect), this);
             ListSelectConnected = true;
         }
@@ -1426,22 +1502,22 @@ class ComboBox : public TextEntry, public ListBoxes
 {
 public:
     // Constructors
-    ComboBox(const char *text, unsigned long id) { SetHWND(dw_combobox_new(text, id)); Setup(); }
-    ComboBox(std::string text, unsigned long id) { SetHWND(dw_combobox_new(text.c_str(), id)); Setup(); }
-    ComboBox(unsigned long id) { SetHWND(dw_combobox_new("", id)); Setup(); }
-    ComboBox(const char *text) { SetHWND(dw_combobox_new(text, 0)); Setup(); }
-    ComboBox(std::string text) { SetHWND(dw_combobox_new(text.c_str(), 0)); Setup(); }
-    ComboBox() { SetHWND(dw_combobox_new("", 0)); Setup(); }
+    ComboBox(const char *text, unsigned long id) { SetHWND(dw_combobox_new(text, id)); Setup(this); }
+    ComboBox(std::string text, unsigned long id) { SetHWND(dw_combobox_new(text.c_str(), id)); Setup(this); }
+    ComboBox(unsigned long id) { SetHWND(dw_combobox_new("", id)); Setup(this); }
+    ComboBox(const char *text) { SetHWND(dw_combobox_new(text, 0)); Setup(this); }
+    ComboBox(std::string text) { SetHWND(dw_combobox_new(text.c_str(), 0)); Setup(this); }
+    ComboBox() { SetHWND(dw_combobox_new("", 0)); Setup(this); }
 };
 
 class ListBox : public ListBoxes
 {
 public:
     // Constructors
-    ListBox(unsigned long id, int multi) { SetHWND(dw_listbox_new(id, multi)); Setup(); }
-    ListBox(unsigned long id) { SetHWND(dw_listbox_new(id, FALSE)); Setup(); }
-    ListBox(int multi) { SetHWND(dw_listbox_new(0, multi)); Setup(); }
-    ListBox() { SetHWND(dw_listbox_new(0, FALSE)); Setup(); }
+    ListBox(unsigned long id, int multi) { SetHWND(dw_listbox_new(id, multi)); Setup(this); }
+    ListBox(unsigned long id) { SetHWND(dw_listbox_new(id, FALSE)); Setup(this); }
+    ListBox(int multi) { SetHWND(dw_listbox_new(0, multi)); Setup(this); }
+    ListBox() { SetHWND(dw_listbox_new(0, FALSE)); Setup(this); }
 };
 
 // Base class for several ranged type widgets
@@ -1449,6 +1525,9 @@ class Ranged : virtual public Widget
 {
 private:
     bool ValueChangedConnected;
+#ifdef DW_ISOVERRIDDEN
+    bool SetupDone = false;
+#endif
 #ifdef DW_LAMBDA
     std::function<int(int)> _ConnectValueChanged;
 #endif
@@ -1464,16 +1543,27 @@ private:
         return classptr->OnValueChanged(value);
     }
 protected:
-    void Setup() {
-#ifdef DW_LAMBDA
-        _ConnectValueChanged = 0;
+    // Called from the constructor of the most derived class, the type of
+    // "derived" tells us which of the handlers are actually overridden.
+    // Safe to call more than once: only the first call resets the state,
+    // so a subclass can call it again to pick up its own overrides.
+    template <class T>
+    void Setup(T *) {
+#ifdef DW_ISOVERRIDDEN
+        if(!SetupDone) {
+            SetupDone = true;
 #endif
-        _ConnectValueChangedOld = 0;
-        if(IsOverridden(Ranged::OnValueChanged, this)) {
+#ifdef DW_LAMBDA
+            _ConnectValueChanged = 0;
+#endif
+            _ConnectValueChangedOld = 0;
+            ValueChangedConnected = false;
+#ifdef DW_ISOVERRIDDEN
+        }
+#endif
+        if(!ValueChangedConnected && IsOverridden(&Ranged::OnValueChanged, &T::OnValueChanged)) {
             dw_signal_connect(hwnd, DW_SIGNAL_VALUE_CHANGED, DW_SIGNAL_FUNC(_OnValueChanged), this);
             ValueChangedConnected = true;
-        } else {
-            ValueChangedConnected = false;
         }
     }
     // Our signal handler functions to be overriden...
@@ -1519,8 +1609,8 @@ class Slider : public Ranged
 {
 public:
     // Constructors
-    Slider(int orient, int increments, unsigned long id) { SetHWND(dw_slider_new(orient, increments, id)); Setup(); }
-    Slider(int orient, int increments) { SetHWND(dw_slider_new(orient, increments, 0)); Setup(); }
+    Slider(int orient, int increments, unsigned long id) { SetHWND(dw_slider_new(orient, increments, id)); Setup(this); }
+    Slider(int orient, int increments) { SetHWND(dw_slider_new(orient, increments, 0)); Setup(this); }
 
     // User functions
     unsigned int GetPos() { return dw_slider_get_pos(hwnd); }
@@ -1531,8 +1621,8 @@ class ScrollBar : public Ranged
 {
 public:
     // Constructors
-    ScrollBar(int orient, unsigned long id) { SetHWND(dw_scrollbar_new(orient, id)); Setup(); }
-    ScrollBar(int orient) { SetHWND(dw_scrollbar_new(orient, 0)); Setup(); }
+    ScrollBar(int orient, unsigned long id) { SetHWND(dw_scrollbar_new(orient, id)); Setup(this); }
+    ScrollBar(int orient) { SetHWND(dw_scrollbar_new(orient, 0)); Setup(this); }
 
     // User functions
     unsigned int GetPos() { return dw_scrollbar_get_pos(hwnd); }
@@ -1544,12 +1634,12 @@ class SpinButton : public Ranged, public TextEntry
 {
 public:
     // Constructors
-    SpinButton(const char *text, unsigned long id) { SetHWND(dw_spinbutton_new(text, id)); Setup(); }
-    SpinButton(std::string text, unsigned long id) { SetHWND(dw_spinbutton_new(text.c_str(), id)); Setup(); }
-    SpinButton(unsigned long id) { SetHWND(dw_spinbutton_new("", id)); Setup(); }
-    SpinButton(const char *text) { SetHWND(dw_spinbutton_new(text, 0)); Setup(); }
-    SpinButton(std::string text) { SetHWND(dw_spinbutton_new(text.c_str(), 0)); Setup(); }
-    SpinButton() { SetHWND(dw_spinbutton_new("", 0)); Setup(); }
+    SpinButton(const char *text, unsigned long id) { SetHWND(dw_spinbutton_new(text, id)); Setup(this); }
+    SpinButton(std::string text, unsigned long id) { SetHWND(dw_spinbutton_new(text.c_str(), id)); Setup(this); }
+    SpinButton(unsigned long id) { SetHWND(dw_spinbutton_new("", id)); Setup(this); }
+    SpinButton(const char *text) { SetHWND(dw_spinbutton_new(text, 0)); Setup(this); }
+    SpinButton(std::string text) { SetHWND(dw_spinbutton_new(text.c_str(), 0)); Setup(this); }
+    SpinButton() { SetHWND(dw_spinbutton_new("", 0)); Setup(this); }
 
     // User functions
     long GetPos() { return dw_spinbutton_get_pos(hwnd); }
@@ -1604,6 +1694,9 @@ class Notebook : public Widget
 {
 private:
     bool SwitchPageConnected;
+#ifdef DW_ISOVERRIDDEN
+    bool SetupDone = false;
+#endif
 #ifdef DW_LAMBDA
     std::function<int(unsigned long)> _ConnectSwitchPage;
 #endif
@@ -1619,16 +1712,27 @@ private:
         return classptr->OnSwitchPage(pageid);
     }
 protected:
-    void Setup() {
-#ifdef DW_LAMBDA
-        _ConnectSwitchPage = 0;
+    // Called from the constructor of the most derived class, the type of
+    // "derived" tells us which of the handlers are actually overridden.
+    // Safe to call more than once: only the first call resets the state,
+    // so a subclass can call it again to pick up its own overrides.
+    template <class T>
+    void Setup(T *) {
+#ifdef DW_ISOVERRIDDEN
+        if(!SetupDone) {
+            SetupDone = true;
 #endif
-        _ConnectSwitchPageOld = 0;
-        if(IsOverridden(Notebook::OnSwitchPage, this)) {
+#ifdef DW_LAMBDA
+            _ConnectSwitchPage = 0;
+#endif
+            _ConnectSwitchPageOld = 0;
+            SwitchPageConnected = false;
+#ifdef DW_ISOVERRIDDEN
+        }
+#endif
+        if(!SwitchPageConnected && IsOverridden(&Notebook::OnSwitchPage, &T::OnSwitchPage)) {
             dw_signal_connect(hwnd, DW_SIGNAL_SWITCH_PAGE, DW_SIGNAL_FUNC(_OnSwitchPage), this);
             SwitchPageConnected = true;
-        } else {
-            SwitchPageConnected = false;
         }
     }
     // Our signal handler functions to be overriden...
@@ -1640,9 +1744,9 @@ protected:
     }
 public:
     // Constructors
-    Notebook(unsigned long id, int top) { SetHWND(dw_notebook_new(id, top)); }
-    Notebook(unsigned long id) { SetHWND(dw_notebook_new(id, TRUE)); }
-    Notebook() { SetHWND(dw_notebook_new(0, TRUE)); }
+    Notebook(unsigned long id, int top) { SetHWND(dw_notebook_new(id, top)); Setup(this); }
+    Notebook(unsigned long id) { SetHWND(dw_notebook_new(id, TRUE)); Setup(this); }
+    Notebook() { SetHWND(dw_notebook_new(0, TRUE)); Setup(this); }
 
     // User functions
     void Pack(unsigned long pageid, Widget *page) { dw_notebook_pack(hwnd, pageid, page ? page->GetHWND() : DW_NOHWND); }
@@ -1680,6 +1784,9 @@ class ObjectView : virtual public Widget
 {
 private:
     bool ItemSelectConnected, ItemContextConnected;
+#ifdef DW_ISOVERRIDDEN
+    bool SetupDone = false;
+#endif
 #ifdef DW_LAMBDA
     std::function<int(HTREEITEM, std::string, void *)> _ConnectItemSelect;
     std::function<int(std::string, int, int, void *)> _ConnectItemContext;
@@ -1715,26 +1822,36 @@ private:
         return classptr->OnItemContext(utf8string, x, y, itemdata);
     }
 protected:
-    void SetupObjectView() {
-#ifdef DW_LAMBDA
-        _ConnectItemSelect = 0;
-        _ConnectItemContext = 0;
+    // Called from the constructor of the most derived class, the type of
+    // "derived" tells us which of the handlers are actually overridden.
+    // Safe to call more than once: only the first call resets the state,
+    // so a subclass can call it again to pick up its own overrides.
+    template <class T>
+    void SetupObjectView(T *) {
+#ifdef DW_ISOVERRIDDEN
+        if(!SetupDone) {
+            SetupDone = true;
 #endif
-        _ConnectCItemSelectOld = 0;
-        _ConnectCItemContextOld = 0;
-        _ConnectItemSelectOld = 0;
-        _ConnectItemContextOld = 0;
-        if(IsOverridden(ObjectView::OnItemSelect, this)) {
+#ifdef DW_LAMBDA
+            _ConnectItemSelect = 0;
+            _ConnectItemContext = 0;
+#endif
+            _ConnectCItemSelectOld = 0;
+            _ConnectCItemContextOld = 0;
+            _ConnectItemSelectOld = 0;
+            _ConnectItemContextOld = 0;
+            ItemSelectConnected = false;
+            ItemContextConnected = false;
+#ifdef DW_ISOVERRIDDEN
+        }
+#endif
+        if(!ItemSelectConnected && IsOverridden(&ObjectView::OnItemSelect, &T::OnItemSelect)) {
             dw_signal_connect(hwnd, DW_SIGNAL_ITEM_SELECT, DW_SIGNAL_FUNC(_OnItemSelect), this);
             ItemSelectConnected = true;
-        } else {
-            ItemSelectConnected = false;
         }
-        if(IsOverridden(ObjectView::OnItemContext, this)) {
+        if(!ItemContextConnected && IsOverridden(&ObjectView::OnItemContext, &T::OnItemContext)) {
             dw_signal_connect(hwnd, DW_SIGNAL_ITEM_CONTEXT, DW_SIGNAL_FUNC(_OnItemContext), this);
             ItemContextConnected = true;
-        } else {
-            ItemContextConnected = false;
         }
     }
     // Our signal handler functions to be overriden...
@@ -1808,6 +1925,9 @@ class Containers : virtual public Focusable, virtual public ObjectView
 {
 private:
     bool ItemEnterConnected, ColumnClickConnected;
+#ifdef DW_ISOVERRIDDEN
+    bool SetupDone = false;
+#endif
 #ifdef DW_LAMBDA
     std::function<int(std::string, void *)> _ConnectItemEnter;
     std::function<int(int)> _ConnectColumnClick;
@@ -1841,25 +1961,35 @@ private:
 protected:
     void *allocpointer;
     int allocrowcount;
-    void SetupContainer() {
-#ifdef DW_LAMBDA
-        _ConnectItemEnter = 0;
-        _ConnectColumnClick = 0;
+    // Called from the constructor of the most derived class, the type of
+    // "derived" tells us which of the handlers are actually overridden.
+    // Safe to call more than once: only the first call resets the state,
+    // so a subclass can call it again to pick up its own overrides.
+    template <class T>
+    void SetupContainer(T *) {
+#ifdef DW_ISOVERRIDDEN
+        if(!SetupDone) {
+            SetupDone = true;
 #endif
-        _ConnectItemEnterOld = 0;
-        _ConnectCItemEnterOld = 0;
-        _ConnectColumnClickOld = 0;
-        if(IsOverridden(Container::OnItemEnter, this)) {
+#ifdef DW_LAMBDA
+            _ConnectItemEnter = 0;
+            _ConnectColumnClick = 0;
+#endif
+            _ConnectItemEnterOld = 0;
+            _ConnectCItemEnterOld = 0;
+            _ConnectColumnClickOld = 0;
+            ItemEnterConnected = false;
+            ColumnClickConnected = false;
+#ifdef DW_ISOVERRIDDEN
+        }
+#endif
+        if(!ItemEnterConnected && IsOverridden(&Containers::OnItemEnter, &T::OnItemEnter)) {
             dw_signal_connect(hwnd, DW_SIGNAL_ITEM_ENTER, DW_SIGNAL_FUNC(_OnItemEnter), this);
             ItemEnterConnected = true;
-        } else {
-            ItemEnterConnected = false;
         }
-        if(IsOverridden(Container::OnColumnClick, this)) {
+        if(!ColumnClickConnected && IsOverridden(&Containers::OnColumnClick, &T::OnColumnClick)) {
             dw_signal_connect(hwnd, DW_SIGNAL_COLUMN_CLICK, DW_SIGNAL_FUNC(_OnColumnClick), this);
             ColumnClickConnected = true;
-        } else {
-            ColumnClickConnected = false;
         }
     }
     // Our signal handler functions to be overriden...
@@ -1963,7 +2093,7 @@ public:
     // User functions
     int Setup(unsigned long *flags, const char *titles[], int count, int separator) {
       int retval = dw_container_setup(hwnd, flags, (char **)titles, count, separator);
-      SetupObjectView(); SetupContainer();
+      SetupObjectView(this); SetupContainer(this);
       return retval;
     }    
     void ChangeItem(int column, int row, void *data) { dw_container_change_item(hwnd, column, row, data); }
@@ -1975,14 +2105,14 @@ class Filesystem : public Containers
 {
 public:
     // Constructors
-    Filesystem(unsigned long id, int multi) { SetHWND(dw_container_new(id, multi)); SetupObjectView(); SetupContainer(); }
-    Filesystem(int multi) { SetHWND(dw_container_new(0, multi)); SetupObjectView(); SetupContainer(); }
-    Filesystem() { SetHWND(dw_container_new(0, FALSE)); SetupObjectView(); SetupContainer(); }
+    Filesystem(unsigned long id, int multi) { SetHWND(dw_container_new(id, multi)); SetupObjectView(this); SetupContainer(this); }
+    Filesystem(int multi) { SetHWND(dw_container_new(0, multi)); SetupObjectView(this); SetupContainer(this); }
+    Filesystem() { SetHWND(dw_container_new(0, FALSE)); SetupObjectView(this); SetupContainer(this); }
 
     // User functions
     int Setup(unsigned long *flags, const char *titles[], int count) { 
       int retval = dw_filesystem_setup(hwnd, flags, (char **)titles, count);
-      SetupObjectView(); SetupContainer();
+      SetupObjectView(this); SetupContainer(this);
       return retval;
     }    
     int Setup(std::vector<unsigned long> flags, std::vector<std::string> titles) {
@@ -2000,7 +2130,7 @@ public:
           cflags[z] = flags[z];
       }
       int retval = dw_filesystem_setup(hwnd, cflags, (char **)ctitles, count);
-      SetupObjectView(); SetupContainer();
+      SetupObjectView(this); SetupContainer(this);
       return retval;
     }    
     void ChangeFile(int row, const char *filename, HICN icon) { dw_filesystem_change_file(hwnd, row, filename, icon); }
@@ -2018,6 +2148,9 @@ class Tree : virtual public Focusable, virtual public ObjectView
 {
 private:
     bool TreeExpandConnected;
+#ifdef DW_ISOVERRIDDEN
+    bool SetupDone = false;
+#endif
 #ifdef DW_LAMBDA
     std::function<int(HTREEITEM)> _ConnectTreeExpand;
 #endif
@@ -2032,19 +2165,30 @@ private:
             return classptr->_ConnectTreeExpandOld(classptr, item);
         return classptr->OnTreeExpand(item);
     }
-    void SetupTree() {
-#ifdef DW_LAMBDA
-        _ConnectTreeExpand = 0;
+protected:
+    // Called from the constructor of the most derived class, the type of
+    // "derived" tells us which of the handlers are actually overridden.
+    // Safe to call more than once: only the first call resets the state,
+    // so a subclass can call it again to pick up its own overrides.
+    template <class T>
+    void SetupTree(T *) {
+#ifdef DW_ISOVERRIDDEN
+        if(!SetupDone) {
+            SetupDone = true;
 #endif
-        _ConnectTreeExpandOld = 0;
-        if(IsOverridden(Tree::OnTreeExpand, this)) {
+#ifdef DW_LAMBDA
+            _ConnectTreeExpand = 0;
+#endif
+            _ConnectTreeExpandOld = 0;
+            TreeExpandConnected = false;
+#ifdef DW_ISOVERRIDDEN
+        }
+#endif
+        if(!TreeExpandConnected && IsOverridden(&Tree::OnTreeExpand, &T::OnTreeExpand)) {
             dw_signal_connect(hwnd, DW_SIGNAL_TREE_EXPAND, DW_SIGNAL_FUNC(_OnTreeExpand), this);
             TreeExpandConnected = true;
-        } else {
-            TreeExpandConnected = false;
         }
     }
-protected:
     // Our signal handler functions to be overriden...
     // If they are not overridden and an event is generated, remove the unused handler
     virtual int OnTreeExpand(HTREEITEM item) {
@@ -2054,8 +2198,8 @@ protected:
     }
 public:
     // Constructors
-    Tree(unsigned long id) { SetHWND(dw_tree_new(id)); SetupObjectView(); SetupTree(); }
-    Tree() { SetHWND(dw_tree_new(0)); SetupObjectView(); SetupTree(); }
+    Tree(unsigned long id) { SetHWND(dw_tree_new(id)); SetupObjectView(this); SetupTree(this); }
+    Tree() { SetHWND(dw_tree_new(0)); SetupObjectView(this); SetupTree(this); }
 
     // User functions
     void Clear() { dw_tree_clear(hwnd); }
@@ -2322,12 +2466,12 @@ class Notification final : public Clickable
 {
 public:
     // Constructors
-    Notification(const char *title, const char *imagepath, const char *description) { SetHWND(dw_notification_new(title, imagepath, description)); }
-    Notification(const char *title, const char *imagepath) { SetHWND(dw_notification_new(title, imagepath, NULL)); }
-    Notification(const char *title) { SetHWND(dw_notification_new(title, NULL, NULL)); }
-    Notification(std::string title, std::string imagepath, std::string description) { SetHWND(dw_notification_new(title.c_str(), imagepath.c_str(), description.c_str())); }
-    Notification(std::string title, std::string imagepath) { SetHWND(dw_notification_new(title.c_str(), imagepath.c_str(), NULL)); }
-    Notification(std::string title) { SetHWND(dw_notification_new(title.c_str(), NULL, NULL)); }
+    Notification(const char *title, const char *imagepath, const char *description) { SetHWND(dw_notification_new(title, imagepath, description)); Setup(this); }
+    Notification(const char *title, const char *imagepath) { SetHWND(dw_notification_new(title, imagepath, NULL)); Setup(this); }
+    Notification(const char *title) { SetHWND(dw_notification_new(title, NULL, NULL)); Setup(this); }
+    Notification(std::string title, std::string imagepath, std::string description) { SetHWND(dw_notification_new(title.c_str(), imagepath.c_str(), description.c_str())); Setup(this); }
+    Notification(std::string title, std::string imagepath) { SetHWND(dw_notification_new(title.c_str(), imagepath.c_str(), NULL)); Setup(this); }
+    Notification(std::string title) { SetHWND(dw_notification_new(title.c_str(), NULL, NULL)); Setup(this); }
 
     // User functions
     int Send() { int retval = dw_notification_send(hwnd); delete this; return retval; }
