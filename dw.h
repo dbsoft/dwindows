@@ -4,7 +4,10 @@
 #define _H_DW
 
 #ifdef __cplusplus
+#define DW_EXTERN_C extern "C"
 extern "C" {
+#else
+#define DW_EXTERN_C
 #endif
 
 /* Dynamic Windows version numbers */
@@ -1945,8 +1948,8 @@ typedef enum
 #ifdef __IOS__
 #define dwmain(a, b) \
 _dwmain(a, b); \
-void _dw_main_thread(int argc, char **argv); \
-void _dw_main_launch(void **); \
+DW_EXTERN_C void _dw_main_thread(int argc, char **argv); \
+DW_EXTERN_C void _dw_main_launch(void **); \
 int main(a, b) { \
     void **data = (void **)calloc(sizeof(void *), 3); \
     data[0] = DW_POINTER(_dwmain); \
