@@ -91,10 +91,10 @@ protected:
         // Save the C++ class pointer in the window data for later
         dw_window_set_data(hwnd, "_dw_classptr", this);
     }
-    HWND hwnd; 
+    HWND hwnd = DW_NOHWND; 
 public:
     HWND GetHWND() { return hwnd; }
-    int Destroy() { int retval = dw_window_destroy(hwnd); delete this; return retval; }
+    int Destroy() { int retval = dw_window_destroy(hwnd); hwnd = DW_NOHWND; delete this; return retval; }
     Widget *FromID(int id) { 
         HWND child = dw_window_from_id(hwnd, id);
         if(child) {
@@ -113,7 +113,10 @@ public:
     void SetStyle(unsigned long flags) { dw_window_set_style(hwnd, flags, flags); }
     void SetTooltip(const char *bubbletext) { dw_window_set_tooltip(hwnd, bubbletext); }
     void SetTooltip(std::string bubbletext) { dw_window_set_tooltip(hwnd, bubbletext.c_str()); }
+    int Show() { return dw_window_show(hwnd); }
+    int Hide() { return dw_window_hide(hwnd); }
     int Unpack() { return dw_box_unpack(hwnd); }
+    virtual ~Widget() { if (hwnd && hwnd != DW_NOHWND) { dw_window_destroy(hwnd); hwnd = DW_NOHWND; } }
 };
 
 // Box class is a packable object
@@ -443,8 +446,6 @@ public:
         _dw_string_free_return(retval);
     }
     void SetSize(unsigned long width, unsigned long height) { dw_window_set_size(hwnd, width, height); }
-    int Show() { return dw_window_show(hwnd); }
-    int Hide() { return dw_window_hide(hwnd); }
     void SetGravity(int horz, int vert) { dw_window_set_gravity(hwnd, horz, vert); }
     int Minimize() { return dw_window_minimize(hwnd); }
     int Raise() { return dw_window_raise(hwnd); }

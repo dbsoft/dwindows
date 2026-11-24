@@ -1948,11 +1948,11 @@ _dwmain(a, b); \
 void _dw_main_thread(int argc, char **argv); \
 void _dw_main_launch(void **); \
 int main(a, b) { \
-    void **data = calloc(sizeof(void *), 3); \
+    void **data = (void **)calloc(sizeof(void *), 3); \
     data[0] = DW_POINTER(_dwmain); \
     data[1] = DW_INT_TO_POINTER(argc); \
     data[2] = DW_POINTER(argv); \
-    dw_thread_new(_dw_main_launch, data, 0); \
+    dw_thread_new((void *)_dw_main_launch, (void *)data, 0); \
     _dw_main_thread(argc, argv); } \
 int _dwmain(a, b)
 #elif defined(__WIN32__)
