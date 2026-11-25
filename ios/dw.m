@@ -880,15 +880,8 @@ API_AVAILABLE(ios(13.0))
     dw_signal_disconnect_by_window(self);
     for(id object in [self subviews])
     {
-        NSUInteger rc = [object retainCount];
         [object removeFromSuperview];
-        /* TODO: Fix the cause of this...
-         * DWButtons have a lower retain count than the other widgets...
-         * so this release causes a crash. Figure out why it is lower...
-         * and make the others that way too.
-         */
-        if(rc > 2)
-            [object release];
+        [object release];
     }
     [super dealloc];
 }
@@ -6191,6 +6184,8 @@ DW_FUNCTION_RESTORE_PARAM7(box, HWND, item, HWND, width, int, height, int, hsize
 HWND _dw_internal_button_new(const char *text, ULONG cid, UIButtonType type)
 {
     DWButton *button = [[DWButton buttonWithType:type] retain];
+    /* The above method does not have any reference so we need 2 */
+    [button retain];
     if(text)
     {
         [button setTitle:[NSString stringWithUTF8String:text] forState:UIControlStateNormal];
