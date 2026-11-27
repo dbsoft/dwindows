@@ -90,6 +90,7 @@ import android.widget.LinearLayout
 import androidx.core.location.altitude.AltitudeConverterCompat
 import com.google.android.gms.location.*
 import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationResult
 
 /* DW pixel sizes are device pixels on the other platforms, but a phone is
  * 2-4x density. Set to false for literal pixel-for-pixel parity. */
@@ -3521,7 +3522,7 @@ class DWindows : AppCompatActivity() {
         val m = packageManager
         var s = packageName
         val p = m.getPackageInfo(s!!, 0)
-        s = p.applicationInfo.dataDir
+        s = p.applicationInfo?.dataDir ?: ""
         val c = cacheDir.path
 
         // Extract any non-resource assets to the cache directory
@@ -3617,6 +3618,7 @@ class DWindows : AppCompatActivity() {
 
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
+        super.onBackPressed()
         if(windowLayout != null) {
             val adapter: DWTabViewPagerAdapter = windowLayout!!.adapter as DWTabViewPagerAdapter
             val index = windowLayout!!.currentItem
@@ -3625,7 +3627,7 @@ class DWindows : AppCompatActivity() {
             // If the current window has a close button...
             if (count > 1 && index > 0 && index < count && (windowStyles[index] and 1) == 1) {
                 // Send the DW_SIGNAL_DELETE to the event handler
-                eventHandlerSimple(adapter.viewList[index], DWEvent.DELETE)
+                windowOf(index)?.let { eventHandlerSimple(it, DWEvent.DELETE) }
             }
         }
     }
@@ -3886,7 +3888,7 @@ class DWindows : AppCompatActivity() {
     {
         if(windowLayout != null) {
             val adapter: DWTabViewPagerAdapter = windowLayout!!.adapter as DWTabViewPagerAdapter
-            val index = adapter.viewList.indexOf(window)
+            val index = indexOfWindow(window)
 
             if (index != -1) {
                 windowDefault[index] = default
@@ -3897,11 +3899,20 @@ class DWindows : AppCompatActivity() {
     /* Page that hosts a window's content box */
     private fun pageOf(window: View): FrameLayout? = window.parent as? FrameLayout
 
-    /* Index of a window in the pager, from its content handle */
+    /* Page that hosts a window's content box, from either handle */
     private fun indexOfWindow(window: View): Int {
-        val page = pageOf(window) ?: return -1
-        return (windowLayout?.adapter as? DWTabViewPagerAdapter)?.viewList?.indexOf(page) ?: -1
+        val adapter = windowLayout?.adapter as? DWTabViewPagerAdapter ?: return -1
+        val page = pageOf(window) ?: window
+        for (i in 0 until adapter.viewList.size) {
+            if (adapter.viewList[i] === page) return i
+        }
+        return -1
     }
+
+    /* Content box on a page */
+    private fun windowOf(index: Int): View? =
+        ((windowLayout?.adapter as? DWTabViewPagerAdapter)?.viewList?.getOrNull(index)
+                as? FrameLayout)?.getChildAt(0)
 
     fun windowSetStyle(window: Any, style: Int, mask: Int)
     {
@@ -4220,7 +4231,7 @@ class DWindows : AppCompatActivity() {
                     button.text = text
                 } else if (window is LinearLayout) {
                     val adapter: DWTabViewPagerAdapter = windowLayout!!.adapter as DWTabViewPagerAdapter
-                    val index = adapter.viewList.indexOf(window)
+                    val index = indexOfWindow(window)
 
                     if(index != -1) {
                         windowTitles[index] = text
@@ -4246,7 +4257,7 @@ class DWindows : AppCompatActivity() {
                     text = button.text.toString()
                 } else if (window is LinearLayout) {
                     val adapter: DWTabViewPagerAdapter = windowLayout!!.adapter as DWTabViewPagerAdapter
-                    val index = adapter.viewList.indexOf(window)
+                    val index = indexOfWindow(window)
 
                     if(index != -1) {
                         text = windowTitles[index]
@@ -4303,11 +4314,13 @@ class DWindows : AppCompatActivity() {
         if(windowLayout != null) {
             waitOnUiThread {
                 val adapter: DWTabViewPagerAdapter = windowLayout!!.adapter as DWTabViewPagerAdapter
-                val index = adapter.viewList.indexOf(window)
-
+                val index = indexOfWindow(window)
+                val page = windowPage(window)
                 if(state == 0) {
+                    page.visibility = View.GONE
                     window.visibility = View.GONE
                 } else {
+                    page.visibility = View.VISIBLE
                     window.visibility = View.VISIBLE
                 }
                 adapter.notifyDataSetChanged()
@@ -4325,7 +4338,7 @@ class DWindows : AppCompatActivity() {
         } else if(windowLayout != null && window is View) {
             waitOnUiThread {
                 val adapter: DWTabViewPagerAdapter = windowLayout!!.adapter as DWTabViewPagerAdapter
-                val index = adapter.viewList.indexOf(window)
+                val index = indexOfWindow(window as View)
 
                 // We need to have at least 1 window...
                 // so only destroy secondary windows
