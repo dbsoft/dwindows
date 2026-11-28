@@ -93,6 +93,7 @@ import com.google.android.gms.location.*
 /* DW pixel sizes are device pixels on the other platforms, but a phone is
  * 2-4x density. Set to false for literal pixel-for-pixel parity. */
 internal const val DW_SCALE_LAYOUT_PX = true
+private const val DW_FCF_CLOSEBUTTON = 1
 private const val DW_FCF_FULLSCREEN = 1 shl 2
 private const val DW_ROW_LINE_HEIGHT = 20
 private const val DW_ROW_ICON_SIZE = 24
@@ -3627,18 +3628,20 @@ class DWindows : AppCompatActivity() {
 
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
-        super.onBackPressed()
-        if(windowLayout != null) {
-            val adapter: DWTabViewPagerAdapter = windowLayout!!.adapter as DWTabViewPagerAdapter
-            val index = windowLayout!!.currentItem
-            val count = windowStyles.count()
-
-            // If the current window has a close button...
-            if (count > 1 && index > 0 && index < count && (windowStyles[index] and 1) == 1) {
-                // Send the DW_SIGNAL_DELETE to the event handler
-                windowOf(index)?.let { eventHandlerSimple(it, DWEvent.DELETE) }
-            }
+        // A closable window consumes the back press.  Only the last window,
+        // or one without a close button, falls through and exits.
+        if(closeCurrentWindow()) {
+            return
         }
+        super.onBackPressed()
+    }
+
+    // The home-as-up arrow is the Android affordance for leaving a screen
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        if(item.itemId == R.id.home && closeCurrentWindow()) {
+            return true
+        }
+        return super.onOptionsItemSelected(item)
     }
 
     override fun onMultiWindowModeChanged(isInMultiWindowMode: Boolean, newConfig: Configuration) {
@@ -4307,7 +4310,7 @@ class DWindows : AppCompatActivity() {
                     windowDefault[index]?.requestFocus()
                 }
                 // Add or remove a back button depending on the visible window
-                if(index > 0 && (windowStyles[index] and 1) == 1) {
+                if(windowClosable(index)) {
                     this.actionBar?.setDisplayHomeAsUpEnabled(true)
                 } else {
                     this.actionBar?.setDisplayHomeAsUpEnabled(false)
@@ -4336,6 +4339,50 @@ class DWindows : AppCompatActivity() {
                 windowSwitchWindow(index)
             }
         }
+    }
+
+    /* A window can be closed by the user when it is a secondary window that
+     * carries the close style, and it isn't the last one left.  windowDestroy()
+     * refuses index 0, so that stays the root that everything returns to.
+     */
+    private fun windowClosable(index: Int): Boolean {
+        if(windowLayout == null) {
+            return false
+        }
+        val count = windowStyles.count()
+
+        return count > 1 && index > 0 && index < count &&
+                (windowStyles[index] and DW_FCF_CLOSEBUTTON) == DW_FCF_CLOSEBUTTON
+    }
+
+    /* Ask the app to close a window, the way a titlebar close button does on
+     * the other platforms.  This only raises DW_SIGNAL_DELETE; the app's
+     * handler decides whether to call dw_window_destroy(), so a confirm
+     * prompt still works.
+     */
+    fun windowClose(window: View): Int {
+        var retval = 1 // DW_ERROR_GENERAL
+
+        waitOnUiThread {
+            val index = indexOfWindow(window)
+
+            if(index != -1 && windowClosable(index)) {
+                windowOf(index)?.let { eventHandlerSimple(it, DWEvent.DELETE) }
+                retval = 0 // DW_ERROR_NONE
+            }
+        }
+        return retval
+    }
+
+    // Close the window the user is looking at, if it can be closed
+    private fun closeCurrentWindow(): Boolean {
+        val index = windowLayout?.currentItem ?: return false
+
+        if(!windowClosable(index)) {
+            return false
+        }
+        windowOf(index)?.let { eventHandlerSimple(it, DWEvent.DELETE) }
+        return true
     }
 
     fun windowDestroy(window: Any): Int {
