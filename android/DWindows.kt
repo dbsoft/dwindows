@@ -220,6 +220,14 @@ internal object DWBoxLayout {
         c.view.measure(UNSPEC, UNSPEC)
         if (c.view.measuredWidth > c.w) c.w = c.view.measuredWidth
         if (c.view.measuredHeight > c.h) c.h = c.view.measuredHeight
+        /* If the item has no size but is expandable... default the size to 1.
+         * Mirrors the box case in _dw_resize_box() pass 1. A widget that
+         * measures nothing (a WebView under UNSPECIFIED, for one) would
+         * otherwise contribute nothing to minh - usedy, leaving the divisor
+         * zero and the widget at zero size.
+         */
+        if (c.w == 0 && c.hsize) c.w = 1
+        if (c.h == 0 && c.vsize) c.h = 1
     }
 
     fun measure(box: DWBox, widthSpec: Int, heightSpec: Int) {
