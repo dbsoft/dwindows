@@ -89,8 +89,6 @@ import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import android.widget.LinearLayout
 import androidx.core.location.altitude.AltitudeConverterCompat
 import com.google.android.gms.location.*
-import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.location.LocationResult
 
 /* DW pixel sizes are device pixels on the other platforms, but a phone is
  * 2-4x density. Set to false for literal pixel-for-pixel parity. */
@@ -3440,6 +3438,9 @@ class DWindows : AppCompatActivity() {
     private var windowStyles = mutableListOf<Int>()
     private var windowDefault = mutableListOf<View?>()
     private var geoManager: DWGeoManager? = null
+    private var geoRequesting = false
+    private var geoInterval = 0L
+    private val GEO_REQUEST_CODE = 0x4A31
 
     // Our version of runOnUiThread that waits for execution
     fun waitOnUiThread(runnable: Runnable)
@@ -4351,17 +4352,15 @@ class DWindows : AppCompatActivity() {
                 // We need to have at least 1 window...
                 // so only destroy secondary windows
                 if(index > 0) {
-                    val newindex = index - 1
-                    val newwindow = adapter.viewList[newindex]
-
-                    // Make sure the previous window is visible...
-                    // not sure if we should search the list for a visible
-                    // window or force it visible.  Forcing visible for now.
-                    if(newwindow.visibility != View.VISIBLE) {
-                        newwindow.visibility = View.VISIBLE
-                    }
-                    // Switch to the previous window
-                    windowSwitchWindow(newindex)
+                    val current = windowLayout!!.currentItem
+                    // Destroying the window that is on screen moves to the one
+                    // beneath it.  Destroying a window below the current one must
+                    // leave the current window where it is, only shifting the
+                    // pager back by one to account for the removed entry.
+                    val onscreen = index == current
+                    val target = if (onscreen) index - 1
+                                    else if (index < current) current - 1
+                                    else current
 
                     // Update our window list
                     adapter.viewList.removeAt(index)
@@ -4371,7 +4370,22 @@ class DWindows : AppCompatActivity() {
                     windowDefault.removeAt(index)
 
                     adapter.notifyDataSetChanged()
-                    
+
+                    if (onscreen) {
+                        val newwindow = adapter.viewList[target]
+                        // Make sure the previous window is visible...
+                        // not sure if we should search the list for a visible
+                        // window or force it visible.  Forcing visible for now.
+                        if(newwindow.visibility != View.VISIBLE) {
+                            newwindow.visibility = View.VISIBLE
+                        }
+                        // Switch to the previous window
+                        windowSwitchWindow(target)
+                    } else {
+                        // Leave the current window on screen
+                        windowLayout!!.setCurrentItem(target, false)
+                    }
+
                     retval = 0 // DW_ERROR_NONE
                 } else {
                     // If we are removing an individual widget,
@@ -5476,36 +5490,71 @@ class DWindows : AppCompatActivity() {
 
     fun geoStartUpdates(intervalMs: Long)
     {
-        var fineGranted = ActivityCompat.checkSelfPermission(this,
-            Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
-        var coarseGranted = ActivityCompat.checkSelfPermission(this,
-            ACCESS_COARSE_LOCATION
-        ) == PackageManager.PERMISSION_GRANTED
+        // Nothing to do for an app that never declared location
+        if (!geoDeclared()) {
+            return
+        }
 
-        if (!fineGranted || !coarseGranted) {
-            // Request permissions
+        // A prompt is already in flight, don't stack another one
+        if (geoRequesting) {
+            return
+        }
+
+        val fineGranted = ActivityCompat.checkSelfPermission(this,
+            Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        val coarseGranted = ActivityCompat.checkSelfPermission(this,
+            ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+
+        // Either one is enough to start; the C code decides what it accepts
+        if (fineGranted || coarseGranted) {
+            startGeo(intervalMs)
+            return
+        }
+
+        // requestPermissions() is asynchronous, so the interval can't ride in
+        // the request code and be read back
+        geoInterval = intervalMs
+        geoRequesting = true
+        try {
             ActivityCompat.requestPermissions(
                 this,
                 arrayOf(
                     Manifest.permission.ACCESS_FINE_LOCATION,
                     ACCESS_COARSE_LOCATION
                 ),
-                intervalMs.toInt()
+                GEO_REQUEST_CODE
             )
-            fineGranted = ActivityCompat.checkSelfPermission(this,
-                Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
-            coarseGranted = ActivityCompat.checkSelfPermission(this,
-                ACCESS_COARSE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED
-
+        } catch (e: Throwable) {
+            geoRequesting = false
         }
+    }
 
-        if (fineGranted && coarseGranted) {
-            waitOnUiThread {
+    // True only if the app declared a location permission in the manifest
+    private fun geoDeclared(): Boolean {
+        val info = try {
+            packageManager.getPackageInfo(packageName, PackageManager.GET_PERMISSIONS)
+        } catch (e: PackageManager.NameNotFoundException) {
+            return false
+        }
+        val requested = info.requestedPermissions ?: return false
+
+        return requested.contains(Manifest.permission.ACCESS_FINE_LOCATION) ||
+                requested.contains(ACCESS_COARSE_LOCATION)
+    }
+
+    // The checks above satisfy the annotation; the catch covers a fused
+    // provider that is missing or was revoked mid-call
+    @SuppressLint("MissingPermission")
+    private fun startGeo(intervalMs: Long)
+    {
+        waitOnUiThread {
+            try {
                 if(geoManager == null) {
-                    geoManager = DWGeoManager(this);
+                    geoManager = DWGeoManager(this)
                 }
                 geoManager?.startUpdates(intervalMs)
+            } catch (e: Throwable) {
+                // No Play Services, or permission pulled while we were busy
             }
         }
     }
